@@ -17,6 +17,8 @@ import { ToastContainer, ErrorBoundary } from './src/components';
 import { AppStoreProvider, useAppStore } from './src/store/AppStore';
 import { GTFSService } from './src/services/gtfs';
 import { useTheme } from './src/hooks/useTheme';
+import { memoryManager, PerformanceProfiler } from './src/utils/debug/memoryManager';
+import { cacheManager } from './src/utils/debug/cacheManager';
 
 // ── Inner bootstrap component — runs INSIDE AppStoreProvider ─────────────────
 function AppBootstrap() {
@@ -26,9 +28,20 @@ function AppBootstrap() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   useEffect(() => {
+    // A. Start Memory Shield
+    const stopMemoryMonitor = memoryManager.startMonitoring();
+    
+    // B. Register Cache Cleanup on critical memory pressure
+    memoryManager.registerCleanupTask(() => {
+      console.log('[App] Critical Memory Pressure: Clearing transient caches...');
+      cacheManager.clear();
+    });
+
     async function prepare() {
+      const bootStart = performance.now();
       try {
         // 1. Load Fonts Manually
+        const fontStart = performance.now();
         await Font.loadAsync({
           Inter_400Regular,
           Inter_500Medium,
@@ -40,14 +53,20 @@ function AppBootstrap() {
           Manrope_700Bold,
         });
         setFontsLoaded(true);
+        console.log(`[Performance] Fonts loaded in ${(performance.now() - fontStart).toFixed(2)}ms`);
 
         // 3. Session Restore & State Hydration
+        const authStart = performance.now();
         const { hydrateSession } = useAppStore.getState();
         await hydrateSession();
+        console.log(`[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`);
 
         const session = useAppStore.getState().currentUser;
+        if (session && __DEV__) {
+          console.log(`[App] Welcome back, ${session.full_name || 'User'}`);
+        }
 
-        // 4. Start Transit simulation (Lazy)
+        console.log(`[Performance] Total bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`);
       } catch (e) {
         console.warn('[App] Boot error:', e);
       } finally {
@@ -56,6 +75,9 @@ function AppBootstrap() {
     }
 
     prepare();
+    return () => {
+      stopMemoryMonitor();
+    };
   }, []);
 
   if (!bootstrapped || !fontsLoaded) {

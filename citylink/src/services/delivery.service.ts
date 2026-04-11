@@ -101,17 +101,23 @@ export async function fetchAgentProfile(agentId) {
 }
 
 // ── Find Nearby Agents ────────────────────────────────────────────────────────
-export async function findNearbyAgents(merchantLat, merchantLng, radiusKm = 5) {
+export async function findNearbyAgents(merchantLat, merchantLng, radiusKm = 10) {
   if (!hasSupabase()) return [];
+  
+  // 5-minute heartbeat window
+  const heartbeatThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
   const { data, error } = await supaQuery((c) =>
     c
       .from('delivery_agents')
       .select(`*, profile:profiles!delivery_agents_id_fkey(full_name, phone)`)
       .eq('is_online', true)
       .eq('agent_status', 'APPROVED')
+      .gt('location_updated_at', heartbeatThreshold) // Heartbeat filter
       .not('current_lat', 'is', null)
       .not('current_lng', 'is', null)
   );
+
   if (error || !data) return [];
 
   return data
@@ -121,7 +127,7 @@ export async function findNearbyAgents(merchantLat, merchantLng, radiusKm = 5) {
     }))
     .filter((a) => a.distanceKm <= radiusKm)
     .sort((a, b) => a.distanceKm - b.distanceKm)
-    .slice(0, 5);
+    .slice(0, 10); // Find top 10 potential candidates
 }
 
 // ── Dispatch Job ──────────────────────────────────────────────────────────────
@@ -162,18 +168,41 @@ export async function dispatchOrderToAgents(orderId, agentIds) {
 export async function acceptDeliveryJob(orderId, agentId) {
   if (!hasSupabase()) return { ok: true };
 
-  const { data, error } = await supaQuery((c) =>
-    c.rpc('accept_delivery_job', {
-      p_order_id: orderId,
-      p_agent_id: agentId,
-    })
-  );
+  let attempts = 0;
+  const maxAttempts = 3;
 
-  if (error || !data?.ok) {
-    return { ok: false, error: error?.message || data?.error || 'failed_to_accept_job' };
+  while (attempts < maxAttempts) {
+    try {
+      const { data, error } = await supaQuery((c) =>
+        c.rpc('accept_delivery_job', {
+          p_order_id: orderId,
+          p_agent_id: agentId,
+        })
+      );
+
+      if (!error && data?.ok) {
+        return { ok: true };
+      }
+
+      if (error || !data?.ok) {
+        const msg = error?.message || data?.error || 'failed_to_accept_job';
+        // If it's a conflict or "already accepted", don't retry
+        if (msg.includes('already_accepted') || msg.includes('not_available')) {
+          return { ok: false, error: msg };
+        }
+        throw new Error(msg);
+      }
+    } catch (e) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        return { ok: false, error: e.message };
+      }
+      // Exponential backoff: 500ms, 1000ms, 2000ms
+      await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempts - 1)));
+    }
   }
 
-  return { ok: true };
+  return { ok: false, error: 'Max retry attempts reached' };
 }
 
 // ── Decline Delivery Job ──────────────────────────────────────────────────────

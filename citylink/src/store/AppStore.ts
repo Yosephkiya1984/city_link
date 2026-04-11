@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useAuthStore } from './AuthStore';
 import { useWalletStore } from './WalletStore';
 import { useSystemStore } from './SystemStore';
+import { useMarketplaceStore } from './MarketplaceStore';
 import { User, Product } from '../types';
 
 /**
@@ -31,7 +32,7 @@ export interface AppState {
   notifications: any[];
   unreadCount: number;
 
-  // Still local to AppStore (To be migrated in next chunk)
+  // Bridge to MarketplaceStore
   products: Product[];
   setProducts: (items: Product[]) => void;
   selProdCat: string;
@@ -49,9 +50,7 @@ export const useAppStore = <T,>(selector: (state: AppState) => T): T => {
   const auth = useAuthStore();
   const wallet = useWalletStore();
   const system = useSystemStore();
-  
-  // Local state for non-migrated items (using a hidden internal store)
-  const local = useInternalStore();
+  const market = useMarketplaceStore();
 
   const bridgeState: AppState = {
     currentUser: auth.currentUser,
@@ -70,12 +69,12 @@ export const useAppStore = <T,>(selector: (state: AppState) => T): T => {
     notifications: system.notifications,
     unreadCount: system.unreadCount,
     
-    products: local.products,
-    setProducts: local.setProducts,
-    selProdCat: local.selProdCat,
-    setSelProdCat: local.setSelProdCat,
-    favorites: local.favorites,
-    setFavorites: local.setFavorites,
+    products: market.products,
+    setProducts: market.setProducts,
+    selProdCat: market.selProdCat,
+    setSelProdCat: market.setSelProdCat,
+    favorites: market.favorites,
+    setFavorites: market.setFavorites,
 
     hydrateSession: async () => {
       await auth.hydrate();
@@ -87,35 +86,26 @@ export const useAppStore = <T,>(selector: (state: AppState) => T): T => {
       await auth.signOut();
       wallet.setBalance(0);
       wallet.setTransactions([]);
+      market.reset();
     }
   };
 
   return selector(bridgeState);
 };
 
-// Internal store for remaining legacy data
-const useInternalStore = create<any>((set) => ({
-  products: [],
-  setProducts: (products: any) => set({ products }),
-  selProdCat: 'All',
-  setSelProdCat: (selProdCat: any) => set({ selProdCat }),
-  favorites: [],
-  setFavorites: (favorites: any) => set({ favorites }),
-}));
-
 // Static access for service files
 useAppStore.getState = () => {
   const auth = useAuthStore.getState();
   const wallet = useWalletStore.getState();
   const system = useSystemStore.getState();
-  const local = useInternalStore.getState();
+  const market = useMarketplaceStore.getState();
 
   return {
     currentUser: auth.currentUser,
     balance: wallet.balance,
     isDark: system.isDark,
-    products: local.products,
-    // Add other fields as needed for services
+    products: market.products,
+    favorites: market.favorites,
   } as any;
 };
 
