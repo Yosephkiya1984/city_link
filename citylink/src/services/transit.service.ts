@@ -4,7 +4,7 @@ import { getClient, supaQuery, hasSupabase } from './supabase';
  * tapIn — records entrance to a rail station.
  */
 export async function tapIn(session: any) {
-  return supaQuery((c) => c.from('rail_sessions').insert(session).select().single());
+  return supaQuery((c) => c.from('rail_journeys').insert(session).select().single());
 }
 
 /**
@@ -26,7 +26,7 @@ export async function tapOut(sessionId: string, exitId: string, exitName: string
 export async function fetchMyRailJourneys(userId: string) {
   return supaQuery((c) =>
     c
-      .from('rail_sessions')
+      .from('rail_journeys')
       .select('*')
       .eq('user_id', userId)
       .order('tap_in_time', { ascending: false })

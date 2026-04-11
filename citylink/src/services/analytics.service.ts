@@ -44,7 +44,7 @@ export async function fetchCityStats() {
 
     // 3. LRT Riders (Active sessions)
     const { data: rail } = await supaQuery((c) =>
-      c.from('rail_sessions').select('id', { count: 'exact', head: true }).is('tap_out_time', null)
+      c.from('rail_journeys').select('id', { count: 'exact', head: true }).is('tap_out_time', null)
     );
     stats.lrtRiders = rail ? rail.length.toString() : '45';
 
