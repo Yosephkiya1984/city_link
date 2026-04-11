@@ -29,8 +29,8 @@ export default function PerformanceProfilerScreen() {
 
   // Initialize animations
   useEffect(() => {
-    const values = {};
-    ['overview', 'memory', 'cache', 'errors', 'network'].forEach((tab: any) => {
+    const values: Record<string, Animated.Value> = {};
+    ['overview', 'memory', 'cache', 'errors', 'network'].forEach((tab: string) => {
       values[tab] = new Animated.Value(0);
     });
     setAnimatedValues(values);

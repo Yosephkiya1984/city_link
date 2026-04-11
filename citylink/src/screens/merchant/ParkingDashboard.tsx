@@ -43,27 +43,27 @@ export default function ParkingDashboard() {
   const reset = useAppStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('live');
-  const [sessions, setSessions] = useState([]);
-  const [lots, setLots] = useState([]);
-  const [selectedLot, setSelectedLot] = useState(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [lots, setLots] = useState<any[]>([]);
+  const [selectedLot, setSelectedLot] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showSessionDetail, setShowSessionDetail] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(null);
-  const [exitRequests, setExitRequests] = useState([]);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [exitRequests, setExitRequests] = useState<any[]>([]);
 
   // KPI calculations
-  const totalSpots = lots.reduce((sum, lot) => sum + (lot.total_spots || 0), 0);
-  const occupiedSpots = sessions.filter((s) => s.status === 'ACTIVE').length;
+  const totalSpots = lots.reduce((sum: number, lot: any) => sum + (lot.total_spots || 0), 0);
+  const occupiedSpots = sessions.filter((s: any) => s.status === 'ACTIVE').length;
   const availableSpots = totalSpots - occupiedSpots;
-  const occupancyRate = totalSpots > 0 ? ((occupiedSpots / totalSpots) * 100).toFixed(1) : 0;
+  const occupancyRate = totalSpots > 0 ? ((occupiedSpots / totalSpots) * 100).toFixed(1) : '0';
 
   const todayRevenue = sessions
     .filter(
-      (s) =>
+      (s: any) =>
         s.status === 'COMPLETED' &&
         new Date(s.end_time).toDateString() === new Date().toDateString()
     )
-    .reduce((sum, s) => sum + (s.calculated_cost || 0), 0);
+    .reduce((sum: number, s: any) => sum + (s.calculated_cost || 0), 0);
 
   const loadData = async () => {
     if (!currentUser?.id) return;
@@ -75,11 +75,11 @@ export default function ParkingDashboard() {
       ]);
 
       if (sessionsRes.data) {
-        const sortedSessions = sessionsRes.data.sort(
-          (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+        const sortedSessions = (sessionsRes.data as any[]).sort(
+          (a: any, b: any) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
         );
         setSessions(sortedSessions);
-        setExitRequests(sortedSessions.filter((s) => s.status === 'AWAITING_CONFIRMATION'));
+        setExitRequests(sortedSessions.filter((s: any) => s.status === 'AWAITING_CONFIRMATION'));
       }
       if (lotsRes.data) {
         setLots(lotsRes.data);
@@ -101,7 +101,7 @@ export default function ParkingDashboard() {
     table: 'parking_sessions',
     filter: `operator_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
-    onPayload: (payload) => {
+    onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('ðŸ…¿ï¸ New parking session started', 'info');
@@ -110,7 +110,7 @@ export default function ParkingDashboard() {
     },
   });
 
-  const updateSession = async (sessionId, newStatus) => {
+  const updateSession = async (sessionId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -142,14 +142,14 @@ export default function ParkingDashboard() {
     }
   };
 
-  const getSpotStatus = (spotNumber) => {
+  const getSpotStatus = (spotNumber: number) => {
     const session = sessions.find(
-      (s) => s.lot_id === selectedLot?.id && s.spot_id === spotNumber && s.status === 'ACTIVE'
+      (s: any) => s.lot_id === selectedLot?.id && s.spot_id === spotNumber && s.status === 'ACTIVE'
     );
     return session ? 'occupied' : 'available';
   };
 
-  const getSpotColor = (status) => {
+  const getSpotColor = (status: string) => {
     switch (status) {
       case 'available':
         return PARKING_COLORS.spot.available;
@@ -176,7 +176,7 @@ export default function ParkingDashboard() {
           key={i}
           onPress={() => {
             const session = sessions.find(
-              (s) => s.lot_id === selectedLot?.id && s.spot_id === i && s.status === 'ACTIVE'
+              (s: any) => s.lot_id === selectedLot?.id && s.spot_id === i && s.status === 'ACTIVE'
             );
             if (session) {
               setSelectedSession(session);
@@ -225,7 +225,7 @@ export default function ParkingDashboard() {
     );
   };
 
-  const SessionCard = ({ session }) => {
+  const SessionCard = ({ session }: { session: any }) => {
     const elapsed = session.start_time
       ? Math.floor((new Date().getTime() - new Date(session.start_time).getTime()) / 60000)
       : 0;
@@ -530,7 +530,7 @@ export default function ParkingDashboard() {
             {exitRequests.length > 0 && (
               <View style={{ marginTop: 20 }}>
                 <SectionTitle title="Exit Requests" />
-                {exitRequests.map((session) => (
+                {exitRequests.map((session: any) => (
                   <Card
                     key={session.id}
                     style={{

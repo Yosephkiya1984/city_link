@@ -16,9 +16,9 @@ export function TonightScreen() {
   const setTonightFilter = useAppStore((s) => s.setTonightFilter);
   const lang = useAppStore((s) => s.lang);
 
-  const [spots, setSpots] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
+  const [spots, setSpots] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selected, setSelected] = useState<any>(null);
 
   useEffect(() => {
     async function load() {
@@ -30,11 +30,13 @@ export function TonightScreen() {
     load();
   }, []);
 
-  const filtered = spots.filter((s) => tonightFilter === 'All' || s.cat === tonightFilter);
+  const filtered = spots.filter(
+    (s: any) => tonightFilter === 'All' || s.cat === tonightFilter
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar title="ðŸŒ™ Tonight in Addis" />
+      <TopBar title="🌙 Tonight in Addis" />
       <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 10 }}>
         {TONIGHT_CATS.map((c) => (
           <TouchableOpacity
@@ -64,12 +66,12 @@ export function TonightScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
         {loading ? (
           <Text style={{ color: C.sub, textAlign: 'center', marginTop: 40 }}>
-            {t('Loadingâ€¦', lang)}
+            {t('Loading…', lang)}
           </Text>
         ) : filtered.length === 0 ? (
-          <EmptyState icon="ðŸŒ™" title="No Events Found" subtitle="Looks quiet tonight." />
+          <EmptyState icon="🌙" title="No Events Found" subtitle="Looks quiet tonight." />
         ) : (
-          filtered.map((spot) => (
+          filtered.map((spot: any) => (
             <TouchableOpacity
               key={spot.id}
               onPress={() => setSelected(spot)}
@@ -90,16 +92,16 @@ export function TonightScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 44 }}>{spot.icon || 'ðŸŽª'}</Text>
+                <Text style={{ fontSize: 44 }}>{spot.icon || '🎪'}</Text>
               </View>
               <View style={{ padding: 14, backgroundColor: C.surface }}>
                 <Text style={{ color: C.text, fontSize: FontSize.xl, fontWeight: '700' }}>
                   {spot.name}
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
-                  <Text style={{ color: C.sub }}>â­ {spot.rating || 4.5}</Text>
+                  <Text style={{ color: C.sub }}>⭐ {spot.rating || 4.5}</Text>
                   <Text style={{ color: C.sub }}>
-                    ðŸ• {spot.opens || '18:00'} â€“ {spot.closes || '02:00'}
+                    🕔 {spot.opens || '18:00'} – {spot.closes || '02:00'}
                   </Text>
                   <Text style={{ color: spot.entry > 0 ? C.amber : C.green, fontWeight: '700' }}>
                     {spot.entry > 0 ? `${spot.entry} ETB` : t('Free Entry', lang)}
@@ -124,10 +126,10 @@ export function TonightScreen() {
               padding: 24,
               paddingBottom: 40,
             }}
-            onPress={(e) => e.stopPropagation()}
+            onPress={(e: any) => e.stopPropagation()}
           >
             <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 12 }}>
-              {selected?.icon || 'ðŸŽª'}
+              {selected?.icon || '🎪'}
             </Text>
             <Text
               style={{
@@ -140,7 +142,7 @@ export function TonightScreen() {
               {selected?.name}
             </Text>
             <Text style={{ color: C.sub, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
-              ðŸ“ {selected?.subcity || 'Addis Ababa'}
+              📍 {selected?.subcity || 'Addis Ababa'}
             </Text>
             {selected &&
               [
@@ -148,7 +150,7 @@ export function TonightScreen() {
                 ['Opens', selected.opens],
                 ['Closes', selected.closes],
                 ['Entry', selected.entry > 0 ? `${selected.entry} ETB` : t('Free', lang)],
-                ['Rating', `â­ ${selected.rating || 4.5}`],
+                ['Rating', `⭐ ${selected.rating || 4.5}`],
               ].map(([k, v]) => (
                 <View
                   key={k}

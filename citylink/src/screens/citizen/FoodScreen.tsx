@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { User, FoodItem } from '../../types';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
 import { useAppStore } from '../../store/AppStore';
@@ -18,10 +19,10 @@ export function FoodScreen() {
   const showToast = useAppStore((s) => s.showToast);
   const lang = useAppStore((s) => s.lang);
 
-  const [restaurants, setRestaurants] = useState([]);
+  const [restaurants, setRestaurants] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRest, setSelectedRest] = useState(null);
-  const [menuItems, setMenuItems] = useState([]);
+  const [selectedRest, setSelectedRest] = useState<User | null>(null);
+  const [menuItems, setMenuItems] = useState<FoodItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(false);
   const [cart, setCart] = useState<Record<string, number>>({});
 
@@ -35,7 +36,7 @@ export function FoodScreen() {
     loadRests();
   }, []);
 
-  async function openRestaurant(r) {
+  async function openRestaurant(r: User) {
     setSelectedRest(r);
     setCart({});
     setMenuLoading(true);
@@ -54,10 +55,10 @@ export function FoodScreen() {
     0
   ) as number;
 
-  function addToCart(itemId) {
+  function addToCart(itemId: string) {
     setCart((prev) => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
   }
-  function removeFromCart(itemId) {
+  function removeFromCart(itemId: string) {
     setCart((prev) => {
       const next = { ...prev };
       if (next[itemId] > 1) next[itemId]--;
@@ -85,8 +86,8 @@ export function FoodScreen() {
     const payload = {
       id: orderId,
       citizen_id: currentUser.id,
-      merchant_id: selectedRest.id,
-      restaurant: selectedRest.merchant_name,
+      merchant_id: selectedRest!.id,
+      restaurant: selectedRest!.merchant_name || 'Restaurant',
       items: cartCount,
       total: cartTotal,
       delivery_pin: pin,

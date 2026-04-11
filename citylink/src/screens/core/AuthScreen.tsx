@@ -70,49 +70,49 @@ export default function AuthScreen() {
   }, []);
 
   // State management
-  const [currentScreen, setCurrentScreen] = useState('welcome'); // welcome, login, register, otp, fayda, kyc, station, inspector
-  const [authMode, setAuthMode] = useState('login'); // login, register, gov, station, inspector
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [devOtp, setDevOtp] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [authUserId, setAuthUserId] = useState(null);
+  const [currentScreen, setCurrentScreen] = useState<string>('welcome'); // welcome, login, register, otp, fayda, kyc, station, inspector
+  const [authMode, setAuthMode] = useState<string>('login'); // login, register, gov, station, inspector
+  const [phone, setPhone] = useState<string>('');
+  const [otp, setOtp] = useState<string>('');
+  const [devOtp, setDevOtp] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
 
   // Fayda KYC State
-  const [faydaFIN, setFaydaFIN] = useState('');
-  const [faydaOTP, setFaydaOTP] = useState('');
-  const [biometricSimulated, setBiometricSimulated] = useState(false);
-  const [kycStep, setKycStep] = useState(1); // 1: FIN entry, 2: OTP, 3: Biometric, 4: Review
-  const [faydaVerified, setFaydaVerified] = useState(false);
+  const [faydaFIN, setFaydaFIN] = useState<string>('');
+  const [faydaOTP, setFaydaOTP] = useState<string>('');
+  const [biometricSimulated, setBiometricSimulated] = useState<boolean>(false);
+  const [kycStep, setKycStep] = useState<number>(1); // 1: FIN entry, 2: OTP, 3: Biometric, 4: Review
+  const [faydaVerified, setFaydaVerified] = useState<boolean>(false);
 
   // Station Tablet State
-  const [stationName, setStationName] = useState('');
-  const [stationCode, setStationCode] = useState('');
+  const [stationName, setStationName] = useState<string>('');
+  const [stationCode, setStationCode] = useState<string>('');
 
   // Inspector State
-  const [inspectorBadge, setInspectorBadge] = useState('');
-  const [inspectorPIN, setInspectorPIN] = useState('');
+  const [inspectorBadge, setInspectorBadge] = useState<string>('');
+  const [inspectorPIN, setInspectorPIN] = useState<string>('');
 
   // State for KYB fields
-  const [tin, setTin] = useState('');
-  const [licenseNo, setLicenseNo] = useState('');
-  const [tradeLicense, setTradeLicense] = useState('');
-  const [subcity, setSubcity] = useState('');
-  const [woreda, setWoreda] = useState('');
-  const [businessAddress, setBusinessAddress] = useState('');
-  const [contactPerson, setContactPerson] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [numberOfEmployees, setNumberOfEmployees] = useState('');
-  const [businessEmail, setBusinessEmail] = useState('');
-  const [operatingHours, setOperatingHours] = useState('');
-  const [parkingSpaces, setParkingSpaces] = useState('');
-  const [vehicleTypes, setVehicleTypes] = useState([]);
-  const [propertyType, setPropertyType] = useState('');
-  const [serviceArea, setServiceArea] = useState('');
-  const [specialization, setSpecialization] = useState('');
-  const [clinicLicense, setClinicLicense] = useState('');
-  const [professionalLicense, setProfessionalLicense] = useState('');
+  const [tin, setTin] = useState<string>('');
+  const [licenseNo, setLicenseNo] = useState<string>('');
+  const [tradeLicense, setTradeLicense] = useState<string>('');
+  const [subcity, setSubcity] = useState<string>('');
+  const [woreda, setWoreda] = useState<string>('');
+  const [businessAddress, setBusinessAddress] = useState<string>('');
+  const [contactPerson, setContactPerson] = useState<string>('');
+  const [contactPhone, setContactPhone] = useState<string>('');
+  const [numberOfEmployees, setNumberOfEmployees] = useState<string>('');
+  const [businessEmail, setBusinessEmail] = useState<string>('');
+  const [operatingHours, setOperatingHours] = useState<string>('');
+  const [parkingSpaces, setParkingSpaces] = useState<string>('');
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
+  const [propertyType, setPropertyType] = useState<string>('');
+  const [serviceArea, setServiceArea] = useState<string>('');
+  const [specialization, setSpecialization] = useState<string>('');
+  const [clinicLicense, setClinicLicense] = useState<string>('');
+  const [professionalLicense, setProfessionalLicense] = useState<string>('');
 
   // Ekub specific fields
   const [associationName, setAssociationName] = useState('');
@@ -288,8 +288,8 @@ export default function AuthScreen() {
       } else {
         setError(result.error || 'Failed to send verification code');
       }
-    } catch (e) {
-      console.error('OTP send error:', e);
+    } catch (e: any) {
+      console.error('Regular OTP flow error:', e);
       setError('System error. Please try again.');
     } finally {
       setLoading(false);
@@ -311,12 +311,12 @@ export default function AuthScreen() {
 
     setLoading(true);
     try {
-      const result = await verifyOtp(normalizePhone(phone), otp);
+      const result: any = await verifyOtp(normalizePhone(phone), otp);
       if (result.user && !result.error) {
         if (result.user) setAuthUserId(result.user.id);
 
         if (authMode === 'login') {
-          const profileData = await loadSessionProfile(result.user, normalizePhone(phone));
+          const profileData: any = await loadSessionProfile(result.user, normalizePhone(phone));
           if (profileData) {
             // Check if user has completed KYC verification
             const isVerified =
@@ -375,7 +375,7 @@ export default function AuthScreen() {
       } else {
         setError(result.error || 'Incorrect code');
       }
-    } catch (e) {
+    } catch (e: any) {
       setError('Verification failed');
     } finally {
       setLoading(false);
@@ -455,7 +455,7 @@ export default function AuthScreen() {
       const role = isMinister ? 'minister' : userType === 'merchant' ? 'merchant' : 'citizen';
 
       // Construct metadata for the background handle_new_user trigger
-      const metadata = {
+      const metadata: any = {
         full_name: fullName.trim(),
         role: role,
         kyc_status: role === 'minister' ? 'VERIFIED' : userType === 'merchant' ? 'PENDING' : 'NONE',
@@ -478,7 +478,7 @@ export default function AuthScreen() {
 
       console.log('🔧 Requesting OTP with registration metadata:', metadata);
 
-      const result = await sendOtp(normalized, metadata);
+      const result: any = await sendOtp(normalized, metadata);
 
       if (result.success || result.devOtp) {
         if (result.devOtp) setDevOtp(result.devOtp);
@@ -492,7 +492,7 @@ export default function AuthScreen() {
       } else {
         setError(result.error || 'Failed to send verification code');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Registration error:', e);
       setError(e.message || 'Registration failed. Please try again.');
     } finally {
@@ -525,7 +525,7 @@ export default function AuthScreen() {
 
       setKycStep(2);
       showToast('OTP sent to your registered phone number', 'success');
-    } catch (e) {
+    } catch (e: any) {
       setError('FIN validation failed. Please try again.');
     } finally {
       setLoading(false);
@@ -547,7 +547,7 @@ export default function AuthScreen() {
 
       setKycStep(3);
       showToast('OTP verified. Please complete biometric scan', 'success');
-    } catch (e) {
+    } catch (e: any) {
       setError('OTP verification failed');
     } finally {
       setLoading(false);
@@ -565,7 +565,7 @@ export default function AuthScreen() {
       setBiometricSimulated(true);
       setKycStep(4);
       showToast('Biometric scan completed', 'success');
-    } catch (e) {
+    } catch (e: any) {
       setError('Biometric scan failed');
     } finally {
       setLoading(false);
@@ -581,13 +581,13 @@ export default function AuthScreen() {
       console.log('🔧 Fayda Complete - phone:', normalizePhone(phone));
 
       // Load existing user data to preserve name and other info
-      const existingProfile = await loadSessionProfile({ id: authUserId }, normalizePhone(phone));
+      const existingProfile: any = await loadSessionProfile({ id: authUserId } as any, normalizePhone(phone));
       const userData = existingProfile?.profile || {};
 
       console.log('🔧 Fayda Complete - existing user data:', userData);
 
       // Complete KYC process - only update KYC status that exists in DB
-      const profileUpdate = {
+      const profileUpdate: any = {
         id: authUserId,
         phone: normalizePhone(phone),
         full_name: userData.full_name || fullName || 'Verified User', // Use existing name from DB
@@ -598,7 +598,7 @@ export default function AuthScreen() {
       console.log('🔧 Updating profile with KYC completion:', profileUpdate);
 
       if (hasSupabase()) {
-        const result = await upsertProfile(profileUpdate);
+        const result: any = await upsertProfile(profileUpdate);
         console.log('🔧 KYC update result:', result);
 
         if (result.error) {
@@ -629,7 +629,7 @@ export default function AuthScreen() {
 
       console.log('🔧 KYC Complete - Final profile for login:', finalProfile);
       await finishLogin(finalProfile, 5000);
-    } catch (e) {
+    } catch (e: any) {
       console.error('KYC completion error:', e);
       setError(e.message || 'KYC completion failed');
     } finally {
@@ -655,7 +655,7 @@ export default function AuthScreen() {
     try {
       // Validate station credentials (simplified)
       if (stationCode.startsWith('LRT-') || stationCode.startsWith('STN-')) {
-        const stationProfile = {
+        const stationProfile: any = {
           id: uid(),
           phone: '+251900000000', // Generic station phone
           full_name: `Station: ${stationName}`,
@@ -670,7 +670,7 @@ export default function AuthScreen() {
       } else {
         setError('Invalid station code format');
       }
-    } catch (e) {
+    } catch (e: any) {
       setError('Station login failed');
     } finally {
       setLoading(false);
@@ -695,7 +695,7 @@ export default function AuthScreen() {
     try {
       // Validate inspector credentials
       if (inspectorBadge.startsWith('INSP-') && inspectorPIN === '1234') {
-        const inspectorProfile = {
+        const inspectorProfile: any = {
           id: uid(),
           phone: '+251900000000', // Generic inspector phone
           full_name: 'Transit Inspector',
@@ -709,14 +709,14 @@ export default function AuthScreen() {
       } else {
         setError('Invalid inspector credentials');
       }
-    } catch (e) {
+    } catch (e: any) {
       setError('Inspector login failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const finishLogin = async (profile, balance) => {
+  const finishLogin = async (profile: any, balance: number) => {
     console.log('🔧 finishLogin called with profile:', profile);
     console.log('🔧 finishLogin - profile.kyc_status:', profile.kyc_status);
     console.log('🔧 finishLogin - profile.fayda_verified:', profile.fayda_verified);
@@ -732,7 +732,7 @@ export default function AuthScreen() {
     if (profile.role === 'citizen' && finalBal === 0) {
       finalBal = WELCOME_BONUS_ETB;
       await claimWelcomeBonus(profile.id);
-      showToast(`Welcome bonus: ${WELCOME_BONUS_ETB} ETB credited! âœ¨`, 'success');
+      showToast(`Welcome bonus: ${WELCOME_BONUS_ETB} ETB credited! ✨`, 'success');
     }
 
     // Navigation will happen automatically due to currentUser state change

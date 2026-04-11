@@ -59,6 +59,7 @@ class CacheEntry {
 class CacheManager {
   cache: Map<string, CacheEntry>;
   cacheStats: { hits: number; misses: number; totalSize: number; lastCleanup: number };
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.cache = new Map();
@@ -73,13 +74,27 @@ class CacheManager {
 
   // Initialize periodic cleanup
   initializeCleanup() {
-    setInterval(() => {
+    // Clear any existing interval to prevent duplicates
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+    }
+    this.cleanupIntervalId = setInterval(() => {
       this.cleanup();
     }, CACHE_CONFIG.CLEANUP_INTERVAL);
   }
 
+  // Destroy the cache manager and clear intervals
+  destroy() {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+    this.cache.clear();
+    this.cacheStats.totalSize = 0;
+  }
+
   // Store data in cache
-  async set(key, data, ttl = CACHE_CONFIG.DEFAULT_TTL) {
+  async set(key: string, data: any, ttl = CACHE_CONFIG.DEFAULT_TTL) {
     try {
       const entry = new CacheEntry(key, data, ttl);
 
@@ -102,7 +117,7 @@ class CacheManager {
   }
 
   // Retrieve data from cache
-  async get(key) {
+  async get(key: string) {
     try {
       // Check memory cache first
       const memoryEntry = this.cache.get(key);
@@ -137,7 +152,7 @@ class CacheManager {
   }
 
   // Remove data from cache
-  async remove(key) {
+  async remove(key: string) {
     try {
       const entry = this.cache.get(key);
       if (entry) {
@@ -295,7 +310,7 @@ class DataPersistenceManager {
   }
 
   // Save data with fallback
-  async saveWithFallback(key, data, cloudSync = false) {
+  async saveWithFallback(key: string, data: any, cloudSync = false) {
     try {
       // Save locally first
       await AsyncStorage.setItem(
@@ -320,7 +335,7 @@ class DataPersistenceManager {
   }
 
   // Load data with fallback
-  async loadWithFallback(key) {
+  async loadWithFallback(key: string) {
     try {
       // Try cloud first if online
       if (this.isOnline) {
@@ -354,7 +369,7 @@ class DataPersistenceManager {
   }
 
   // Sync to cloud (mock implementation)
-  async syncToCloud(key, data) {
+  async syncToCloud(key: string, data: any) {
     try {
       // In a real app, this would sync to a backend service
       console.log(`☁️ Syncing ${key} to cloud...`);
@@ -379,7 +394,7 @@ class DataPersistenceManager {
   }
 
   // Load from cloud (mock implementation)
-  async loadFromCloud(key) {
+  async loadFromCloud(key: string): Promise<any> {
     try {
       // In a real app, this would fetch from a backend service
       console.log(`☁️ Loading ${key} from cloud...`);
@@ -428,7 +443,7 @@ class DataPersistenceManager {
   }
 
   // Set online status
-  setOnlineStatus(isOnline) {
+  setOnlineStatus(isOnline: boolean) {
     this.isOnline = isOnline;
 
     if (isOnline) {
@@ -445,19 +460,19 @@ export const dataPersistence = new DataPersistenceManager();
 // Utility functions
 export const CacheUtils = {
   // Cache API responses
-  cacheApiResponse: async (endpoint, data, ttl = CACHE_CONFIG.DEFAULT_TTL) => {
+  cacheApiResponse: async (endpoint: string, data: any, ttl = CACHE_CONFIG.DEFAULT_TTL) => {
     const key = `api_${endpoint}`;
     return await cacheManager.set(key, data, ttl);
   },
 
   // Get cached API response
-  getCachedApiResponse: async (endpoint) => {
+  getCachedApiResponse: async (endpoint: string) => {
     const key = `api_${endpoint}`;
     return await cacheManager.get(key);
   },
 
   // Cache user preferences
-  cacheUserPreferences: async (preferences) => {
+  cacheUserPreferences: async (preferences: any) => {
     return await cacheManager.set(CACHE_KEYS.SETTINGS, preferences, CACHE_CONFIG.USER_DATA_TTL);
   },
 
@@ -467,7 +482,7 @@ export const CacheUtils = {
   },
 
   // Invalidate cache by pattern
-  invalidateCachePattern: async (pattern) => {
+  invalidateCachePattern: async (pattern: string) => {
     const keys = Array.from(cacheManager.cache.keys()).filter((key) => key.includes(pattern));
 
     for (const key of keys) {
@@ -485,7 +500,7 @@ export const CacheUtils = {
       hitRate: stats.hitRate,
       size: stats.totalSize,
       entries: stats.entryCount,
-      recommendations: [],
+      recommendations: [] as string[],
     };
 
     if (stats.hitRate < 50) {

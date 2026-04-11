@@ -259,28 +259,41 @@ export function setupMerchantRealtime() {
 }
 
 // ── Claim P2P Transfer ───────────────────────────────────────────────────────────
-async function claimP2PTransfer(transferId) {
+async function claimP2PTransfer(transferId: string) {
   const client = getClient();
   if (!client) return;
 
   try {
+    // Mark the transfer as claimed
     const { data, error } = await client
       .from('p2p_transfers')
       .update({
         status: 'CLAIMED',
         claimed_at: new Date().toISOString(),
       })
-      .eq('id', transferId);
+      .eq('id', transferId)
+      .select()
+      .single();
 
     if (error) throw error;
 
-    // Update wallet balance
-    const transfer = data?.[0];
-    if (transfer) {
-      const currentBalance = useAppStore.getState().balance;
-      useAppStore.getState().setBalance(currentBalance + transfer.amount);
+    // Use server-authoritative balance by refreshing from the wallet table
+    // instead of doing a dangerous client-side `setBalance(current + amount)`
+    const userId = useAppStore.getState().currentUser?.id;
+    if (userId) {
+      const { data: wallet } = await client
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
 
-      useAppStore.getState().showToast(`Claimed ${fmtETB(transfer.amount)} ETB!`, 'success');
+      if (wallet) {
+        useAppStore.getState().setBalance(wallet.balance);
+      }
+    }
+
+    if (data) {
+      useAppStore.getState().showToast(`Claimed ${fmtETB(data.amount)} ETB!`, 'success');
     }
   } catch (error) {
     console.error('Error claiming P2P transfer:', error);

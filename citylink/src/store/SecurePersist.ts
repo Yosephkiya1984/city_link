@@ -2,32 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
 /**
- * HybridStorage — custom storage engine for Zustand.
- * Routes sensitive keys to SecureStore and everything else to AsyncStorage.
- */
-const SENSITIVE_KEYS = ['cl_current_user', 'cl_wallet_balance'];
-
-export const HybridStorage = {
-  getItem: async (name) => {
-    // Note: Zustand persist gives us a single object for the entire store by default.
-    // If we want to split keys, we need to handle that inside the store definition.
-    // Here we implement a standard interface.
-    const value = await AsyncStorage.getItem(name);
-    return value;
-  },
-  setItem: async (name, value) => {
-    await AsyncStorage.setItem(name, value);
-  },
-  removeItem: async (name) => {
-    await AsyncStorage.removeItem(name);
-  },
-};
-
-/**
  * SecureStoreAdapter — dedicated for individual sensitive values.
+ * Uses expo-secure-store for user identity and balance,
+ * AsyncStorage for generic cache entries.
  */
 export const SecurePersist = {
-  saveUser: async (user) => {
+  saveUser: async (user: any) => {
     if (!user) {
       await SecureStore.deleteItemAsync('cl_current_user');
       return;
@@ -38,7 +18,7 @@ export const SecurePersist = {
     const res = await SecureStore.getItemAsync('cl_current_user');
     return res ? JSON.parse(res) : null;
   },
-  saveBalance: async (balance) => {
+  saveBalance: async (balance: number) => {
     await SecureStore.setItemAsync('cl_wallet_balance', String(balance));
   },
   loadBalance: async () => {
@@ -46,10 +26,33 @@ export const SecurePersist = {
     return res ? parseFloat(res) : 0;
   },
   // Generic key-value storage (used by wallet cache, etc.)
-  setItem: async (key, value) => {
+  setItem: async (key: string, value: string) => {
     await AsyncStorage.setItem(key, value);
   },
-  getItem: async (key) => {
+  getItem: async (key: string) => {
     return await AsyncStorage.getItem(key);
+  },
+
+  // Secure KYC Storage
+  saveKYC: async (data: any) => {
+    if (!data) {
+      await SecureStore.deleteItemAsync('cl_kyc_data');
+      return;
+    }
+    await SecureStore.setItemAsync('cl_kyc_data', JSON.stringify(data));
+  },
+  loadKYC: async () => {
+    const res = await SecureStore.getItemAsync('cl_kyc_data');
+    return res ? JSON.parse(res) : null;
+  },
+  saveKYCStatus: async (status: string) => {
+    await SecureStore.setItemAsync('cl_kyc_status', status);
+  },
+  loadKYCStatus: async () => {
+    return await SecureStore.getItemAsync('cl_kyc_status');
+  },
+  clearKYC: async () => {
+    await SecureStore.deleteItemAsync('cl_kyc_data');
+    await SecureStore.deleteItemAsync('cl_kyc_status');
   },
 };

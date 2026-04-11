@@ -2,11 +2,10 @@
 // Environment variables are loaded from .env file
 
 export const Config = {
-  supaUrl: 'https://azbtlshtoeytikiysmyr.supabase.co',
-  supaKey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6YnRsc2h0b2V5dGlraXlzbXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjIwNzMsImV4cCI6MjA4OTMzODA3M30.E_BR1IuVfKOdeJeuFTPaKVJjFlrs4zKypJWbTal1-P0',
-  chapaKey: process.env.EXPO_PUBLIC_CHAPA_KEY || 'CHAPUBK_TEST-NtQaqzp3uGpCuKshFkLFOuoOoRJLJn5U',
-  adminCode: process.env.EXPO_PUBLIC_ADMIN_CODE || 'Citylinkethiopia@admin',
+  supaUrl: (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim(),
+  supaKey: (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim(),
+  chapaKey: process.env.EXPO_PUBLIC_CHAPA_KEY || '',
+  adminCode: process.env.EXPO_PUBLIC_ADMIN_CODE || '',
   // AI proxy — Supabase Edge Function URL (see src/services/ai.js for setup guide)
   // Set to actual URL for live Claude integration.
   aiProxyUrl: process.env.EXPO_PUBLIC_AI_PROXY_URL || 'OFFLINE_MODE',

@@ -132,9 +132,16 @@ export const GTFSService = {
     _timer = null;
   },
   subscribe: (callback) => {
+    // Lazy start if not running
+    if (!_timer) GTFSService.start();
+    
     _listeners.add(callback);
     callback([..._state.trains]);
-    return () => _listeners.delete(callback);
+    return () => {
+      _listeners.delete(callback);
+      // Auto stop if no more listeners (Optional: keep a buffer if needed)
+      if (_listeners.size === 0) GTFSService.stop();
+    };
   },
   getState: () => [..._state.trains],
 };

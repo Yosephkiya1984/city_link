@@ -2,31 +2,32 @@ import { supaQuery } from './supabase';
 import { WELCOME_BONUS_ETB } from '../config';
 import { SecurePersist } from '../store/SecurePersist';
 import { uid } from '../utils';
+import { Wallet, Transaction } from '../types/domain_types';
 
 /**
  * fetchWallet — returns the raw wallet row for a given user ID.
  */
-export async function fetchWallet(userId) {
-  return supaQuery((c) => c.from('wallets').select('*').eq('user_id', userId).maybeSingle());
+export async function fetchWallet(userId: string) {
+  return supaQuery<Wallet>((c) => c.from('wallets').select('*').eq('user_id', userId).maybeSingle());
 }
 
 /**
  * fetchWalletData — High-level function used by screens.
  * Orchestrates balance, transactions, and SECURE OFFLINE CACHING.
  */
-export async function fetchWalletData(userId) {
+export async function fetchWalletData(userId: string) {
   if (!userId) return null;
 
   try {
     // 1. Fetch from Supabase
-    const { data: wallet, error: wErr } = await supaQuery((c) =>
+    const { data: wallet, error: wErr } = await supaQuery<Wallet>((c) =>
       c.from('wallets').select('*').eq('user_id', userId).maybeSingle()
     );
 
-    if (wErr) throw wErr;
+    if (wErr) throw new Error(wErr);
     if (!wallet) return null;
 
-    const { data: txs, error: tErr } = await supaQuery((c) =>
+    const { data: txs, error: tErr } = await supaQuery<Transaction[]>((c) =>
       c
         .from('transactions')
         .select('*')
@@ -56,7 +57,7 @@ export async function fetchWalletData(userId) {
 /**
  * processTopup — Atomic idempotency wrapper for top-ups.
  */
-export async function processTopup(userId, amount, provider) {
+export async function processTopup(userId: string, amount: number, provider: string) {
   const idempotencyKey = `topup-${userId.slice(0, 8)}-${Date.now()}`;
 
   const res = await supaQuery((c) =>
@@ -76,11 +77,11 @@ export async function processTopup(userId, amount, provider) {
  * rpcDebitWallet — atomic server-side debit.
  */
 export async function rpcDebitWallet(
-  userId,
-  amount,
-  description,
+  userId: string,
+  amount: number,
+  description: string,
   category = 'general',
-  idempotencyKey = null
+  idempotencyKey: string | null = null
 ) {
   return supaQuery((c) =>
     c.rpc('debit_wallet_atomic', {
@@ -97,11 +98,11 @@ export async function rpcDebitWallet(
  * rpcCreditWallet — atomic server-side credit.
  */
 export async function rpcCreditWallet(
-  userId,
-  amount,
-  description,
+  userId: string,
+  amount: number,
+  description: string,
   category = 'general',
-  idempotencyKey = null
+  idempotencyKey: string | null = null
 ) {
   return supaQuery((c) =>
     c.rpc('credit_wallet_atomic', {
@@ -164,4 +165,25 @@ export async function queueP2PTransfer({ senderId, recipientPhone, amount, note 
   if (!res.data?.ok) return { ok: false, error: res.data?.error || 'Transfer failed' };
 
   return { ok: true, newBalance: res.data?.new_balance, status: res.data?.status };
+}
+
+/**
+ * fetchSpendingInsights — Optimized query for Analytics.
+ * Groups spending by category and calculates daily totals.
+ */
+export async function fetchSpendingInsights(userId: string, days: number = 30) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const { data: wallet } = await fetchWallet(userId);
+  if (!wallet) return { data: null, error: 'no-wallet' };
+
+  return supaQuery((c) => 
+    c.from('transactions')
+     .select('category, amount, created_at, type')
+     .eq('wallet_id', wallet.id)
+     .eq('type', 'debit')
+     .gte('created_at', startDate.toISOString())
+     .order('created_at', { ascending: true })
+  );
 }

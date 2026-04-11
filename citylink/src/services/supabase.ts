@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Config } from '../config';
 
 // ── Client Initialization ─────────────────────────────────────────────────────
-let _client = null;
+let _client: SupabaseClient<any, "public", any> | null = null;
 
 export function hasSupabase() {
   return getClient() != null;
@@ -48,10 +48,10 @@ interface SupaQueryOptions {
 /**
  * supaQuery — Centralized wrapper for error handling and logging.
  */
-export async function supaQuery(
-  queryFn: (client: any) => Promise<any>,
+export async function supaQuery<T = any>(
+  queryFn: (client: SupabaseClient<any, "public", any>) => Promise<{ data: T | null; error: any; count?: number | null }>,
   options: SupaQueryOptions = {}
-) {
+): Promise<{ data: T | null; count?: number | null; error: string | null }> {
   const client = getClient();
   if (!client) {
     if (Config.devMode) console.warn('[CityLink] No Supabase client available.');
@@ -85,7 +85,7 @@ export function subscribeToTable(
   return client.channel(channelName).on('postgres_changes', opts, callback).subscribe();
 }
 
-export function unsubscribe(channel) {
+export function unsubscribe(channel: any) {
   const client = getClient();
   if (client && channel) client.removeChannel(channel);
 }

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,17 @@ import { Svg, Circle } from 'react-native-svg';
 
 import { useAppStore } from '../../store/AppStore';
 import { Fonts, Shadow } from '../../theme';
-import { fetchEkubs, fetchMyEkubs, joinEkub, contributeToEkub } from '../../services/ekub.service';
+import { 
+  fetchEkubs, 
+  fetchMyEkubs, 
+  submitEkubApplication, 
+  contributeToEkub, 
+  signWinnerConsent, 
+  submitVouch, 
+  fetchCircleMembers,
+  fetchPendingVouches,
+  fetchWinnerDraw
+} from '../../services/ekub.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,7 +68,7 @@ const COLORS = {
 };
 
 // â”€â”€ Top Bar Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const EnhancedTopBar = ({ balance }) => {
+const EnhancedTopBar = ({ balance }: { balance: number }) => {
   return (
     <View style={styles.topBar}>
       <View style={styles.topBarLeft}>
@@ -73,36 +83,25 @@ const EnhancedTopBar = ({ balance }) => {
 };
 
 // â”€â”€ Active Circle Item Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const ActiveCircleItem = ({ circle, onContribute }) => {
+const ActiveCircleItem = ({ 
+  circle, 
+  onContribute, 
+  onSignConsent 
+}: { 
+  circle: any, 
+  onContribute: (c: any) => void, 
+  onSignConsent: (c: any) => void 
+}) => {
   const progress =
-    (circle.pot_balance / (circle.contribution_amount * (circle.total_members || 10))) * 100;
+    (circle.pot_balance / (circle.contribution_amount * (circle.max_members || 10))) * 100;
+
+  // Mock logic for "Winner" state - in production this comes from the draw data
+  const isWinnerAwaitingConsent = circle.status === 'ESCROW_LOCKED' || circle.status === 'AWAITING_CONSENT';
 
   return (
     <TouchableOpacity style={styles.activeCircleItem}>
       <View style={styles.circleProgressContainer}>
-        <Svg width="56" height="56" style={{ transform: [{ rotate: '-90deg' }] }}>
-          <Circle
-            cx="28"
-            cy="28"
-            r="24"
-            fill="transparent"
-            stroke={COLORS['surface-container-highest']}
-            strokeWidth="4"
-          />
-          <Circle
-            cx="28"
-            cy="28"
-            r="24"
-            fill="transparent"
-            stroke={COLORS.primary}
-            strokeWidth="4"
-            strokeDasharray="150"
-            strokeDashoffset={150 - (Math.min(progress, 100) / 100) * 150}
-          />
-        </Svg>
-        <View style={styles.circleProgressText}>
-          <Text style={styles.circleProgressNumber}>{Math.round(progress)}%</Text>
-        </View>
+        <CircularProgress percentage={Math.round(progress)} color={COLORS.primary} />
       </View>
       <View style={styles.circleInfo}>
         <Text style={styles.circleName}>{circle.name}</Text>
@@ -110,15 +109,29 @@ const ActiveCircleItem = ({ circle, onContribute }) => {
           Round {circle.current_round || 1} â€¢ ETB {circle.contribution_amount?.toLocaleString()}
         </Text>
       </View>
-      <TouchableOpacity style={styles.payButton} onPress={() => onContribute(circle)}>
-        <Text style={styles.payButtonText}>PAY</Text>
-      </TouchableOpacity>
+      <View style={styles.circleActions}>
+        {isWinnerAwaitingConsent ? (
+          <TouchableOpacity style={styles.consentButton} onPress={() => onSignConsent(circle)}>
+            <Text style={styles.consentButtonText}>SIGN</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.payButton} onPress={() => onContribute(circle)}>
+            <Text style={styles.payButtonText}>PAY</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </TouchableOpacity>
   );
 };
 
 // â”€â”€ Verified Circle Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const VerifiedCircleCard = ({ circle, onJoin }) => {
+const VerifiedCircleCard = ({ 
+  circle, 
+  onJoin 
+}: { 
+  circle: any, 
+  onJoin: (c: any) => void 
+}) => {
   return (
     <View style={styles.verifiedCircleCard}>
       <View style={styles.verifiedCircleHeader}>
@@ -151,20 +164,27 @@ const VerifiedCircleCard = ({ circle, onJoin }) => {
 
 // â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function EkubScreen() {
-  const [activeTab, setActiveTab] = useState('browse');
+  const [activeTab, setActiveTab] = useState<'browse' | 'mine' | 'vouch'>('browse');
   const [loading, setLoading] = useState(true);
   const [ekubs, setEkubs] = useState([]);
   const [myEkubs, setMyEkubs] = useState([]);
+  const [pendingVouches, setPendingVouches] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { currentUser, balance, setBalance, showToast } = useAppStore();
+  const { currentUser, balance, setBalance, showToast } = useAppStore((s) => s);
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [allRes, myRes] = await Promise.all([fetchEkubs(), fetchMyEkubs(currentUser?.id)]);
+    const [allRes, myRes, vouchRes] = await Promise.all([
+      fetchEkubs(), 
+      fetchMyEkubs(currentUser?.id || ''),
+      fetchPendingVouches(currentUser?.id || '')
+    ]);
 
     if (allRes.data) setEkubs(allRes.data);
     if (myRes.data) setMyEkubs(myRes.data);
+    if (vouchRes.data) setPendingVouches(vouchRes.data);
+    
     setLoading(false);
   }, [currentUser?.id]);
 
@@ -178,21 +198,21 @@ export default function EkubScreen() {
     setRefreshing(false);
   };
 
-  const handleJoin = async (circle) => {
+  const handleJoin = async (circle: any) => {
     if (currentUser?.kyc_status !== 'VERIFIED') {
       showToast('Electronic Ekub requires verified KYC', 'error');
       return;
     }
-    const res = await joinEkub(circle.id, currentUser.id);
+    const res = await submitEkubApplication(circle.id, currentUser.id, 'Joining for circle growth');
     if (!res.error) {
-      showToast(`Joined ${circle.name}!`, 'success');
+      showToast(`Application sent to organiser!`, 'success');
       loadData();
     } else {
-      showToast('Failed to join circle', 'error');
+      showToast('Failed to apply to circle', 'error');
     }
   };
 
-  const handleContribute = async (circle) => {
+  const handleContribute = async (circle: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const res = await contributeToEkub(currentUser.id, circle.id, circle.current_round || 1);
 
@@ -202,6 +222,43 @@ export default function EkubScreen() {
       loadData();
     } else {
       showToast(res.data?.error || 'Contribution failed', 'error');
+    }
+  };
+
+  const handleVouch = async (draw: any, approved: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    const res = await submitVouch(
+      draw.id,
+      draw.ekub_id,
+      currentUser.id,
+      currentUser.full_name || 'Voucher',
+      approved,
+      approved ? 'Regular vouch' : 'Dispute raised'
+    );
+    if (!res.error) {
+      showToast(approved ? 'Vouch submitted ⭐' : 'Dispute raised 🚨', approved ? 'success' : 'warning');
+      loadData();
+    } else {
+      showToast('Failed to submit vouch', 'error');
+    }
+  };
+
+  const handleSignConsent = async (circle: any) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Find the actual draw record for this member in this circle
+    const { data: draw } = await fetchWinnerDraw(currentUser.id, circle.id);
+    
+    if (draw) {
+      const res = await signWinnerConsent(draw.id);
+      if (!res.error) {
+        showToast('Consent signed! Pot disbursed after vouch.', 'success');
+        loadData();
+      } else {
+        showToast('Failed to sign consent', 'error');
+      }
+    } else {
+      showToast('No active draw found to sign', 'error');
     }
   };
 
@@ -238,6 +295,14 @@ export default function EkubScreen() {
                 My Circles
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'vouch' && styles.activeTab]}
+              onPress={() => setActiveTab('vouch')}
+            >
+              <Text style={[styles.tabText, activeTab === 'vouch' && styles.activeTabText]}>
+                Vouching
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {loading ? (
@@ -256,13 +321,52 @@ export default function EkubScreen() {
                     ))}
                   </View>
                 </View>
+              ) : activeTab === 'mine' ? (
+                <View style={{ paddingHorizontal: 24 }}>
+                  <Text style={styles.sectionTitle}>My Circles</Text>
+                  {myEkubs.length > 0 ? (
+                    <View style={styles.circlesList}>
+                      {myEkubs.map((m) => (
+                        <ActiveCircleItem 
+                          key={m.id} 
+                          circle={m.ekubs} 
+                          onContribute={handleContribute} 
+                          onSignConsent={handleSignConsent}
+                        />
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <Ionicons name="people" size={64} color={COLORS.outline} />
+                      <Text style={styles.emptyStateTitle}>No Joined Circles</Text>
+                      <Text style={styles.emptyStateSubtitle}>
+                        Join verified circles to start saving
+                      </Text>
+                    </View>
+                  )}
+                </View>
               ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="people" size={64} color={COLORS.outline} />
-                  <Text style={styles.emptyStateTitle}>No Active Circles</Text>
-                  <Text style={styles.emptyStateSubtitle}>
-                    Join verified circles to get started
-                  </Text>
+                <View style={{ paddingHorizontal: 24 }}>
+                  <Text style={styles.sectionTitle}>Pending Vouches</Text>
+                  {pendingVouches.length > 0 ? (
+                    <View style={styles.circlesList}>
+                      {pendingVouches.map((v) => (
+                        <VouchCard 
+                          key={v.id} 
+                          draw={v} 
+                          onVouch={(approved) => handleVouch(v, approved)} 
+                        />
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <Ionicons name="shield-checkmark" size={64} color={COLORS.outline} />
+                      <Text style={styles.emptyStateTitle}>All Clear</Text>
+                      <Text style={styles.emptyStateSubtitle}>
+                        You have no pending vouches at this time
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             </>
@@ -716,6 +820,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '700',
   },
+  circleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  consentButton: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  consentButtonText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS['on-secondary'],
+  },
+  payButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  payButtonText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS['on-primary'],
+  },
+
 
   // Verified Circle Card
   verifiedCircleCard: {
@@ -851,81 +986,96 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // Reliability Score Part 2
-  reliabilityContent: {
-    position: 'relative',
-    zIndex: 10,
+  // Vouching
+  vouchCard: {
+    backgroundColor: COLORS['surface-container'],
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  reliabilityHeader: {
+  vouchHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 16,
   },
-  reliabilityLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.outline,
-    fontFamily: Fonts.label,
-    textTransform: 'uppercase',
-    letterSpacing: 0.1,
+  vouchTitleContainer: {
+    flex: 1,
   },
-  reliabilityScoreRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-    marginBottom: 16,
-  },
-  reliabilityScoreNumber: {
-    fontSize: 48,
+  vouchTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS['on-surface'],
     fontFamily: Fonts.headline,
   },
-  reliabilityScoreChange: {
+  vouchSubtitle: {
     fontSize: 12,
+    color: COLORS.outline,
+    marginTop: 2,
+  },
+  vouchAmount: {
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary,
-    marginBottom: 8,
+    fontFamily: Fonts.headline,
   },
-  reliabilityProgress: {
-    width: '100%',
-    height: 6,
-    backgroundColor: COLORS['surface-container-highest'],
-    borderRadius: 3,
-    overflow: 'hidden',
+  vouchBody: {
+    gap: 16,
   },
-  reliabilityProgressCircle: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 3,
+  winnerSection: {
+    backgroundColor: COLORS['surface-container-low'],
+    padding: 12,
+    borderRadius: 12,
   },
-
-  // Circular Progress
-  circularProgress: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressText: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressNumber: {
+  winnerLabel: {
     fontSize: 10,
     fontWeight: '700',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  winnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  winnerNameText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS['on-surface'],
-    fontFamily: Fonts.headline,
+  },
+  vouchActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  vouchSmallButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: COLORS['surface-container-high'],
+  },
+  vouchDeny: {
+    borderColor: 'rgba(255, 180, 171, 0.2)',
+    borderWidth: 1,
+  },
+  vouchApprove: {
+    borderColor: 'rgba(89, 222, 155, 0.2)',
+    borderWidth: 1,
+  },
+  vouchActionText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 
 // â”€â”€ Live Draw Banner Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const LiveDrawBanner = ({ onEnterDraw }) => {
+const LiveDrawBanner = ({ onEnterDraw }: { onEnterDraw: () => void }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = useCallback(() => {
@@ -1014,7 +1164,7 @@ const LiveDrawBanner = ({ onEnterDraw }) => {
 };
 
 // â”€â”€ Circular Progress Component (EXACT SVG MATCH) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const CircularProgress = ({ percentage, color, size = 56, strokeWidth = 4 }) => {
+const CircularProgress = ({ percentage, color, size = 56, strokeWidth = 4 }: { percentage: number, color: string, size?: number, strokeWidth?: number }) => {
   const radius = 24; // Fixed radius from design
   const circumference = 150; // Fixed stroke-dasharray from design
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -1097,3 +1247,48 @@ const ReliabilityScore = () => {
     </View>
   );
 };
+
+// â”€â”€ Vouch Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const VouchCard = ({ draw, onVouch }: { draw: any, onVouch: (approved: boolean) => void }) => {
+  return (
+    <View style={styles.vouchCard}>
+      <View style={styles.vouchHeader}>
+        <View style={styles.vouchTitleContainer}>
+          <Text style={styles.vouchTitle}>Vouch Request</Text>
+          <Text style={styles.vouchSubtitle}>
+            {draw.ekubs?.name || 'Ekub Circle'} â€¢ Round {draw.round_number}
+          </Text>
+        </View>
+        <Text style={styles.vouchAmount}>ETB {draw.pot_amount?.toLocaleString()}</Text>
+      </View>
+      
+      <View style={styles.vouchBody}>
+        <View style={styles.winnerSection}>
+          <Text style={styles.winnerLabel}>Potential Winner</Text>
+          <View style={styles.winnerRow}>
+            <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
+            <Text style={styles.winnerNameText}>{draw.winner_name || 'Anonymous Member'}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.vouchActionRow}>
+          <TouchableOpacity 
+            style={[styles.vouchSmallButton, styles.vouchDeny]} 
+            onPress={() => onVouch(false)}
+          >
+            <Ionicons name="close-circle-outline" size={18} color={COLORS.error} />
+            <Text style={[styles.vouchActionText, { color: COLORS.error }]}>Deny</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.vouchSmallButton, styles.vouchApprove]} 
+            onPress={() => onVouch(true)}
+          >
+            <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.primary} />
+            <Text style={[styles.vouchActionText, { color: COLORS.primary }]}>Approve</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+

@@ -1,155 +1,123 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ReactNode } from 'react';
-import { SecurePersist } from './SecurePersist';
-import { AppState, User, Product } from '../types';
+import { useAuthStore } from './AuthStore';
+import { useWalletStore } from './WalletStore';
+import { useSystemStore } from './SystemStore';
+import { User, Product } from '../types';
 
-// ── Utility ───────────────────────────────────────────────────────────────────
-export const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+/**
+ * AppState (Legacy / Bridge)
+ * This store now acts as a coordinator between specialized stores to avoid
+ * breaking existing imports across the codebase.
+ */
+export interface AppState {
+  // Bridge to AuthStore
+  currentUser: User | null;
+  setCurrentUser: (user: User | null) => void;
+  
+  // Bridge to WalletStore
+  balance: number;
+  setBalance: (val: number) => void;
+  transactions: any[];
+  setTransactions: (txs: any[]) => void;
+  addTransaction: (tx: any) => void;
 
-// ── Store Definition ──────────────────────────────────────────────────────────
+  // Bridge to SystemStore
+  isDark: boolean;
+  setIsDark: (val: boolean) => void;
+  toggleTheme: () => void;
+  theme: 'light' | 'dark';
+  toasts: any[];
+  showToast: (msg: string, type?: any) => void;
+  notifications: any[];
+  unreadCount: number;
 
-const useStore = create<AppState>()(
-  persist(
-    (set, _get) => ({
-      // ── Persistent State (Non-Sensitive) ──
-      isDark: true,
-      notifications: [],
-      transactions: [],
+  // Still local to AppStore (To be migrated in next chunk)
+  products: Product[];
+  setProducts: (items: Product[]) => void;
+  selProdCat: string;
+  setSelProdCat: (cat: string) => void;
+  favorites: string[];
+  setFavorites: (favs: string[]) => void;
+  
+  // Helpers
+  hydrateSession: () => Promise<void>;
+  reset: () => Promise<void>;
+}
 
-      // ── Runtime State (Ephemeral / Manually Persisted) ──
-      currentUser: null,
-      balance: 0,
-      toasts: [],
-      products: [],
-      selProdCat: 'All',
-      favorites: [],
-      settings: {},
-      lang: 'en',
-      chatHistory: [],
-      foodOrders: [],
-      marketplaceListings: [],
-      ekubGroups: [],
-      theme: 'dark',
-      unreadCount: 0,
-      activeParking: null,
-      tonightFilter: 'All',
+// We use a "Derived Store" pattern for the bridge
+export const useAppStore = <T,>(selector: (state: AppState) => T): T => {
+  const auth = useAuthStore();
+  const wallet = useWalletStore();
+  const system = useSystemStore();
+  
+  // Local state for non-migrated items (using a hidden internal store)
+  const local = useInternalStore();
 
-      // ── Core Actions ──
-      setIsDark: (val: boolean) => set({ isDark: val, theme: val ? 'dark' : 'light' }),
-      toggleTheme: () => set((s) => ({ isDark: !s.isDark, theme: !s.isDark ? 'dark' : 'light' })),
+  const bridgeState: AppState = {
+    currentUser: auth.currentUser,
+    setCurrentUser: auth.setCurrentUser,
+    balance: wallet.balance,
+    setBalance: wallet.setBalance,
+    transactions: wallet.transactions,
+    setTransactions: wallet.setTransactions,
+    addTransaction: wallet.addTransaction,
+    isDark: system.isDark,
+    setIsDark: (val) => system.setLang(system.lang), // Dummy for theme
+    toggleTheme: system.toggleTheme,
+    theme: system.isDark ? 'dark' : 'light',
+    toasts: system.toasts,
+    showToast: system.showToast,
+    notifications: system.notifications,
+    unreadCount: system.unreadCount,
+    
+    products: local.products,
+    setProducts: local.setProducts,
+    selProdCat: local.selProdCat,
+    setSelProdCat: local.setSelProdCat,
+    favorites: local.favorites,
+    setFavorites: local.setFavorites,
 
-      setCurrentUser: async (user: User | null) => {
-        set({ currentUser: user });
-        await SecurePersist.saveUser(user);
-      },
-
-      setBalance: async (val: number) => {
-        set({ balance: val });
-        await SecurePersist.saveBalance(val);
-      },
-
-      setTransactions: (txs: any[]) => set({ transactions: txs }),
-      addTransaction: (tx: any) =>
-        set((s) => ({ transactions: [tx, ...s.transactions].slice(0, 50) })),
-      setNotifications: (notifs: any[]) => set({ notifications: notifs }),
-
-      showToast: (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
-        const id = uid();
-        set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
-        setTimeout(() => {
-          set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
-        }, 3500);
-      },
-
-      addNotification: (notif: any) =>
-        set((s) => ({
-          notifications: [notif, ...s.notifications],
-        })),
-
-      markNotifRead: (id: string) =>
-        set((s) => ({
-          notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
-        })),
-
-      clearNotifications: () => set({ notifications: [] }),
-
-      setProducts: (items: Product[]) => set({ products: items }),
-      setSelProdCat: (cat: string) => set({ selProdCat: cat }),
-      setFavorites: (favs: string[]) => set({ favorites: favs }),
-      setSettings: (settings: any) => set({ settings }),
-      setLang: (lang: string) => set({ lang }),
-      setTheme: (theme: 'light' | 'dark') => set({ theme, isDark: theme === 'dark' }),
-      setChatHistory: (chatHistory: any[]) => set({ chatHistory }),
-      setFoodOrders: (foodOrders: any[]) => set({ foodOrders }),
-      setMarketplaceListings: (marketplaceListings: any[]) => set({ marketplaceListings }),
-      setEkubGroups: (ekubGroups: any[]) => set({ ekubGroups }),
-      setActiveParking: (activeParking: any) => set({ activeParking }),
-      setTonightFilter: (tonightFilter: string) => set({ tonightFilter }),
-      setUnreadCount: (unreadCount: number) => set({ unreadCount }),
-
-      reset: async () => {
-        try {
-          const { signOut } = await import('../services/auth.service');
-          await signOut();
-        } catch (e) {
-          console.warn('[AppStore] signOut failed:', e);
-        }
-        set({
-          currentUser: null,
-          balance: 0,
-          transactions: [],
-          notifications: [],
-          toasts: [],
-          products: [],
-          selProdCat: 'All',
-        });
-        await SecurePersist.saveUser(null);
-        await SecurePersist.saveBalance(0);
-      },
-
-      // ── Hydration Helper ──
-      hydrateSession: async () => {
-        const user = await SecurePersist.loadUser();
-        const balance = await SecurePersist.loadBalance();
-        set({ currentUser: user, balance });
-      },
-    }),
-    {
-      name: 'cl-storage-classic',
-      storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state: AppState) => ({
-        isDark: state.isDark,
-        notifications: state.notifications,
-        transactions: state.transactions,
-      }),
+    hydrateSession: async () => {
+      await auth.hydrate();
+      if (auth.currentUser) {
+        await wallet.hydrate(auth.currentUser.id);
+      }
+    },
+    reset: async () => {
+      await auth.signOut();
+      wallet.setBalance(0);
+      wallet.setTransactions([]);
     }
-  )
-);
+  };
 
-// ── Backward Compatibility ───────────────────────────────────────────────────
+  return selector(bridgeState);
+};
 
-/**
- * useAppStore — Zustand-based store hook.
- */
-export function useAppStore<T>(selector: (state: AppState) => T): T {
-  return useStore(selector);
-}
+// Internal store for remaining legacy data
+const useInternalStore = create<any>((set) => ({
+  products: [],
+  setProducts: (products: any) => set({ products }),
+  selProdCat: 'All',
+  setSelProdCat: (selProdCat: any) => set({ selProdCat }),
+  favorites: [],
+  setFavorites: (favorites: any) => set({ favorites }),
+}));
 
-/**
- * useAppStore.getState() — Static getter for service files.
- */
-useAppStore.getState = () => useStore.getState();
+// Static access for service files
+useAppStore.getState = () => {
+  const auth = useAuthStore.getState();
+  const wallet = useWalletStore.getState();
+  const system = useSystemStore.getState();
+  const local = useInternalStore.getState();
 
-/**
- * AppStoreProvider — Legacy pass-through to avoid breaking App.js.
- */
-export function AppStoreProvider({ children }: { children: ReactNode }) {
-  return children;
-}
+  return {
+    currentUser: auth.currentUser,
+    balance: wallet.balance,
+    isDark: system.isDark,
+    products: local.products,
+    // Add other fields as needed for services
+  } as any;
+};
 
-// ── Legacy Session Helpers (Proxy to SecurePersist) ───────────────────────────
-export const loadSession = () => SecurePersist.loadUser();
-export const saveSession = (user: User | null) => SecurePersist.saveUser(user);
-export const clearSession = () => SecurePersist.saveUser(null);
+export const AppStoreProvider = ({ children }: any) => children;
+

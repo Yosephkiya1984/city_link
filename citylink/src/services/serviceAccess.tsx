@@ -184,8 +184,8 @@ export function ServiceAccessGuard({
 }
 
 // ── Service Access HOC (Higher Order Component) ───────────────────────────────
-export function withServiceAccess(WrappedComponent, serviceName) {
-  return function ServiceAccessWrapper(props) {
+export function withServiceAccess(WrappedComponent: any, serviceName: string) {
+  return function ServiceAccessWrapper(props: any) {
     return (
       <ServiceAccessGuard serviceName={serviceName}>
         <WrappedComponent {...props} />
@@ -218,7 +218,7 @@ export const ServiceAccessUtils = {
   },
 
   // Check if specific service requires KYC
-  requiresKYC: (serviceName) => {
+  requiresKYC: (serviceName: string) => {
     // All services require KYC except basic browsing
     const kycRequiredServices = [
       'wallet',
@@ -239,8 +239,8 @@ export const ServiceAccessUtils = {
   },
 
   // Get service access message
-  getAccessMessage: (serviceName, kycStatus) => {
-    const messages = {
+  getAccessMessage: (serviceName: string, kycStatus: string) => {
+    const messages: Record<string, any> = {
       [FAYDA_STATUS.NOT_STARTED]: {
         title: 'Fayda KYC Required',
         message: `Complete your Fayda KYC verification to access ${serviceName}`,

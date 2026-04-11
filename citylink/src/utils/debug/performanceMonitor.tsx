@@ -17,7 +17,7 @@ const PERFORMANCE_KEYS = {
 };
 
 // Performance monitoring provider
-export function PerformanceProvider({ children }) {
+export function PerformanceProvider({ children }: { children: React.ReactNode }) {
   const appStartTime = useRef(Date.now());
   const [metrics, setMetrics] = useState({
     appStartupTime: 0,
@@ -56,7 +56,7 @@ export function PerformanceProvider({ children }) {
   }, [isMonitoring]);
 
   // Update metrics
-  const updateMetrics = (key, value) => {
+  const updateMetrics = (key: string, value: any) => {
     setMetrics((prev) => {
       const newMetrics = { ...prev };
 
@@ -86,12 +86,12 @@ export function PerformanceProvider({ children }) {
   };
 
   // Track screen load time
-  const trackScreenLoad = (screenName, loadTime) => {
+  const trackScreenLoad = (screenName: string, loadTime: number) => {
     updateMetrics('screenLoadTimes', { [screenName]: loadTime });
   };
 
   // Track API call performance
-  const trackApiCall = (endpoint, duration, success = true) => {
+  const trackApiCall = (endpoint: string, duration: number, success = true) => {
     const apiCall = {
       endpoint,
       duration,
@@ -102,7 +102,7 @@ export function PerformanceProvider({ children }) {
   };
 
   // Track user interaction
-  const trackUserInteraction = (action, component, duration) => {
+  const trackUserInteraction = (action: string, component: string, duration: number) => {
     const interaction = {
       action,
       component,
@@ -202,8 +202,8 @@ export function usePerformance() {
 }
 
 // Performance tracking HOC
-export function withPerformanceTracking(WrappedComponent, componentName) {
-  return function PerformanceTrackedComponent(props) {
+export function withPerformanceTracking(WrappedComponent: any, componentName: string) {
+  return function PerformanceTrackedComponent(props: any) {
     const { trackScreenLoad, trackUserInteraction } = usePerformance();
     const startTime = useRef(Date.now());
 
@@ -212,7 +212,7 @@ export function withPerformanceTracking(WrappedComponent, componentName) {
       trackScreenLoad(componentName, loadTime);
     }, []);
 
-    const handleInteraction = (action, callback) => {
+    const handleInteraction = (action: string, callback?: () => void) => {
       const interactionStart = Date.now();
       if (callback) callback();
       const interactionDuration = Date.now() - interactionStart;
@@ -226,8 +226,8 @@ export function withPerformanceTracking(WrappedComponent, componentName) {
 // Performance monitoring utilities
 export const PerformanceUtils = {
   // Measure function execution time
-  measureFunction: (fn, name) => {
-    return async (...args) => {
+  measureFunction: (fn: any, name: string) => {
+    return async (...args: any[]) => {
       const start = performance.now();
       try {
         const result = await fn(...args);
@@ -243,7 +243,7 @@ export const PerformanceUtils = {
   },
 
   // Measure render time
-  measureRender: (componentName) => {
+  measureRender: (componentName: string) => {
     const start = performance.now();
     return () => {
       const duration = performance.now() - start;
@@ -287,7 +287,7 @@ export const PerformanceUtils = {
   },
 
   // Performance score calculation
-  calculatePerformanceScore: (metrics) => {
+  calculatePerformanceScore: (metrics: any) => {
     let score = 100;
 
     // App startup time (0-30 points)
@@ -307,7 +307,7 @@ export const PerformanceUtils = {
 
     // API call times (0-25 points)
     const avgApiTime =
-      metrics.apiCallTimes.reduce((a, b) => a + b.duration, 0) / metrics.apiCallTimes.length || 0;
+      metrics.apiCallTimes.reduce((a: any, b: any) => a + b.duration, 0) / metrics.apiCallTimes.length || 0;
     if (avgApiTime > 2000) score -= 25;
     else if (avgApiTime > 1500) score -= 15;
     else if (avgApiTime > 1000) score -= 5;

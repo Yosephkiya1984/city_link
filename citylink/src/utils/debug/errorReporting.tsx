@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import React, { createContext, useState, useCallback, useEffect, useContext } from 'react';
 import { Platform, View, Text, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../../store/AppStore';
@@ -141,7 +142,7 @@ export function ErrorReportingProvider({ children }: ErrorReportingProviderProps
 
   // Handle unhandled promise rejections
   const handleUnhandledRejection = useCallback(
-    (event) => {
+    (event: any) => {
       const error = {
         id: uid(),
         type: ERROR_TYPES.CRITICAL,
@@ -161,7 +162,7 @@ export function ErrorReportingProvider({ children }: ErrorReportingProviderProps
 
   // Handle global errors
   const handleGlobalError = useCallback(
-    (event) => {
+    (event: any) => {
       const error = {
         id: uid(),
         type: ERROR_TYPES.CRITICAL,
@@ -242,7 +243,7 @@ export function ErrorReportingProvider({ children }: ErrorReportingProviderProps
 
         // Update stats
         const stats = errors.reduce(
-          (acc, error) => ({
+          (acc: any, error: any) => ({
             totalErrors: acc.totalErrors + 1,
             criticalErrors:
               acc.criticalErrors + (error.severity === SEVERITY_LEVELS.CRITICAL ? 1 : 0),
@@ -252,7 +253,7 @@ export function ErrorReportingProvider({ children }: ErrorReportingProviderProps
           { totalErrors: 0, criticalErrors: 0, networkErrors: 0, apiErrors: 0 }
         );
 
-        setErrorStats((prev) => ({ ...prev, ...stats }));
+        setErrorStats((prev: ErrorStats) => ({ ...prev, ...stats }));
       }
     } catch (error) {
       console.error('Failed to load stored errors:', error);
@@ -260,7 +261,7 @@ export function ErrorReportingProvider({ children }: ErrorReportingProviderProps
   };
 
   // Show error notification
-  const showErrorNotification = (error) => {
+  const showErrorNotification = (error: ErrorReport) => {
     // In a real app, this would show a user-friendly notification
     console.warn('🚨 Critical error occurred:', error.message);
 
@@ -282,7 +283,7 @@ export function ErrorReportingProvider({ children }: ErrorReportingProviderProps
   };
 
   // Set online status
-  const setOnlineStatus = (online) => {
+  const setOnlineStatus = (online: boolean) => {
     setIsOnline(online);
 
     if (online) {

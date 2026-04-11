@@ -32,7 +32,7 @@ const EMPLOYER_COLORS = {
     SHORTLISTED: '#8B5CF6', // Purple
     OFFERED: '#00A86B', // Green
     REJECTED: '#E8312A', // Red
-  },
+  } as Record<string, string>,
 };
 
 export default function EmployerDashboard() {
@@ -45,11 +45,11 @@ export default function EmployerDashboard() {
   const reset = useAppStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('listings');
-  const [jobListings, setJobListings] = useState([]);
-  const [applications, setApplications] = useState([]);
+  const [jobListings, setJobListings] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddJob, setShowAddJob] = useState(false);
-  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [showApplicationDetail, setShowApplicationDetail] = useState(false);
   const [newJob, setNewJob] = useState({
     title: '',
@@ -62,11 +62,11 @@ export default function EmployerDashboard() {
 
   // KPI calculations
   const totalApplications = applications.length;
-  const reviewingApplications = applications.filter((a) => a.status === 'REVIEWING').length;
-  const shortlistedApplications = applications.filter((a) => a.status === 'SHORTLISTED').length;
-  const offeredApplications = applications.filter((a) => a.status === 'OFFERED').length;
+  const reviewingApplications = applications.filter((a: any) => a.status === 'REVIEWING').length;
+  const shortlistedApplications = applications.filter((a: any) => a.status === 'SHORTLISTED').length;
+  const offeredApplications = applications.filter((a: any) => a.status === 'OFFERED').length;
 
-  const activeJobs = jobListings.filter((job) => job.status === 'OPEN').length;
+  const activeJobs = jobListings.filter((job: any) => job.status === 'OPEN').length;
 
   const loadData = async () => {
     if (!currentUser?.id) return;
@@ -79,8 +79,8 @@ export default function EmployerDashboard() {
 
       if (listingsRes.data) setJobListings(listingsRes.data);
       if (applicationsRes.data) {
-        const sortedApplications = applicationsRes.data.sort(
-          (a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime()
+        const sortedApplications = (applicationsRes.data as any[]).sort(
+          (a: any, b: any) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime()
         );
         setApplications(sortedApplications);
       }
@@ -100,7 +100,7 @@ export default function EmployerDashboard() {
     table: 'job_applications',
     filter: `employer_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
-    onPayload: (payload) => {
+    onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('💼 New application received!', 'success');
@@ -111,7 +111,7 @@ export default function EmployerDashboard() {
     },
   });
 
-  const updateApplication = async (applicationId, newStatus) => {
+  const updateApplication = async (applicationId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -187,13 +187,13 @@ export default function EmployerDashboard() {
     }
   };
 
-  const getStatusColor = (status) => EMPLOYER_COLORS.status[status] || C.sub;
-  const getStatusBg = (status) => {
+  const getStatusColor = (status: string) => EMPLOYER_COLORS.status[status] || C.sub;
+  const getStatusBg = (status: string) => {
     const color = EMPLOYER_COLORS.status[status];
     return color ? `${color}20` : C.surface;
   };
 
-  const ApplicationCard = ({ application }) => (
+  const ApplicationCard = ({ application }: { application: any }) => (
     <TouchableOpacity
       onPress={() => {
         setSelectedApplication(application);
@@ -652,7 +652,7 @@ export default function EmployerDashboard() {
               <CInput
                 placeholder="Enter job title"
                 value={newJob.title}
-                onChangeText={(text) => setNewJob({ ...newJob, title: text })}
+                onChangeText={(text: string) => setNewJob({ ...newJob, title: text })}
               />
             </View>
 
@@ -665,7 +665,7 @@ export default function EmployerDashboard() {
               <CInput
                 placeholder="e.g., 20,000 - 35,000 ETB"
                 value={newJob.salary_range}
-                onChangeText={(text) => setNewJob({ ...newJob, salary_range: text })}
+                onChangeText={(text: string) => setNewJob({ ...newJob, salary_range: text })}
               />
             </View>
 
@@ -713,7 +713,7 @@ export default function EmployerDashboard() {
               <CInput
                 placeholder="e.g., Addis Ababa, Bole"
                 value={newJob.location}
-                onChangeText={(text) => setNewJob({ ...newJob, location: text })}
+                onChangeText={(text: string) => setNewJob({ ...newJob, location: text })}
               />
             </View>
 
@@ -726,7 +726,7 @@ export default function EmployerDashboard() {
               <CInput
                 placeholder="Describe the role, responsibilities, and requirements"
                 value={newJob.description}
-                onChangeText={(text) => setNewJob({ ...newJob, description: text })}
+                onChangeText={(text: string) => setNewJob({ ...newJob, description: text })}
                 multiline
                 numberOfLines={5}
               />

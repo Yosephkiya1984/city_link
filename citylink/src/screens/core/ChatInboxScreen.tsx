@@ -29,7 +29,8 @@ const T = {
   accent: '#ffd887',
 };
 
-function fmtRelativeTime(date) {
+function fmtRelativeTime(date: any) {
+  if (!date) return '';
   const now = new Date();
   const diff = now.getTime() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
@@ -42,11 +43,11 @@ function fmtRelativeTime(date) {
   return new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-export default function ChatInboxScreen({ navigation }) {
+export default function ChatInboxScreen({ navigation }: { navigation: any }) {
   const currentUser = useAppStore((s) => s.currentUser);
   const showToast = useAppStore((s) => s.showToast);
 
-  const [threads, setThreads] = useState([]);
+  const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -65,10 +66,10 @@ export default function ChatInboxScreen({ navigation }) {
     loadThreads();
 
     const ch = subscribeToTable(
-      `inbox-msgs-${currentUser.id}`,
+      `inbox-msgs-${currentUser?.id}`,
       'chat_messages',
       null,
-      (payload) => {
+      () => {
         loadThreads();
       }
     );
@@ -83,8 +84,8 @@ export default function ChatInboxScreen({ navigation }) {
   };
 
   const filteredThreads = useMemo(() => {
-    return threads.filter((t) => {
-      const isUserA = t.user_a_id === currentUser.id;
+    return threads.filter((t: any) => {
+      const isUserA = t.user_a_id === currentUser?.id;
       const other = isUserA ? t.user_b : t.user_a;
       const name = (other?.business_name || other?.full_name || '').toLowerCase();
       const lastMsg = (t.last_msg || '').toLowerCase();
@@ -97,10 +98,10 @@ export default function ChatInboxScreen({ navigation }) {
       }
       return matchesSearch;
     });
-  }, [threads, search, currentUser.id, activeFilter]);
+  }, [threads, search, currentUser?.id, activeFilter]);
 
-  const renderItem = ({ item }) => {
-    const isUserA = item.user_a_id === currentUser.id;
+  const renderItem = ({ item }: { item: any }) => {
+    const isUserA = item.user_a_id === currentUser?.id;
     const other = isUserA ? item.user_b : item.user_a;
     const displayName = other?.business_name || other?.full_name || 'Unknown User';
     const isNew = new Date(item.last_ts).getTime() > Date.now() - 3600000; // Mock unread

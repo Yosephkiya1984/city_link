@@ -37,12 +37,12 @@ const T = {
   accent: '#ffd887',
 };
 
-export default function ChatScreen({ route, navigation }) {
+export default function ChatScreen({ route, navigation }: { route: any; navigation: any }) {
   const { threadId, recipientName, recipientId } = route.params;
   const currentUser = useAppStore((s) => s.currentUser);
   const showToast = useAppStore((s) => s.showToast);
 
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -63,7 +63,7 @@ export default function ChatScreen({ route, navigation }) {
       `chat-${threadId}`,
       'chat_messages',
       `thread_id=eq.${threadId}`,
-      (payload) => {
+      (payload: any) => {
         if (payload.eventType === 'INSERT') {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setMessages((prev) => {
@@ -78,7 +78,7 @@ export default function ChatScreen({ route, navigation }) {
   }, [threadId, loadMessages]);
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || sending) return;
+    if (!inputText.trim() || sending || !currentUser) return;
 
     const msgText = inputText.trim();
     setInputText('');
@@ -86,7 +86,7 @@ export default function ChatScreen({ route, navigation }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const msgId = uid();
-    const optimisticMsg = {
+    const optimisticMsg: any = {
       id: msgId,
       thread_id: threadId,
       user_id: currentUser.id,
@@ -119,8 +119,8 @@ export default function ChatScreen({ route, navigation }) {
     setSending(false);
   };
 
-  const renderItem = ({ item, index }) => {
-    const isMine = item.user_id === currentUser.id;
+  const renderItem = ({ item, index }: { item: any; index: number }) => {
+    const isMine = item.user_id === currentUser?.id;
     const prevMsg = index > 0 ? messages[index - 1] : null;
     const sameUser = prevMsg?.user_id === item.user_id;
 

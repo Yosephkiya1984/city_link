@@ -33,7 +33,7 @@ const RESTAURANT_COLORS = {
     DISPATCHED: '#8B5CF6', // Purple
     DELIVERED: '#00A86B', // Green
     CANCELLED: '#E8312A', // Red
-  },
+  } as Record<string, string>,
 };
 
 export default function RestaurantDashboard() {
@@ -46,14 +46,14 @@ export default function RestaurantDashboard() {
   const reset = useAppStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('orders');
-  const [orders, setOrders] = useState([]);
-  const [menu, setMenu] = useState([]);
-  const [bookings, setBookings] = useState([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [menu, setMenu] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddMenuItem, setShowAddMenuItem] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [currentPin, setCurrentPin] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [newMenuItem, setNewMenuItem] = useState({
     name: '',
     price: '',
@@ -65,17 +65,17 @@ export default function RestaurantDashboard() {
   // KPI calculations
   const todayRevenue = orders
     .filter(
-      (o) =>
+      (o: any) =>
         o.status !== 'CANCELLED' &&
         new Date(o.created_at).toDateString() === new Date().toDateString()
     )
-    .reduce((sum, o) => sum + (o.total || 0), 0);
+    .reduce((sum: number, o: any) => sum + (o.total || 0), 0);
 
-  const activeOrders = orders.filter((o) =>
+  const activeOrders = orders.filter((o: any) =>
     ['NEW', 'PREPARING', 'READY'].includes(o.status)
   ).length;
   const deliveredToday = orders.filter(
-    (o) =>
+    (o: any) =>
       o.status === 'DELIVERED' &&
       new Date(o.created_at).toDateString() === new Date().toDateString()
   ).length;
@@ -112,7 +112,7 @@ export default function RestaurantDashboard() {
     table: 'food_orders',
     filter: `restaurant_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
-    onPayload: (payload) => {
+    onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('🍕 New order received!', 'success');
@@ -123,7 +123,7 @@ export default function RestaurantDashboard() {
     },
   });
 
-  const updateOrder = async (orderId, newStatus) => {
+  const updateOrder = async (orderId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -217,13 +217,13 @@ export default function RestaurantDashboard() {
     }
   };
 
-  const getStatusColor = (status) => RESTAURANT_COLORS.status[status] || C.sub;
-  const getStatusBg = (status) => {
+  const getStatusColor = (status: string) => RESTAURANT_COLORS.status[status] || C.sub;
+  const getStatusBg = (status: string) => {
     const color = RESTAURANT_COLORS.status[status];
     return color ? `${color}20` : C.surface;
   };
 
-  const OrderCard = ({ order }) => (
+  const OrderCard = ({ order }: { order: any }) => (
     <Card
       style={{
         marginBottom: 12,
@@ -516,7 +516,7 @@ export default function RestaurantDashboard() {
                             const newAvailable = !item.available;
                             updateMenuItem({ ...item, available: newAvailable });
                             setMenu(
-                              menu.map((m) =>
+                              menu.map((m: any) =>
                                 m.id === item.id ? { ...m, available: newAvailable } : m
                               )
                             );
@@ -601,7 +601,7 @@ export default function RestaurantDashboard() {
               <CInput
                 placeholder="Enter item name"
                 value={newMenuItem.name}
-                onChangeText={(text) => setNewMenuItem({ ...newMenuItem, name: text })}
+                onChangeText={(text: string) => setNewMenuItem({ ...newMenuItem, name: text })}
               />
             </View>
 
@@ -614,7 +614,7 @@ export default function RestaurantDashboard() {
               <CInput
                 placeholder="0.00"
                 value={newMenuItem.price}
-                onChangeText={(text) => setNewMenuItem({ ...newMenuItem, price: text })}
+                onChangeText={(text: string) => setNewMenuItem({ ...newMenuItem, price: text })}
                 keyboardType="numeric"
               />
             </View>
@@ -665,7 +665,7 @@ export default function RestaurantDashboard() {
               <CInput
                 placeholder="Item description (optional)"
                 value={newMenuItem.description}
-                onChangeText={(text) => setNewMenuItem({ ...newMenuItem, description: text })}
+                onChangeText={(text: string) => setNewMenuItem({ ...newMenuItem, description: text })}
                 multiline
                 numberOfLines={3}
               />

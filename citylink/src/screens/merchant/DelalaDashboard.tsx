@@ -19,6 +19,7 @@ import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '..
 import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
+import { PropertyListing } from '../../types';
 
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
 import {
@@ -41,7 +42,7 @@ const DELALA_COLORS = {
     AGREED: '#8B5CF6', // Purple
     COMPLETED: '#00A86B', // Green
     REMOVED: '#8A9AB8', // Grey
-  },
+  } as Record<string, string>,
 };
 
 export default function DelalaDashboard() {
@@ -54,12 +55,12 @@ export default function DelalaDashboard() {
   const reset = useAppStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('listings');
-  const [listings, setListings] = useState([]);
-  const [enquiries, setEnquiries] = useState([]);
+  const [listings, setListings] = useState<PropertyListing[]>([]);
+  const [enquiries, setEnquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddListing, setShowAddListing] = useState(false);
-  const [selectedListing, setSelectedListing] = useState(null);
-  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [selectedListing, setSelectedListing] = useState<PropertyListing | null>(null);
+  const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
   const [showListingDetail, setShowListingDetail] = useState(false);
   const [showEnquiryDetail, setShowEnquiryDetail] = useState(false);
   const [newListing, setNewListing] = useState({
@@ -72,15 +73,15 @@ export default function DelalaDashboard() {
   });
 
   // KPI calculations
-  const activeListings = listings.filter((l) => l.status === 'ACTIVE').length;
-  const pendingEnquiries = enquiries.filter((e) => e.status === 'PENDING').length;
-  const negotiatingListings = listings.filter((l) => l.status === 'NEGOTIATING').length;
+  const activeListings = listings.filter((l: PropertyListing) => l.status === 'ACTIVE').length;
+  const pendingEnquiries = enquiries.filter((e: any) => e.status === 'PENDING').length;
+  const negotiatingListings = listings.filter((l: PropertyListing) => l.status === 'NEGOTIATING').length;
 
   const monthlyCommission = enquiries
     .filter(
-      (e) => e.status === 'COMPLETED' && new Date(e.created_at).getMonth() === new Date().getMonth()
+      (e: any) => e.status === 'COMPLETED' && new Date(e.created_at).getMonth() === new Date().getMonth()
     )
-    .reduce((sum, e) => sum + (e.commission_amount || 0), 0);
+    .reduce((sum: number, e: any) => sum + (e.commission_amount || 0), 0);
 
   const loadData = async () => {
     if (!currentUser?.id) return;
@@ -92,14 +93,14 @@ export default function DelalaDashboard() {
       ]);
 
       if (listingsRes.data) {
-        const sortedListings = listingsRes.data.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        const sortedListings = (listingsRes.data as PropertyListing[]).sort(
+          (a: PropertyListing, b: PropertyListing) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()
         );
         setListings(sortedListings);
       }
       if (enquiriesRes.data) {
-        const sortedEnquiries = enquiriesRes.data.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        const sortedEnquiries = (enquiriesRes.data as any[]).sort(
+          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         setEnquiries(sortedEnquiries);
       }
@@ -119,7 +120,7 @@ export default function DelalaDashboard() {
     table: 'property_enquiries',
     filter: `agent_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
-    onPayload: (payload) => {
+    onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('ðŸ  New property enquiry!', 'info');
@@ -130,7 +131,7 @@ export default function DelalaDashboard() {
     },
   });
 
-  const updateListing = async (listingId, newStatus) => {
+  const updateListing = async (listingId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -166,13 +167,13 @@ export default function DelalaDashboard() {
         price: parseFloat(newListing.price),
         location: newListing.location,
         description: newListing.description,
-        status: newListing.status,
+        status: newListing.status as any,
         created_at: new Date().toISOString(),
       };
 
-      const result = await createListing(listingData);
+      const result = await createListing(listingData as any);
       if (!result.error) {
-        setListings([listingData, ...listings]);
+        setListings([listingData as any, ...listings]);
         setNewListing({
           title: '',
           category: 'For Rent',
@@ -206,14 +207,14 @@ export default function DelalaDashboard() {
     }
   };
 
-  const getStatusColor = (status) => DELALA_COLORS.status[status] || C.sub;
-  const getStatusBg = (status) => {
+  const getStatusColor = (status: string) => DELALA_COLORS.status[status] || C.sub;
+  const getStatusBg = (status: string) => {
     const color = DELALA_COLORS.status[status];
     return color ? `${color}20` : C.surface;
   };
 
-  const ListingCard = ({ listing }) => {
-    const enquiryCount = enquiries.filter((e) => e.listing_id === listing.id).length;
+  const ListingCard = ({ listing }: { listing: PropertyListing }) => {
+    const enquiryCount = enquiries.filter((e: any) => e.listing_id === listing.id).length;
 
     return (
       <TouchableOpacity
@@ -350,7 +351,7 @@ export default function DelalaDashboard() {
     );
   };
 
-  const EnquiryCard = ({ enquiry }) => (
+  const EnquiryCard = ({ enquiry }: { enquiry: any }) => (
     <TouchableOpacity
       onPress={() => {
         setSelectedEnquiry(enquiry);
@@ -638,7 +639,7 @@ export default function DelalaDashboard() {
               <CInput
                 placeholder="e.g., 3BR Apartment, Bole Road"
                 value={newListing.title}
-                onChangeText={(text) => setNewListing({ ...newListing, title: text })}
+                onChangeText={(text: string) => setNewListing({ ...newListing, title: text })}
               />
             </View>
 
@@ -688,7 +689,7 @@ export default function DelalaDashboard() {
               <CInput
                 placeholder={newListing.category === 'For Rent' ? 'Monthly rent' : 'Sale price'}
                 value={newListing.price}
-                onChangeText={(text) => setNewListing({ ...newListing, price: text })}
+                onChangeText={(text: string) => setNewListing({ ...newListing, price: text })}
                 keyboardType="numeric"
               />
             </View>
@@ -702,7 +703,7 @@ export default function DelalaDashboard() {
               <CInput
                 placeholder="e.g., Bole, Addis Ababa"
                 value={newListing.location}
-                onChangeText={(text) => setNewListing({ ...newListing, location: text })}
+                onChangeText={(text: string) => setNewListing({ ...newListing, location: text })}
               />
             </View>
 
@@ -715,7 +716,7 @@ export default function DelalaDashboard() {
               <CInput
                 placeholder="Property details, amenities, etc."
                 value={newListing.description}
-                onChangeText={(text) => setNewListing({ ...newListing, description: text })}
+                onChangeText={(text: string) => setNewListing({ ...newListing, description: text })}
                 multiline
                 numberOfLines={4}
               />

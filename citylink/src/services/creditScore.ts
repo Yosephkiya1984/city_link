@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getClient } from './supabase';
 import { uid } from '../utils';
 
 // Credit Score System for CityLink
@@ -70,7 +70,7 @@ export const CREDIT_EVENTS = {
 export async function calculateCreditScore(userId) {
   try {
     // Check if supabase is available
-    if (!supabase || !supabase.from) {
+    if (!getClient() || !getClient()?.from) {
       console.warn('Supabase not available, using fallback credit score');
       return {
         score: 300,
@@ -80,7 +80,7 @@ export async function calculateCreditScore(userId) {
     }
 
     // Get user's transaction history
-    const { data: transactions, error: txError } = await supabase
+    const { data: transactions, error: txError } = await getClient()
       .from('transactions')
       .select('*')
       .eq('user_id', userId)
@@ -97,7 +97,7 @@ export async function calculateCreditScore(userId) {
     }
 
     // Get user profile
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await getClient()
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -200,7 +200,9 @@ function getCreditTier(score) {
 // Log credit events for score calculation
 export async function logCreditEvent(userId, eventType, data = {}) {
   try {
-    await supabase.from('credit_events').insert({
+    const client = getClient();
+    if (!client) return;
+    await client.from('credit_events').insert({
       id: uid(),
       user_id: userId,
       event_type: eventType,
@@ -219,7 +221,9 @@ export async function logCreditEvent(userId, eventType, data = {}) {
 // Update user's credit score in profile
 export async function updateCreditScore(userId, score, tier) {
   try {
-    await supabase
+    const client = getClient();
+    if (!client) return;
+    await client
       .from('profiles')
       .update({
         credit_score: score,

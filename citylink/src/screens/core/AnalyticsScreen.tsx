@@ -15,6 +15,8 @@ import { useAppStore } from '../../store/AppStore';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { CButton, SectionTitle } from '../../components';
 import { fmtETB, timeAgo, uid, fmtDateTime } from '../../utils';
+import { fetchSpendingInsights } from '../../services/wallet.service';
+import { getUserSavingsMetrics } from '../../services/ekub.service';
 import { t } from '../../utils/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -109,11 +111,89 @@ export default function AnalyticsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedMetric, setSelectedMetric] = useState('overview');
   const [loading, setLoading] = useState(false);
-  const [animatedValues, setAnimatedValues] = useState({});
+  const [insightList, setInsightList] = useState(INSIGHTS);
+  const [metricData, setMetricData] = useState<any>(ANALYTICS_METRICS);
+
+  const loadData = useCallback(async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    
+    // Fetch Spending & Savings
+    const [spendRes, saveRes] = await Promise.all([
+      fetchSpendingInsights(currentUser.id, selectedPeriod === 'week' ? 7 : selectedPeriod === 'month' ? 30 : selectedPeriod === 'quarter' ? 90 : 365),
+      getUserSavingsMetrics(currentUser.id)
+    ]);
+
+    // Process Spending
+    if (spendRes.data) {
+      const txs = spendRes.data;
+      const categories: Record<string, number> = {};
+      const timeline: any[] = [];
+      
+      txs.forEach((tx: any) => {
+        categories[tx.category] = (categories[tx.category] || 0) + tx.amount;
+        // Group by day for simple timeline
+        const day = new Date(tx.created_at).toLocaleDateString(undefined, { weekday: 'short' });
+        const existingDay = timeline.find(d => d.day === day);
+        if (existingDay) {
+          existingDay.amount += tx.amount;
+        } else {
+          timeline.push({ day, amount: tx.amount });
+        }
+      });
+
+      setMetricData((prev: any) => ({
+        ...prev,
+        spending: {
+          ...prev.spending,
+          data: timeline.length > 0 ? timeline : prev.spending.data
+        }
+      }));
+
+      // Generate Insight dynamically
+      if (txs.length > 0) {
+        const total = txs.reduce((s: number, t: any) => s + t.amount, 0);
+        const topCat = Object.entries(categories).sort((a, b) => b[1] - a[1])[0];
+        if (topCat) {
+          setInsightList(prev => [
+            {
+              id: 'dynamic-spend',
+              title: 'Top Category',
+              insight: `You spent ${fmtETB(topCat[1])} on ${topCat[0]} this period.`,
+              recommendation: `This accounts for ${Math.round((topCat[1]/total)*100)}% of total debit.`,
+              type: 'info',
+              icon: 'pie-chart'
+            },
+            ...prev.filter(i => i.id !== 'dynamic-spend')
+          ]);
+        }
+      }
+    }
+
+    // Process Savings
+    if (saveRes.data) {
+      const totalSaved = saveRes.data.reduce((s: number, r: any) => s + r.amount, 0);
+      setMetricData((prev: any) => ({
+        ...prev,
+        savings: {
+          ...prev.savings,
+          data: [
+            { category: 'Total Ekub', target: totalSaved * 1.5 || 10000, current: totalSaved }
+          ]
+        }
+      }));
+    }
+
+    setLoading(false);
+  }, [currentUser, selectedPeriod]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Initialize animated values
   useEffect(() => {
-    const values = {};
+    const values: Record<string, Animated.Value> = {};
     Object.keys(ANALYTICS_METRICS).forEach((key) => {
       values[key] = new Animated.Value(0);
     });
@@ -135,12 +215,12 @@ export default function AnalyticsScreen() {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    const monthTransactions = (transactions || []).filter((t) => {
+    const monthTransactions = (transactions || []).filter((t: any) => {
       const date = new Date(t.created_at);
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     });
 
-    const spendingByCategory = monthTransactions.reduce((acc, t) => {
+    const spendingByCategory = monthTransactions.reduce((acc: Record<string, number>, t: any) => {
       if (t.type === 'debit') {
         acc[t.category] = (acc[t.category] || 0) + t.amount;
       }
@@ -148,7 +228,7 @@ export default function AnalyticsScreen() {
     }, {});
 
     const totalSpending = Object.values(spendingByCategory).reduce(
-      (sum, amount) => sum + amount,
+      (sum: number, amount: number) => sum + amount,
       0
     );
     const averageTransaction =
@@ -163,9 +243,11 @@ export default function AnalyticsScreen() {
     };
   }, [transactions, balance]);
 
-  const renderOverviewCard = (key, metric) => {
+  const renderOverviewCard = (key: string, metric: any) => {
     const animatedValue = animatedValues[key];
     if (!animatedValue) return null;
+
+    const realMetric = metricData[key] || metric;
 
     return (
       <Animated.View
@@ -192,15 +274,15 @@ export default function AnalyticsScreen() {
                 width: 40,
                 height: 40,
                 borderRadius: 20,
-                backgroundColor: metric.color + '20',
+                backgroundColor: realMetric.color + '20',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name={metric.icon} size={20} color={metric.color} />
+              <Ionicons name={realMetric.icon as any} size={20} color={realMetric.color} />
             </View>
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black, flex: 1 }}>
-              {metric.title}
+              {realMetric.title}
             </Text>
             <Ionicons name="chevron-forward" size={20} color={C.hint} />
           </View>
@@ -208,13 +290,13 @@ export default function AnalyticsScreen() {
           {/* Mini chart preview */}
           {key === 'spending' && (
             <View style={{ height: 60, flexDirection: 'row', alignItems: 'flex-end', gap: 4 }}>
-              {metric.data.slice(-6).map((item, index) => (
+              {realMetric.data.slice(-7).map((item: any, index: number) => (
                 <View
                   key={index}
                   style={{
                     flex: 1,
-                    height: (item.amount / Math.max(...metric.data.map((d) => d.amount))) * 50,
-                    backgroundColor: metric.color,
+                    height: Math.max(5, (item.amount / Math.max(...realMetric.data.map((d: any) => d.amount || 1))) * 50),
+                    backgroundColor: realMetric.color,
                     borderRadius: 4,
                   }}
                 />
@@ -224,7 +306,7 @@ export default function AnalyticsScreen() {
 
           {key === 'transport' && (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              {metric.data.slice(0, 3).map((item, index) => (
+              {realMetric.data.slice(0, 3).map((item: any, index: number) => (
                 <View key={index} style={{ alignItems: 'center' }}>
                   <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
                     {item.trips}
@@ -240,10 +322,10 @@ export default function AnalyticsScreen() {
           {key === 'savings' && (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.medium }}>
-                Total Progress
+                Total Savings
               </Text>
-              <Text style={{ color: metric.color, fontSize: 16, fontFamily: Fonts.black }}>
-                {fmtETB(metric.data.reduce((sum, item) => sum + item.current, 0))}
+              <Text style={{ color: realMetric.color, fontSize: 16, fontFamily: Fonts.black }}>
+                {fmtETB(realMetric.data.reduce((sum: number, item: any) => sum + item.current, 0))}
               </Text>
             </View>
           )}
@@ -251,10 +333,10 @@ export default function AnalyticsScreen() {
           {key === 'activity' && (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.medium }}>
-                Weekly Transactions
+                Weekly Activity
               </Text>
-              <Text style={{ color: metric.color, fontSize: 16, fontFamily: Fonts.black }}>
-                {metric.data.reduce((sum, item) => sum + item.transactions, 0)}
+              <Text style={{ color: realMetric.color, fontSize: 16, fontFamily: Fonts.black }}>
+                {realMetric.data.reduce((sum: number, item: any) => sum + (item.transactions || 0), 0)}
               </Text>
             </View>
           )}
@@ -264,7 +346,7 @@ export default function AnalyticsScreen() {
   };
 
   const renderDetailedChart = () => {
-    const metric = ANALYTICS_METRICS[selectedMetric];
+    const metric = metricData[selectedMetric];
     if (!metric) return null;
 
     if (selectedMetric === 'spending') {
@@ -278,7 +360,7 @@ export default function AnalyticsScreen() {
             <View
               style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}
             >
-              {metric.data.map((item, index) => (
+              {metric.data.map((item: any, index: number) => (
                 <Text
                   key={index}
                   style={{
@@ -294,12 +376,12 @@ export default function AnalyticsScreen() {
               ))}
             </View>
             <View style={{ height: 120, flexDirection: 'row', alignItems: 'flex-end', gap: 4 }}>
-              {metric.data.map((item, index) => (
+              {metric.data.map((item: any, index: number) => (
                 <View key={index} style={{ flex: 1, alignItems: 'center' }}>
                   <View
                     style={{
                       width: '80%',
-                      height: (item.amount / Math.max(...metric.data.map((d) => d.amount))) * 100,
+                      height: (item.amount / Math.max(...metric.data.map((d: any) => d.amount))) * 100,
                       backgroundColor: metric.color,
                       borderRadius: 4,
                     }}
@@ -325,7 +407,7 @@ export default function AnalyticsScreen() {
           </Text>
           {/* Custom Bar Chart */}
           <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 16, ...Shadow.md }}>
-            {metric.data.map((item, index) => (
+            {metric.data.map((item: any, index: number) => (
               <View key={index} style={{ marginBottom: 12 }}>
                 <View
                   style={{
@@ -365,7 +447,7 @@ export default function AnalyticsScreen() {
           <Text style={{ color: C.text, fontSize: 20, fontFamily: Fonts.black, marginBottom: 16 }}>
             {metric.title}
           </Text>
-          {metric.data.map((item, index) => (
+          {metric.data.map((item: any, index: number) => (
             <View
               key={index}
               style={{
@@ -422,7 +504,7 @@ export default function AnalyticsScreen() {
               </Text>
               <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>Logins</Text>
             </View>
-            {metric.data.map((item, index) => (
+            {metric.data.map((item: any, index: number) => (
               <View
                 key={index}
                 style={{
@@ -480,7 +562,7 @@ export default function AnalyticsScreen() {
   const renderInsights = () => (
     <View>
       <SectionTitle title="AI Insights" />
-      {INSIGHTS.map((insight) => (
+      {insightList.map((insight: any) => (
         <TouchableOpacity
           key={insight.id}
           style={{
@@ -510,7 +592,7 @@ export default function AnalyticsScreen() {
               }}
             >
               <Ionicons
-                name={insight.icon}
+                name={insight.icon as any}
                 size={16}
                 color={
                   insight.type === 'success'
@@ -611,7 +693,7 @@ export default function AnalyticsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8, marginBottom: 20 }}
         >
-          {['week', 'month', 'quarter', 'year'].map((period) => (
+          {['week', 'month', 'quarter', 'year'].map((period: string) => (
             <TouchableOpacity
               key={period}
               onPress={() => setSelectedPeriod(period)}

@@ -45,6 +45,60 @@ export interface Product {
   merchant_name?: string;
 }
 
+export interface FoodItem {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  available?: boolean;
+  category?: string;
+  image_url?: string;
+  restaurant_id?: string;
+}
+
+export interface ServiceBooking {
+  id: string;
+  citizen_id: string;
+  merchant_id: string;
+  provider_name?: string;
+  service_type: string;
+  service_name?: string;
+  amount_escrowed?: number;
+  deposit_amount?: number;
+  price?: number;
+  status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  appointment_time: string;
+  client_name?: string;
+  patient_id?: string;
+  duration_minutes?: number;
+  created_at?: string;
+}
+
+export interface PropertyListing {
+  id: string;
+  agent_id: string;
+  title: string;
+  description?: string;
+  category: string;
+  price: number;
+  location: string;
+  status: 'ACTIVE' | 'NEGOTIATING' | 'AGREED' | 'COMPLETED' | 'REMOVED';
+  images_json?: string[];
+  created_at?: string;
+}
+
+export interface BusRoute {
+  id: string;
+  operator_id: string;
+  from_city: string;
+  to_city: string;
+  departure_time: string;
+  price: number;
+  available_seats: number;
+  status: 'active' | 'inactive' | 'full';
+  duration?: string;
+}
+
 export interface AppState {
   isDark: boolean;
   notifications: any[];
@@ -92,3 +146,72 @@ export interface AppState {
   reset: () => Promise<void>;
   hydrateSession: () => Promise<void>;
 }
+
+export interface EkubCircle {
+  id: string;
+  organiser_id: string;
+  name: string;
+  contribution_amount: number;
+  frequency: 'Weekly' | 'Bi-weekly' | 'Monthly';
+  max_members: number;
+  current_round: number;
+  status: 'FORMING' | 'ACTIVE' | 'ESCROW_LOCKED' | 'COMPLETE';
+  pot_balance: number;
+  rules?: string;
+  visibility: 'public' | 'invite-only';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EkubMember {
+  id: string;
+  ekub_id: string;
+  user_id: string;
+  status: 'PENDING' | 'ACTIVE' | 'REJECTED';
+  is_organiser: boolean;
+  has_won: boolean;
+  missed_rounds: number;
+  penalty_balance: number;
+  application_reason?: string;
+  joined_at: string;
+  user?: User;
+}
+
+export interface EkubContribution {
+  id: string;
+  ekub_id: string;
+  user_id: string;
+  round_number: number;
+  amount: number;
+  base_amount: number;
+  penalty_amount: number;
+  paid_at: string;
+}
+
+export interface EkubDraw {
+  id: string;
+  ekub_id: string;
+  round_number: number;
+  status: 'AWAITING_CONSENT' | 'NEEDS_VOUCHING' | 'PENDING_RELEASE' | 'RELEASED' | 'DISPUTED' | 'VOIDED';
+  winner_id: string;
+  winner_name: string;
+  pot_amount: number;
+  seed_hash: string;
+  consent_signed: boolean;
+  consent_signed_at?: string;
+  admin_override?: boolean;
+  created_at: string;
+  released_at?: string;
+}
+
+export interface EkubVouch {
+  id: string;
+  draw_id: string;
+  ekub_id: string;
+  voucher_id: string;
+  voucher_name: string;
+  is_approved: boolean;
+  reason?: string;
+  vouched_at: string;
+}
+

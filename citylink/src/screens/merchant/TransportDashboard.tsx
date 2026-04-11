@@ -31,7 +31,7 @@ const TRANSPORT_COLORS = {
     VALID: '#00A86B', // Green
     USED: '#8A9AB8', // Grey
     CANCELLED: '#E8312A', // Red
-  },
+  } as Record<string, string>,
 };
 
 export default function TransportDashboard() {
@@ -44,15 +44,15 @@ export default function TransportDashboard() {
   const reset = useAppStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('routes');
-  const [routes, setRoutes] = useState([]);
-  const [tickets, setTickets] = useState([]);
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddRoute, setShowAddRoute] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState(null);
-  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [selectedRoute, setSelectedRoute] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [showTicketDetail, setShowTicketDetail] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
+  const [scanResult, setScanResult] = useState<any>(null);
   const [newRoute, setNewRoute] = useState({
     from: '',
     to: '',
@@ -63,18 +63,18 @@ export default function TransportDashboard() {
   });
 
   // KPI calculations
-  const activeRoutes = routes.filter((r) => r.status === 'active').length;
-  const totalSeats = routes.reduce((sum, r) => sum + (r.available_seats || 0), 0);
-  const soldSeats = tickets.filter((t) => t.status === 'VALID').length;
+  const activeRoutes = routes.filter((r: any) => r.status === 'active').length;
+  const totalSeats = routes.reduce((sum: number, r: any) => sum + (r.available_seats || 0), 0);
+  const soldSeats = tickets.filter((t: any) => t.status === 'VALID').length;
   const availableSeats = totalSeats - soldSeats;
-  const loadFactor = totalSeats > 0 ? ((soldSeats / totalSeats) * 100).toFixed(1) : 0;
+  const loadFactor = totalSeats > 0 ? ((soldSeats / totalSeats) * 100).toFixed(1) : '0';
 
   const todayRevenue = tickets
     .filter(
-      (t) =>
+      (t: any) =>
         t.status === 'VALID' && new Date(t.created_at).toDateString() === new Date().toDateString()
     )
-    .reduce((sum, t) => sum + (t.price || 0), 0);
+    .reduce((sum: number, t: any) => sum + (t.price || 0), 0);
 
   const loadData = async () => {
     if (!currentUser?.id) return;
@@ -108,7 +108,7 @@ export default function TransportDashboard() {
     table: 'bus_tickets',
     filter: `operator_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
-    onPayload: (payload) => {
+    onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('🚌 New ticket sold!', 'success');
@@ -119,7 +119,7 @@ export default function TransportDashboard() {
     },
   });
 
-  const updateTicket = async (ticketId, newStatus) => {
+  const updateTicket = async (ticketId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -181,10 +181,10 @@ export default function TransportDashboard() {
     setLoading(false);
   };
 
-  const handleBarCodeScanned = ({ type, data }) => {
+  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     try {
       const ticketData = JSON.parse(data);
-      const ticket = tickets.find((t) => t.id === ticketData.ticketId);
+      const ticket = tickets.find((t: any) => t.id === ticketData.ticketId);
 
       if (ticket) {
         if (ticket.status === 'VALID') {
@@ -226,16 +226,16 @@ export default function TransportDashboard() {
     }
   };
 
-  const getLoadFactorColor = (factor) => {
+  const getLoadFactorColor = (factor: number | string) => {
     const f = Number(factor);
     if (f >= 90) return '#E8312A';
     if (f >= 60) return '#F5B800';
     return '#00A86B';
   };
 
-  const RouteCard = ({ route }) => {
-    const routeTickets = tickets.filter((t) => t.route_id === route.id);
-    const soldSeats = routeTickets.filter((t) => t.status === 'VALID').length;
+  const RouteCard = ({ route }: { route: any }) => {
+    const routeTickets = tickets.filter((t: any) => t.route_id === route.id);
+    const soldSeats = routeTickets.filter((t: any) => t.status === 'VALID').length;
     const loadFactor =
       route.available_seats > 0 ? ((soldSeats / route.available_seats) * 100).toFixed(1) : 0;
     const isFull = soldSeats >= route.available_seats;
@@ -356,8 +356,8 @@ export default function TransportDashboard() {
     );
   };
 
-  const TicketCard = ({ ticket }) => {
-    const route = routes.find((r) => r.id === ticket.route_id);
+  const TicketCard = ({ ticket }: { ticket: any }) => {
+    const route = routes.find((r: any) => r.id === ticket.route_id);
 
     return (
       <TouchableOpacity

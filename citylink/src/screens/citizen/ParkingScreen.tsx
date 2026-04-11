@@ -54,7 +54,7 @@ const DEMO_LOTS = [
   },
 ];
 
-function generateSpots(count, lotId) {
+function generateSpots(count: number, lotId: string) {
   return Array.from({ length: count }, (_, i) => ({
     id: `${lotId}-spot-${i + 1}`,
     number: `${String.fromCharCode(65 + Math.floor(i / 10))}${(i % 10) + 1}`,
@@ -63,10 +63,10 @@ function generateSpots(count, lotId) {
 }
 
 /** Map Supabase parking_lots + parking_spots rows to local grid model. */
-function mapLotsFromDb(rows) {
-  return rows.map((lot) => {
+function mapLotsFromDb(rows: any[]) {
+  return rows.map((lot: any) => {
     const raw = lot.parking_spots || [];
-    const spots = raw.map((s, i) => ({
+    const spots = raw.map((s: any, i: number) => ({
       id: s.id || `${lot.id}-s-${i}`,
       number: String(s.spot_number ?? s.label ?? s.number ?? i + 1),
       status: /occupied|held|reserved|busy/i.test(String(s.status || ''))
@@ -96,16 +96,16 @@ export default function ParkingScreen() {
   const addTransaction = useAppStore((s) => s.addTransaction);
   const showToast = useAppStore((s) => s.showToast);
 
-  const [lots, setLots] = useState(DEMO_LOTS);
-  const [selectedLot, setSelectedLot] = useState(null);
-  const [selectedSpot, setSelectedSpot] = useState(null);
+  const [lots, setLots] = useState<any[]>(DEMO_LOTS);
+  const [selectedLot, setSelectedLot] = useState<any>(null);
+  const [selectedSpot, setSelectedSpot] = useState<any>(null);
   const [confirmModal, setConfirmModal] = useState(false);
   const [qrModal, setQrModal] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    let interval;
+    let interval: NodeJS.Timeout;
     if (activeParking) {
       interval = setInterval(() => {
         const secs = Math.floor(
@@ -115,7 +115,9 @@ export default function ParkingScreen() {
         setElapsed(secs);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [activeParking]);
 
   useEffect(() => {
@@ -143,7 +145,7 @@ export default function ParkingScreen() {
     onPayload: refreshLots,
   });
 
-  function formatElapsed(secs) {
+  function formatElapsed(secs: number) {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
     const s = secs % 60;
@@ -262,12 +264,12 @@ export default function ParkingScreen() {
     }
   }
 
-  const handleLotPress = (lot) => {
+  const handleLotPress = (lot: any) => {
     setSelectedLot(selectedLot?.id === lot.id ? null : lot);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handleSpotPress = (spot) => {
+  const handleSpotPress = (spot: any) => {
     if (spot.status === 'occupied') return;
     setSelectedSpot(spot);
     setConfirmModal(true);
@@ -1000,7 +1002,7 @@ export default function ParkingScreen() {
   );
 }
 
-function Row({ label, value }) {
+function Row({ label, value }: { label: string; value: string | number }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
       <Text style={{ color: '#bccabe', fontSize: 14, fontFamily: Fonts.body }}>{label}</Text>

@@ -67,20 +67,20 @@ const T = {
   card: '#161d27',
 };
 
-function fmtETB(n) {
+function fmtETB(n: number) {
   return (n || 0).toLocaleString('en-ET');
 }
-function fmtTime(iso) {
-  if (!iso) return 'â€”';
+function fmtTime(iso: string) {
+  if (!iso) return '—';
   return new Date(iso).toLocaleTimeString('en-ET', { hour: '2-digit', minute: '2-digit' });
 }
-function fmtDate(iso) {
-  if (!iso) return 'â€”';
+function fmtDate(iso: string) {
+  if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-ET', { month: 'short', day: 'numeric' });
 }
 
-// â”€â”€ Countdown timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function useCountdown(expiresAt) {
+// ── Countdown timer ───────────────────────────────────────────────────────────
+function useCountdown(expiresAt: string) {
   const [secs, setSecs] = useState(0);
   useEffect(() => {
     if (!expiresAt) return;
@@ -95,8 +95,8 @@ function useCountdown(expiresAt) {
   return secs;
 }
 
-// â”€â”€ Dispatch Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function DispatchCard({ dispatch, onAccept, onDecline }) {
+// ── Dispatch Card ─────────────────────────────────────────────────────────────
+function DispatchCard({ dispatch, onAccept, onDecline }: { dispatch: any; onAccept: (d: any) => void; onDecline: (d: any) => void }) {
   const pulse = useRef(new Animated.Value(1)).current;
   const secs = useCountdown(dispatch.expires_at);
   const order = dispatch.order;
@@ -110,7 +110,7 @@ function DispatchCard({ dispatch, onAccept, onDecline }) {
     );
     anim.start();
     return () => anim.stop();
-  }, []);
+  }, [pulse]);
 
   const mins = Math.floor(secs / 60);
   const sec = secs % 60;
@@ -175,7 +175,7 @@ function DispatchCard({ dispatch, onAccept, onDecline }) {
           <View>
             <Text style={s.earningsLabel}>PRODUCT</Text>
             <Text style={s.earningsValue} numberOfLines={1}>
-              {order?.product_name || 'â€”'}
+              {order?.product_name || '—'}
             </Text>
           </View>
         </View>
@@ -196,9 +196,9 @@ function DispatchCard({ dispatch, onAccept, onDecline }) {
   );
 }
 
-// â”€â”€ Active Job Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function ActiveJobCard({ job, onPickedUp, onArrived, onEnterPin }) {
-  const statusConfig = {
+// ── Active Job Card ───────────────────────────────────────────────────────────
+function ActiveJobCard({ job, onPickedUp, onArrived, onEnterPin }: { job: any; onPickedUp: (j: any) => void; onArrived: (j: any) => void; onEnterPin: (j: any) => void }) {
+  const statusConfig: Record<string, any> = {
     AGENT_ASSIGNED: {
       label: 'Head to Pickup',
       icon: 'navigate-outline',
@@ -395,8 +395,8 @@ export default function DeliveryAgentDashboard() {
     // Compute today's earnings from history
     const today = new Date().toDateString();
     const todayTotal = hist
-      .filter((h) => new Date(h.delivered_at).toDateString() === today)
-      .reduce((sum, h) => sum + Math.floor((h.total || 0) * 0.12), 0);
+      .filter((h: any) => new Date(h.delivered_at).toDateString() === today)
+      .reduce((sum: number, h: any) => sum + Math.floor((h.total || 0) * 0.12), 0);
     setTodayEarnings(todayTotal);
 
     if (jobs.length === 0) {
@@ -431,7 +431,7 @@ export default function DeliveryAgentDashboard() {
   }, [loadDashboard, currentUser?.id]);
 
   // â”€â”€ Online Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handleToggleOnline = async (val) => {
+  const handleToggleOnline = async (val: boolean) => {
     setTogglingOnline(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
@@ -478,8 +478,8 @@ export default function DeliveryAgentDashboard() {
     }
   };
 
-  // â”€â”€ Accept Dispatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handleAccept = async (dispatch) => {
+  // —— Accept Dispatch —————————————————————————————————————————————————————
+  const handleAccept = async (dispatch: any) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const { ok, error } = await acceptDeliveryJob(dispatch.order_id, currentUser.id);
     if (!ok) {
@@ -496,19 +496,19 @@ export default function DeliveryAgentDashboard() {
     await loadDashboard();
   };
 
-  // â”€â”€ Decline Dispatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handleDecline = async (dispatch) => {
+  // —— Decline Dispatch ————————————————————————————————————————————————————————
+  const handleDecline = async (dispatch: any) => {
     await declineDeliveryJob(dispatch.order_id, currentUser.id);
     setDispatches((prev) => prev.filter((d) => d.order_id !== dispatch.order_id));
     showToast('Job declined', 'info');
   };
 
-  // â”€â”€ Picked Up (Dual Confirmation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handlePickedUp = async (job) => {
+  // —— Picked Up (Dual Confirmation) ———————————————————————————————————————————
+  const handlePickedUp = async (job: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
     try {
-      const { ok, status, error, pin } = await markOrderPickedUp(job.id, currentUser.id);
+      const { ok, status, error } = await markOrderPickedUp(job.id, currentUser.id);
       if (!ok) throw new Error(error);
 
       if (status === 'SHIPPED') {
@@ -517,15 +517,15 @@ export default function DeliveryAgentDashboard() {
         showToast('You confirmed pickup! Waiting for merchant handover...', 'info');
       }
       loadDashboard();
-    } catch (e) {
+    } catch (e: any) {
       showToast(e.message || 'Pickup confirmation failed', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // â”€â”€ Arrived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handleArrived = async (job) => {
+  // —— Arrived —————————————————————————————————————————————————————————————————
+  const handleArrived = async (job: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (!cameraPermission?.granted) {
@@ -545,7 +545,7 @@ export default function DeliveryAgentDashboard() {
     if (!cameraRef.current || capturing || !arrivedJob) return;
     setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5 });
+      const photo = await (cameraRef.current as any).takePictureAsync({ base64: true, quality: 0.5 });
       showToast('Uploading proof...', 'info');
 
       const { ok, error } = await uploadDeliveryProof(arrivedJob.id, photo.base64);
@@ -556,15 +556,15 @@ export default function DeliveryAgentDashboard() {
       setArrivedJob(null);
       showToast('Proof uploaded! Ask buyer for PIN.', 'success');
       loadDashboard();
-    } catch (e) {
+    } catch (e: any) {
       showToast('Failed to upload proof. Try again.', 'error');
     } finally {
       setCapturing(false);
     }
   };
 
-  // â”€â”€ Enter PIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handleEnterPin = (job) => {
+  // —— Enter PIN ————————————————————————————————————————————————————————————————
+  const handleEnterPin = (job: any) => {
     setPinInput('');
     setPinPromptJob(job);
   };
@@ -576,7 +576,7 @@ export default function DeliveryAgentDashboard() {
       return;
     }
     setSubmittingPin(true);
-    const res = await confirmDeliveryWithPin(pinPromptJob.id, pinInput.trim(), currentUser.id);
+    const res = await confirmDeliveryWithPin((pinPromptJob as any).id, pinInput.trim(), currentUser.id);
     setSubmittingPin(false);
 
     if (!res.ok) {

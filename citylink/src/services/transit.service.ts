@@ -3,14 +3,14 @@ import { getClient, supaQuery, hasSupabase } from './supabase';
 /**
  * tapIn — records entrance to a rail station.
  */
-export async function tapIn(session) {
+export async function tapIn(session: any) {
   return supaQuery((c) => c.from('rail_sessions').insert(session).select().single());
 }
 
 /**
  * tapOut — records exit from a rail station and charges fare atomically.
  */
-export async function tapOut(sessionId, exitId, exitName) {
+export async function tapOut(sessionId: string, exitId: string, exitName: string) {
   return supaQuery((c) =>
     c.rpc('process_rail_tap_out_atomic', {
       p_session_id: sessionId,
@@ -23,7 +23,7 @@ export async function tapOut(sessionId, exitId, exitName) {
 /**
  * fetchMyRailJourneys — fetches rail travel history for a user.
  */
-export async function fetchMyRailJourneys(userId) {
+export async function fetchMyRailJourneys(userId: string) {
   return supaQuery((c) =>
     c
       .from('rail_sessions')
@@ -37,7 +37,7 @@ export async function fetchMyRailJourneys(userId) {
 /**
  * fetchBusRoutes — searches for intercity bus routes.
  */
-export async function fetchBusRoutes(from, to) {
+export async function fetchBusRoutes(from?: string, to?: string) {
   let q = getClient()?.from('bus_routes').select('*').eq('status', 'active');
   if (from) q = q.eq('from_city', from);
   if (to) q = q.eq('to_city', to);
@@ -47,7 +47,7 @@ export async function fetchBusRoutes(from, to) {
 /**
  * bookBusTicket — books a ticket for a selected bus route atomically.
  */
-export async function bookBusTicket(routeId, userId, qrToken) {
+export async function bookBusTicket(routeId: string, userId: string, qrToken: string) {
   return supaQuery((c) =>
     c.rpc('issue_bus_ticket_atomic', {
       p_route_id: routeId,
@@ -62,7 +62,7 @@ export async function bookBusTicket(routeId, userId, qrToken) {
 /**
  * fetchTransportRoutes — fetches routes managed by an operator.
  */
-export const fetchTransportRoutes = async (operatorId) => {
+export const fetchTransportRoutes = async (operatorId: string) => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -102,7 +102,7 @@ export const fetchTransportRoutes = async (operatorId) => {
 /**
  * fetchTransportTickets — fetches tickets sold for an operator's routes.
  */
-export const fetchTransportTickets = async (operatorId) => {
+export const fetchTransportTickets = async (operatorId: string) => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -140,7 +140,7 @@ export const fetchTransportTickets = async (operatorId) => {
 /**
  * updateTicketStatus — updates the status of a transport ticket.
  */
-export const updateTicketStatus = async (ticketId, status) => {
+export const updateTicketStatus = async (ticketId: string, status: string) => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
@@ -150,7 +150,7 @@ export const updateTicketStatus = async (ticketId, status) => {
 /**
  * createRoute — creates a new transport route.
  */
-export const createRoute = async (route) => {
+export const createRoute = async (route: any) => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }

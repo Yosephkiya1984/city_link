@@ -172,7 +172,7 @@ class MemoryManager {
   }
 
   // Register object for tracking
-  registerObject(id, object) {
+  registerObject(id: string, object: any) {
     this.objectRegistry.set(id, {
       object,
       createdAt: Date.now(),
@@ -181,12 +181,12 @@ class MemoryManager {
   }
 
   // Unregister object
-  unregisterObject(id) {
+  unregisterObject(id: string) {
     this.objectRegistry.delete(id);
   }
 
   // Estimate object size
-  estimateObjectSize(obj) {
+  estimateObjectSize(obj: any) {
     try {
       return JSON.stringify(obj).length * 2; // Rough estimate in bytes
     } catch (error) {
@@ -195,7 +195,7 @@ class MemoryManager {
   }
 
   // Register cleanup task
-  registerCleanupTask(task) {
+  registerCleanupTask(task: () => void) {
     this.cleanupTasks.push(task);
   }
 
@@ -213,17 +213,17 @@ class MemoryManager {
 // Bundle optimization utilities
 export const BundleOptimizer = {
   // Lazy load component
-  lazyLoad: (importFunc) => {
+  lazyLoad: (importFunc: () => Promise<any>) => {
     return React.lazy(importFunc);
   },
 
   // Preload component
-  preloadComponent: (importFunc) => {
+  preloadComponent: (importFunc: () => Promise<any> | any) => {
     return importFunc();
   },
 
   // Dynamic import with error handling
-  dynamicImport: async (importFunc, componentName) => {
+  dynamicImport: async (importFunc: () => Promise<any>, componentName: string) => {
     try {
       const start = performance.now();
       const module = await importFunc();
@@ -238,8 +238,8 @@ export const BundleOptimizer = {
   },
 
   // Code splitting for routes
-  splitRoutes: (routes) => {
-    return routes.map((route) => ({
+  splitRoutes: (routes: any[]) => {
+    return routes.map((route: any) => ({
       ...route,
       component: React.lazy(() => {
         // Import the component directly instead of using template literals
@@ -262,8 +262,8 @@ export const BundleOptimizer = {
   },
 
   // Optimize images
-  optimizeImages: (imageSources) => {
-    return imageSources.map((src) => {
+  optimizeImages: (imageSources: string[]) => {
+    return imageSources.map((src: string) => {
       // In a real app, this would optimize images
       return src;
     });
@@ -279,7 +279,7 @@ export const BundleOptimizer = {
 // Performance profiling tools
 export const PerformanceProfiler = {
   // Profile component render
-  profileComponent: (Component, componentName) => {
+  profileComponent: (Component: any, componentName: string) => {
     return React.memo(Component, (prevProps, nextProps) => {
       const start = performance.now();
       const areEqual = JSON.stringify(prevProps) === JSON.stringify(nextProps);
@@ -294,8 +294,8 @@ export const PerformanceProfiler = {
   },
 
   // Profile function execution
-  profileFunction: (fn, functionName) => {
-    return async (...args) => {
+  profileFunction: (fn: any, functionName: string) => {
+    return async (...args: any[]) => {
       const start = performance.now();
       try {
         const result = await fn(...args);
@@ -315,8 +315,8 @@ export const PerformanceProfiler = {
   },
 
   // Profile API call
-  profileApiCall: (apiCall, endpoint) => {
-    return async (...args) => {
+  profileApiCall: (apiCall: any, endpoint: string) => {
+    return async (...args: any[]) => {
       const start = performance.now();
       try {
         const result = await apiCall(...args);
@@ -359,8 +359,8 @@ export const PerformanceProfiler = {
       cache: cacheStats,
       performance: {
         bundleSize: (BundleOptimizer as any).getBundleSize?.() || 0,
-        componentLoadTimes: [],
-        apiCallTimes: [],
+        componentLoadTimes: [] as any[],
+        apiCallTimes: [] as any[],
       },
       recommendations: PerformanceProfiler.getRecommendations(memoryStats, cacheStats),
     };
@@ -368,7 +368,7 @@ export const PerformanceProfiler = {
 
   // Get performance recommendations
   getRecommendations: (memoryStats: any, cacheStats: any) => {
-    const recommendations = [];
+    const recommendations: string[] = [];
 
     if (memoryStats.percentage > MEMORY_CONFIG.WARNING_THRESHOLD) {
       recommendations.push('Memory usage is high. Consider implementing more aggressive cleanup.');
@@ -415,7 +415,7 @@ export function useMemoryManager() {
 }
 
 // Hook for performance profiling
-export function usePerformanceProfiler(componentName) {
+export function usePerformanceProfiler(componentName: string) {
   const renderCount = useRef(0);
   const renderTimes = useRef([]);
   const lastRenderTime = useRef(Date.now());
@@ -451,9 +451,9 @@ export function usePerformanceProfiler(componentName) {
 // Optimization utilities
 export const OptimizationUtils = {
   // Debounce function
-  debounce: (func, wait) => {
-    let timeout;
-    return function executedFunction(...args) {
+  debounce: (func: any, wait: number) => {
+    let timeout: ReturnType<typeof setTimeout>;
+    return function executedFunction(...args: any[]) {
       const later = () => {
         clearTimeout(timeout);
         func(...args);
@@ -464,9 +464,9 @@ export const OptimizationUtils = {
   },
 
   // Throttle function
-  throttle: (func, limit) => {
-    let inThrottle;
-    return function (...args) {
+  throttle: (func: any, limit: number) => {
+    let inThrottle: boolean;
+    return function (this: any, ...args: any[]) {
       if (!inThrottle) {
         func.apply(this, args);
         inThrottle = true;
@@ -476,9 +476,9 @@ export const OptimizationUtils = {
   },
 
   // Memoize function
-  memoize: (func) => {
+  memoize: (func: any) => {
     const cache = new Map();
-    return function (...args) {
+    return function (this: any, ...args: any[]) {
       const key = JSON.stringify(args);
       if (cache.has(key)) {
         return cache.get(key);
@@ -490,7 +490,7 @@ export const OptimizationUtils = {
   },
 
   // Virtual scroll helper
-  virtualScroll: (items, itemHeight, containerHeight, scrollTop) => {
+  virtualScroll: (items: any[], itemHeight: number, containerHeight: number, scrollTop: number) => {
     const startIndex = Math.floor(scrollTop / itemHeight);
     const endIndex = Math.min(
       startIndex + Math.ceil(containerHeight / itemHeight) + 1,

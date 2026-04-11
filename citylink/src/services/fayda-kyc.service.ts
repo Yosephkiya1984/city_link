@@ -3,6 +3,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supaQuery } from './supabase';
+import { SecurePersist } from '../store/SecurePersist';
 import { uid } from '../utils';
 
 // ── Fayda KYC Storage Keys ───────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ export const FAYDA_STATUS = {
 export type FaydaStatus = (typeof FAYDA_STATUS)[keyof typeof FAYDA_STATUS];
 
 // ── Ethiopian Fayda Mock Database (Realistic Ethiopian IDs) ───────────────────────
-export const FAYDA_MOCK_DATABASE = {
+export const FAYDA_MOCK_DATABASE: Record<string, FaydaKycData> = {
   // Valid Ethiopian Fayda IDs (13-digit format)
   '0123456789012': {
     fayda_id: '0123456789012',
@@ -260,8 +261,8 @@ export class FaydaKYCService {
         api_ready: false, // Flag for real API integration
       };
 
-      await AsyncStorage.setItem(FAYDA_KYC_DATA, JSON.stringify(kycData));
-      await AsyncStorage.setItem(FAYDA_KYC_STATUS, JSON.stringify(FAYDA_STATUS.VERIFIED));
+      await SecurePersist.saveKYC(kycData);
+      await SecurePersist.saveKYCStatus(FAYDA_STATUS.VERIFIED);
       await AsyncStorage.removeItem(FAYDA_TEMP_DATA);
 
       // Persist to Supabase if userId is provided
@@ -299,13 +300,13 @@ export class FaydaKYCService {
   // Get current KYC status
   static async getKYCStatus() {
     try {
-      const status = await AsyncStorage.getItem(FAYDA_KYC_STATUS);
-      const data = await AsyncStorage.getItem(FAYDA_KYC_DATA);
+      const status = await SecurePersist.loadKYCStatus();
+      const data = await SecurePersist.loadKYC();
       const tempData = await AsyncStorage.getItem(FAYDA_TEMP_DATA);
 
       return {
-        status: status ? JSON.parse(status) : FAYDA_STATUS.NOT_STARTED,
-        kyc_data: data ? JSON.parse(data) : null,
+        status: status || FAYDA_STATUS.NOT_STARTED,
+        kyc_data: data,
         temp_data: tempData ? JSON.parse(tempData) : null,
       };
     } catch (error) {
@@ -363,7 +364,7 @@ export class FaydaKYCService {
 
   // Get nearest Fayda registration centers (Mock data)
   static getRegistrationCenters(region: string = 'Addis Ababa') {
-    const centers = {
+    const centers: Record<string, any[]> = {
       'Addis Ababa': [
         {
           id: '1',
@@ -425,7 +426,8 @@ export class FaydaKYCService {
   // Clear KYC data (for testing/reset)
   static async clearKYCData() {
     try {
-      await AsyncStorage.multiRemove([FAYDA_KYC_DATA, FAYDA_KYC_STATUS, FAYDA_TEMP_DATA]);
+      await SecurePersist.clearKYC();
+      await AsyncStorage.removeItem(FAYDA_TEMP_DATA);
       return true;
     } catch (error) {
       console.error('Clear KYC data error:', error);

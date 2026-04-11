@@ -10,6 +10,7 @@ import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '..
 import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
+import { ServiceBooking } from '../../types';
 
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
 import {
@@ -32,7 +33,7 @@ const SALON_COLORS = {
     IN_PROGRESS: '#2D7EF0', // Blue
     COMPLETED: '#00A86B', // Green
     CANCELLED: '#E8312A', // Red
-  },
+  } as Record<string, string>,
 };
 
 export default function SalonDashboard() {
@@ -45,11 +46,11 @@ export default function SalonDashboard() {
   const reset = useAppStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('bookings');
-  const [bookings, setBookings] = useState([]);
-  const [services, setServices] = useState([]);
+  const [bookings, setBookings] = useState<ServiceBooking[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddService, setShowAddService] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState<ServiceBooking | null>(null);
   const [showBookingDetail, setShowBookingDetail] = useState(false);
   const [newService, setNewService] = useState({
     name: '',
@@ -61,19 +62,19 @@ export default function SalonDashboard() {
 
   // KPI calculations
   const todayBookings = bookings.filter(
-    (b) => new Date(b.appointment_time).toDateString() === new Date().toDateString()
+    (b: ServiceBooking) => new Date(b.appointment_time).toDateString() === new Date().toDateString()
   ).length;
 
-  const pendingBookings = bookings.filter((b) => b.status === 'PENDING').length;
-  const confirmedBookings = bookings.filter((b) => b.status === 'CONFIRMED').length;
+  const pendingBookings = bookings.filter((b: ServiceBooking) => b.status === 'PENDING').length;
+  const confirmedBookings = bookings.filter((b: ServiceBooking) => b.status === 'CONFIRMED').length;
 
   const todayRevenue = bookings
     .filter(
-      (b) =>
+      (b: ServiceBooking) =>
         b.status === 'COMPLETED' &&
         new Date(b.appointment_time).toDateString() === new Date().toDateString()
     )
-    .reduce((sum, b) => sum + (b.price || 0), 0);
+    .reduce((sum: number, b: ServiceBooking) => sum + (b.price || 0), 0);
 
   const loadData = async () => {
     if (!currentUser?.id) return;
@@ -85,8 +86,8 @@ export default function SalonDashboard() {
       ]);
 
       if (bookingsRes.data) {
-        const sortedBookings = bookingsRes.data.sort(
-          (a, b) => new Date(a.appointment_time).getTime() - new Date(b.appointment_time).getTime()
+        const sortedBookings = (bookingsRes.data as ServiceBooking[]).sort(
+          (a: ServiceBooking, b: ServiceBooking) => new Date(a.appointment_time).getTime() - new Date(b.appointment_time).getTime()
         );
         setBookings(sortedBookings);
       }
@@ -107,7 +108,7 @@ export default function SalonDashboard() {
     table: 'service_bookings',
     filter: `salon_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
-    onPayload: (payload) => {
+    onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('💈 New booking request!', 'info');
@@ -118,7 +119,7 @@ export default function SalonDashboard() {
     },
   });
 
-  const updateBooking = async (bookingId, newStatus) => {
+  const updateBooking = async (bookingId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -192,13 +193,13 @@ export default function SalonDashboard() {
     }
   };
 
-  const getStatusColor = (status) => SALON_COLORS.status[status] || C.sub;
-  const getStatusBg = (status) => {
+  const getStatusColor = (status: string) => SALON_COLORS.status[status] || C.sub;
+  const getStatusBg = (status: string) => {
     const color = SALON_COLORS.status[status];
     return color ? `${color}20` : C.surface;
   };
 
-  const BookingCard = ({ booking }) => {
+  const BookingCard = ({ booking }: { booking: ServiceBooking }) => {
     const appointmentTime = new Date(booking.appointment_time);
     const isToday = appointmentTime.toDateString() === new Date().toDateString();
 
@@ -637,7 +638,7 @@ export default function SalonDashboard() {
               <CInput
                 placeholder="Enter service name"
                 value={newService.name}
-                onChangeText={(text) => setNewService({ ...newService, name: text })}
+                onChangeText={(text: string) => setNewService({ ...newService, name: text })}
               />
             </View>
 
@@ -650,7 +651,7 @@ export default function SalonDashboard() {
               <CInput
                 placeholder="0.00"
                 value={newService.price}
-                onChangeText={(text) => setNewService({ ...newService, price: text })}
+                onChangeText={(text: string) => setNewService({ ...newService, price: text })}
                 keyboardType="numeric"
               />
             </View>
@@ -704,7 +705,7 @@ export default function SalonDashboard() {
               <CInput
                 placeholder="Service description (optional)"
                 value={newService.description}
-                onChangeText={(text) => setNewService({ ...newService, description: text })}
+                onChangeText={(text: string) => setNewService({ ...newService, description: text })}
                 multiline
                 numberOfLines={3}
               />

@@ -1,5 +1,11 @@
+interface TranslationEntry {
+  en?: string;
+  am?: string;
+  or?: string;
+}
+
 // Dictionary of English strings/keys to Amharic and Oromo
-const translations = {
+const translations: Record<string, TranslationEntry> = {
   // Navigation & Core Action
   Home: { am: 'መነሻ', or: 'Mana' },
   Wallet: { am: 'ዋሌት', or: 'Galmee' },
@@ -143,7 +149,7 @@ const translations = {
   category: { en: 'Category', am: 'ምድብ', or: 'Madda' },
   condition: { en: 'Condition', am: 'ሁኔታ', or: 'Akkamni' },
   cond_new: { en: 'New', am: 'አዲስ', or: 'Haara' },
-  'cond_like-new': { en: 'Like New', am: 'እንደስ ይመስል', or: 'Haara fakkaatu' },
+  'cond_like-new': { en: 'Like New', am: 'እንደስ ይመልል', or: 'Haara fakkaatu' },
   cond_good: { en: 'Good', am: 'ጥሩ', or: 'Gaari' },
   cond_fair: { en: 'Fair', am: 'ተማማኝ', or: 'Midhaaga' },
   post_listing: { en: 'Post Listing', am: 'ዝርዝር አስገቡ', or: 'Ibsaa galchi' },
@@ -187,31 +193,44 @@ const translations = {
 
 /**
  * Global translator function.
+ * Reads the current language from the store automatically if no lang is passed.
  * @param {string} text - The original English string or key
- * @param {string} lang - The current language code ('en', 'am', 'or')
+ * @param {string} lang - Optional language override ('en', 'am', 'or')
  * @returns {string} The translated string or the original if not found
  */
-export function t(text, lang = 'en') {
+export function t(text: string, lang?: string): string {
   if (!text) return '';
+
+  // Auto-detect language from store if not explicitly provided
+  // Lazy import to avoid circular dependencies
+  let activeLang = lang;
+  if (!activeLang) {
+    try {
+      const { useAppStore } = require('../store/AppStore');
+      activeLang = useAppStore.getState().lang || 'en';
+    } catch {
+      activeLang = 'en';
+    }
+  }
 
   // Always try to return a meaningful translation, even in English
   const entry = translations[text];
 
-  if (lang === 'en') {
+  if (activeLang === 'en') {
     // For English, return the key if no translation exists
     if (entry && entry.en) return entry.en;
     // If no English translation exists, return a human-readable version
-    return text.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    return text.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
   }
 
-  if (entry && entry[lang]) return entry[lang];
+  if (entry && (entry as any)[activeLang]) return (entry as any)[activeLang];
 
   // Heuristics for currency
   if (typeof text === 'string' && text.includes(' ETB')) {
-    const symbol = lang === 'am' ? ' ብር' : ' ETB';
+    const symbol = activeLang === 'am' ? ' ብር' : ' ETB';
     return text.replace(' ETB', symbol);
   }
 
   // Fallback: return human-readable version
-  return text.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  return text.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
 }

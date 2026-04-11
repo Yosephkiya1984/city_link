@@ -1,10 +1,17 @@
 import React from 'react';
-import { ScrollView, TouchableOpacity, Text } from 'react-native';
+import { ScrollView, TouchableOpacity, Text, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Radius, Shadow } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export function ChipBar({ chips, selected, onSelect, style }) {
+interface ChipBarProps {
+  chips: any[];
+  selected: any;
+  onSelect: (val: any) => void;
+  style?: ViewStyle;
+}
+
+export function ChipBar({ chips, selected, onSelect, style }: ChipBarProps) {
   const C = useTheme();
   return (
     <ScrollView

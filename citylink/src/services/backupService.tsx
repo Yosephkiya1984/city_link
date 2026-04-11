@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../store/AppStore';
@@ -54,8 +54,17 @@ export function BackupProvider({ children }: BackupProviderProps) {
   const [isRestoring, setIsRestoring] = useState(false);
   const [backupProgress, setBackupProgress] = useState(0);
 
+  const autoBackupIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     initializeBackupSystem();
+    return () => {
+      // Clear the auto-backup interval on unmount to prevent memory leak
+      if (autoBackupIntervalRef.current) {
+        clearInterval(autoBackupIntervalRef.current);
+        autoBackupIntervalRef.current = null;
+      }
+    };
   }, []);
 
   // Initialize backup system
@@ -84,7 +93,11 @@ export function BackupProvider({ children }: BackupProviderProps) {
 
   // Setup auto backup
   const setupAutoBackup = () => {
-    setInterval(async () => {
+    // Clear any existing interval before setting a new one
+    if (autoBackupIntervalRef.current) {
+      clearInterval(autoBackupIntervalRef.current);
+    }
+    autoBackupIntervalRef.current = setInterval(async () => {
       const now = Date.now();
       const shouldBackup =
         !lastBackupTime || now - lastBackupTime >= BACKUP_CONFIG.AUTO_BACKUP_INTERVAL;

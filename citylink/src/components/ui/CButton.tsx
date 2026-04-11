@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, Animated, ActivityIndicator, Pressable, Platform } from 'react-native';
+import { View, Text, Animated, ActivityIndicator, Pressable, Platform, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +26,7 @@ export function CButton({
   disabled,
   loading,
   style,
+  textStyle,
   icon,
 }: CButtonProps) {
   const C = useTheme();
@@ -136,11 +137,15 @@ export function CButton({
           borderWidth: isPrimary ? 0 : 1.5,
           borderColor: isPrimary ? 'transparent' : C.edge2,
           opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
-          ...Platform.select({ ios: Shadow.md, android: {} }),
+          ...Platform.select({ ios: Shadow.md as any, android: {} }),
         })}
       >
         {isPrimary ? (
-          <LinearGradient colors={C.primaryGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <LinearGradient
+            colors={C.primaryGrad as any}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
             {Content}
           </LinearGradient>
         ) : (

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, RefreshControl, FlatList } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import TopBar from '../../components/TopBar';
 import { useAppStore } from '../../store/AppStore';
 import { Colors, LightColors, FontSize, Radius, Spacing } from '../../theme';
@@ -7,6 +8,7 @@ import { CButton, SearchBar, ChipBar, EmptyState, LoadingRow, SectionTitle } fro
 import { fetchJobs, applyForJob, fetchMyApplications } from '../../services/jobs.service';
 import { fmtETB, timeAgo, uid } from '../../utils';
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
+import { AppStackParamList } from '../../navigation';
 
 const JOB_CATS = ['All','Tech','Finance','Healthcare','Education','Hospitality','Construction','Other'];
 

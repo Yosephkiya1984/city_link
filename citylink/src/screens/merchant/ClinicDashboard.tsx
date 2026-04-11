@@ -10,6 +10,7 @@ import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '..
 import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
+import { ServiceBooking } from '../../types';
 
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
 import {
@@ -32,7 +33,7 @@ const CLINIC_COLORS = {
     IN_PROGRESS: '#06B6D4', // Teal
     COMPLETED: '#00A86B', // Green
     CANCELLED: '#E8312A', // Red
-  },
+  } as Record<string, string>,
 };
 
 export default function ClinicDashboard() {
@@ -45,11 +46,11 @@ export default function ClinicDashboard() {
   const reset = useAppStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('queue');
-  const [appointments, setAppointments] = useState([]);
-  const [services, setServices] = useState([]);
+  const [appointments, setAppointments] = useState<ServiceBooking[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddService, setShowAddService] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<ServiceBooking | null>(null);
   const [showAppointmentDetail, setShowAppointmentDetail] = useState(false);
   const [waitTime, setWaitTime] = useState(20); // minutes
   const [newService, setNewService] = useState({
@@ -63,19 +64,19 @@ export default function ClinicDashboard() {
 
   // KPI calculations
   const todayAppointments = appointments.filter(
-    (a) => new Date(a.appointment_time).toDateString() === new Date().toDateString()
+    (a: ServiceBooking) => new Date(a.appointment_time).toDateString() === new Date().toDateString()
   ).length;
 
-  const pendingAppointments = appointments.filter((a) => a.status === 'PENDING').length;
-  const inProgressAppointments = appointments.filter((a) => a.status === 'IN_PROGRESS').length;
+  const pendingAppointments = appointments.filter((a: ServiceBooking) => a.status === 'PENDING').length;
+  const inProgressAppointments = appointments.filter((a: ServiceBooking) => a.status === 'IN_PROGRESS').length;
 
   const todayRevenue = appointments
     .filter(
-      (a) =>
+      (a: ServiceBooking) =>
         a.status === 'COMPLETED' &&
         new Date(a.appointment_time).toDateString() === new Date().toDateString()
     )
-    .reduce((sum, a) => sum + (a.price || 0), 0);
+    .reduce((sum: number, a: ServiceBooking) => sum + (a.price || 0), 0);
 
   const avgWaitTime = 20; // Would be calculated from actual data
 
@@ -89,8 +90,8 @@ export default function ClinicDashboard() {
       ]);
 
       if (appointmentsRes.data) {
-        const sortedAppointments = appointmentsRes.data.sort(
-          (a, b) => new Date(a.appointment_time).getTime() - new Date(b.appointment_time).getTime()
+        const sortedAppointments = (appointmentsRes.data as ServiceBooking[]).sort(
+          (a: ServiceBooking, b: ServiceBooking) => new Date(a.appointment_time).getTime() - new Date(b.appointment_time).getTime()
         );
         setAppointments(sortedAppointments);
       }
@@ -111,7 +112,7 @@ export default function ClinicDashboard() {
     table: 'service_bookings',
     filter: `clinic_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
-    onPayload: (payload) => {
+    onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('ðŸ¥ New appointment request!', 'info');
@@ -122,7 +123,7 @@ export default function ClinicDashboard() {
     },
   });
 
-  const updateAppointment = async (appointmentId, newStatus) => {
+  const updateAppointment = async (appointmentId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -198,13 +199,13 @@ export default function ClinicDashboard() {
     }
   };
 
-  const getStatusColor = (status) => CLINIC_COLORS.status[status] || C.sub;
-  const getStatusBg = (status) => {
+  const getStatusColor = (status: string) => CLINIC_COLORS.status[status] || C.sub;
+  const getStatusBg = (status: string) => {
     const color = CLINIC_COLORS.status[status];
     return color ? `${color}20` : C.surface;
   };
 
-  const AppointmentCard = ({ appointment }) => {
+  const AppointmentCard = ({ appointment }: { appointment: ServiceBooking }) => {
     const appointmentTime = new Date(appointment.appointment_time);
     const isToday = appointmentTime.toDateString() === new Date().toDateString();
 
@@ -676,7 +677,7 @@ export default function ClinicDashboard() {
               <CInput
                 placeholder="Enter service name"
                 value={newService.name}
-                onChangeText={(text) => setNewService({ ...newService, name: text })}
+                onChangeText={(text: string) => setNewService({ ...newService, name: text })}
               />
             </View>
 
@@ -689,7 +690,7 @@ export default function ClinicDashboard() {
               <CInput
                 placeholder="0.00"
                 value={newService.price}
-                onChangeText={(text) => setNewService({ ...newService, price: text })}
+                onChangeText={(text: string) => setNewService({ ...newService, price: text })}
                 keyboardType="numeric"
               />
             </View>
@@ -780,7 +781,7 @@ export default function ClinicDashboard() {
               <CInput
                 placeholder="Service description (optional)"
                 value={newService.description}
-                onChangeText={(text) => setNewService({ ...newService, description: text })}
+                onChangeText={(text: string) => setNewService({ ...newService, description: text })}
                 multiline
                 numberOfLines={3}
               />

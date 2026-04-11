@@ -8,10 +8,9 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
-  Inter_900Black,
 } from '@expo-google-fonts/inter';
 import { SpaceGrotesk_400Regular, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
-import { Manrope_400Regular, Manrope_500Medium, Manrope_700Bold } from '@expo-google-fonts/manrope';
+import { Manrope_400Regular, Manrope_700Bold } from '@expo-google-fonts/manrope';
 
 import AppNavigator from './src/navigation';
 import { ToastContainer, ErrorBoundary } from './src/components';
@@ -35,11 +34,9 @@ function AppBootstrap() {
           Inter_500Medium,
           Inter_600SemiBold,
           Inter_700Bold,
-          Inter_900Black,
           SpaceGrotesk_400Regular,
           SpaceGrotesk_700Bold,
           Manrope_400Regular,
-          Manrope_500Medium,
           Manrope_700Bold,
         });
         setFontsLoaded(true);
@@ -50,8 +47,7 @@ function AppBootstrap() {
 
         const session = useAppStore.getState().currentUser;
 
-        // 4. Start Transit simulation
-        GTFSService.start();
+        // 4. Start Transit simulation (Lazy)
       } catch (e) {
         console.warn('[App] Boot error:', e);
       } finally {
@@ -60,10 +56,6 @@ function AppBootstrap() {
     }
 
     prepare();
-
-    return () => {
-      GTFSService.stop();
-    };
   }, []);
 
   if (!bootstrapped || !fontsLoaded) {

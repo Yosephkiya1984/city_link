@@ -1,4 +1,5 @@
 import { supaQuery, hasSupabase } from './supabase';
+import { PropertyListing, ServiceBooking } from '../types';
 
 // ── Delala (Real Estate) ──────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ export async function fetchListings() {
 /**
  * fetchPropertyListings — fetches listings for a specific agent.
  */
-export const fetchPropertyListings = async (agentId) => {
+export const fetchPropertyListings = async (agentId: string) => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -55,22 +56,22 @@ export const fetchPropertyListings = async (agentId) => {
   );
 };
 
-export const fetchPropertyEnquiries = async (agentId) => {
+export const fetchPropertyEnquiries = async (agentId: string) => {
   if (!hasSupabase()) return { data: [], error: null };
   return supaQuery((client) =>
     client.from('property_enquiries').select('*').eq('agent_id', agentId)
   );
 };
 
-export const updateListingStatus = async (listingId, status) => {
-  if (!hasSupabase()) return { ok: true, error: null };
+export const updateListingStatus = async (listingId: string, status: string) => {
+  if (!hasSupabase()) return { ok: true, error: null } as any;
   return supaQuery((client) =>
     client.from('property_listings').update({ status }).eq('id', listingId)
   );
 };
 
-export const createListing = async (listingData) => {
-  if (!hasSupabase()) return { ok: true, error: null };
+export const createListing = async (listingData: Partial<PropertyListing>) => {
+  if (!hasSupabase()) return { ok: true, error: null } as any;
   return supaQuery((client) => client.from('property_listings').insert([listingData]));
 };
 
@@ -79,7 +80,7 @@ export const createListing = async (listingData) => {
 /**
  * fetchServiceProviders — fetches merchants of a specific type (e.g., 'salon', 'clinic').
  */
-export async function fetchServiceProviders(type) {
+export async function fetchServiceProviders(type: string) {
   return supaQuery((c) =>
     c
       .from('profiles')
@@ -93,7 +94,7 @@ export async function fetchServiceProviders(type) {
 /**
  * bookService — creates a new booking for a service using atomic RPC.
  */
-export async function bookService(bookingData) {
+export async function bookService(bookingData: Partial<ServiceBooking>) {
   return supaQuery((c) =>
     c.rpc('process_service_booking_atomic', {
       p_booking_id: bookingData.id,
@@ -109,7 +110,7 @@ export async function bookService(bookingData) {
 /**
  * fetchSalonBookings — fetches appointments for a salon.
  */
-export const fetchSalonBookings = async (salonId) => {
+export const fetchSalonBookings = async (salonId: string) => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -146,27 +147,27 @@ export const fetchSalonBookings = async (salonId) => {
   );
 };
 
-export const fetchSalonServices = async (salonId) => {
+export const fetchSalonServices = async (salonId: string) => {
   if (!hasSupabase()) return { data: [], error: null };
   return supaQuery((client) => client.from('salon_services').select('*').eq('salon_id', salonId));
 };
 
-export const updateBookingStatus = async (bookingId, status) => {
-  if (!hasSupabase()) return { ok: true, error: null };
+export const updateBookingStatus = async (bookingId: string, status: string) => {
+  if (!hasSupabase()) return { ok: true, error: null } as any;
   return supaQuery((client) =>
     client.from('service_bookings').update({ status }).eq('id', bookingId)
   );
 };
 
-export const createService = async (serviceData) => {
-  if (!hasSupabase()) return { ok: true, error: null };
+export const createService = async (serviceData: any) => {
+  if (!hasSupabase()) return { ok: true, error: null } as any;
   return supaQuery((client) => client.from('salon_services').insert([serviceData]));
 };
 
 /**
  * fetchClinicAppointments — fetches patient appointments for a clinic.
  */
-export const fetchClinicAppointments = async (clinicId) => {
+export const fetchClinicAppointments = async (clinicId: string) => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -203,15 +204,15 @@ export const fetchClinicAppointments = async (clinicId) => {
   );
 };
 
-export const fetchClinicServices = async (clinicId) => {
+export const fetchClinicServices = async (clinicId: string) => {
   if (!hasSupabase()) return { data: [], error: null };
   return supaQuery((client) =>
     client.from('clinic_services').select('*').eq('clinic_id', clinicId)
   );
 };
 
-export const updateAppointmentStatus = async (appointmentId, status) => {
-  if (!hasSupabase()) return { ok: true, error: null };
+export const updateAppointmentStatus = async (appointmentId: string, status: string) => {
+  if (!hasSupabase()) return { ok: true, error: null } as any;
   return supaQuery((client) =>
     client.from('service_bookings').update({ status }).eq('id', appointmentId)
   );

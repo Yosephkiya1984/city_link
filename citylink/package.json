@@ -8,7 +8,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
-    "lint:fix": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --fix"
+    "lint:fix": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --fix",
+    "test": "jest",
+    "validate": "npm run lint && npm run test"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

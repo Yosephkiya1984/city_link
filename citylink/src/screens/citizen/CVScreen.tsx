@@ -76,11 +76,11 @@ export default function CVScreen() {
       <CInput
         label="Skills (comma-separated)"
         value={skills.join(', ')}
-        onChangeText={(text) =>
+        onChangeText={(text: string) =>
           setSkills(
             text
               .split(',')
-              .map((s) => s.trim())
+              .map((s: string) => s.trim())
               .filter(Boolean)
           )
         }

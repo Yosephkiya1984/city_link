@@ -17,10 +17,10 @@ export async function fetchPendingMerchants() {
 /**
  * approveMerchant — approves a merchant's KYC and status.
  */
-export async function approveMerchant(merchantId) {
+export async function approveMerchant(merchantId: string) {
   if (!merchantId) return { data: null, error: 'No merchant ID provided' };
 
-  const res = await supaQuery((c) =>
+  const res = await supaQuery((c: any) =>
     c
       .from('profiles')
       .update({
@@ -31,7 +31,8 @@ export async function approveMerchant(merchantId) {
       .select()
   );
 
-  if (!res.error && (!res.data || res.data.length === 0)) {
+  const data = res.data as any[] | null;
+  if (!res.error && (!data || data.length === 0)) {
     return { data: null, error: 'Database access denied (RLS). You cannot update this merchant.' };
   }
   return res;
@@ -40,8 +41,8 @@ export async function approveMerchant(merchantId) {
 /**
  * rejectMerchant — rejects a merchant's application with a reason.
  */
-export async function rejectMerchant(merchantId, reason) {
-  return supaQuery((c) =>
+export async function rejectMerchant(merchantId: string, reason: string) {
+  return supaQuery((c: any) =>
     c
       .from('profiles')
       .update({
@@ -77,12 +78,14 @@ export async function approveAgent(agentOrId: any) {
     if (agentData.plate_number) agentUpdate.plate_number = agentData.plate_number;
   }
 
-  const res1 = await supaQuery((c) =>
+  const res1 = await supaQuery((c: any) =>
     c.from('delivery_agents').upsert(agentUpdate, { onConflict: 'id' }).select()
   );
 
   if (res1.error) {
-    const isRLS = res1.error.includes('RLS') || res1.error.includes('row-level security policy');
+    const errorMsg = String(res1.error);
+    const isRLS =
+      errorMsg.includes('RLS') || errorMsg.includes('row-level security policy');
     if (isRLS) {
       return {
         error:
@@ -92,7 +95,7 @@ export async function approveAgent(agentOrId: any) {
     return { error: `Delivery Agent update failed: ${res1.error}` };
   }
 
-  const rows1 = res1.data?.length || 0;
+  const rows1 = (res1.data as any[])?.length || 0;
   if (rows1 === 0) {
     return {
       error:
@@ -101,12 +104,12 @@ export async function approveAgent(agentOrId: any) {
   }
 
   // 2. Verify the profile
-  const res2 = await supaQuery((c) =>
+  const res2 = await supaQuery((c: any) =>
     c.from('profiles').update({ kyc_status: 'VERIFIED' }).eq('id', agentId).select()
   );
 
   if (res2.error) return { error: `Profile update failed: ${res2.error}` };
-  const rows2 = res2.data?.length || 0;
+  const rows2 = (res2.data as any[])?.length || 0;
 
   console.log(`[CityLink] approveAgent rows affected: delivery_agents=${rows1}, profiles=${rows2}`);
 
@@ -120,23 +123,23 @@ export async function approveAgent(agentOrId: any) {
 /**
  * rejectAgent — rejects a delivery agent in both profiles and delivery_agents tables.
  */
-export async function rejectAgent(agentId, reason) {
+export async function rejectAgent(agentId: string, reason: string) {
   if (!agentId) return { error: 'No agent ID provided' };
 
   // 1. Update delivery_agents first
-  const res1 = await supaQuery((c) =>
+  const res1 = await supaQuery((c: any) =>
     c.from('delivery_agents').update({ agent_status: 'REJECTED' }).eq('id', agentId).select()
   );
 
   if (res1.error) return { error: res1.error };
-  const rows1 = res1.data?.length || 0;
+  const rows1 = (res1.data as any[])?.length || 0;
 
   if (rows1 === 0) {
     return { error: 'Agent record not found or access denied (RLS).' };
   }
 
   // 2. Update profile
-  const res2 = await supaQuery((c) =>
+  const res2 = await supaQuery((c: any) =>
     c
       .from('profiles')
       .update({
@@ -148,7 +151,7 @@ export async function rejectAgent(agentId, reason) {
   );
 
   if (res2.error) return { error: res2.error };
-  const rows2 = res2.data?.length || 0;
+  const rows2 = (res2.data as any[])?.length || 0;
 
   console.log(`[CityLink] rejectAgent rows affected: delivery_agents=${rows1}, profiles=${rows2}`);
 
@@ -171,19 +174,19 @@ export const fetchAdminLiveStats = async () => {
       disputeMktRes,
       disputeFoodRes,
     ] = await Promise.all([
-      supaQuery((c) => c.from('profiles').select('id', { count: 'exact', head: true })),
-      supaQuery((c) => c.from('marketplace_orders').select('total')),
-      supaQuery((c) => c.from('food_orders').select('total')),
-      supaQuery((c) => c.from('job_listings').select('id', { count: 'exact', head: true })),
-      supaQuery((c) => c.from('property_listings').select('id', { count: 'exact', head: true })),
-      supaQuery((c) => c.from('parking_sessions').select('id', { count: 'exact', head: true })),
-      supaQuery((c) =>
+      supaQuery((c: any) => c.from('profiles').select('id', { count: 'exact', head: true })),
+      supaQuery((c: any) => c.from('marketplace_orders').select('total')),
+      supaQuery((c: any) => c.from('food_orders').select('total')),
+      supaQuery((c: any) => c.from('job_listings').select('id', { count: 'exact', head: true })),
+      supaQuery((c: any) => c.from('property_listings').select('id', { count: 'exact', head: true })),
+      supaQuery((c: any) => c.from('parking_sessions').select('id', { count: 'exact', head: true })),
+      supaQuery((c: any) =>
         c
           .from('marketplace_orders')
           .select('id', { count: 'exact', head: true })
           .eq('status', 'DISPUTED')
       ),
-      supaQuery((c) =>
+      supaQuery((c: any) =>
         c.from('food_orders').select('id', { count: 'exact', head: true }).eq('status', 'DISPUTED')
       ),
     ]);
@@ -192,11 +195,11 @@ export const fetchAdminLiveStats = async () => {
     if (profilesRes.error) console.error('🔧 AdminStats Profiles Error:', profilesRes.error);
     if (mktOrdersRes.error) console.error('🔧 AdminStats MktOrders Error:', mktOrdersRes.error);
 
-    const mktRevenue = (mktOrdersRes.data || []).reduce(
+    const mktRevenue = ((mktOrdersRes.data as any[]) || []).reduce(
       (acc, o) => acc + (parseFloat(o.total) || 0),
       0
     );
-    const foodRevenue = (foodOrdersRes.data || []).reduce(
+    const foodRevenue = ((foodOrdersRes.data as any[]) || []).reduce(
       (acc, o) => acc + (parseFloat(o.total) || 0),
       0
     );
@@ -212,7 +215,7 @@ export const fetchAdminLiveStats = async () => {
         openDisputes: (disputeMktRes.count || 0) + (disputeFoodRes.count || 0),
       },
     };
-  } catch (e) {
+  } catch (e: any) {
     console.error('🔧 fetchAdminLiveStats crash:', e);
     return {
       data: { identities: 0, revenue: 0, jobs: 0, realEstate: 0, parking: 0, openDisputes: 0 },
@@ -224,7 +227,7 @@ export const fetchAdminLiveStats = async () => {
 /**
  * subscribeToGlobalEvents — establishes realtime subscription for critical events.
  */
-export const subscribeToGlobalEvents = (callback) => {
+export const subscribeToGlobalEvents = (callback: (data: any) => void) => {
   const client = getClient();
   if (!client) return null;
 
