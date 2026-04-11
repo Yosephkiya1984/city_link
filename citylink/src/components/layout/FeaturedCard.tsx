@@ -5,16 +5,42 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Fonts } from '../../theme';
 
-export function FeaturedCard({ title, description, imageSource, icon, onPress, style }) {
+interface FeaturedCardProps {
+  title: any;
+  description: any;
+  imageSource: any;
+  icon: any;
+  onPress: any;
+  style?: any;
+}
+
+export function FeaturedCard({
+  title,
+  description,
+  imageSource,
+  icon,
+  onPress,
+  style,
+}: FeaturedCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  
+
   const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 0.98, tension: 150, friction: 5, useNativeDriver: true }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      tension: 150,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 1, tension: 150, friction: 5, useNativeDriver: true }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 150,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   return (

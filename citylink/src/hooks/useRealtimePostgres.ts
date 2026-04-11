@@ -10,17 +10,18 @@ import { hasSupabase } from '../services/supabase';
 export function useRealtimePostgres({ channelName, table, filter, onPayload, enabled = true }) {
   const ref = useRef(onPayload);
   ref.current = onPayload;
-  
+
   useEffect(() => {
     if (!enabled || !table || !channelName) return;
-    
+
     // Mock real-time updates when Supabase is not available
     if (!hasSupabase()) {
       console.log(`🔧 Mock realtime: ${channelName} for table ${table}`);
-      
+
       // Simulate real-time updates with mock data
       const mockInterval = setInterval(() => {
-        if (Math.random() > 0.7) { // 30% chance of mock update
+        if (Math.random() > 0.7) {
+          // 30% chance of mock update
           const mockPayload = {
             eventType: 'INSERT',
             table,
@@ -28,13 +29,22 @@ export function useRealtimePostgres({ channelName, table, filter, onPayload, ena
               id: `mock-${Date.now()}`,
               created_at: new Date().toISOString(),
               // Add mock data based on table type
-              ...(table.includes('orders') && { customer_name: 'Mock Customer', total: Math.floor(Math.random() * 1000) + 500 }),
-              ...(table.includes('bookings') && { client_name: 'Mock Client', price: Math.floor(Math.random() * 500) + 200 }),
-              ...(table.includes('applications') && { applicant_name: 'Mock Applicant', status: 'APPLIED' }),
+              ...(table.includes('orders') && {
+                customer_name: 'Mock Customer',
+                total: Math.floor(Math.random() * 1000) + 500,
+              }),
+              ...(table.includes('bookings') && {
+                client_name: 'Mock Client',
+                price: Math.floor(Math.random() * 500) + 200,
+              }),
+              ...(table.includes('applications') && {
+                applicant_name: 'Mock Applicant',
+                status: 'APPLIED',
+              }),
               ...(table.includes('tickets') && { passenger_name: 'Mock Passenger', price: 25 }),
-            }
+            },
           };
-          
+
           try {
             ref.current?.(mockPayload);
           } catch (error) {
@@ -42,20 +52,20 @@ export function useRealtimePostgres({ channelName, table, filter, onPayload, ena
           }
         }
       }, 15000); // Every 15 seconds
-      
+
       return () => clearInterval(mockInterval);
     }
-    
+
     // Real Supabase realtime - try to import and use if available
     try {
       // Try to dynamically import realtime functions
       const { subscribeToTable, unsubscribe } = require('../services/realtime');
-      
+
       const ch = subscribeToTable(channelName, table, filter, (payload) => {
         console.log(`📡 Realtime update: ${channelName}`, payload);
         ref.current?.(payload);
       });
-      
+
       return () => {
         if (ch) {
           console.log(`🔌 Unsubscribing from: ${channelName}`);
@@ -66,7 +76,8 @@ export function useRealtimePostgres({ channelName, table, filter, onPayload, ena
       console.log('🔧 Realtime service not available, using mock updates');
       // Fallback to mock updates
       const mockInterval = setInterval(() => {
-        if (Math.random() > 0.8) { // 20% chance of mock update
+        if (Math.random() > 0.8) {
+          // 20% chance of mock update
           const mockPayload = {
             eventType: 'INSERT',
             table,
@@ -75,9 +86,9 @@ export function useRealtimePostgres({ channelName, table, filter, onPayload, ena
               created_at: new Date().toISOString(),
               customer_name: 'Mock Customer',
               total: Math.floor(Math.random() * 1000) + 500,
-            }
+            },
           };
-          
+
           try {
             ref.current?.(mockPayload);
           } catch (payloadError) {
@@ -85,7 +96,7 @@ export function useRealtimePostgres({ channelName, table, filter, onPayload, ena
           }
         }
       }, 20000); // Every 20 seconds
-      
+
       return () => clearInterval(mockInterval);
     }
   }, [channelName, table, filter, enabled]);

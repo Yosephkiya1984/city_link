@@ -1,21 +1,57 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Dimensions, Animated, Image, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  Dimensions,
+  Animated,
+  Image,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '../../store/AppStore';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { CButton, Card, SectionTitle, LoadingRow } from '../../components';
 import { fmtETB, genQrToken, uid } from '../../utils';
-import { fetchParkingLots, startParkingSession, endParkingSession } from '../../services/parking.service';
+import {
+  fetchParkingLots,
+  startParkingSession,
+  endParkingSession,
+} from '../../services/parking.service';
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Demo parking lots
 const DEMO_LOTS = [
-  { id: 'lot-1', name: 'Bole Road Car Park', subcity: 'Bole', total_spots: 80, rate_per_hour: 15, spots: generateSpots(80, 'lot-1') },
-  { id: 'lot-2', name: 'Piassa Multi-Storey', subcity: 'Arada', total_spots: 120, rate_per_hour: 12, spots: generateSpots(120, 'lot-2') },
-  { id: 'lot-3', name: 'Mexico Square Parking', subcity: 'Kirkos', total_spots: 60, rate_per_hour: 10, spots: generateSpots(60, 'lot-3') },
+  {
+    id: 'lot-1',
+    name: 'Bole Road Car Park',
+    subcity: 'Bole',
+    total_spots: 80,
+    rate_per_hour: 15,
+    spots: generateSpots(80, 'lot-1'),
+  },
+  {
+    id: 'lot-2',
+    name: 'Piassa Multi-Storey',
+    subcity: 'Arada',
+    total_spots: 120,
+    rate_per_hour: 12,
+    spots: generateSpots(120, 'lot-2'),
+  },
+  {
+    id: 'lot-3',
+    name: 'Mexico Square Parking',
+    subcity: 'Kirkos',
+    total_spots: 60,
+    rate_per_hour: 10,
+    spots: generateSpots(60, 'lot-3'),
+  },
 ];
 
 function generateSpots(count, lotId) {
@@ -33,7 +69,9 @@ function mapLotsFromDb(rows) {
     const spots = raw.map((s, i) => ({
       id: s.id || `${lot.id}-s-${i}`,
       number: String(s.spot_number ?? s.label ?? s.number ?? i + 1),
-      status: /occupied|held|reserved|busy/i.test(String(s.status || '')) ? 'occupied' : 'available',
+      status: /occupied|held|reserved|busy/i.test(String(s.status || ''))
+        ? 'occupied'
+        : 'available',
     }));
     const total = lot.total_spots || spots.length || 1;
     return {
@@ -42,9 +80,7 @@ function mapLotsFromDb(rows) {
       subcity: lot.subcity || 'Addis Ababa',
       total_spots: total,
       rate_per_hour: Number(lot.rate_per_hour ?? 15),
-      spots: spots.length
-        ? spots
-        : generateSpots(Math.min(total, 80), lot.id),
+      spots: spots.length ? spots : generateSpots(Math.min(total, 80), lot.id),
     };
   });
 }
@@ -72,7 +108,10 @@ export default function ParkingScreen() {
     let interval;
     if (activeParking) {
       interval = setInterval(() => {
-        const secs = Math.floor((Date.now() - new Date(activeParking.startTime)) / 1000);
+        const secs = Math.floor(
+          (Date.now() - new Date(activeParking.start_time || activeParking.startTime).getTime()) /
+            1000
+        );
         setElapsed(secs);
       }, 1000);
     }
@@ -85,7 +124,9 @@ export default function ParkingScreen() {
       const { data } = await fetchParkingLots();
       if (!cancelled && data?.length) setLots(mapLotsFromDb(data));
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const refreshLots = useCallback(async () => {
@@ -117,7 +158,10 @@ export default function ParkingScreen() {
 
   async function handleStartParking() {
     if (!selectedSpot || !selectedLot) return;
-    if (balance < 10) { showToast('Insufficient balance. Top up first.', 'error'); return; }
+    if (balance < 10) {
+      showToast('Insufficient balance. Top up first.', 'error');
+      return;
+    }
     setLoading(true);
     const sessionId = uid();
     const session = {
@@ -142,10 +186,21 @@ export default function ParkingScreen() {
 
     setActiveParking(session);
     // Mark spot as occupied
-    setLots((prev) => prev.map((l) => l.id === selectedLot.id
-      ? { ...l, spots: l.spots.map((s) => s.id === selectedSpot.id ? { ...s, status: 'occupied' } : s) }
-      : l));
-    setSelectedLot(null); setSelectedSpot(null); setConfirmModal(false);
+    setLots((prev) =>
+      prev.map((l) =>
+        l.id === selectedLot.id
+          ? {
+              ...l,
+              spots: l.spots.map((s) =>
+                s.id === selectedSpot.id ? { ...s, status: 'occupied' } : s
+              ),
+            }
+          : l
+      )
+    );
+    setSelectedLot(null);
+    setSelectedSpot(null);
+    setConfirmModal(false);
     showToast(`Parking started at spot ${session.spot_number} ðŸ…¿ï¸`, 'success');
     setLoading(false);
   }
@@ -153,15 +208,18 @@ export default function ParkingScreen() {
   async function handleEndParking() {
     if (!activeParking) return;
     const fare = getCurrentFare();
-    if (balance < fare) { showToast('Insufficient balance to pay fare', 'error'); return; }
+    if (balance < fare) {
+      showToast('Insufficient balance to pay fare', 'error');
+      return;
+    }
     setLoading(true);
 
     try {
       const res = await endParkingSession(
-        activeParking.id, 
-        currentUser?.id, 
-        activeParking.lot_name || activeParking.lotName, 
-        activeParking.spot_number || activeParking.spotNumber, 
+        activeParking.id,
+        currentUser?.id,
+        activeParking.lot_name || activeParking.lotName,
+        activeParking.spot_number || activeParking.spotNumber,
         fare
       );
 
@@ -171,26 +229,31 @@ export default function ParkingScreen() {
       }
 
       // Sync local state
-      const finalBalance = res.data?.new_balance ?? (balance - fare);
+      const finalBalance = res.data?.new_balance ?? balance - fare;
       setBalance(finalBalance);
 
       // Free the spot in the local lot grid so it shows as available again
-      setLots((prev) => prev.map((l) =>
-        l.id === activeParking.lotId || l.id === activeParking.lot_id
-          ? {
-            ...l, spots: l.spots.map((s) =>
-              s.id === activeParking.spotId || s.id === activeParking.spot_id ? { ...s, status: 'available' } : s)
-          }
-          : l
-      ));
+      setLots((prev) =>
+        prev.map((l) =>
+          l.id === activeParking.lotId || l.id === activeParking.lot_id
+            ? {
+                ...l,
+                spots: l.spots.map((s) =>
+                  s.id === activeParking.spotId || s.id === activeParking.spot_id
+                    ? { ...s, status: 'available' }
+                    : s
+                ),
+              }
+            : l
+        )
+      );
 
       showToast(`Parking ended. Fare: ${fmtETB(fare)} ETB`, 'success');
       setActiveParking(null);
       setElapsed(0);
-      
+
       // Haptic feedback for completion
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
     } catch (e) {
       console.error('🔧 handleEndParking crash:', e);
       showToast('Connection error finalizing session', 'error');
@@ -217,7 +280,7 @@ export default function ParkingScreen() {
       flex: 1,
       backgroundColor: '#101319',
     },
-    
+
     // Custom Header - Fixed Position
     header: {
       position: 'absolute',
@@ -225,8 +288,7 @@ export default function ParkingScreen() {
       left: 0,
       right: 0,
       zIndex: 50,
-      backgroundColor: 'rgba(16, 19, 25, 0.7)',
-      backdropFilter: 'blur(20px)',
+      backgroundColor: 'rgba(16, 19, 25, 0.9)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 24 },
       shadowOpacity: 0.4,
@@ -281,14 +343,14 @@ export default function ParkingScreen() {
       fontFamily: Fonts.headline,
       letterSpacing: -0.3,
     },
-    
+
     // Main Content Area
     contentArea: {
       flex: 1,
       paddingTop: 110, // Space for custom header
       paddingBottom: 120, // Space for bottom nav
     },
-    
+
     // Scroll View with proper spacing
     scrollView: {
       flex: 1,
@@ -297,7 +359,7 @@ export default function ParkingScreen() {
       paddingHorizontal: 24,
       paddingBottom: 40,
     },
-    
+
     // Active Parking Session Banner
     activeSessionBanner: {
       position: 'relative',
@@ -414,7 +476,7 @@ export default function ParkingScreen() {
       color: '#e1e2ea',
       fontFamily: Fonts.label,
     },
-    
+
     // Parking Lots Section
     parkingSection: {
       marginBottom: 40,
@@ -515,7 +577,7 @@ export default function ParkingScreen() {
       color: '#bccabe',
       fontFamily: Fonts.label,
     },
-    
+
     // Spot Selection Grid
     spotSelection: {
       padding: 16,
@@ -592,7 +654,7 @@ export default function ParkingScreen() {
       color: '#bccabe',
       fontFamily: Fonts.body,
     },
-    
+
     // Modals
     modalOverlay: {
       flex: 1,
@@ -660,7 +722,7 @@ export default function ParkingScreen() {
       color: '#e1e2ea',
       fontFamily: Fonts.label,
     },
-    
+
     // QR Modal
     qrModalContent: {
       backgroundColor: '#101319',
@@ -707,8 +769,10 @@ export default function ParkingScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.profileImage}>
-            <Image 
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_QR_FniUXCslWzPE1iOtR204CdDlO3hTqRa4b8DugkIRWNCrNOs3qQ-2uu-n0OS8vUwwTIKxFkp9vv1xFV61KwyMYNzOkFxPl9DH8uJyOLZEqYOh_9rE2vsnrQWd5jM5XJhjdStneTudMk5VDZU4wOjaf3DzP2fAuf7bXY0aEAugCn599yqM5AhdPtmbdJMUMPJ9D295G8g0QJXRCw_x9IGG33hCRGcQ0phNKIbUIQyaczNnRBoyGlQfj2dUNbcW6keam_ayug0Bh' }} 
+            <Image
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_QR_FniUXCslWzPE1iOtR204CdDlO3hTqRa4b8DugkIRWNCrNOs3qQ-2uu-n0OS8vUwwTIKxFkp9vv1xFV61KwyMYNzOkFxPl9DH8uJyOLZEqYOh_9rE2vsnrQWd5jM5XJhjdStneTudMk5VDZU4wOjaf3DzP2fAuf7bXY0aEAugCn599yqM5AhdPtmbdJMUMPJ9D295G8g0QJXRCw_x9IGG33hCRGcQ0phNKIbUIQyaczNnRBoyGlQfj2dUNbcW6keam_ayug0Bh',
+              }}
               style={{ width: '100%', height: '100%' }}
             />
           </View>
@@ -719,10 +783,10 @@ export default function ParkingScreen() {
           <Text style={styles.walletAmount}>ETB {fmtETB(balance)}</Text>
         </View>
       </View>
-      
+
       {/* Main Content Area */}
       <View style={styles.contentArea}>
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -752,7 +816,7 @@ export default function ParkingScreen() {
                   <Text style={styles.qrButtonText}>ðŸ“± Show QR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.endButton} onPress={handleEndParking}>
-                  <Text style={styles.endButtonText}>End  â€¢  {fmtETB(getCurrentFare())} ETB</Text>
+                  <Text style={styles.endButtonText}>End â€¢ {fmtETB(getCurrentFare())} ETB</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -764,16 +828,16 @@ export default function ParkingScreen() {
               <Text style={styles.sectionTitle}>Available Parking Lots</Text>
               <Text style={styles.refreshTime}>Refresh 2:40 PM</Text>
             </View>
-            
+
             <View style={styles.lotsList}>
               {lots.map((lot) => {
                 const available = lot.spots.filter((s) => s.status === 'available').length;
-                const pct = Math.round(available / lot.total_spots * 100);
+                const pct = Math.round((available / lot.total_spots) * 100);
                 const progressColor = pct > 50 ? '#59de9b' : pct > 20 ? '#ffd887' : '#ff5a4c';
-                
+
                 return (
-                  <TouchableOpacity 
-                    key={lot.id} 
+                  <TouchableOpacity
+                    key={lot.id}
                     onPress={() => handleLotPress(lot)}
                     style={styles.lotCard}
                     activeOpacity={0.8}
@@ -789,12 +853,19 @@ export default function ParkingScreen() {
                           <Text style={styles.priceLabel}>per hour</Text>
                         </View>
                       </View>
-                      
+
                       <View style={styles.availabilityBar}>
                         <View style={styles.progressBar}>
-                          <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: progressColor }]} />
+                          <View
+                            style={[
+                              styles.progressFill,
+                              { width: `${pct}%`, backgroundColor: progressColor },
+                            ]}
+                          />
                         </View>
-                        <Text style={styles.availabilityText}>{available}/{lot.total_spots} free</Text>
+                        <Text style={styles.availabilityText}>
+                          {available}/{lot.total_spots} free
+                        </Text>
                       </View>
                     </View>
 
@@ -805,17 +876,19 @@ export default function ParkingScreen() {
                         <View style={styles.spotGrid}>
                           {lot.spots.slice(0, 40).map((spot) => {
                             const isSelected = selectedSpot?.id === spot.id;
-                            const spotStyle = spot.status === 'occupied' 
-                              ? styles.spotOccupied 
-                              : isSelected 
-                                ? styles.spotSelected 
-                                : styles.spotAvailable;
-                            const textStyle = spot.status === 'occupied'
-                              ? styles.spotTextOccupied
-                              : isSelected
-                                ? styles.spotTextSelected
-                                : styles.spotTextAvailable;
-                            
+                            const spotStyle =
+                              spot.status === 'occupied'
+                                ? styles.spotOccupied
+                                : isSelected
+                                  ? styles.spotSelected
+                                  : styles.spotAvailable;
+                            const textStyle =
+                              spot.status === 'occupied'
+                                ? styles.spotTextOccupied
+                                : isSelected
+                                  ? styles.spotTextSelected
+                                  : styles.spotTextAvailable;
+
                             return (
                               <TouchableOpacity
                                 key={spot.id}
@@ -824,24 +897,46 @@ export default function ParkingScreen() {
                                 style={[styles.spotButton, spotStyle]}
                                 activeOpacity={0.8}
                               >
-                                <Text style={[styles.spotText, textStyle]}>
-                                  {spot.number}
-                                </Text>
+                                <Text style={[styles.spotText, textStyle]}>{spot.number}</Text>
                               </TouchableOpacity>
                             );
                           })}
                         </View>
                         <View style={styles.spotLegend}>
                           <View style={styles.legendItem}>
-                            <View style={[styles.legendDot, { backgroundColor: 'rgba(89, 222, 155, 0.2)', borderColor: '#59de9b' }]} />
+                            <View
+                              style={[
+                                styles.legendDot,
+                                {
+                                  backgroundColor: 'rgba(89, 222, 155, 0.2)',
+                                  borderColor: '#59de9b',
+                                },
+                              ]}
+                            />
                             <Text style={styles.legendText}>Available</Text>
                           </View>
                           <View style={styles.legendItem}>
-                            <View style={[styles.legendDot, { backgroundColor: 'rgba(89, 222, 155, 0.2)', borderColor: '#59de9b' }]} />
+                            <View
+                              style={[
+                                styles.legendDot,
+                                {
+                                  backgroundColor: 'rgba(89, 222, 155, 0.2)',
+                                  borderColor: '#59de9b',
+                                },
+                              ]}
+                            />
                             <Text style={styles.legendText}>Selected</Text>
                           </View>
                           <View style={styles.legendItem}>
-                            <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 90, 76, 0.2)', borderColor: '#ff5a4c' }]} />
+                            <View
+                              style={[
+                                styles.legendDot,
+                                {
+                                  backgroundColor: 'rgba(255, 90, 76, 0.2)',
+                                  borderColor: '#ff5a4c',
+                                },
+                              ]}
+                            />
                             <Text style={styles.legendText}>Occupied</Text>
                           </View>
                         </View>
@@ -863,19 +958,21 @@ export default function ParkingScreen() {
           {selectedLot && selectedSpot && (
             <>
               <Text style={styles.modalSubtitle}>
-                {selectedLot.name} â€” Spot <Text style={{ color: '#e1e2ea', fontWeight: '700' }}>
-                  {selectedSpot.number}</Text>
+                {selectedLot.name} â€” Spot{' '}
+                <Text style={{ color: '#e1e2ea', fontWeight: '700' }}>{selectedSpot.number}</Text>
               </Text>
               <View style={styles.modalInfo}>
                 <Row label="Rate" value={`${selectedLot.rate_per_hour} ETB/hr`} />
                 <Row label="Your Balance" value={`${fmtETB(balance)} ETB`} />
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalButton}
                 onPress={handleStartParking}
                 disabled={loading}
               >
-                <Text style={styles.modalButtonText}>{loading ? 'Startingâ€¦' : 'ðŸ…¿ï¸ Start Parking'}</Text>
+                <Text style={styles.modalButtonText}>
+                  {loading ? 'Startingâ€¦' : 'ðŸ…¿ï¸ Start Parking'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setConfirmModal(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -907,7 +1004,11 @@ function Row({ label, value }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
       <Text style={{ color: '#bccabe', fontSize: 14, fontFamily: Fonts.body }}>{label}</Text>
-      <Text style={{ color: '#e1e2ea', fontWeight: '700', fontSize: 14, fontFamily: Fonts.headline }}>{value}</Text>
+      <Text
+        style={{ color: '#e1e2ea', fontWeight: '700', fontSize: 14, fontFamily: Fonts.headline }}
+      >
+        {value}
+      </Text>
     </View>
   );
 }

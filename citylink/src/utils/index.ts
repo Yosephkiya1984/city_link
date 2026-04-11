@@ -85,16 +85,16 @@ export function greeting() {
 export function statusColor(status, colors) {
   const map = {
     APPROVED: colors.green,
-    ACTIVE:   colors.green,
+    ACTIVE: colors.green,
     CONFIRMED: colors.green,
-    OPEN:     colors.green,
-    PENDING:  colors.amber,
-    REVIEWING:colors.amber,
+    OPEN: colors.green,
+    PENDING: colors.amber,
+    REVIEWING: colors.amber,
     REJECTED: colors.red,
-    CLOSED:   colors.red,
-    SOLD:     colors.sub,
+    CLOSED: colors.red,
+    SOLD: colors.sub,
     SHORTLISTED: colors.purple,
-    OFFERED:  colors.green,
+    OFFERED: colors.green,
   };
   return map[status?.toUpperCase()] || colors.sub;
 }

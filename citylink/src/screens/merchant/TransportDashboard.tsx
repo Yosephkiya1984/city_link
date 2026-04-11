@@ -13,7 +13,12 @@ import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
 
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
-import { fetchTransportRoutes, fetchTransportTickets, updateTicketStatus, createRoute } from '../../services/transit.service';
+import {
+  fetchTransportRoutes,
+  fetchTransportTickets,
+  updateTicketStatus,
+  createRoute,
+} from '../../services/transit.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -23,10 +28,10 @@ const TRANSPORT_COLORS = {
   primaryL: 'rgba(6,182,212,0.1)',
   primaryB: 'rgba(6,182,212,0.28)',
   status: {
-    VALID: '#00A86B',      // Green
-    USED: '#8A9AB8',       // Grey
-    CANCELLED: '#E8312A'   // Red
-  }
+    VALID: '#00A86B', // Green
+    USED: '#8A9AB8', // Grey
+    CANCELLED: '#E8312A', // Red
+  },
 };
 
 export default function TransportDashboard() {
@@ -37,7 +42,7 @@ export default function TransportDashboard() {
   const currentUser = useAppStore((s) => s.currentUser);
   const showToast = useAppStore((s) => s.showToast);
   const reset = useAppStore((s) => s.reset);
-  
+
   const [activeTab, setActiveTab] = useState('routes');
   const [routes, setRoutes] = useState([]);
   const [tickets, setTickets] = useState([]);
@@ -54,20 +59,20 @@ export default function TransportDashboard() {
     departure_time: '',
     price: '',
     available_seats: 50,
-    status: 'active'
+    status: 'active',
   });
 
   // KPI calculations
-  const activeRoutes = routes.filter(r => r.status === 'active').length;
+  const activeRoutes = routes.filter((r) => r.status === 'active').length;
   const totalSeats = routes.reduce((sum, r) => sum + (r.available_seats || 0), 0);
-  const soldSeats = tickets.filter(t => t.status === 'VALID').length;
+  const soldSeats = tickets.filter((t) => t.status === 'VALID').length;
   const availableSeats = totalSeats - soldSeats;
   const loadFactor = totalSeats > 0 ? ((soldSeats / totalSeats) * 100).toFixed(1) : 0;
-  
+
   const todayRevenue = tickets
-    .filter(t => 
-      t.status === 'VALID' && 
-      new Date(t.created_at).toDateString() === new Date().toDateString()
+    .filter(
+      (t) =>
+        t.status === 'VALID' && new Date(t.created_at).toDateString() === new Date().toDateString()
     )
     .reduce((sum, t) => sum + (t.price || 0), 0);
 
@@ -77,12 +82,14 @@ export default function TransportDashboard() {
     try {
       const [routesRes, ticketsRes] = await Promise.all([
         fetchTransportRoutes(currentUser.id),
-        fetchTransportTickets(currentUser.id)
+        fetchTransportTickets(currentUser.id),
       ]);
-      
+
       if (routesRes.data) setRoutes(routesRes.data);
       if (ticketsRes.data) {
-        const sortedTickets = ticketsRes.data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const sortedTickets = ticketsRes.data.sort(
+          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
         setTickets(sortedTickets);
       }
     } catch (error) {
@@ -109,13 +116,13 @@ export default function TransportDashboard() {
       } else {
         loadData();
       }
-    }
+    },
   });
 
   const updateTicket = async (ticketId, newStatus) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    
+
     try {
       const result = await updateTicketStatus(ticketId, newStatus);
       if (!result.error) {
@@ -135,10 +142,10 @@ export default function TransportDashboard() {
       showToast('Please fill all required fields', 'error');
       return;
     }
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    
+
     try {
       const routeData = {
         id: uid(),
@@ -149,9 +156,9 @@ export default function TransportDashboard() {
         price: parseFloat(newRoute.price),
         available_seats: Number(newRoute.available_seats),
         status: newRoute.status,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
-      
+
       const result = await createRoute(routeData);
       if (!result.error) {
         setRoutes([routeData, ...routes]);
@@ -161,7 +168,7 @@ export default function TransportDashboard() {
           departure_time: '',
           price: '',
           available_seats: 50,
-          status: 'active'
+          status: 'active',
         });
         setShowAddRoute(false);
         showToast('Route added successfully!', 'success');
@@ -177,8 +184,8 @@ export default function TransportDashboard() {
   const handleBarCodeScanned = ({ type, data }) => {
     try {
       const ticketData = JSON.parse(data);
-      const ticket = tickets.find(t => t.id === ticketData.ticketId);
-      
+      const ticket = tickets.find((t) => t.id === ticketData.ticketId);
+
       if (ticket) {
         if (ticket.status === 'VALID') {
           setScanResult({ success: true, ticket });
@@ -195,7 +202,7 @@ export default function TransportDashboard() {
         setScanResult({ success: false, message: 'Ticket not found' });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-      
+
       setTimeout(() => {
         setScanResult(null);
       }, 3000);
@@ -209,7 +216,7 @@ export default function TransportDashboard() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast('Logged out successfully', 'success');
     reset();
-    
+
     // Use navigation.replace instead of reset to avoid the error
     try {
       (navigation as any).replace('Auth');
@@ -227,88 +234,118 @@ export default function TransportDashboard() {
   };
 
   const RouteCard = ({ route }) => {
-    const routeTickets = tickets.filter(t => t.route_id === route.id);
-    const soldSeats = routeTickets.filter(t => t.status === 'VALID').length;
-    const loadFactor = route.available_seats > 0 ? (soldSeats / route.available_seats * 100).toFixed(1) : 0;
+    const routeTickets = tickets.filter((t) => t.route_id === route.id);
+    const soldSeats = routeTickets.filter((t) => t.status === 'VALID').length;
+    const loadFactor =
+      route.available_seats > 0 ? ((soldSeats / route.available_seats) * 100).toFixed(1) : 0;
     const isFull = soldSeats >= route.available_seats;
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => {
           setSelectedRoute(route);
           // Could show route details modal
         }}
       >
-        <Card style={{ 
-          marginBottom: 12, 
-          padding: 16,
-          opacity: isFull ? 0.6 : 1
-        }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Card
+          style={{
+            marginBottom: 12,
+            padding: 16,
+            opacity: isFull ? 0.6 : 1,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <Text style={{ color: C.text, fontSize: 15, fontFamily: Fonts.black }}>
                   {route.from} â†’ {route.to}
                 </Text>
                 {isFull && (
-                  <View style={{ 
-                    paddingHorizontal: 4, 
-                    paddingVertical: 2, 
-                    borderRadius: 4, 
-                    backgroundColor: 'rgba(232,49,42,0.1)' 
-                  }}>
-                    <Text style={{ 
-                      color: '#E8312A', 
-                      fontSize: 8, 
-                      fontFamily: Fonts.bold 
-                    }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 4,
+                      paddingVertical: 2,
+                      borderRadius: 4,
+                      backgroundColor: 'rgba(232,49,42,0.1)',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: '#E8312A',
+                        fontSize: 8,
+                        fontFamily: Fonts.bold,
+                      }}
+                    >
                       FULL
                     </Text>
                   </View>
                 )}
               </View>
-              
+
               <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>
-                Departure: {new Date(route.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                Departure:{' '}
+                {new Date(route.departure_time).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </Text>
-              
-              <Text style={{ color: TRANSPORT_COLORS.primary, fontSize: 16, fontFamily: Fonts.black, marginBottom: 8 }}>
+
+              <Text
+                style={{
+                  color: TRANSPORT_COLORS.primary,
+                  fontSize: 16,
+                  fontFamily: Fonts.black,
+                  marginBottom: 8,
+                }}
+              >
                 {fmtETB(route.price || 0)}
               </Text>
-              
+
               {/* Load factor bar */}
               <View style={{ marginBottom: 4 }}>
-                <View style={{ 
-                  flexDirection: 'row', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: 2
-                }}>
-                  <Text style={{ color: C.sub, fontSize: 10 }}>
-                    Load Factor
-                  </Text>
-                  <Text style={{ 
-                    color: getLoadFactorColor(loadFactor), 
-                    fontSize: 10, 
-                    fontFamily: Fonts.bold 
-                  }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 2,
+                  }}
+                >
+                  <Text style={{ color: C.sub, fontSize: 10 }}>Load Factor</Text>
+                  <Text
+                    style={{
+                      color: getLoadFactorColor(loadFactor),
+                      fontSize: 10,
+                      fontFamily: Fonts.bold,
+                    }}
+                  >
                     {loadFactor}%
                   </Text>
                 </View>
-                <View style={{ 
-                  height: 6, 
-                  borderRadius: 3, 
-                  backgroundColor: C.surface 
-                }}>
-                  <View style={{ 
-                    height: 6, 
-                    borderRadius: 3, 
-                    backgroundColor: getLoadFactorColor(loadFactor),
-                    width: `${Math.min(100, Number(loadFactor))}%`
-                  }} />
+                <View
+                  style={{
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: C.surface,
+                  }}
+                >
+                  <View
+                    style={{
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: getLoadFactorColor(loadFactor),
+                      width: `${Math.min(100, Number(loadFactor))}%`,
+                    }}
+                  />
                 </View>
               </View>
-              
+
               <Text style={{ color: C.sub, fontSize: 11 }}>
                 {soldSeats}/{route.available_seats} seats sold
               </Text>
@@ -320,19 +357,23 @@ export default function TransportDashboard() {
   };
 
   const TicketCard = ({ ticket }) => {
-    const route = routes.find(r => r.id === ticket.route_id);
-    
+    const route = routes.find((r) => r.id === ticket.route_id);
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => {
           setSelectedTicket(ticket);
           setShowTicketDetail(true);
         }}
       >
         <Card style={{ marginBottom: 8, padding: 12 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black, marginBottom: 4 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black, marginBottom: 4 }}
+              >
                 {route ? `${route.from} â†’ ${route.to}` : 'Unknown Route'}
               </Text>
               <Text style={{ color: C.sub, fontSize: 11, marginBottom: 2 }}>
@@ -343,24 +384,38 @@ export default function TransportDashboard() {
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: TRANSPORT_COLORS.primary, fontSize: 14, fontFamily: Fonts.bold }}>
+              <Text
+                style={{ color: TRANSPORT_COLORS.primary, fontSize: 14, fontFamily: Fonts.bold }}
+              >
                 {fmtETB(ticket.price || 0)}
               </Text>
-              <View style={{ 
-                paddingHorizontal: 6, 
-                paddingVertical: 2, 
-                borderRadius: 4, 
-                backgroundColor: ticket.status === 'VALID' ? 'rgba(0,168,107,0.1)' : 
-                               ticket.status === 'USED' ? 'rgba(138,154,184,0.1)' : 'rgba(232,49,42,0.1)',
-                marginTop: 4
-              }}>
-                <Text style={{ 
-                  color: ticket.status === 'VALID' ? '#00A86B' : 
-                         ticket.status === 'USED' ? '#8A9AB8' : '#E8312A', 
-                  fontSize: 9, 
-                  fontFamily: Fonts.bold,
-                  textTransform: 'uppercase' 
-                }}>
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                  backgroundColor:
+                    ticket.status === 'VALID'
+                      ? 'rgba(0,168,107,0.1)'
+                      : ticket.status === 'USED'
+                        ? 'rgba(138,154,184,0.1)'
+                        : 'rgba(232,49,42,0.1)',
+                  marginTop: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      ticket.status === 'VALID'
+                        ? '#00A86B'
+                        : ticket.status === 'USED'
+                          ? '#8A9AB8'
+                          : '#E8312A',
+                    fontSize: 9,
+                    fontFamily: Fonts.bold,
+                    textTransform: 'uppercase',
+                  }}
+                >
                   {ticket.status}
                 </Text>
               </View>
@@ -373,25 +428,27 @@ export default function TransportDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar 
-        title={`🚌 Transport Â· ${activeRoutes} routes`} 
+      <TopBar
+        title={`🚌 Transport Â· ${activeRoutes} routes`}
         right={
           <TouchableOpacity onPress={logout} style={{ padding: 8 }}>
             <Ionicons name="log-out-outline" size={24} color={C.text} />
           </TouchableOpacity>
         }
       />
-      
+
       {/* Additional Logout Button for visibility */}
-      <View style={{ 
-        paddingHorizontal: 16, 
-        paddingTop: 12, 
-        paddingBottom: 8,
-        backgroundColor: C.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: C.edge2
-      }}>
-        <TouchableOpacity 
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 8,
+          backgroundColor: C.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: C.edge2,
+        }}
+      >
+        <TouchableOpacity
           onPress={logout}
           style={{
             backgroundColor: '#E8312A',
@@ -402,21 +459,22 @@ export default function TransportDashboard() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            alignSelf: 'flex-end'
+            alignSelf: 'flex-end',
           }}
         >
           <Ionicons name="log-out" size={16} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>
-            LOGOUT
-          </Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>LOGOUT</Text>
         </TouchableOpacity>
       </View>
-      
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Revenue Stats */}
         <View style={{ padding: 16 }}>
-          <LinearGradient 
-            colors={[TRANSPORT_COLORS.primaryL, 'transparent']} 
+          <LinearGradient
+            colors={[TRANSPORT_COLORS.primaryL, 'transparent']}
             style={{ borderRadius: Radius['3xl'], padding: 24, ...Shadow.md }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -424,39 +482,67 @@ export default function TransportDashboard() {
                 <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.bold, opacity: 0.8 }}>
                   Load Factor
                 </Text>
-                <Text style={{ color: TRANSPORT_COLORS.primary, fontSize: 32, fontFamily: Fonts.black, marginTop: 4 }}>
+                <Text
+                  style={{
+                    color: TRANSPORT_COLORS.primary,
+                    fontSize: 32,
+                    fontFamily: Fonts.black,
+                    marginTop: 4,
+                  }}
+                >
                   {loadFactor}%
                 </Text>
               </View>
-              <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: TRANSPORT_COLORS.primaryL, alignItems: 'center', justifyContent: 'center' }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: TRANSPORT_COLORS.primaryL,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Ionicons name="bus" size={24} color={TRANSPORT_COLORS.primary} />
               </View>
             </View>
-            
-            <View style={{ height: 1, backgroundColor: 'rgba(6,182,212,0.2)', marginVertical: 20 }} />
-            
+
+            <View
+              style={{ height: 1, backgroundColor: 'rgba(6,182,212,0.2)', marginVertical: 20 }}
+            />
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ color: '#00A86B', fontSize: 16, fontFamily: Fonts.black }}>
                   {availableSeats}
                 </Text>
-                <Text style={{ color: 'rgba(0,168,107,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(0,168,107,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   SEATS FREE
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: TRANSPORT_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}>
+                <Text
+                  style={{ color: TRANSPORT_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}
+                >
                   {soldSeats}
                 </Text>
-                <Text style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   TICKETS SOLD
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: TRANSPORT_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}>
+                <Text
+                  style={{ color: TRANSPORT_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}
+                >
                   {fmtETB(todayRevenue, 0)}
                 </Text>
-                <Text style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   REVENUE
                 </Text>
               </View>
@@ -477,15 +563,17 @@ export default function TransportDashboard() {
                 backgroundColor: activeTab === tab ? TRANSPORT_COLORS.primaryL : C.surface,
                 borderWidth: 1.5,
                 borderColor: activeTab === tab ? TRANSPORT_COLORS.primaryB : C.edge2,
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
-              <Text style={{ 
-                color: activeTab === tab ? TRANSPORT_COLORS.primary : C.sub, 
-                fontSize: 11, 
-                fontFamily: Fonts.black,
-                textTransform: 'uppercase'
-              }}>
+              <Text
+                style={{
+                  color: activeTab === tab ? TRANSPORT_COLORS.primary : C.sub,
+                  fontSize: 11,
+                  fontFamily: Fonts.black,
+                  textTransform: 'uppercase',
+                }}
+              >
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -496,18 +584,20 @@ export default function TransportDashboard() {
         {activeTab === 'routes' && (
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Active Routes" />
-            <CButton 
-              title="Add Route" 
+            <CButton
+              title="Add Route"
               onPress={() => setShowAddRoute(true)}
               style={{ marginBottom: 16 }}
             />
-            
+
             {loading && routes.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>Loading routes...</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                Loading routes...
+              </Text>
             ) : routes.length === 0 ? (
               <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>No routes yet</Text>
             ) : (
-              routes.map(route => <RouteCard key={route.id} route={route} />)
+              routes.map((route) => <RouteCard key={route.id} route={route} />)
             )}
           </View>
         )}
@@ -516,11 +606,13 @@ export default function TransportDashboard() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Recent Tickets" />
             {loading && tickets.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>Loading tickets...</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                Loading tickets...
+              </Text>
             ) : tickets.length === 0 ? (
               <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>No tickets yet</Text>
             ) : (
-              tickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} />)
+              tickets.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} />)
             )}
           </View>
         )}
@@ -528,14 +620,16 @@ export default function TransportDashboard() {
         {activeTab === 'scanner' && (
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Boarding Scanner" />
-            <View style={{ 
-              height: SCREEN_WIDTH - 32, 
-              borderRadius: Radius.xl, 
-              overflow: 'hidden',
-              borderWidth: 2,
-              borderColor: TRANSPORT_COLORS.primaryB,
-              marginBottom: 16
-            }}>
+            <View
+              style={{
+                height: SCREEN_WIDTH - 32,
+                borderRadius: Radius.xl,
+                overflow: 'hidden',
+                borderWidth: 2,
+                borderColor: TRANSPORT_COLORS.primaryB,
+                marginBottom: 16,
+              }}
+            >
               <CameraView
                 style={{ flex: 1 }}
                 facing="back"
@@ -544,70 +638,84 @@ export default function TransportDashboard() {
                   barcodeTypes: ['qr'],
                 }}
               />
-              
+
               {/* Scan overlay */}
-              <View style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0,
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                <View style={{ 
-                  width: 200, 
-                  height: 200, 
-                  borderWidth: 2, 
-                  borderColor: 'rgba(6,182,212,0.5)',
-                  borderRadius: 12
-                }} />
-                <Text style={{ 
-                  color: '#FFFFFF', 
-                  fontSize: 14, 
-                  fontFamily: Fonts.black,
-                  marginTop: 20,
-                  textAlign: 'center',
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 8
-                }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <View
+                  style={{
+                    width: 200,
+                    height: 200,
+                    borderWidth: 2,
+                    borderColor: 'rgba(6,182,212,0.5)',
+                    borderRadius: 12,
+                  }}
+                />
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 14,
+                    fontFamily: Fonts.black,
+                    marginTop: 20,
+                    textAlign: 'center',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                  }}
+                >
                   Scan boarding QR code
                 </Text>
               </View>
             </View>
-            
+
             {scanResult && (
-              <View style={{
-                backgroundColor: scanResult.success ? 'rgba(0,168,107,0.1)' : 'rgba(232,49,42,0.1)',
-                borderRadius: Radius.xl,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: scanResult.success ? 'rgba(0,168,107,0.28)' : 'rgba(232,49,42,0.28)',
-                alignItems: 'center'
-              }}>
-                <Ionicons 
-                  name={scanResult.success ? "checkmark-circle" : "close-circle"} 
-                  size={48} 
-                  color={scanResult.success ? '#00A86B' : '#E8312A'} 
+              <View
+                style={{
+                  backgroundColor: scanResult.success
+                    ? 'rgba(0,168,107,0.1)'
+                    : 'rgba(232,49,42,0.1)',
+                  borderRadius: Radius.xl,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: scanResult.success ? 'rgba(0,168,107,0.28)' : 'rgba(232,49,42,0.28)',
+                  alignItems: 'center',
+                }}
+              >
+                <Ionicons
+                  name={scanResult.success ? 'checkmark-circle' : 'close-circle'}
+                  size={48}
+                  color={scanResult.success ? '#00A86B' : '#E8312A'}
                 />
-                <Text style={{ 
-                  color: scanResult.success ? '#00A86B' : '#E8312A', 
-                  fontSize: 16, 
-                  fontFamily: Fonts.black,
-                  marginTop: 8,
-                  textAlign: 'center'
-                }}>
+                <Text
+                  style={{
+                    color: scanResult.success ? '#00A86B' : '#E8312A',
+                    fontSize: 16,
+                    fontFamily: Fonts.black,
+                    marginTop: 8,
+                    textAlign: 'center',
+                  }}
+                >
                   {scanResult.success ? 'Boarding Validated' : scanResult.message}
                 </Text>
                 {scanResult.success && scanResult.ticket && (
-                  <Text style={{ 
-                    color: C.sub, 
-                    fontSize: 12, 
-                    marginTop: 4,
-                    textAlign: 'center'
-                  }}>
+                  <Text
+                    style={{
+                      color: C.sub,
+                      fontSize: 12,
+                      marginTop: 4,
+                      textAlign: 'center',
+                    }}
+                  >
                     {scanResult.ticket.passenger_name} - {scanResult.ticket.route_id}
                   </Text>
                 )}
@@ -629,14 +737,16 @@ export default function TransportDashboard() {
       {/* Add Route Modal */}
       <Modal visible={showAddRoute} animationType="slide" presentationStyle="pageSheet">
         <View style={{ flex: 1, backgroundColor: C.ink }}>
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            padding: 16, 
-            borderBottomWidth: 1, 
-            borderBottomColor: C.edge2 
-          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: C.edge2,
+            }}
+          >
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
               Add New Route
             </Text>
@@ -644,11 +754,13 @@ export default function TransportDashboard() {
               <Ionicons name="close" size={24} color={C.text} />
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+                <Text
+                  style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+                >
                   From *
                 </Text>
                 <CInput
@@ -658,7 +770,9 @@ export default function TransportDashboard() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+                <Text
+                  style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+                >
                   To *
                 </Text>
                 <CInput
@@ -670,7 +784,9 @@ export default function TransportDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Departure Time *
               </Text>
               <CInput
@@ -682,7 +798,9 @@ export default function TransportDashboard() {
 
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+                <Text
+                  style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+                >
                   Price (ETB) *
                 </Text>
                 <CInput
@@ -693,20 +811,24 @@ export default function TransportDashboard() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+                <Text
+                  style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+                >
                   Available Seats *
                 </Text>
                 <CInput
                   placeholder="50"
                   value={newRoute.available_seats.toString()}
-                  onChangeText={(text) => setNewRoute({ ...newRoute, available_seats: parseInt(text) || 0 })}
+                  onChangeText={(text) =>
+                    setNewRoute({ ...newRoute, available_seats: parseInt(text) || 0 })
+                  }
                   keyboardType="numeric"
                 />
               </View>
             </View>
 
-            <CButton 
-              title="Add Route" 
+            <CButton
+              title="Add Route"
               onPress={addRoute}
               loading={loading}
               style={{ marginTop: 20 }}
@@ -719,14 +841,16 @@ export default function TransportDashboard() {
       <Modal visible={showTicketDetail} animationType="slide" presentationStyle="pageSheet">
         {selectedTicket && (
           <View style={{ flex: 1, backgroundColor: C.ink }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              padding: 16, 
-              borderBottomWidth: 1, 
-              borderBottomColor: C.edge2 
-            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: C.edge2,
+              }}
+            >
               <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
                 Ticket Details
               </Text>
@@ -734,54 +858,82 @@ export default function TransportDashboard() {
                 <Ionicons name="close" size={24} color={C.text} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView contentContainerStyle={{ padding: 16 }}>
               <Card style={{ padding: 16, marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 12,
+                  }}
+                >
                   <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
                     Ticket {selectedTicket.id.slice(-8)}
                   </Text>
-                  <View style={{ 
-                    paddingHorizontal: 8, 
-                    paddingVertical: 4, 
-                    borderRadius: 6, 
-                    backgroundColor: selectedTicket.status === 'VALID' ? 'rgba(0,168,107,0.1)' : 
-                                   selectedTicket.status === 'USED' ? 'rgba(138,154,184,0.1)' : 'rgba(232,49,42,0.1)'
-                  }}>
-                    <Text style={{ 
-                      color: selectedTicket.status === 'VALID' ? '#00A86B' : 
-                             selectedTicket.status === 'USED' ? '#8A9AB8' : '#E8312A', 
-                      fontSize: 10, 
-                      fontFamily: Fonts.bold,
-                      textTransform: 'uppercase' 
-                    }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6,
+                      backgroundColor:
+                        selectedTicket.status === 'VALID'
+                          ? 'rgba(0,168,107,0.1)'
+                          : selectedTicket.status === 'USED'
+                            ? 'rgba(138,154,184,0.1)'
+                            : 'rgba(232,49,42,0.1)',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color:
+                          selectedTicket.status === 'VALID'
+                            ? '#00A86B'
+                            : selectedTicket.status === 'USED'
+                              ? '#8A9AB8'
+                              : '#E8312A',
+                        fontSize: 10,
+                        fontFamily: Fonts.bold,
+                        textTransform: 'uppercase',
+                      }}
+                    >
                       {selectedTicket.status}
                     </Text>
                   </View>
                 </View>
-                
+
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}>
+                  <Text
+                    style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}
+                  >
                     {selectedTicket.passenger_name || 'Passenger'}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 12, marginBottom: 2 }}>
-                    Route: {routes.find(r => r.id === selectedTicket.route_id)?.from || 'Unknown'} â†’ {routes.find(r => r.id === selectedTicket.route_id)?.to || 'Unknown'}
+                    Route: {routes.find((r) => r.id === selectedTicket.route_id)?.from || 'Unknown'}{' '}
+                    â†’ {routes.find((r) => r.id === selectedTicket.route_id)?.to || 'Unknown'}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 12 }}>
                     Booked: {new Date(selectedTicket.created_at).toLocaleString()}
                   </Text>
                 </View>
-                
+
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ color: TRANSPORT_COLORS.primary, fontSize: 18, fontFamily: Fonts.black }}>
+                  <Text
+                    style={{
+                      color: TRANSPORT_COLORS.primary,
+                      fontSize: 18,
+                      fontFamily: Fonts.black,
+                    }}
+                  >
                     {fmtETB(selectedTicket.price || 0)}
                   </Text>
                 </View>
               </Card>
-              
+
               {selectedTicket.status === 'VALID' && (
-                <CButton 
-                  title="Mark as Used" 
+                <CButton
+                  title="Mark as Used"
                   onPress={() => updateTicket(selectedTicket.id, 'USED')}
                 />
               )}

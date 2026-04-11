@@ -86,8 +86,9 @@ export function BackupProvider({ children }: BackupProviderProps) {
   const setupAutoBackup = () => {
     setInterval(async () => {
       const now = Date.now();
-      const shouldBackup = !lastBackupTime || (now - lastBackupTime) >= BACKUP_CONFIG.AUTO_BACKUP_INTERVAL;
-      
+      const shouldBackup =
+        !lastBackupTime || now - lastBackupTime >= BACKUP_CONFIG.AUTO_BACKUP_INTERVAL;
+
       if (shouldBackup) {
         await createAutoBackup();
       }
@@ -99,7 +100,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
     try {
       const backupData = await collectBackupData();
       const backup = await createBackup(backupData, 'auto');
-      
+
       if (backup) {
         setLastBackupTime(Date.now());
         await AsyncStorage.setItem('last_backup_time', Date.now().toString());
@@ -113,7 +114,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
   // Collect backup data
   const collectBackupData = async () => {
     const store = useAppStore.getState();
-    
+
     try {
       const backupData = {
         version: BACKUP_CONFIG.BACKUP_VERSION,
@@ -153,7 +154,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
   const createBackup = async (data, type = 'manual') => {
     try {
       setBackupProgress(0);
-      
+
       // Add metadata
       const backup = {
         id: uid(),
@@ -205,7 +206,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
       await AsyncStorage.setItem('backup_history', JSON.stringify(updatedHistory));
 
       setTimeout(() => setBackupProgress(0), 1000);
-      
+
       return newBackup;
     } catch (error) {
       console.error('Backup creation error:', error);
@@ -241,7 +242,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
   const saveBackupToCloud = async (backup) => {
     // In a real app, this would upload to cloud storage
     console.log('☁️ Saving backup to cloud...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   };
 
   // Restore backup
@@ -297,7 +298,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
       // Try local first
       const backupKey = `backup_${backupId}`;
       const localBackup = await AsyncStorage.getItem(backupKey);
-      
+
       if (localBackup) {
         return JSON.parse(localBackup);
       }
@@ -318,7 +319,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
   const loadBackupFromCloud = async (backupId) => {
     // In a real app, this would download from cloud storage
     console.log('☁️ Loading backup from cloud...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     throw new Error('Cloud backup not implemented');
   };
 
@@ -327,7 +328,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
     if (!backup.data) {
       throw new Error('No encrypted data found');
     }
-    
+
     const decrypted = decryptData(backup.data);
     return decrypted;
   };
@@ -368,7 +369,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
   // Restore backup data
   const restoreBackupData = async (backup) => {
     const store = useAppStore.getState();
-    
+
     try {
       // Restore user data
       if (backup.userData) {
@@ -378,7 +379,8 @@ export function BackupProvider({ children }: BackupProviderProps) {
         if (backup.userData.notifications) store.setNotifications(backup.userData.notifications);
         if (backup.userData.chatHistory) store.setChatHistory(backup.userData.chatHistory);
         if (backup.userData.foodOrders) store.setFoodOrders(backup.userData.foodOrders);
-        if (backup.userData.marketplaceListings) store.setMarketplaceListings(backup.userData.marketplaceListings);
+        if (backup.userData.marketplaceListings)
+          store.setMarketplaceListings(backup.userData.marketplaceListings);
         if (backup.userData.ekubGroups) store.setEkubGroups(backup.userData.ekubGroups);
         if (backup.userData.favorites) store.setFavorites(backup.userData.favorites);
         if (backup.userData.settings) store.setSettings(backup.userData.settings);
@@ -411,7 +413,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
       }
 
       // Update history
-      const updatedHistory = backupHistory.filter(backup => backup.id !== backupId);
+      const updatedHistory = backupHistory.filter((backup) => backup.id !== backupId);
       setBackupHistory(updatedHistory);
       await AsyncStorage.setItem('backup_history', JSON.stringify(updatedHistory));
 
@@ -426,14 +428,14 @@ export function BackupProvider({ children }: BackupProviderProps) {
   const deleteBackupFromCloud = async (backupId) => {
     // In a real app, this would delete from cloud storage
     console.log('☁️ Deleting backup from cloud...');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
   // Get backup statistics
   const getBackupStats = () => {
     const totalBackups = backupHistory.length;
-    const localBackups = backupHistory.filter(b => b.location.includes('local')).length;
-    const cloudBackups = backupHistory.filter(b => b.location.includes('cloud')).length;
+    const localBackups = backupHistory.filter((b) => b.location.includes('local')).length;
+    const cloudBackups = backupHistory.filter((b) => b.location.includes('cloud')).length;
     const totalSize = backupHistory.reduce((sum, b) => sum + (b.size || 0), 0);
     const lastBackup = backupHistory[0]?.timestamp || null;
 
@@ -461,11 +463,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
     getBackupStats,
   };
 
-  return (
-    <BackupContext.Provider value={value}>
-      {children}
-    </BackupContext.Provider>
-  );
+  return <BackupContext.Provider value={value}>{children}</BackupContext.Provider>;
 }
 
 // Hook to use backup
@@ -514,7 +512,8 @@ export const BackupUtils = {
 
     const now = Date.now();
     const lastBackup = backupHistory[0]?.timestamp;
-    if (lastBackup && (now - lastBackup) > 7 * 24 * 60 * 60 * 1000) { // 7 days
+    if (lastBackup && now - lastBackup > 7 * 24 * 60 * 60 * 1000) {
+      // 7 days
       health.status = 'warning';
       health.issues.push('Last backup is more than 7 days old');
       health.recommendations.push('Create a fresh backup to ensure data protection');

@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, TextInput, Platform, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  TextInput,
+  Platform,
+  Dimensions,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -20,7 +30,7 @@ import {
   SalonDashboard,
   ClinicDashboard,
   DelalaDashboard,
-  TransportDashboard
+  TransportDashboard,
 } from './index';
 import ShopDashboard from './ShopDashboard';
 
@@ -44,7 +54,7 @@ export default function MerchantPortalScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast('Logged out successfully', 'success');
     reset();
-    
+
     try {
       (navigation as any).replace('Auth');
     } catch (error) {
@@ -59,9 +69,20 @@ export default function MerchantPortalScreen() {
   // Handle unknown merchant type toast in useEffect to avoid concurrent rendering errors
   React.useEffect(() => {
     const knownTypes = [
-      'restaurant', 'parking', 'shop', 'seller', 'retail', 
-      'employer', 'delala', 'transport', 'bus', 'driver', 
-      'salon', 'service', 'clinic', 'ekub'
+      'restaurant',
+      'parking',
+      'shop',
+      'seller',
+      'retail',
+      'employer',
+      'delala',
+      'transport',
+      'bus',
+      'driver',
+      'salon',
+      'service',
+      'clinic',
+      'ekub',
     ];
     if (currentUser && !knownTypes.includes(normalizedType)) {
       console.log('âš ï¸ Unknown merchant type, defaulting to Restaurant');
@@ -113,15 +134,13 @@ export default function MerchantPortalScreen() {
   // Add a loading state while determining the dashboard
   if (!currentUser) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center' }}
+      >
         <Text style={{ color: C.sub }}>Loading user data...</Text>
       </View>
     );
   }
 
-  return (
-    <View style={{ flex: 1, backgroundColor: C.ink }}>
-      {renderDashboard()}
-    </View>
-  );
+  return <View style={{ flex: 1, backgroundColor: C.ink }}>{renderDashboard()}</View>;
 }

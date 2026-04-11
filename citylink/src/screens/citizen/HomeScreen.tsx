@@ -1,15 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  View, Text, Animated, RefreshControl, TouchableOpacity,
-  ActivityIndicator, StyleSheet, StatusBar
+import {
+  View,
+  Text,
+  Animated,
+  RefreshControl,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  StatusBar,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { AppStackParamList } from '../../navigation';
 import * as Haptics from 'expo-haptics';
 
 // â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-import { 
-  TopBar, OfflineBanner, WalletHero, ServiceTile, FeaturedCard, 
-  CreditScoreRing, LiveTransit, TransactionItem, useTheme 
+import {
+  TopBar,
+  OfflineBanner,
+  WalletHero,
+  ServiceTile,
+  FeaturedCard,
+  CreditScoreRing,
+  LiveTransit,
+  TransactionItem,
+  useTheme,
 } from '../../components';
 
 // â”€â”€ State & Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -24,33 +38,33 @@ import * as WalletService from '../../services/wallet.service';
  * Service Configuration â€” local to Home for easier modification.
  */
 const SERVICES = [
-  { id:'Marketplace', icon:'storefront',         label:'market_label',    color: '#59de9b' },
-  { id:'Parking',     icon:'car',                label:'parking_label',   color: '#ffd887' },
-  { id:'Food',        icon:'restaurant',          label:'food_label',      color: '#f4b700' },
-  { id:'Transport',   icon:'train',               label:'transport_label', color: '#06b6d4' },
-  { id:'Jobs',        icon:'briefcase',           label:'jobs_label',      color: '#ffd887' },
-  { id:'Delala',      icon:'home',                label:'delala_label',    color: '#f4b700' },
-  { id:'Ekub',        icon:'people',              label:'ekub_label',      color: '#8b5cf6' },
-  { id:'Tonight',     icon:'moon',                label:'tonight_label',   color: '#06b6d4' },
-  { id:'Exchange',    icon:'swap-horizontal',      label:'fx_label',        color: '#f4b700' },
-  { id:'CityServices',icon:'business',            label:'gov_label',       color: '#59de9b' },
-  { id:'Services',    icon:'cut',                 label:'services_label',  color: '#ffd887' },
-  { id:'Emergency',   icon:'warning',             label:'emergency_label', color: '#ef4444' },
+  { id: 'Marketplace', icon: 'storefront', label: 'market_label', color: '#59de9b' },
+  { id: 'Parking', icon: 'car', label: 'parking_label', color: '#ffd887' },
+  { id: 'Food', icon: 'restaurant', label: 'food_label', color: '#f4b700' },
+  { id: 'Transport', icon: 'train', label: 'transport_label', color: '#06b6d4' },
+  { id: 'Jobs', icon: 'briefcase', label: 'jobs_label', color: '#ffd887' },
+  { id: 'Delala', icon: 'home', label: 'delala_label', color: '#f4b700' },
+  { id: 'Ekub', icon: 'people', label: 'ekub_label', color: '#8b5cf6' },
+  { id: 'Tonight', icon: 'moon', label: 'tonight_label', color: '#06b6d4' },
+  { id: 'Exchange', icon: 'swap-horizontal', label: 'fx_label', color: '#f4b700' },
+  { id: 'CityServices', icon: 'business', label: 'gov_label', color: '#59de9b' },
+  { id: 'Services', icon: 'cut', label: 'services_label', color: '#ffd887' },
+  { id: 'Emergency', icon: 'warning', label: 'emergency_label', color: '#ef4444' },
   // ── New modules explicitly requested ──
-  { id:'AI',          icon:'sparkles',            label:'AI Assistant',    color: '#8b5cf6' },
-  { id:'Anbessa',     icon:'bus',                 label:'Anbessa Bus',     color: '#f4b700' },
-  { id:'BillPay',     icon:'receipt',             label:'Utility Bills',   color: '#59de9b' },
-  { id:'CV',          icon:'document-text',       label:'Build CV',        color: '#06b6d4' },
-  { id:'Dining',      icon:'cafe',                label:'Dining',          color: '#ffd887' },
-  { id:'Education',   icon:'school',              label:'Education',       color: '#8b5cf6' },
-  { id:'FaydaKYC',    icon:'finger-print',        label:'Fayda ID',        color: '#59de9b' },
-  { id:'Minibus',     icon:'car-sport',           label:'Minibus',         color: '#f4b700' },
-  { id:'Rail',        icon:'train-outline',       label:'LRT Train',       color: '#06b6d4' },
-  { id:'MyOrders',    icon:'cube',                label:'My Orders',       color: '#ffd887' },
-  { id:'QRScanner',   icon:'qr-code',             label:'Scan & Pay',      color: '#8b5cf6' },
-  { id:'RequestMoney',icon:'cash',                label:'Request',         color: '#ef4444' },
-  { id:'SendMoney',   icon:'send',                label:'Send Money',      color: '#59de9b' },
-  { id:'TrackOrder',  icon:'map',                 label:'Track Order',     color: '#06b6d4' },
+  { id: 'AI', icon: 'sparkles', label: 'AI Assistant', color: '#8b5cf6' },
+  { id: 'Anbessa', icon: 'bus', label: 'Anbessa Bus', color: '#f4b700' },
+  { id: 'BillPay', icon: 'receipt', label: 'Utility Bills', color: '#59de9b' },
+  { id: 'CV', icon: 'document-text', label: 'Build CV', color: '#06b6d4' },
+  { id: 'Dining', icon: 'cafe', label: 'Dining', color: '#ffd887' },
+  { id: 'Education', icon: 'school', label: 'Education', color: '#8b5cf6' },
+  { id: 'FaydaKYC', icon: 'finger-print', label: 'Fayda ID', color: '#59de9b' },
+  { id: 'Minibus', icon: 'car-sport', label: 'Minibus', color: '#f4b700' },
+  { id: 'Rail', icon: 'train-outline', label: 'LRT Train', color: '#06b6d4' },
+  { id: 'MyOrders', icon: 'cube', label: 'My Orders', color: '#ffd887' },
+  { id: 'QRScanner', icon: 'qr-code', label: 'Scan & Pay', color: '#8b5cf6' },
+  { id: 'RequestMoney', icon: 'cash', label: 'Request', color: '#ef4444' },
+  { id: 'SendMoney', icon: 'send', label: 'Send Money', color: '#59de9b' },
+  { id: 'TrackOrder', icon: 'map', label: 'Track Order', color: '#06b6d4' },
 ];
 
 /**
@@ -63,16 +77,16 @@ const CulturalTexture = () => (
 );
 
 export default function HomeScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<AppStackParamList>>();
   const C = useTheme();
-  
+
   // â”€â”€ Global State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const currentUser = useAppStore(s => s.currentUser);
-  const balance = useAppStore(s => s.balance);
-  const setBalance = useAppStore(s => s.setBalance);
-  const transactions = useAppStore(s => s.transactions);
-  const setTransactions = useAppStore(s => s.setTransactions);
-  const showToast = useAppStore(s => s.showToast);
+  const currentUser = useAppStore((s) => s.currentUser);
+  const balance = useAppStore((s) => s.balance);
+  const setBalance = useAppStore((s) => s.setBalance);
+  const transactions = useAppStore((s) => s.transactions);
+  const setTransactions = useAppStore((s) => s.setTransactions);
+  const showToast = useAppStore((s) => s.showToast);
 
   // â”€â”€ UI State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [loading, setLoading] = useState(true);
@@ -80,25 +94,28 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // â”€â”€ Data Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const fetchData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  const fetchData = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
 
-    try {
-      const walletData = await WalletService.fetchWalletData(currentUser?.id);
-      if (walletData) {
-        setBalance(walletData.balance);
-        setTransactions(walletData.transactions || []);
+      try {
+        const walletData = await WalletService.fetchWalletData(currentUser?.id);
+        if (walletData) {
+          setBalance(walletData.balance);
+          setTransactions(walletData.transactions || []);
+        }
+      } catch (error) {
+        console.error('Home sync error:', error);
+        showToast('Could not sync latest data', 'error');
+      } finally {
+        setRefreshing(false);
+        setLoading(false);
+        Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
       }
-    } catch (error) {
-      console.error('Home sync error:', error);
-      showToast('Could not sync latest data', 'error');
-    } finally {
-      setRefreshing(false);
-      setLoading(false);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
-    }
-  }, [currentUser?.id]);
+    },
+    [currentUser?.id]
+  );
 
   useEffect(() => {
     fetchData();
@@ -131,20 +148,26 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" />
       <TopBar title="CityLink" showProfile />
       <OfflineBanner />
-      
+
       <Animated.ScrollView
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} tintColor={C.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchData(true)}
+            tintColor={C.primary}
+          />
+        }
       >
-        <WalletHero 
-          balance={balance} 
-          name={currentUser?.full_name?.split(' ')[0] || 'Member'} 
+        <WalletHero
+          balance={balance}
+          name={currentUser?.full_name?.split(' ')[0] || 'Member'}
           greetingKey={greeting()}
           onQuickAction={handleQuickAction}
           animValue={fadeAnim}
         />
-        
+
         <View style={styles.statsRow}>
           <CreditScoreRing animValue={fadeAnim} />
           <LiveTransit animValue={fadeAnim} />
@@ -154,13 +177,18 @@ export default function HomeScreen() {
           <Text style={[styles.sectionLabel, { color: C.sub }]}>CITIZEN HUB</Text>
           <View style={styles.servicesGrid}>
             {SERVICES.map((s, i) => (
-              <ServiceTile key={s.id} service={s} index={i} onPress={() => handleServicePress(s.id)} />
+              <ServiceTile
+                key={s.id}
+                service={s}
+                index={i}
+                onPress={() => handleServicePress(s.id)}
+              />
             ))}
           </View>
         </View>
 
         <View style={styles.sectionContainer}>
-          <FeaturedCard 
+          <FeaturedCard
             title="CityLink Food"
             description="Organic produce delivered in under 30 mins."
             imageSource="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600"
@@ -173,18 +201,20 @@ export default function HomeScreen() {
           <View style={styles.headerRow}>
             <Text style={[styles.sectionLabel, { color: C.sub }]}>RECENT ACTIVITY</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
-              <Text style={{ color: C.primary, fontSize: 12, fontFamily: Fonts.bold }}>VIEW ALL</Text>
+              <Text style={{ color: C.primary, fontSize: 12, fontFamily: Fonts.bold }}>
+                VIEW ALL
+              </Text>
             </TouchableOpacity>
           </View>
-          
+
           {transactions.length === 0 ? (
             <View style={styles.emptyActivity}>
               <Text style={{ color: C.hint, fontFamily: Fonts.medium }}>No recent activity</Text>
             </View>
           ) : (
-            transactions.slice(0, 3).map((tx, i) => (
-              <TransactionItem key={tx.id || i} tx={tx} index={i} />
-            ))
+            transactions
+              .slice(0, 3)
+              .map((tx, i) => <TransactionItem key={tx.id || i} tx={tx} index={i} />)
           )}
         </View>
 
@@ -196,30 +226,30 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  statsRow: { 
-    flexDirection: 'row', 
-    paddingHorizontal: 16, 
-    gap: 12, 
-    marginBottom: 24 
+  statsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 24,
   },
   sectionContainer: { paddingHorizontal: 16, marginBottom: 24 },
-  sectionLabel: { 
-    fontSize: 10, 
-    fontFamily: Fonts.black, 
-    letterSpacing: 2, 
+  sectionLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.black,
+    letterSpacing: 2,
     marginBottom: 12,
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
   },
-  servicesGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    marginHorizontal: -6 
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
   },
-  headerRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12
+    marginBottom: 12,
   },
   emptyActivity: { padding: 30, alignItems: 'center' },
   textureOverlay: {
@@ -229,6 +259,6 @@ const styles = StyleSheet.create({
   texturePattern: {
     width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.02)'
-  }
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
 });

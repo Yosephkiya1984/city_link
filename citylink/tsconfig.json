@@ -7,7 +7,7 @@
       "*": ["src/*"]
     },
     "allowJs": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "esModuleInterop": true

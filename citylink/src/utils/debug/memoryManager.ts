@@ -38,9 +38,9 @@ class MemoryManager {
   // Start memory monitoring
   startMonitoring() {
     if (this.isMonitoring) return;
-    
+
     this.isMonitoring = true;
-    
+
     // Monitor memory usage
     const monitorInterval = setInterval(() => {
       this.checkMemoryUsage();
@@ -90,51 +90,51 @@ class MemoryManager {
   // Perform routine cleanup
   performRoutineCleanup() {
     const cleanupStart = performance.now();
-    
+
     // Clear cache
     cacheManager.cleanup();
-    
+
     // Run registered cleanup tasks
-    this.cleanupTasks.forEach(task => {
+    this.cleanupTasks.forEach((task) => {
       try {
         task();
       } catch (error) {
         console.error('Cleanup task failed:', error);
       }
     });
-    
+
     // Clear object registry
     this.objectRegistry.clear();
-    
+
     // Force garbage collection if available
     if ((window as any).gc) {
       (window as any).gc();
     }
-    
+
     this.memoryStats.cleanupCount++;
     const cleanupDuration = performance.now() - cleanupStart;
-    
+
     console.log(`🧹 Routine cleanup completed in ${cleanupDuration.toFixed(2)}ms`);
   }
 
   // Perform emergency cleanup
   performEmergencyCleanup() {
     console.warn('🚨 Emergency cleanup triggered!');
-    
+
     // Clear all cache
     cacheManager.clear();
-    
+
     // Clear all registered objects
     this.objectRegistry.clear();
-    
+
     // Clear all cleanup tasks
     this.cleanupTasks = [];
-    
+
     // Force garbage collection
     if ((window as any).gc) {
       (window as any).gc();
     }
-    
+
     // Report performance issue
     const { reportError } = useErrorReporting() as any;
     if (reportError) {
@@ -151,12 +151,12 @@ class MemoryManager {
   // Detect memory leaks
   detectMemoryLeaks() {
     const currentObjects = this.objectRegistry.size;
-    
+
     if (currentObjects > MEMORY_CONFIG.MAX_UNUSED_OBJECTS) {
       this.memoryStats.leaksDetected++;
-      
+
       console.warn(`🔍 Potential memory leak detected: ${currentObjects} objects registered`);
-      
+
       // Report leak
       const { reportError } = useErrorReporting();
       if (reportError) {
@@ -228,7 +228,7 @@ export const BundleOptimizer = {
       const start = performance.now();
       const module = await importFunc();
       const duration = performance.now() - start;
-      
+
       console.log(`📦 Component ${componentName} loaded in ${duration.toFixed(2)}ms`);
       return module;
     } catch (error) {
@@ -239,7 +239,7 @@ export const BundleOptimizer = {
 
   // Code splitting for routes
   splitRoutes: (routes) => {
-    return routes.map(route => ({
+    return routes.map((route) => ({
       ...route,
       component: React.lazy(() => {
         // Import the component directly instead of using template literals
@@ -263,7 +263,7 @@ export const BundleOptimizer = {
 
   // Optimize images
   optimizeImages: (imageSources) => {
-    return imageSources.map(src => {
+    return imageSources.map((src) => {
       // In a real app, this would optimize images
       return src;
     });
@@ -284,11 +284,11 @@ export const PerformanceProfiler = {
       const start = performance.now();
       const areEqual = JSON.stringify(prevProps) === JSON.stringify(nextProps);
       const duration = performance.now() - start;
-      
+
       if (duration > 1) {
         console.log(`⏱️ ${componentName} props comparison took ${duration.toFixed(2)}ms`);
       }
-      
+
       return areEqual;
     });
   },
@@ -300,11 +300,11 @@ export const PerformanceProfiler = {
       try {
         const result = await fn(...args);
         const duration = performance.now() - start;
-        
+
         if (duration > 100) {
           console.warn(`⏱️ ${functionName} took ${duration.toFixed(2)}ms`);
         }
-        
+
         return result;
       } catch (error) {
         const duration = performance.now() - start;
@@ -321,9 +321,9 @@ export const PerformanceProfiler = {
       try {
         const result = await apiCall(...args);
         const duration = performance.now() - start;
-        
+
         console.log(`🌐 API call to ${endpoint} completed in ${duration.toFixed(2)}ms`);
-        
+
         // Report slow API calls
         if (duration > 2000) {
           const { reportError } = useErrorReporting() as any;
@@ -338,7 +338,7 @@ export const PerformanceProfiler = {
             });
           }
         }
-        
+
         return result;
       } catch (error) {
         const duration = performance.now() - start;
@@ -352,7 +352,7 @@ export const PerformanceProfiler = {
   generateReport: () => {
     const memoryStats = memoryManager.getMemoryStats();
     const cacheStats = cacheManager.getStats();
-    
+
     return {
       timestamp: Date.now(),
       memory: memoryStats,
@@ -369,19 +369,19 @@ export const PerformanceProfiler = {
   // Get performance recommendations
   getRecommendations: (memoryStats: any, cacheStats: any) => {
     const recommendations = [];
-    
+
     if (memoryStats.percentage > MEMORY_CONFIG.WARNING_THRESHOLD) {
       recommendations.push('Memory usage is high. Consider implementing more aggressive cleanup.');
     }
-    
+
     if (cacheStats.hitRate < 50) {
       recommendations.push('Cache hit rate is low. Consider increasing TTL or preloading data.');
     }
-    
+
     if (memoryStats.leaksDetected > 0) {
       recommendations.push('Memory leaks detected. Review object lifecycle management.');
     }
-    
+
     return recommendations;
   },
 };
@@ -393,7 +393,7 @@ export function useMemoryManager() {
 
   useEffect(() => {
     const cleanup = memoryManager.current.startMonitoring();
-    
+
     // Update stats periodically
     const statsInterval = setInterval(() => {
       setMemoryStats(memoryManager.current.getMemoryStats());
@@ -440,7 +440,8 @@ export function usePerformanceProfiler(componentName) {
 
   const getRenderStats = () => ({
     renderCount: renderCount.current,
-    averageRenderTime: renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length || 0,
+    averageRenderTime:
+      renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length || 0,
     lastRenderTime: renderTimes.current[renderTimes.current.length - 1] || 0,
   });
 
@@ -465,11 +466,11 @@ export const OptimizationUtils = {
   // Throttle function
   throttle: (func, limit) => {
     let inThrottle;
-    return function(...args) {
+    return function (...args) {
       if (!inThrottle) {
         func.apply(this, args);
         inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
+        setTimeout(() => (inThrottle = false), limit);
       }
     };
   },
@@ -477,7 +478,7 @@ export const OptimizationUtils = {
   // Memoize function
   memoize: (func) => {
     const cache = new Map();
-    return function(...args) {
+    return function (...args) {
       const key = JSON.stringify(args);
       if (cache.has(key)) {
         return cache.get(key);
@@ -495,7 +496,7 @@ export const OptimizationUtils = {
       startIndex + Math.ceil(containerHeight / itemHeight) + 1,
       items.length
     );
-    
+
     return {
       visibleItems: items.slice(startIndex, endIndex),
       startIndex,

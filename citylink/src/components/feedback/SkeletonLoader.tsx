@@ -6,7 +6,7 @@ import { useTheme } from '../../hooks/useTheme';
 export function SkeletonLoader({ style, lines = 3 }) {
   const C = useTheme();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     const shimmer = Animated.loop(
       Animated.sequence([

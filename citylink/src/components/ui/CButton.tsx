@@ -18,7 +18,16 @@ interface CButtonProps {
   icon?: any;
 }
 
-export function CButton({ onPress, title, variant = 'primary', size = 'md', disabled, loading, style, icon }: CButtonProps) {
+export function CButton({
+  onPress,
+  title,
+  variant = 'primary',
+  size = 'md',
+  disabled,
+  loading,
+  style,
+  icon,
+}: CButtonProps) {
   const C = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
@@ -28,17 +37,29 @@ export function CButton({ onPress, title, variant = 'primary', size = 'md', disa
   const fw = Fonts.bold;
 
   const onPressIn = () => {
-    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 150, friction: 12 }).start();
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (_) {}
+    Animated.spring(scale, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      tension: 150,
+      friction: 12,
+    }).start();
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (_) {}
   };
 
   const onPressOut = () => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 150, friction: 12 }).start();
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 150,
+      friction: 12,
+    }).start();
   };
 
   async function handlePress() {
     if (disabled || loading) return;
-    try { 
+    try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       Animated.sequence([
         Animated.timing(shimmerAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
@@ -51,21 +72,30 @@ export function CButton({ onPress, title, variant = 'primary', size = 'md', disa
   const isPrimary = variant === 'primary';
 
   const Content = (
-    <View style={{
-      paddingVertical: py,
-      paddingHorizontal: 24,
-      alignItems: 'center', justifyContent: 'center',
-      flexDirection: 'row', gap: 10,
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <View
+      style={{
+        paddingVertical: py,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 10,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       <Animated.View
         style={{
           position: 'absolute',
-          top: 0, left: -100, width: 100, height: '100%',
+          top: 0,
+          left: -100,
+          width: 100,
+          height: '100%',
           backgroundColor: 'rgba(255,255,255,0.3)',
           transform: [
-            { translateX: shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-100, 300] }) }
+            {
+              translateX: shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-100, 300] }),
+            },
           ],
         }}
       />
@@ -74,12 +104,17 @@ export function CButton({ onPress, title, variant = 'primary', size = 'md', disa
       ) : (
         <>
           {icon && <Ionicons name={icon} size={fs + 2} color={isPrimary ? C.white : C.primary} />}
-          <Text style={[{
-            color: isPrimary ? C.white : C.primary,
-            fontSize: fs,
-            fontFamily: fw,
-            letterSpacing: 0.5,
-          }, textStyle]}>
+          <Text
+            style={[
+              {
+                color: isPrimary ? C.white : C.primary,
+                fontSize: fs,
+                fontFamily: fw,
+                letterSpacing: 0.5,
+              },
+              textStyle,
+            ]}
+          >
             {title}
           </Text>
         </>
@@ -100,7 +135,7 @@ export function CButton({ onPress, title, variant = 'primary', size = 'md', disa
           backgroundColor: isPrimary ? undefined : C.surface,
           borderWidth: isPrimary ? 0 : 1.5,
           borderColor: isPrimary ? 'transparent' : C.edge2,
-          opacity: disabled ? 0.5 : (pressed ? 0.8 : 1),
+          opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
           ...Platform.select({ ios: Shadow.md, android: {} }),
         })}
       >

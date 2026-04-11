@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   full_name?: string;
@@ -11,6 +10,20 @@ export interface User {
   woreda?: string;
   phone?: string;
   avatar_url?: string;
+  cv?: {
+    title?: string;
+    summary?: string;
+    skills?: string[];
+    experience?: any[];
+    education?: any[];
+    portfolio_url?: string;
+    linkedin_url?: string;
+    github_url?: string;
+    expected_salary?: string;
+    job_type?: string;
+    availability?: string;
+    remote_work?: boolean;
+  };
 }
 
 export interface Product {
@@ -41,6 +54,9 @@ export interface AppState {
   toasts: any[];
   products: Product[];
   selProdCat: string;
+  unreadCount: number;
+  activeParking: any;
+  tonightFilter: string;
   setIsDark: (val: boolean) => void;
   toggleTheme: () => void;
   setCurrentUser: (user: User | null) => Promise<void>;
@@ -70,6 +86,9 @@ export interface AppState {
   setFoodOrders: (orders: any[]) => void;
   setMarketplaceListings: (listings: any[]) => void;
   setEkubGroups: (groups: any[]) => void;
+  setActiveParking: (session: any) => void;
+  setTonightFilter: (filter: string) => void;
+  setUnreadCount: (count: number) => void;
   reset: () => Promise<void>;
   hydrateSession: () => Promise<void>;
 }

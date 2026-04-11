@@ -6,29 +6,53 @@ import { uid } from '../utils';
 
 export const CREDIT_SCORE_FACTORS = {
   // Transaction-based scoring
-  onTimePayments: 30,        // 30% weight
-  transactionFrequency: 20,    // 20% weight  
-  transactionVolume: 15,        // 15% weight
-  
+  onTimePayments: 30, // 30% weight
+  transactionFrequency: 20, // 20% weight
+  transactionVolume: 15, // 15% weight
+
   // Account history
-  accountAge: 15,             // 15% weight
-  walletConsistency: 10,        // 10% weight
-  
+  accountAge: 15, // 15% weight
+  walletConsistency: 10, // 10% weight
+
   // Verification bonuses
-  faydaVerified: 50,         // +50 points
-  kycVerified: 25,            // +25 points
-  
+  faydaVerified: 50, // +50 points
+  kycVerified: 25, // +25 points
+
   // Penalties
-  latePayments: -40,           // -40 points per incident
-  insufficientFunds: -30,      // -30 points per incident
-  chargebacks: -50,            // -50 points per incident
+  latePayments: -40, // -40 points per incident
+  insufficientFunds: -30, // -30 points per incident
+  chargebacks: -50, // -50 points per incident
 };
 
 export const CREDIT_SCORE_TIERS = {
-  EXCELLENT: { min: 750, max: 850, label: 'Excellent Credit', color: '#10b981', benefits: ['Maximum wallet limit', 'Priority support', 'Lower fees'] },
-  GOOD: { min: 650, max: 749, label: 'Good Credit', color: '#3b82f6', benefits: ['High wallet limit', 'Standard support', 'Reduced fees'] },
-  FAIR: { min: 550, max: 649, label: 'Fair Credit', color: '#f59e0b', benefits: ['Moderate wallet limit', 'Basic support'] },
-  BUILDING: { min: 300, max: 549, label: 'Building Credit', color: '#ef4444', benefits: ['Starter wallet limit', 'Limited support'] },
+  EXCELLENT: {
+    min: 750,
+    max: 850,
+    label: 'Excellent Credit',
+    color: '#10b981',
+    benefits: ['Maximum wallet limit', 'Priority support', 'Lower fees'],
+  },
+  GOOD: {
+    min: 650,
+    max: 749,
+    label: 'Good Credit',
+    color: '#3b82f6',
+    benefits: ['High wallet limit', 'Standard support', 'Reduced fees'],
+  },
+  FAIR: {
+    min: 550,
+    max: 649,
+    label: 'Fair Credit',
+    color: '#f59e0b',
+    benefits: ['Moderate wallet limit', 'Basic support'],
+  },
+  BUILDING: {
+    min: 300,
+    max: 549,
+    label: 'Building Credit',
+    color: '#ef4444',
+    benefits: ['Starter wallet limit', 'Limited support'],
+  },
 };
 
 export const CREDIT_EVENTS = {
@@ -48,10 +72,10 @@ export async function calculateCreditScore(userId) {
     // Check if supabase is available
     if (!supabase || !supabase.from) {
       console.warn('Supabase not available, using fallback credit score');
-      return { 
-        score: 300, 
+      return {
+        score: 300,
         tier: CREDIT_SCORE_TIERS.BUILDING,
-        recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING)
+        recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING),
       };
     }
 
@@ -65,10 +89,10 @@ export async function calculateCreditScore(userId) {
 
     if (txError) {
       console.warn('Transaction query error:', txError);
-      return { 
-        score: 300, 
+      return {
+        score: 300,
         tier: CREDIT_SCORE_TIERS.BUILDING,
-        recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING)
+        recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING),
       };
     }
 
@@ -81,31 +105,25 @@ export async function calculateCreditScore(userId) {
 
     if (profileError || !profile) {
       console.warn('Profile query error:', profileError);
-      return { 
-        score: 300, 
+      return {
+        score: 300,
         tier: CREDIT_SCORE_TIERS.BUILDING,
-        recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING)
+        recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING),
       };
     }
 
     let score = 300; // Base score
 
     // Transaction history analysis
-    const onTimePayments = transactions?.filter(tx => 
-      tx.type === 'credit' && !tx.late
-    ).length || 0;
+    const onTimePayments =
+      transactions?.filter((tx) => tx.type === 'credit' && !tx.late).length || 0;
 
-    const latePayments = transactions?.filter(tx => 
-      tx.type === 'debit' && tx.late
-    ).length || 0;
+    const latePayments = transactions?.filter((tx) => tx.type === 'debit' && tx.late).length || 0;
 
-    const insufficientFunds = transactions?.filter(tx => 
-      tx.category === 'insufficient_funds'
-    ).length || 0;
+    const insufficientFunds =
+      transactions?.filter((tx) => tx.category === 'insufficient_funds').length || 0;
 
-    const chargebacks = transactions?.filter(tx => 
-      tx.category === 'chargeback'
-    ).length || 0;
+    const chargebacks = transactions?.filter((tx) => tx.category === 'chargeback').length || 0;
 
     // Calculate scores
     score += Math.min(onTimePayments * 2, 60); // Max 60 points for on-time payments
@@ -133,15 +151,18 @@ export async function calculateCreditScore(userId) {
 
     const tier = getCreditTier(score);
 
-    return { score, tier, factors: { onTimePayments, latePayments, accountAge, faydaVerified: profile.fayda_verified } };
-
+    return {
+      score,
+      tier,
+      factors: { onTimePayments, latePayments, accountAge, faydaVerified: profile.fayda_verified },
+    };
   } catch (error) {
     console.error('Credit score calculation error:', error);
     // Fallback to basic score if calculation fails
-    return { 
-      score: 300, 
+    return {
+      score: 300,
       tier: CREDIT_SCORE_TIERS.BUILDING,
-      recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING)
+      recommendations: getCreditRecommendations(300, CREDIT_SCORE_TIERS.BUILDING),
     };
   }
 }
@@ -149,7 +170,7 @@ export async function calculateCreditScore(userId) {
 // Helper functions
 function calculateTransactionVolume(transactions) {
   if (!transactions || transactions.length === 0) return 0;
-  
+
   const totalVolume = transactions.reduce((sum, tx) => {
     return sum + Math.abs(tx.amount || 0);
   }, 0);
@@ -160,12 +181,12 @@ function calculateTransactionVolume(transactions) {
 
 function calculateAccountAge(createdAt) {
   if (!createdAt) return 0;
-  
+
   const now = new Date();
   const created = new Date(createdAt);
-  const monthsDiff = (now.getFullYear() - created.getFullYear()) * 12 + 
-                   (now.getMonth() - created.getMonth());
-  
+  const monthsDiff =
+    (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
+
   return Math.max(0, monthsDiff);
 }
 
@@ -200,10 +221,10 @@ export async function updateCreditScore(userId, score, tier) {
   try {
     await supabase
       .from('profiles')
-      .update({ 
+      .update({
         credit_score: score,
         credit_tier: tier.label,
-        credit_updated_at: new Date().toISOString()
+        credit_updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
   } catch (error) {

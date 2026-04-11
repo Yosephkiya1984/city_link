@@ -1,5 +1,17 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Dimensions, Animated, FlatList, Image, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  Dimensions,
+  Animated,
+  FlatList,
+  Image,
+  StyleSheet,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -7,7 +19,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
 import { useAppStore, saveSession } from '../../store/AppStore';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
-import { CButton, CInput, CSelect, SearchBar, ChipBar, EmptyState, LoadingRow, SectionTitle } from '../../components';
+import {
+  CButton,
+  CInput,
+  CSelect,
+  SearchBar,
+  ChipBar,
+  EmptyState,
+  LoadingRow,
+  SectionTitle,
+} from '../../components';
 import { fmtETB, timeAgo, uid, fmtDateTime, genQrToken } from '../../utils';
 import { bookBusTicket } from '../../services/transit.service';
 import { t } from '../../utils/i18n';
@@ -25,7 +46,7 @@ const EDR_ROUTES = [
     price: 450,
     available: 45,
     trainType: 'Express',
-    classOptions: ['Economy', 'Business', 'First Class']
+    classOptions: ['Economy', 'Business', 'First Class'],
   },
   {
     id: '2',
@@ -36,7 +57,7 @@ const EDR_ROUTES = [
     price: 380,
     available: 23,
     trainType: 'Regular',
-    classOptions: ['Economy', 'Business']
+    classOptions: ['Economy', 'Business'],
   },
   {
     id: '3',
@@ -47,7 +68,7 @@ const EDR_ROUTES = [
     price: 450,
     available: 67,
     trainType: 'Express',
-    classOptions: ['Economy', 'Business', 'First Class']
+    classOptions: ['Economy', 'Business', 'First Class'],
   },
   {
     id: '4',
@@ -58,8 +79,8 @@ const EDR_ROUTES = [
     price: 420,
     available: 12,
     trainType: 'Regular',
-    classOptions: ['Economy', 'Business']
-  }
+    classOptions: ['Economy', 'Business'],
+  },
 ];
 
 const NEARBY_STATIONS = [
@@ -73,7 +94,7 @@ const NEARBY_STATIONS = [
     eta: '2 MIN',
     status: 'On Time',
     statusColor: '#59de9b',
-    coordinates: { lat: 9.0272, lng: 38.7465 }
+    coordinates: { lat: 9.0272, lng: 38.7465 },
   },
   {
     id: '2',
@@ -85,7 +106,7 @@ const NEARBY_STATIONS = [
     eta: '7 MIN',
     status: 'Arriving',
     statusColor: '#59de9b',
-    coordinates: { lat: 9.0125, lng: 38.7617 }
+    coordinates: { lat: 9.0125, lng: 38.7617 },
   },
   {
     id: '3',
@@ -97,8 +118,8 @@ const NEARBY_STATIONS = [
     eta: '14 MIN',
     status: 'Delayed',
     statusColor: '#ffd887',
-    coordinates: { lat: 8.9806, lng: 38.7892 }
-  }
+    coordinates: { lat: 8.9806, lng: 38.7892 },
+  },
 ];
 
 // â”€â”€ Transport Screen Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -116,7 +137,7 @@ export default function TransportScreen() {
   const [selectedStation, setSelectedStation] = useState(null);
   const [showStationModal, setShowStationModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // EDR Railway booking state
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [selectedClass, setSelectedClass] = useState('Economy');
@@ -149,8 +170,11 @@ export default function TransportScreen() {
 
   const handleBookTicket = async () => {
     if (!selectedRoute) return;
-    if (!currentUser) { showToast('Sign in to book tickets', 'error'); return; }
-    
+    if (!currentUser) {
+      showToast('Sign in to book tickets', 'error');
+      return;
+    }
+
     const totalPrice = selectedRoute.price * passengers;
     if (balance < totalPrice) {
       showToast('Insufficient balance for booking', 'error');
@@ -173,7 +197,10 @@ export default function TransportScreen() {
 
       setShowBookingModal(false);
       setSelectedRoute(null);
-      showToast(`Booking confirmed! ${passengers} ticket(s) for ETB ${fmtETB(totalPrice)} ðŸš‚`, 'success');
+      showToast(
+        `Booking confirmed! ${passengers} ticket(s) for ETB ${fmtETB(totalPrice)} ðŸš‚`,
+        'success'
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e) {
       console.error('EDR Booking Error:', e);
@@ -189,14 +216,14 @@ export default function TransportScreen() {
       flex: 1,
       backgroundColor: '#101319',
     },
-    
+
     // Main Content Area
     contentArea: {
       flex: 1,
       paddingTop: 110, // Space for custom header (moved down)
       paddingBottom: 120, // Space for bottom nav
     },
-    
+
     // Custom Header - Fixed Position
     header: {
       position: 'absolute',
@@ -260,7 +287,7 @@ export default function TransportScreen() {
       fontFamily: Fonts.headline,
       letterSpacing: -0.3,
     },
-    
+
     // Scroll View with proper spacing
     scrollView: {
       flex: 1,
@@ -269,7 +296,7 @@ export default function TransportScreen() {
       paddingHorizontal: 24,
       paddingBottom: 40,
     },
-    
+
     // Tab Switcher - Centered
     tabSwitcher: {
       flexDirection: 'row',
@@ -304,7 +331,7 @@ export default function TransportScreen() {
       color: '#59de9b',
       fontWeight: '700',
     },
-    
+
     // Active Journey Banner
     journeyBanner: {
       position: 'relative',
@@ -427,7 +454,7 @@ export default function TransportScreen() {
       fontFamily: Fonts.headline,
       marginTop: 4,
     },
-    
+
     // Map & Quick Actions Grid - Proper Layout
     gridContainer: {
       flexDirection: 'row',
@@ -532,7 +559,7 @@ export default function TransportScreen() {
       borderWidth: 1,
       borderColor: 'rgba(134, 148, 137, 0.2)',
     },
-    
+
     // Quick Actions - Two Stacked Cards
     quickActions: {
       flex: 1,
@@ -582,7 +609,7 @@ export default function TransportScreen() {
       fontFamily: Fonts.body,
       marginTop: 4,
     },
-    
+
     // Nearby Stations Section
     stationsSection: {
       marginBottom: 40,
@@ -683,7 +710,7 @@ export default function TransportScreen() {
       letterSpacing: 0.2,
       marginTop: 4,
     },
-    
+
     // Modal
     modalContent: {
       backgroundColor: '#101319',
@@ -742,7 +769,7 @@ export default function TransportScreen() {
       color: '#e1e2ea',
       fontFamily: Fonts.body,
     },
-    
+
     // EDR Railway Booking Styles
     bookingSection: {
       marginBottom: 40,
@@ -900,7 +927,7 @@ export default function TransportScreen() {
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-    
+
     // Booking Modal
     bookingModalContent: {
       backgroundColor: '#101319',
@@ -1054,8 +1081,10 @@ export default function TransportScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.profileImage}>
-            <Image 
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_QR_FniUXCslWzPE1iOtR204CdDlO3hTqRa4b8DugkIRWNCrNOs3qQ-2uu-n0OS8vUwwTIKxFkp9vv1xFV61KwyMYNzOkFxPl9DH8uJyOLZEqYOh_9rE2vsnrQWd5jM5XJhjdStneTudMk5VDZU4wOjaf3DzP2fAuf7bXY0aEAugCn599yqM5AhdPtmbdJMUMPJ9D295G8g0QJXRCw_x9IGG33hCRGcQ0phNKIbUIQyaczNnRBoyGlQfj2dUNbcW6keam_ayug0Bh' }} 
+            <Image
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_QR_FniUXCslWzPE1iOtR204CdDlO3hTqRa4b8DugkIRWNCrNOs3qQ-2uu-n0OS8vUwwTIKxFkp9vv1xFV61KwyMYNzOkFxPl9DH8uJyOLZEqYOh_9rE2vsnrQWd5jM5XJhjdStneTudMk5VDZU4wOjaf3DzP2fAuf7bXY0aEAugCn599yqM5AhdPtmbdJMUMPJ9D295G8g0QJXRCw_x9IGG33hCRGcQ0phNKIbUIQyaczNnRBoyGlQfj2dUNbcW6keam_ayug0Bh',
+              }}
               style={{ width: '100%', height: '100%' }}
             />
           </View>
@@ -1066,10 +1095,10 @@ export default function TransportScreen() {
           <Text style={styles.walletAmount}>ETB {fmtETB(balance)}</Text>
         </View>
       </View>
-      
+
       {/* Main Content Area */}
       <View style={styles.contentArea}>
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -1080,13 +1109,17 @@ export default function TransportScreen() {
               style={[styles.tab, activeTab === 'lrt' && styles.activeTab]}
               onPress={() => setActiveTab('lrt')}
             >
-              <Text style={[styles.tabText, activeTab === 'lrt' && styles.activeTabText]}>LRT LIGHT RAIL</Text>
+              <Text style={[styles.tabText, activeTab === 'lrt' && styles.activeTabText]}>
+                LRT LIGHT RAIL
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'anbessa' && styles.activeTab]}
               onPress={() => setActiveTab('anbessa')}
             >
-              <Text style={[styles.tabText, activeTab === 'anbessa' && styles.activeTabText]}>EDR RAILWAY</Text>
+              <Text style={[styles.tabText, activeTab === 'anbessa' && styles.activeTabText]}>
+                EDR RAILWAY
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -1128,17 +1161,23 @@ export default function TransportScreen() {
               <View style={styles.gridContainer}>
                 {/* Map Section */}
                 <View style={styles.mapSection}>
-                  <Image 
-                    source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBR7C_lBp9Ai-e1Pzw59Wy5nfYhkzuvEdDaGjN3VWmQE7tqSa1k4HDiDD_caC9xnyRmMup5R98cUOCm8dhOfveIWo9rJsNV2WQzVPANgp8wjr83BDLPT0v-fi4SFT9q4oPhYDnkXAoM3q6mQ2ufrBcbg7pz-FrcYfdEAnZJYb1a0Uic2JQYBKD43UFIU09wYkKo-LJO4vEuPO8uIMLy2RCWJePd8jfXV6U_lTpXhYc6hNOUzZabz_1trXSJB7XWHTupy0Fo52eGp_fW' }} 
+                  <Image
+                    source={{
+                      uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBR7C_lBp9Ai-e1Pzw59Wy5nfYhkzuvEdDaGjN3VWmQE7tqSa1k4HDiDD_caC9xnyRmMup5R98cUOCm8dhOfveIWo9rJsNV2WQzVPANgp8wjr83BDLPT0v-fi4SFT9q4oPhYDnkXAoM3q6mQ2ufrBcbg7pz-FrcYfdEAnZJYb1a0Uic2JQYBKD43UFIU09wYkKo-LJO4vEuPO8uIMLy2RCWJePd8jfXV6U_lTpXhYc6hNOUzZabz_1trXSJB7XWHTupy0Fo52eGp_fW',
+                    }}
                     style={styles.mapImage}
                   />
                   <View style={styles.mapOverlay}>
                     <View style={styles.mapIndicators}>
                       <View style={[styles.mapIndicator, styles.liveTraffic]}>
-                        <Text style={[styles.mapIndicatorText, styles.liveTrafficText]}>LIVE TRAFFIC</Text>
+                        <Text style={[styles.mapIndicatorText, styles.liveTrafficText]}>
+                          LIVE TRAFFIC
+                        </Text>
                       </View>
                       <View style={[styles.mapIndicator, styles.northSouthLine]}>
-                        <Text style={[styles.mapIndicatorText, styles.northSouthText]}>NORTH-SOUTH LINE</Text>
+                        <Text style={[styles.mapIndicatorText, styles.northSouthText]}>
+                          NORTH-SOUTH LINE
+                        </Text>
                       </View>
                     </View>
                     <View style={styles.mapCenter}>
@@ -1156,10 +1195,10 @@ export default function TransportScreen() {
                     </View>
                   </View>
                 </View>
-                
+
                 {/* Quick Actions - Two Stacked Cards */}
                 <View style={styles.quickActions}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.quickActionCard}
                     onPress={() => handleQuickAction('scan')}
                   >
@@ -1174,8 +1213,8 @@ export default function TransportScreen() {
                       <Text style={styles.quickActionDescription}>Direct entry gate access</Text>
                     </View>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.quickActionCard}
                     onPress={() => handleQuickAction('history')}
                   >
@@ -1199,17 +1238,22 @@ export default function TransportScreen() {
                   <Text style={styles.stationsTitle}>Nearby Stations</Text>
                   <Text style={styles.refreshTime}>Refresh 2:40 PM</Text>
                 </View>
-                
+
                 <View style={styles.stationsList}>
                   {NEARBY_STATIONS.map((station) => (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       key={station.id}
-                      style={[styles.stationCard, station.status === 'Delayed' && styles.delayedStation]}
+                      style={[
+                        styles.stationCard,
+                        station.status === 'Delayed' && styles.delayedStation,
+                      ]}
                       onPress={() => handleStationPress(station)}
                       activeOpacity={0.8}
                     >
                       <View style={styles.stationLeft}>
-                        <View style={[styles.stationLineBadge, { borderTopColor: station.lineColor }]}>
+                        <View
+                          style={[styles.stationLineBadge, { borderTopColor: station.lineColor }]}
+                        >
                           <Text style={[styles.stationLineText, { color: station.lineColor }]}>
                             {station.line}
                           </Text>
@@ -1217,11 +1261,18 @@ export default function TransportScreen() {
                         </View>
                         <View style={styles.stationInfo}>
                           <Text style={styles.stationName}>{station.name}</Text>
-                          <Text style={styles.stationDetails}>{station.distance} â€¢ {station.direction}</Text>
+                          <Text style={styles.stationDetails}>
+                            {station.distance} â€¢ {station.direction}
+                          </Text>
                         </View>
                       </View>
                       <View style={styles.stationRight}>
-                        <Text style={[styles.stationEta, station.status === 'Delayed' && styles.delayedEta]}>
+                        <Text
+                          style={[
+                            styles.stationEta,
+                            station.status === 'Delayed' && styles.delayedEta,
+                          ]}
+                        >
                           {station.eta}
                         </Text>
                         <Text style={styles.stationStatus}>{station.status}</Text>
@@ -1237,10 +1288,12 @@ export default function TransportScreen() {
               <View style={styles.bookingHeader}>
                 <Text style={styles.bookingTitle}>EDR Railway Booking</Text>
               </View>
-              
+
               <View style={styles.bookingFilters}>
                 <TouchableOpacity style={[styles.filterButton, styles.filterButtonActive]}>
-                  <Text style={[styles.filterButtonText, styles.filterButtonTextActive]}>Today</Text>
+                  <Text style={[styles.filterButtonText, styles.filterButtonTextActive]}>
+                    Today
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.filterButton}>
                   <Text style={styles.filterButtonText}>Tomorrow</Text>
@@ -1249,10 +1302,10 @@ export default function TransportScreen() {
                   <Text style={styles.filterButtonText}>This Week</Text>
                 </TouchableOpacity>
               </View>
-              
+
               <View style={styles.routesList}>
                 {EDR_ROUTES.map((route) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={route.id}
                     style={styles.routeCard}
                     onPress={() => handleRouteSelect(route)}
@@ -1260,8 +1313,12 @@ export default function TransportScreen() {
                   >
                     <View style={styles.routeHeader}>
                       <View style={styles.routeInfo}>
-                        <Text style={styles.routeFromTo}>{route.from} â†’ {route.to}</Text>
-                        <Text style={styles.routeTime}>{route.departure} - {route.arrival}</Text>
+                        <Text style={styles.routeFromTo}>
+                          {route.from} â†’ {route.to}
+                        </Text>
+                        <Text style={styles.routeTime}>
+                          {route.departure} - {route.arrival}
+                        </Text>
                       </View>
                       <View style={styles.routePrice}>
                         <Text style={styles.priceAmount}>ETB {fmtETB(route.price)}</Text>
@@ -1305,7 +1362,7 @@ export default function TransportScreen() {
               <Ionicons name="close" size={24} color="#e1e2ea" />
             </TouchableOpacity>
           </View>
-          
+
           {selectedStation && (
             <View style={styles.stationDetailsModal}>
               <View style={styles.detailRow}>
@@ -1326,8 +1383,8 @@ export default function TransportScreen() {
               </View>
             </View>
           )}
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.modalButton}
             onPress={() => {
               setShowStationModal(false);
@@ -1353,52 +1410,70 @@ export default function TransportScreen() {
               <Ionicons name="close" size={24} color="#e1e2ea" />
             </TouchableOpacity>
           </View>
-          
+
           {selectedRoute && (
             <>
               <View style={styles.bookingOptions}>
                 <View style={styles.optionRow}>
                   <Text style={styles.optionLabel}>Route</Text>
-                  <Text style={styles.summaryValue}>{selectedRoute.from} â†’ {selectedRoute.to}</Text>
+                  <Text style={styles.summaryValue}>
+                    {selectedRoute.from} â†’ {selectedRoute.to}
+                  </Text>
                 </View>
-                
+
                 <View style={styles.optionRow}>
                   <Text style={styles.optionLabel}>Departure</Text>
                   <Text style={styles.summaryValue}>{selectedRoute.departure}</Text>
                 </View>
-                
+
                 <View style={styles.optionRow}>
                   <Text style={styles.optionLabel}>Arrival</Text>
                   <Text style={styles.summaryValue}>{selectedRoute.arrival}</Text>
                 </View>
-                
+
                 <View style={styles.optionRow}>
                   <Text style={styles.optionLabel}>Passengers</Text>
                   <View style={styles.optionValue}>
-                    {[1, 2, 3, 4].map(num => (
+                    {[1, 2, 3, 4].map((num) => (
                       <TouchableOpacity
                         key={num}
-                        style={[styles.passengerButton, passengers === num && styles.passengerButtonActive]}
+                        style={[
+                          styles.passengerButton,
+                          passengers === num && styles.passengerButtonActive,
+                        ]}
                         onPress={() => setPassengers(num)}
                       >
-                        <Text style={[styles.passengerButtonText, passengers === num && styles.passengerButtonTextActive]}>
+                        <Text
+                          style={[
+                            styles.passengerButtonText,
+                            passengers === num && styles.passengerButtonTextActive,
+                          ]}
+                        >
                           {num}
                         </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
-                
+
                 <View style={styles.optionRow}>
                   <Text style={styles.optionLabel}>Class</Text>
                   <View style={styles.classSelector}>
-                    {selectedRoute.classOptions.map(cls => (
+                    {selectedRoute.classOptions.map((cls) => (
                       <TouchableOpacity
                         key={cls}
-                        style={[styles.classOption, selectedClass === cls && styles.classOptionActive]}
+                        style={[
+                          styles.classOption,
+                          selectedClass === cls && styles.classOptionActive,
+                        ]}
                         onPress={() => setSelectedClass(cls)}
                       >
-                        <Text style={[styles.classOptionText, selectedClass === cls && styles.classOptionTextActive]}>
+                        <Text
+                          style={[
+                            styles.classOptionText,
+                            selectedClass === cls && styles.classOptionTextActive,
+                          ]}
+                        >
                           {cls}
                         </Text>
                       </TouchableOpacity>
@@ -1406,28 +1481,27 @@ export default function TransportScreen() {
                   </View>
                 </View>
               </View>
-              
+
               <View style={styles.bookingSummary}>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Base Price</Text>
                   <Text style={styles.summaryValue}>ETB {fmtETB(selectedRoute.price)}</Text>
                 </View>
-                
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Passengers</Text>
                   <Text style={styles.summaryValue}>{passengers}</Text>
                 </View>
-                
+
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Total</Text>
-                  <Text style={styles.totalPrice}>ETB {fmtETB(selectedRoute.price * passengers)}</Text>
+                  <Text style={styles.totalPrice}>
+                    ETB {fmtETB(selectedRoute.price * passengers)}
+                  </Text>
                 </View>
               </View>
-              
-              <TouchableOpacity 
-                style={styles.confirmButton}
-                onPress={handleBookTicket}
-              >
+
+              <TouchableOpacity style={styles.confirmButton} onPress={handleBookTicket}>
                 <Text style={styles.confirmButtonText}>Confirm Booking</Text>
               </TouchableOpacity>
             </>

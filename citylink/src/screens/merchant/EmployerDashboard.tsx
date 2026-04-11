@@ -12,7 +12,12 @@ import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
 
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
-import { fetchJobListings, fetchJobApplications, updateApplicationStatus, createJobListing } from '../../services/jobs.service';
+import {
+  fetchJobListings,
+  fetchJobApplications,
+  updateApplicationStatus,
+  createJobListing,
+} from '../../services/jobs.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -22,12 +27,12 @@ const EMPLOYER_COLORS = {
   primaryL: 'rgba(139,92,246,0.1)',
   primaryB: 'rgba(139,92,246,0.28)',
   status: {
-    APPLIED: '#8A9AB8',       // Grey
-    REVIEWING: '#2D7EF0',     // Blue
-    SHORTLISTED: '#8B5CF6',   // Purple
-    OFFERED: '#00A86B',       // Green
-    REJECTED: '#E8312A'       // Red
-  }
+    APPLIED: '#8A9AB8', // Grey
+    REVIEWING: '#2D7EF0', // Blue
+    SHORTLISTED: '#8B5CF6', // Purple
+    OFFERED: '#00A86B', // Green
+    REJECTED: '#E8312A', // Red
+  },
 };
 
 export default function EmployerDashboard() {
@@ -38,7 +43,7 @@ export default function EmployerDashboard() {
   const currentUser = useAppStore((s) => s.currentUser);
   const showToast = useAppStore((s) => s.showToast);
   const reset = useAppStore((s) => s.reset);
-  
+
   const [activeTab, setActiveTab] = useState('listings');
   const [jobListings, setJobListings] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -52,16 +57,16 @@ export default function EmployerDashboard() {
     type: 'FULL_TIME',
     description: '',
     location: '',
-    status: 'OPEN'
+    status: 'OPEN',
   });
 
   // KPI calculations
   const totalApplications = applications.length;
-  const reviewingApplications = applications.filter(a => a.status === 'REVIEWING').length;
-  const shortlistedApplications = applications.filter(a => a.status === 'SHORTLISTED').length;
-  const offeredApplications = applications.filter(a => a.status === 'OFFERED').length;
-  
-  const activeJobs = jobListings.filter(job => job.status === 'OPEN').length;
+  const reviewingApplications = applications.filter((a) => a.status === 'REVIEWING').length;
+  const shortlistedApplications = applications.filter((a) => a.status === 'SHORTLISTED').length;
+  const offeredApplications = applications.filter((a) => a.status === 'OFFERED').length;
+
+  const activeJobs = jobListings.filter((job) => job.status === 'OPEN').length;
 
   const loadData = async () => {
     if (!currentUser?.id) return;
@@ -69,12 +74,14 @@ export default function EmployerDashboard() {
     try {
       const [listingsRes, applicationsRes] = await Promise.all([
         fetchJobListings(currentUser.id),
-        fetchJobApplications(currentUser.id)
+        fetchJobApplications(currentUser.id),
       ]);
-      
+
       if (listingsRes.data) setJobListings(listingsRes.data);
       if (applicationsRes.data) {
-        const sortedApplications = applicationsRes.data.sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime());
+        const sortedApplications = applicationsRes.data.sort(
+          (a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime()
+        );
         setApplications(sortedApplications);
       }
     } catch (error) {
@@ -101,13 +108,13 @@ export default function EmployerDashboard() {
       } else {
         loadData();
       }
-    }
+    },
   });
 
   const updateApplication = async (applicationId, newStatus) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    
+
     try {
       const result = await updateApplicationStatus(applicationId, newStatus);
       if (!result.error) {
@@ -127,10 +134,10 @@ export default function EmployerDashboard() {
       showToast('Please fill all required fields', 'error');
       return;
     }
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    
+
     try {
       const jobData = {
         id: uid(),
@@ -141,9 +148,9 @@ export default function EmployerDashboard() {
         description: newJob.description,
         location: newJob.location,
         status: newJob.status,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
-      
+
       const result = await createJobListing(jobData);
       if (!result.error) {
         setJobListings([jobData, ...jobListings]);
@@ -153,7 +160,7 @@ export default function EmployerDashboard() {
           type: 'FULL_TIME',
           description: '',
           location: '',
-          status: 'OPEN'
+          status: 'OPEN',
         });
         setShowAddJob(false);
         showToast('Job posted successfully!', 'success');
@@ -170,7 +177,7 @@ export default function EmployerDashboard() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast('Logged out successfully', 'success');
     reset();
-    
+
     // Use navigation.replace instead of reset to avoid the error
     try {
       (navigation as any).replace('Auth');
@@ -187,49 +194,61 @@ export default function EmployerDashboard() {
   };
 
   const ApplicationCard = ({ application }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={() => {
         setSelectedApplication(application);
         setShowApplicationDetail(true);
       }}
     >
-      <Card style={{ 
-        marginBottom: 12, 
-        padding: 16,
-        borderLeftWidth: 3,
-        borderLeftColor: getStatusColor(application.status)
-      }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Card
+        style={{
+          marginBottom: 12,
+          padding: 16,
+          borderLeftWidth: 3,
+          borderLeftColor: getStatusColor(application.status),
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}
+        >
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <Text style={{ color: C.text, fontSize: 15, fontFamily: Fonts.black }}>
                 {application.applicant_name || 'Applicant'}
               </Text>
-              <View style={{ 
-                paddingHorizontal: 6, 
-                paddingVertical: 2, 
-                borderRadius: 4, 
-                backgroundColor: getStatusBg(application.status) 
-              }}>
-                <Text style={{ 
-                  color: getStatusColor(application.status), 
-                  fontSize: 9, 
-                  fontFamily: Fonts.bold,
-                  textTransform: 'uppercase' 
-                }}>
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                  backgroundColor: getStatusBg(application.status),
+                }}
+              >
+                <Text
+                  style={{
+                    color: getStatusColor(application.status),
+                    fontSize: 9,
+                    fontFamily: Fonts.bold,
+                    textTransform: 'uppercase',
+                  }}
+                >
                   {application.status || 'APPLIED'}
                 </Text>
               </View>
             </View>
-            
+
             <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}>
               {application.job_title}
             </Text>
-            
+
             <Text style={{ color: C.sub, fontSize: 11, marginBottom: 8 }}>
               Applied: {new Date(application.applied_at).toLocaleDateString()}
             </Text>
-            
+
             {application.cover_note && (
               <Text style={{ color: C.sub, fontSize: 12 }} numberOfLines={2}>
                 {application.cover_note}
@@ -237,39 +256,39 @@ export default function EmployerDashboard() {
             )}
           </View>
         </View>
-        
+
         {application.status === 'APPLIED' && (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-            <CButton 
-              title="Review" 
+            <CButton
+              title="Review"
               onPress={() => updateApplication(application.id, 'REVIEWING')}
               style={{ flex: 1 }}
               size="sm"
             />
           </View>
         )}
-        
+
         {application.status === 'REVIEWING' && (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-            <CButton 
-              title="Shortlist" 
+            <CButton
+              title="Shortlist"
               onPress={() => updateApplication(application.id, 'SHORTLISTED')}
               style={{ flex: 1, backgroundColor: EMPLOYER_COLORS.primaryL }}
               size="sm"
             />
-            <CButton 
-              title="Reject" 
+            <CButton
+              title="Reject"
               onPress={() => updateApplication(application.id, 'REJECTED')}
               style={{ flex: 1, backgroundColor: '#E8312A' }}
               size="sm"
             />
           </View>
         )}
-        
+
         {application.status === 'SHORTLISTED' && (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-            <CButton 
-              title="Make Offer" 
+            <CButton
+              title="Make Offer"
               onPress={() => updateApplication(application.id, 'OFFERED')}
               style={{ flex: 1 }}
               size="sm"
@@ -283,13 +302,21 @@ export default function EmployerDashboard() {
   const PipelineFunnel = () => {
     const stages = [
       { name: 'Applied', count: totalApplications, color: '#8A9AB8' },
-      { name: 'Reviewed', count: reviewingApplications + shortlistedApplications + offeredApplications, color: '#2D7EF0' },
-      { name: 'Shortlisted', count: shortlistedApplications + offeredApplications, color: '#8B5CF6' },
-      { name: 'Offered', count: offeredApplications, color: '#00A86B' }
+      {
+        name: 'Reviewed',
+        count: reviewingApplications + shortlistedApplications + offeredApplications,
+        color: '#2D7EF0',
+      },
+      {
+        name: 'Shortlisted',
+        count: shortlistedApplications + offeredApplications,
+        color: '#8B5CF6',
+      },
+      { name: 'Offered', count: offeredApplications, color: '#00A86B' },
     ];
-    
-    const maxCount = Math.max(...stages.map(s => s.count), 1);
-    
+
+    const maxCount = Math.max(...stages.map((s) => s.count), 1);
+
     return (
       <View style={{ padding: 16 }}>
         <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black, marginBottom: 12 }}>
@@ -297,20 +324,25 @@ export default function EmployerDashboard() {
         </Text>
         {stages.map((stage, index) => (
           <View key={stage.name} style={{ marginBottom: 8 }}>
-            <View style={{ 
-              backgroundColor: `${stage.color}20`, 
-              borderRadius: 3, 
-              height: 18,
-              width: `${(stage.count / maxCount) * 100}%`,
-              justifyContent: 'center',
-              paddingLeft: 8
-            }}>
-              <Text style={{ 
-                color: stage.color, 
-                fontSize: 10, 
-                fontFamily: Fonts.bold 
-              }}>
-                {stage.name}: {stage.count} ({totalApplications > 0 ? Math.round(stage.count / totalApplications * 100) : 0}%)
+            <View
+              style={{
+                backgroundColor: `${stage.color}20`,
+                borderRadius: 3,
+                height: 18,
+                width: `${(stage.count / maxCount) * 100}%`,
+                justifyContent: 'center',
+                paddingLeft: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: stage.color,
+                  fontSize: 10,
+                  fontFamily: Fonts.bold,
+                }}
+              >
+                {stage.name}: {stage.count} (
+                {totalApplications > 0 ? Math.round((stage.count / totalApplications) * 100) : 0}%)
               </Text>
             </View>
           </View>
@@ -321,25 +353,27 @@ export default function EmployerDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar 
-        title="💼 Employer Dashboard" 
+      <TopBar
+        title="💼 Employer Dashboard"
         right={
           <TouchableOpacity onPress={logout} style={{ padding: 8 }}>
             <Ionicons name="log-out-outline" size={24} color={C.text} />
           </TouchableOpacity>
         }
       />
-      
+
       {/* Additional Logout Button for visibility */}
-      <View style={{ 
-        paddingHorizontal: 16, 
-        paddingTop: 12, 
-        paddingBottom: 8,
-        backgroundColor: C.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: C.edge2
-      }}>
-        <TouchableOpacity 
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 8,
+          backgroundColor: C.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: C.edge2,
+        }}
+      >
+        <TouchableOpacity
           onPress={logout}
           style={{
             backgroundColor: '#E8312A',
@@ -350,21 +384,22 @@ export default function EmployerDashboard() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            alignSelf: 'flex-end'
+            alignSelf: 'flex-end',
           }}
         >
           <Ionicons name="log-out" size={16} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>
-            LOGOUT
-          </Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>LOGOUT</Text>
         </TouchableOpacity>
       </View>
-      
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Stats Header */}
         <View style={{ padding: 16 }}>
-          <LinearGradient 
-            colors={[EMPLOYER_COLORS.primaryL, 'transparent']} 
+          <LinearGradient
+            colors={[EMPLOYER_COLORS.primaryL, 'transparent']}
             style={{ borderRadius: Radius['3xl'], padding: 24, ...Shadow.md }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -372,31 +407,55 @@ export default function EmployerDashboard() {
                 <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.bold, opacity: 0.8 }}>
                   Active Jobs
                 </Text>
-                <Text style={{ color: EMPLOYER_COLORS.primary, fontSize: 32, fontFamily: Fonts.black, marginTop: 4 }}>
+                <Text
+                  style={{
+                    color: EMPLOYER_COLORS.primary,
+                    fontSize: 32,
+                    fontFamily: Fonts.black,
+                    marginTop: 4,
+                  }}
+                >
                   {activeJobs}
                 </Text>
               </View>
-              <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: EMPLOYER_COLORS.primaryL, alignItems: 'center', justifyContent: 'center' }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: EMPLOYER_COLORS.primaryL,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Ionicons name="briefcase" size={24} color={EMPLOYER_COLORS.primary} />
               </View>
             </View>
-            
-            <View style={{ height: 1, backgroundColor: 'rgba(139,92,246,0.2)', marginVertical: 20 }} />
-            
+
+            <View
+              style={{ height: 1, backgroundColor: 'rgba(139,92,246,0.2)', marginVertical: 20 }}
+            />
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ color: '#2D7EF0', fontSize: 16, fontFamily: Fonts.black }}>
                   {totalApplications}
                 </Text>
-                <Text style={{ color: 'rgba(45,126,240,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(45,126,240,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   APPLICATIONS
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: EMPLOYER_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}>
+                <Text
+                  style={{ color: EMPLOYER_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}
+                >
                   {shortlistedApplications}
                 </Text>
-                <Text style={{ color: 'rgba(139,92,246,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(139,92,246,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   SHORTLISTED
                 </Text>
               </View>
@@ -404,7 +463,9 @@ export default function EmployerDashboard() {
                 <Text style={{ color: '#00A86B', fontSize: 16, fontFamily: Fonts.black }}>
                   {offeredApplications}
                 </Text>
-                <Text style={{ color: 'rgba(0,168,107,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(0,168,107,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   OFFERED
                 </Text>
               </View>
@@ -425,15 +486,17 @@ export default function EmployerDashboard() {
                 backgroundColor: activeTab === tab ? EMPLOYER_COLORS.primaryL : C.surface,
                 borderWidth: 1.5,
                 borderColor: activeTab === tab ? EMPLOYER_COLORS.primaryB : C.edge2,
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
-              <Text style={{ 
-                color: activeTab === tab ? EMPLOYER_COLORS.primary : C.sub, 
-                fontSize: 11, 
-                fontFamily: Fonts.black,
-                textTransform: 'uppercase'
-              }}>
+              <Text
+                style={{
+                  color: activeTab === tab ? EMPLOYER_COLORS.primary : C.sub,
+                  fontSize: 11,
+                  fontFamily: Fonts.black,
+                  textTransform: 'uppercase',
+                }}
+              >
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -444,26 +507,45 @@ export default function EmployerDashboard() {
         {activeTab === 'listings' && (
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Job Listings" />
-            <CButton 
-              title="Post New Job" 
+            <CButton
+              title="Post New Job"
               onPress={() => setShowAddJob(true)}
               style={{ marginBottom: 16 }}
             />
-            
+
             {loading && jobListings.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>Loading jobs...</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                Loading jobs...
+              </Text>
             ) : jobListings.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>No job listings yet</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                No job listings yet
+              </Text>
             ) : (
-              jobListings.map(job => (
+              jobListings.map((job) => (
                 <Card key={job.id} style={{ marginBottom: 12, padding: 16 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                    }}
+                  >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, marginBottom: 4 }}>
+                      <Text
+                        style={{
+                          color: C.text,
+                          fontSize: 16,
+                          fontFamily: Fonts.black,
+                          marginBottom: 4,
+                        }}
+                      >
                         {job.title}
                       </Text>
                       {job.salary_range && (
-                        <Text style={{ color: EMPLOYER_COLORS.primary, fontSize: 14, marginBottom: 4 }}>
+                        <Text
+                          style={{ color: EMPLOYER_COLORS.primary, fontSize: 14, marginBottom: 4 }}
+                        >
                           {job.salary_range}
                         </Text>
                       )}
@@ -472,19 +554,26 @@ export default function EmployerDashboard() {
                           ðŸ“ {job.location}
                         </Text>
                       )}
-                      <View style={{ 
-                        paddingHorizontal: 6, 
-                        paddingVertical: 2, 
-                        borderRadius: 4, 
-                        backgroundColor: job.status === 'OPEN' ? EMPLOYER_COLORS.primaryL : 'rgba(138,154,184,0.1)',
-                        alignSelf: 'flex-start'
-                      }}>
-                        <Text style={{ 
-                          color: job.status === 'OPEN' ? EMPLOYER_COLORS.primary : C.sub, 
-                          fontSize: 9, 
-                          fontFamily: Fonts.bold,
-                          textTransform: 'uppercase' 
-                        }}>
+                      <View
+                        style={{
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 4,
+                          backgroundColor:
+                            job.status === 'OPEN'
+                              ? EMPLOYER_COLORS.primaryL
+                              : 'rgba(138,154,184,0.1)',
+                          alignSelf: 'flex-start',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: job.status === 'OPEN' ? EMPLOYER_COLORS.primary : C.sub,
+                            fontSize: 9,
+                            fontFamily: Fonts.bold,
+                            textTransform: 'uppercase',
+                          }}
+                        >
                           {job.status}
                         </Text>
                       </View>
@@ -500,11 +589,17 @@ export default function EmployerDashboard() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Recent Applications" />
             {loading && applications.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>Loading applications...</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                Loading applications...
+              </Text>
             ) : applications.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>No applications yet</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                No applications yet
+              </Text>
             ) : (
-              applications.map(application => <ApplicationCard key={application.id} application={application} />)
+              applications.map((application) => (
+                <ApplicationCard key={application.id} application={application} />
+              ))
             )}
           </View>
         )}
@@ -529,14 +624,16 @@ export default function EmployerDashboard() {
       {/* Add Job Modal */}
       <Modal visible={showAddJob} animationType="slide" presentationStyle="pageSheet">
         <View style={{ flex: 1, backgroundColor: C.ink }}>
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            padding: 16, 
-            borderBottomWidth: 1, 
-            borderBottomColor: C.edge2 
-          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: C.edge2,
+            }}
+          >
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
               Post New Job
             </Text>
@@ -544,10 +641,12 @@ export default function EmployerDashboard() {
               <Ionicons name="close" size={24} color={C.text} />
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Job Title *
               </Text>
               <CInput
@@ -558,7 +657,9 @@ export default function EmployerDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Salary Range
               </Text>
               <CInput
@@ -569,11 +670,13 @@ export default function EmployerDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Job Type
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {['FULL_TIME', 'PART_TIME', 'REMOTE', 'CONTRACT'].map(type => (
+                {['FULL_TIME', 'PART_TIME', 'REMOTE', 'CONTRACT'].map((type) => (
                   <TouchableOpacity
                     key={type}
                     onPress={() => setNewJob({ ...newJob, type })}
@@ -584,14 +687,16 @@ export default function EmployerDashboard() {
                       backgroundColor: newJob.type === type ? EMPLOYER_COLORS.primaryL : C.surface,
                       borderWidth: 1,
                       borderColor: newJob.type === type ? EMPLOYER_COLORS.primaryB : C.edge2,
-                      alignItems: 'center'
+                      alignItems: 'center',
                     }}
                   >
-                    <Text style={{ 
-                      color: newJob.type === type ? EMPLOYER_COLORS.primary : C.sub, 
-                      fontSize: 10, 
-                      fontFamily: Fonts.bold 
-                    }}>
+                    <Text
+                      style={{
+                        color: newJob.type === type ? EMPLOYER_COLORS.primary : C.sub,
+                        fontSize: 10,
+                        fontFamily: Fonts.bold,
+                      }}
+                    >
                       {type.replace('_', ' ')}
                     </Text>
                   </TouchableOpacity>
@@ -600,7 +705,9 @@ export default function EmployerDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Location
               </Text>
               <CInput
@@ -611,7 +718,9 @@ export default function EmployerDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Job Description *
               </Text>
               <CInput
@@ -623,8 +732,8 @@ export default function EmployerDashboard() {
               />
             </View>
 
-            <CButton 
-              title="Post Job" 
+            <CButton
+              title="Post Job"
               onPress={createJob}
               loading={loading}
               style={{ marginTop: 20 }}
@@ -637,57 +746,82 @@ export default function EmployerDashboard() {
       <Modal visible={showApplicationDetail} animationType="slide" presentationStyle="pageSheet">
         {selectedApplication && (
           <View style={{ flex: 1, backgroundColor: C.ink }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              padding: 16, 
-              borderBottomWidth: 1, 
-              borderBottomColor: C.edge2 
-            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: C.edge2,
+              }}
+            >
               <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
                 Application Details
               </Text>
-              <TouchableOpacity onPress={() => setShowApplicationDetail(false)} style={{ padding: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowApplicationDetail(false)}
+                style={{ padding: 8 }}
+              >
                 <Ionicons name="close" size={24} color={C.text} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView contentContainerStyle={{ padding: 16 }}>
               <Card style={{ padding: 16, marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 12,
+                  }}
+                >
                   <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
                     {selectedApplication.applicant_name || 'Applicant'}
                   </Text>
-                  <View style={{ 
-                    paddingHorizontal: 8, 
-                    paddingVertical: 4, 
-                    borderRadius: 6, 
-                    backgroundColor: getStatusBg(selectedApplication.status) 
-                  }}>
-                    <Text style={{ 
-                      color: getStatusColor(selectedApplication.status), 
-                      fontSize: 10, 
-                      fontFamily: Fonts.bold,
-                      textTransform: 'uppercase' 
-                    }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6,
+                      backgroundColor: getStatusBg(selectedApplication.status),
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: getStatusColor(selectedApplication.status),
+                        fontSize: 10,
+                        fontFamily: Fonts.bold,
+                        textTransform: 'uppercase',
+                      }}
+                    >
                       {selectedApplication.status}
                     </Text>
                   </View>
                 </View>
-                
+
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}>
+                  <Text
+                    style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}
+                  >
                     {selectedApplication.job_title}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 12 }}>
                     Applied: {new Date(selectedApplication.applied_at).toLocaleString()}
                   </Text>
                 </View>
-                
+
                 {selectedApplication.cover_note && (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}>
+                    <Text
+                      style={{
+                        color: C.text,
+                        fontSize: 14,
+                        fontFamily: Fonts.bold,
+                        marginBottom: 4,
+                      }}
+                    >
                       Cover Note
                     </Text>
                     <Text style={{ color: C.sub, fontSize: 12, lineHeight: 18 }}>
@@ -696,32 +830,32 @@ export default function EmployerDashboard() {
                   </View>
                 )}
               </Card>
-              
+
               {selectedApplication.status === 'APPLIED' && (
-                <CButton 
-                  title="Start Review" 
+                <CButton
+                  title="Start Review"
                   onPress={() => updateApplication(selectedApplication.id, 'REVIEWING')}
                 />
               )}
-              
+
               {selectedApplication.status === 'REVIEWING' && (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <CButton 
-                    title="Shortlist" 
+                  <CButton
+                    title="Shortlist"
                     onPress={() => updateApplication(selectedApplication.id, 'SHORTLISTED')}
                     style={{ flex: 1, backgroundColor: EMPLOYER_COLORS.primaryL }}
                   />
-                  <CButton 
-                    title="Reject" 
+                  <CButton
+                    title="Reject"
                     onPress={() => updateApplication(selectedApplication.id, 'REJECTED')}
                     style={{ flex: 1, backgroundColor: '#E8312A' }}
                   />
                 </View>
               )}
-              
+
               {selectedApplication.status === 'SHORTLISTED' && (
-                <CButton 
-                  title="Make Offer" 
+                <CButton
+                  title="Make Offer"
                   onPress={() => updateApplication(selectedApplication.id, 'OFFERED')}
                 />
               )}

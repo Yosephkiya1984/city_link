@@ -20,7 +20,11 @@ export function TabBar({
   textColor = '#8E8E93',
 }: TabBarProps) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 8 }}
+    >
       {tabs.map((tab) => (
         <TouchableOpacity
           key={tab}
@@ -34,11 +38,13 @@ export function TabBar({
             borderColor: activeTab === tab ? `${color}50` : 'transparent',
           }}
         >
-          <Text style={{
-            fontFamily: activeTab === tab ? Fonts.bold : Fonts.medium,
-            fontSize: FontSize.sm,
-            color: activeTab === tab ? color : textColor,
-          }}>
+          <Text
+            style={{
+              fontFamily: activeTab === tab ? Fonts.bold : Fonts.medium,
+              fontSize: FontSize.sm,
+              color: activeTab === tab ? color : textColor,
+            }}
+          >
             {tab}
           </Text>
         </TouchableOpacity>

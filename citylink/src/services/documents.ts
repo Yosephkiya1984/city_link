@@ -39,9 +39,7 @@ export async function uploadDocument(userId, docType, fileData, metadata = {}) {
     if (uploadError) throw uploadError;
 
     // Get public URL
-    const { data: urlData } = client.storage
-      .from('documents')
-      .getPublicUrl(fileName);
+    const { data: urlData } = client.storage.from('documents').getPublicUrl(fileName);
 
     // Create document record
     const document = {
@@ -60,11 +58,7 @@ export async function uploadDocument(userId, docType, fileData, metadata = {}) {
       created_at: new Date().toISOString(),
     };
 
-    const { data, error } = await client
-      .from('documents')
-      .insert(document)
-      .select()
-      .single();
+    const { data, error } = await client.from('documents').insert(document).select().single();
 
     if (error) throw error;
 
@@ -198,17 +192,15 @@ export async function requestDocument(fromUserId, toUserId, docType, message, jo
     if (error) throw error;
 
     // Create notification for recipient
-    await client
-      .from('notifications')
-      .insert({
-        id: uid(),
-        user_id: toUserId,
-        title: 'Document Request',
-        message: `Document requested: ${DOCUMENT_TYPES[docType]?.name || docType}`,
-        type: 'document_request',
-        data: { request_id: request.id, doc_type: docType },
-        created_at: new Date().toISOString(),
-      });
+    await client.from('notifications').insert({
+      id: uid(),
+      user_id: toUserId,
+      title: 'Document Request',
+      message: `Document requested: ${DOCUMENT_TYPES[docType]?.name || docType}`,
+      type: 'document_request',
+      data: { request_id: request.id, doc_type: docType },
+      created_at: new Date().toISOString(),
+    });
 
     return { data, error: null };
   } catch (error) {
@@ -224,7 +216,7 @@ export async function fetchDocumentRequests(userId, type = 'received') {
 
   try {
     const field = type === 'sent' ? 'from_user_id' : 'to_user_id';
-    
+
     const { data, error } = await client
       .from('document_requests')
       .select('*')
@@ -241,7 +233,12 @@ export async function fetchDocumentRequests(userId, type = 'received') {
 }
 
 // ── Respond to Document Request ─────────────────────────────────────────────────────
-export async function respondToDocumentRequest(requestId, status, documentId = null, message = null) {
+export async function respondToDocumentRequest(
+  requestId,
+  status,
+  documentId = null,
+  message = null
+) {
   const client = getClient();
   if (!client) return { error: 'no-supabase' };
 
@@ -351,9 +348,7 @@ export async function searchCVProfiles(filters: CVFilters = {}) {
   if (!client) return { data: null, error: 'no-supabase' };
 
   try {
-    let query = client
-      .from('cv_profiles')
-      .select(`
+    let query = client.from('cv_profiles').select(`
         *,
         profiles!cv_profiles_user_id_fkey (
           full_name,

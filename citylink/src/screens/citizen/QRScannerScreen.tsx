@@ -31,7 +31,15 @@ export function QRScannerScreen() {
         <TopBar title="ðŸ“· QR Scanner" />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <Text style={{ fontSize: 60, marginBottom: 16 }}>ðŸ“·</Text>
-          <Text style={{ color: C.text, fontSize: FontSize.xl, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>
+          <Text
+            style={{
+              color: C.text,
+              fontSize: FontSize.xl,
+              fontWeight: '700',
+              textAlign: 'center',
+              marginBottom: 12,
+            }}
+          >
             {t('Camera Permission Required', lang)}
           </Text>
           <Text style={{ color: C.sub, textAlign: 'center', marginBottom: 24 }}>
@@ -57,45 +65,59 @@ export function QRScannerScreen() {
         setTimeout(() => setScanned(false), 2000); // Reset after 2s if invalid
       }
     } catch (error) {
-        showToast(t('Unrecognized QR Format', lang), 'error');
-        setTimeout(() => setScanned(false), 2000);
+      showToast(t('Unrecognized QR Format', lang), 'error');
+      setTimeout(() => setScanned(false), 2000);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar title="ðŸ“· Scan to Pay" />
-      
+
       <View style={{ flex: 1 }}>
         <CameraView
           style={StyleSheet.absoluteFillObject}
           facing="back"
           onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
           barcodeScannerSettings={{
-            barcodeTypes: ["qr"],
+            barcodeTypes: ['qr'],
           }}
         />
 
         {/* Overlay Overlay logic purely for visual UI */}
         <View style={StyleSheet.absoluteFillObject}>
-           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-           <View style={{ flexDirection: 'row', height: 250 }}>
-             <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-             <View style={{ width: 250, backgroundColor: 'transparent', borderWidth: 2, borderColor: C.green }} />
-             <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-           </View>
-           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', paddingTop: 40 }}>
-              <Text style={{ color: '#fff', fontSize: FontSize.lg, fontWeight: '600' }}>
-                 {t('Align QR code within the frame to send ETB', lang)}
-              </Text>
-              {scanned && (
-                 <CButton 
-                    title={t('Tap to Scan Again', lang)} 
-                    onPress={() => setScanned(false)} 
-                    style={{ marginTop: 24 }} 
-                 />
-              )}
-           </View>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+          <View style={{ flexDirection: 'row', height: 250 }}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+            <View
+              style={{
+                width: 250,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderColor: C.green,
+              }}
+            />
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+          </View>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              alignItems: 'center',
+              paddingTop: 40,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: FontSize.lg, fontWeight: '600' }}>
+              {t('Align QR code within the frame to send ETB', lang)}
+            </Text>
+            {scanned && (
+              <CButton
+                title={t('Tap to Scan Again', lang)}
+                onPress={() => setScanned(false)}
+                style={{ marginTop: 24 }}
+              />
+            )}
+          </View>
         </View>
       </View>
     </View>

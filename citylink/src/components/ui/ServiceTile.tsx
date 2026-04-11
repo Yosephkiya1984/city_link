@@ -9,35 +9,52 @@ export function ServiceTile({ service, onPress, index }) {
   const C = useTheme();
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     const delay = index * 50;
     const timer = setTimeout(() => {
       Animated.parallel([
-        Animated.spring(scaleAnim, { toValue: 1, tension: 100, friction: 8, useNativeDriver: true }),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true })
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
       ]).start();
     }, delay);
     return () => clearTimeout(timer);
   }, [index]);
 
   const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 0.95, tension: 100, friction: 8, useNativeDriver: true }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      tension: 100,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, []);
 
   const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 1, tension: 100, friction: 8, useNativeDriver: true }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 100,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   return (
-    <Animated.View style={{
-      width: '33.33%',
-      aspectRatio: 1,
-      padding: 6,
-      opacity: opacityAnim,
-      transform: [{ scale: scaleAnim }]
-    }}>
+    <Animated.View
+      style={{
+        width: '33.33%',
+        aspectRatio: 1,
+        padding: 6,
+        opacity: opacityAnim,
+        transform: [{ scale: scaleAnim }],
+      }}
+    >
       <TouchableOpacity
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -51,26 +68,30 @@ export function ServiceTile({ service, onPress, index }) {
           justifyContent: 'center',
           padding: 8,
           borderWidth: 1,
-          borderColor: C.edge2
+          borderColor: C.edge2,
         }}
       >
-        <View style={{
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          backgroundColor: service.color + '15',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 8
-        }}>
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            backgroundColor: service.color + '15',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 8,
+          }}
+        >
           <Ionicons name={service.icon} size={22} color={service.color} />
         </View>
-        <Text style={{
-          color: C.text,
-          fontSize: 10,
-          fontFamily: Fonts.black,
-          textAlign: 'center'
-        }}>
+        <Text
+          style={{
+            color: C.text,
+            fontSize: 10,
+            fontFamily: Fonts.black,
+            textAlign: 'center',
+          }}
+        >
           {service.id.toUpperCase()}
         </Text>
       </TouchableOpacity>

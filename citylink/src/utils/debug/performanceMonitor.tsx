@@ -57,9 +57,9 @@ export function PerformanceProvider({ children }) {
 
   // Update metrics
   const updateMetrics = (key, value) => {
-    setMetrics(prev => {
+    setMetrics((prev) => {
       const newMetrics = { ...prev };
-      
+
       switch (key) {
         case 'appStartupTime':
           newMetrics.appStartupTime = value;
@@ -80,7 +80,7 @@ export function PerformanceProvider({ children }) {
           newMetrics.userInteractions = [...newMetrics.userInteractions, value];
           break;
       }
-      
+
       return newMetrics;
     });
   };
@@ -116,12 +116,23 @@ export function PerformanceProvider({ children }) {
   const getPerformanceSummary = () => {
     const summary = {
       appStartupTime: metrics.appStartupTime,
-      averageScreenLoadTime: (Object.values(metrics.screenLoadTimes).reduce((a: number, b: any) => a + (b as number), 0) as number) / (Object.keys(metrics.screenLoadTimes).length || 1),
-      averageApiCallTime: metrics.apiCallTimes.reduce((a, b) => a + b.duration, 0) / metrics.apiCallTimes.length || 0,
+      averageScreenLoadTime:
+        (Object.values(metrics.screenLoadTimes).reduce(
+          (a: number, b: any) => a + (b as number),
+          0
+        ) as number) / (Object.keys(metrics.screenLoadTimes).length || 1),
+      averageApiCallTime:
+        metrics.apiCallTimes.reduce((a, b) => a + b.duration, 0) / metrics.apiCallTimes.length || 0,
       currentMemoryUsage: metrics.memoryUsage[metrics.memoryUsage.length - 1],
       totalInteractions: metrics.userInteractions.length,
-      slowestScreen: Object.entries(metrics.screenLoadTimes).reduce((a, b) => a[1] > b[1] ? a : b, ['', 0])[0],
-      slowestApiCall: metrics.apiCallTimes.reduce((a, b) => a.duration > b.duration ? a : b, { endpoint: '', duration: 0 }).endpoint,
+      slowestScreen: Object.entries(metrics.screenLoadTimes).reduce(
+        (a, b) => (a[1] > b[1] ? a : b),
+        ['', 0]
+      )[0],
+      slowestApiCall: metrics.apiCallTimes.reduce((a, b) => (a.duration > b.duration ? a : b), {
+        endpoint: '',
+        duration: 0,
+      }).endpoint,
     };
     return summary;
   };
@@ -178,11 +189,7 @@ export function PerformanceProvider({ children }) {
     clearMetrics,
   };
 
-  return (
-    <PerformanceContext.Provider value={value}>
-      {children}
-    </PerformanceContext.Provider>
-  );
+  return <PerformanceContext.Provider value={value}>{children}</PerformanceContext.Provider>;
 }
 
 // Hook to use performance monitoring
@@ -250,9 +257,11 @@ export const PerformanceUtils = {
       const used = (performance as any).memory.usedJSHeapSize / 1024 / 1024;
       const total = (performance as any).memory.totalJSHeapSize / 1024 / 1024;
       const limit = (performance as any).memory.jsHeapSizeLimit / 1024 / 1024;
-      
-      console.log(`💾 Memory Usage: ${used.toFixed(2)}MB / ${total.toFixed(2)}MB (limit: ${limit.toFixed(2)}MB)`);
-      
+
+      console.log(
+        `💾 Memory Usage: ${used.toFixed(2)}MB / ${total.toFixed(2)}MB (limit: ${limit.toFixed(2)}MB)`
+      );
+
       if (used > limit * 0.8) {
         console.warn('⚠️ High memory usage detected!');
       }
@@ -264,14 +273,14 @@ export const PerformanceUtils = {
     if (Platform.OS === 'web') {
       const scripts = document.querySelectorAll('script[src]');
       let totalSize = 0;
-      
+
       scripts.forEach((script: any) => {
         if (script.src && script.src.includes('bundle')) {
           // This is a rough estimate - in production you'd use actual bundle analysis
           totalSize += 50000; // 50KB per script as estimate
         }
       });
-      
+
       return totalSize;
     }
     return 0;
@@ -280,29 +289,34 @@ export const PerformanceUtils = {
   // Performance score calculation
   calculatePerformanceScore: (metrics) => {
     let score = 100;
-    
+
     // App startup time (0-30 points)
     if (metrics.appStartupTime > 3000) score -= 30;
     else if (metrics.appStartupTime > 2000) score -= 20;
     else if (metrics.appStartupTime > 1000) score -= 10;
-    
+
     // Screen load times (0-25 points)
-    const avgScreenLoad = (Object.values(metrics.screenLoadTimes).reduce((a: number, b: any) => a + (b as number), 0) as number) / (Object.keys(metrics.screenLoadTimes).length || 1);
+    const avgScreenLoad =
+      (Object.values(metrics.screenLoadTimes).reduce(
+        (a: number, b: any) => a + (b as number),
+        0
+      ) as number) / (Object.keys(metrics.screenLoadTimes).length || 1);
     if (avgScreenLoad > 2000) score -= 25;
     else if (avgScreenLoad > 1500) score -= 15;
     else if (avgScreenLoad > 1000) score -= 5;
-    
+
     // API call times (0-25 points)
-    const avgApiTime = metrics.apiCallTimes.reduce((a, b) => a + b.duration, 0) / metrics.apiCallTimes.length || 0;
+    const avgApiTime =
+      metrics.apiCallTimes.reduce((a, b) => a + b.duration, 0) / metrics.apiCallTimes.length || 0;
     if (avgApiTime > 2000) score -= 25;
     else if (avgApiTime > 1500) score -= 15;
     else if (avgApiTime > 1000) score -= 5;
-    
+
     // Memory usage (0-20 points)
     const currentMemory = metrics.memoryUsage[metrics.memoryUsage.length - 1];
     if (currentMemory && currentMemory.used > currentMemory.limit * 0.8) score -= 20;
     else if (currentMemory && currentMemory.used > currentMemory.limit * 0.6) score -= 10;
-    
+
     return Math.max(0, score);
   },
 };

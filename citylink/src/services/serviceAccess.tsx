@@ -31,20 +31,20 @@ export function useServiceAccess() {
         canAccess: false,
         reason: 'NO_USER',
         message: 'Please login to access services',
-        action: 'login'
+        action: 'login',
       };
     }
 
     // Check KYC status from user object (set during registration)
     const isVerified = currentUser?.fayda_verified || currentUser?.kyc_status === 'VERIFIED';
-    
+
     if (!isVerified) {
       return {
         canAccess: false,
         reason: 'KYC_REQUIRED',
         message: 'Fayda KYC verification required to access services',
         action: 'kyc_verification',
-        kycStatus: currentUser?.kyc_status || 'NONE'
+        kycStatus: currentUser?.kyc_status || 'NONE',
       };
     }
 
@@ -52,14 +52,14 @@ export function useServiceAccess() {
       canAccess: true,
       reason: 'VERIFIED',
       message: 'Access granted',
-      kycStatus: currentUser?.kyc_status || 'VERIFIED'
+      kycStatus: currentUser?.kyc_status || 'VERIFIED',
     };
   };
 
   // Guard function for service access
   const guardServiceAccess = async (serviceName = 'this service') => {
     const accessResult = await canAccessServices();
-    
+
     if (!accessResult.canAccess) {
       // Show appropriate message and redirect
       switch (accessResult.reason) {
@@ -67,19 +67,19 @@ export function useServiceAccess() {
           showToast('Please login to access services', 'error');
           navigation.navigate('Auth');
           break;
-          
+
         case 'KYC_REQUIRED':
           showToast(`Fayda KYC verification required for ${serviceName}`, 'warning');
           navigation.navigate('FaydaKYC');
           break;
-          
+
         default:
           showToast('Access denied', 'error');
       }
-      
+
       return false;
     }
-    
+
     return true;
   };
 
@@ -89,7 +89,7 @@ export function useServiceAccess() {
     isKYCVerified: async () => {
       const kycStatus = await FaydaKYCService.getKYCStatus();
       return kycStatus.status === FAYDA_STATUS.VERIFIED;
-    }
+    },
   };
 }
 
@@ -100,7 +100,11 @@ interface ServiceAccessGuardProps {
 }
 
 // ── Service Access Wrapper Component ───────────────────────────────────────────
-export function ServiceAccessGuard({ children, serviceName, fallbackComponent }: ServiceAccessGuardProps) {
+export function ServiceAccessGuard({
+  children,
+  serviceName,
+  fallbackComponent,
+}: ServiceAccessGuardProps) {
   const navigation = useNavigation<NavigationProp<RootStackParamList & AppStackParamList>>();
   const { canAccessServices } = useServiceAccess();
   const [accessGranted, setAccessGranted] = useState<boolean | null>(null);
@@ -133,42 +137,46 @@ export function ServiceAccessGuard({ children, serviceName, fallbackComponent }:
   }
 
   if (!accessGranted) {
-    return fallbackComponent || (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <Ionicons name="lock-closed" size={64} color={useTheme().hint} />
-        <Text style={{ 
-          fontSize: 18, 
-          fontFamily: Fonts.black, 
-          color: useTheme().text, 
-          textAlign: 'center', 
-          marginTop: 16 
-        }}>
-          Fayda KYC Required
-        </Text>
-        <Text style={{ 
-          fontSize: 14, 
-          fontFamily: Fonts.medium, 
-          color: useTheme().sub, 
-          textAlign: 'center', 
-          marginTop: 8 
-        }}>
-          Complete your Fayda KYC verification to access {serviceName || 'this service'}
-        </Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: useTheme().primary,
-            paddingHorizontal: 24,
-            paddingVertical: 12,
-            borderRadius: Radius.lg,
-            marginTop: 20
-          }}
-          onPress={() => navigation.navigate('FaydaKYC')}
-        >
-          <Text style={{ color: useTheme().white, fontFamily: Fonts.bold }}>
-            Complete KYC
+    return (
+      fallbackComponent || (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <Ionicons name="lock-closed" size={64} color={useTheme().hint} />
+          <Text
+            style={{
+              fontSize: 18,
+              fontFamily: Fonts.black,
+              color: useTheme().text,
+              textAlign: 'center',
+              marginTop: 16,
+            }}
+          >
+            Fayda KYC Required
           </Text>
-        </TouchableOpacity>
-      </View>
+          <Text
+            style={{
+              fontSize: 14,
+              fontFamily: Fonts.medium,
+              color: useTheme().sub,
+              textAlign: 'center',
+              marginTop: 8,
+            }}
+          >
+            Complete your Fayda KYC verification to access {serviceName || 'this service'}
+          </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: useTheme().primary,
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: Radius.lg,
+              marginTop: 20,
+            }}
+            onPress={() => navigation.navigate('FaydaKYC')}
+          >
+            <Text style={{ color: useTheme().white, fontFamily: Fonts.bold }}>Complete KYC</Text>
+          </TouchableOpacity>
+        </View>
+      )
     );
   }
 
@@ -191,20 +199,20 @@ export const ServiceAccessUtils = {
   // Get user verification badge
   getVerificationBadge: async () => {
     const kycStatus = await FaydaKYCService.getKYCStatus();
-    
+
     if (kycStatus.status === FAYDA_STATUS.VERIFIED) {
       return {
         verified: true,
         badge: '✓ Verified',
         color: '#10b981',
-        icon: 'checkmark-circle'
+        icon: 'checkmark-circle',
       };
     } else {
       return {
         verified: false,
         badge: 'Unverified',
         color: '#f59e0b',
-        icon: 'warning'
+        icon: 'warning',
       };
     }
   },
@@ -213,11 +221,20 @@ export const ServiceAccessUtils = {
   requiresKYC: (serviceName) => {
     // All services require KYC except basic browsing
     const kycRequiredServices = [
-      'wallet', 'send_money', 'request_money', 'topup',
-      'transport', 'marketplace', 'services', 'booking',
-      'payments', 'shopping', 'food_delivery', 'parking'
+      'wallet',
+      'send_money',
+      'request_money',
+      'topup',
+      'transport',
+      'marketplace',
+      'services',
+      'booking',
+      'payments',
+      'shopping',
+      'food_delivery',
+      'parking',
     ];
-    
+
     return kycRequiredServices.includes(serviceName.toLowerCase());
   },
 
@@ -227,32 +244,32 @@ export const ServiceAccessUtils = {
       [FAYDA_STATUS.NOT_STARTED]: {
         title: 'Fayda KYC Required',
         message: `Complete your Fayda KYC verification to access ${serviceName}`,
-        action: 'Start KYC Process'
+        action: 'Start KYC Process',
       },
       [FAYDA_STATUS.INITIATED]: {
         title: 'KYC In Progress',
         message: `Your KYC process is in progress. Visit a Fayda center to complete verification`,
-        action: 'View Status'
+        action: 'View Status',
       },
       [FAYDA_STATUS.PENDING_VERIFICATION]: {
         title: 'Verification Pending',
         message: `Your KYC verification is being processed`,
-        action: 'Check Status'
+        action: 'Check Status',
       },
       [FAYDA_STATUS.VERIFIED]: {
         title: 'Access Granted',
         message: `You can access ${serviceName}`,
-        action: null
+        action: null,
       },
       [FAYDA_STATUS.REJECTED]: {
         title: 'KYC Rejected',
         message: `Your KYC verification was rejected. Please contact support`,
-        action: 'Contact Support'
-      }
+        action: 'Contact Support',
+      },
     };
-    
+
     return messages[kycStatus] || messages[FAYDA_STATUS.NOT_STARTED];
-  }
+  },
 };
 
 export default useServiceAccess;

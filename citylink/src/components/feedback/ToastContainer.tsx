@@ -10,7 +10,9 @@ export function ToastContainer() {
   if (!toasts.length) return null;
   return (
     <View style={{ position: 'absolute', top: 60, left: 16, right: 16, zIndex: 9999, gap: 10 }}>
-      {toasts.map((t) => <ToastItem key={t.id} toast={t} />)}
+      {toasts.map((t) => (
+        <ToastItem key={t.id} toast={t} />
+      ))}
     </View>
   );
 }
@@ -31,20 +33,26 @@ function ToastItem({ toast }) {
   const color = colorMap[toast.type] || C.primary;
 
   return (
-    <Animated.View style={{
-      opacity: anim,
-      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
-      backgroundColor: C.surface,
-      borderRadius: Radius.lg,
-      padding: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderLeftWidth: 4,
-      borderLeftColor: color,
-      ...Shadow.lg,
-    }}>
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [
+          { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) },
+        ],
+        backgroundColor: C.surface,
+        borderRadius: Radius.lg,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderLeftWidth: 4,
+        borderLeftColor: color,
+        ...Shadow.lg,
+      }}
+    >
       <Ionicons name="notifications" size={20} color={color} style={{ marginRight: 12 }} />
-      <Text style={{ color: C.text, fontFamily: Fonts.medium, fontSize: FontSize.md, flex: 1 }}>{toast.message}</Text>
+      <Text style={{ color: C.text, fontFamily: Fonts.medium, fontSize: FontSize.md, flex: 1 }}>
+        {toast.message}
+      </Text>
     </Animated.View>
   );
 }

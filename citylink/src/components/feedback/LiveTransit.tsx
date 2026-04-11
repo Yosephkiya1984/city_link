@@ -7,12 +7,17 @@ export function LiveTransit({ animValue }) {
   const C = useTheme();
 
   return (
-    <Animated.View style={[styles.statsCard, { 
-      backgroundColor: C.surface,
-      borderColor: C.edge2,
-      opacity: animValue, 
-      transform: [{ scale: animValue }] 
-    }]}>
+    <Animated.View
+      style={[
+        styles.statsCard,
+        {
+          backgroundColor: C.surface,
+          borderColor: C.edge2,
+          opacity: animValue,
+          transform: [{ scale: animValue }],
+        },
+      ]}
+    >
       <View style={styles.transitHeader}>
         <Text style={[styles.transitTitle, { color: C.sub }]}>TRANSIT TRACKER</Text>
         <View style={[styles.liveIndicator, { backgroundColor: C.red + '20' }]}>

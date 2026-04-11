@@ -8,7 +8,8 @@ const _pendingTx = {};
 export async function initialize({ amount, description, channel = 'telebirr', phone, name }) {
   await _delay(400 + Math.random() * 400);
   if (!amount || amount <= 0) return { status: 'error', message: 'Invalid amount.' };
-  if (!CHAPA_CHANNELS[channel]) return { status: 'error', message: `Unsupported channel: ${channel}` };
+  if (!CHAPA_CHANNELS[channel])
+    return { status: 'error', message: `Unsupported channel: ${channel}` };
 
   if (!Config.devMode && Config.chapaKey && !Config.chapaKey.startsWith('REPLACE')) {
     // Real Chapa API call (must go through a backend proxy to avoid CORS)
@@ -61,26 +62,32 @@ export function calcFee(amount, channel = 'telebirr') {
  * payUtilityBill — pays a utility bill atomically.
  */
 export async function payUtilityBill(billId, citizenId) {
-  return supaQuery((c) => c.rpc('process_utility_payment_atomic', {
-    p_bill_id: billId,
-    p_citizen_id: citizenId
-  }));
+  return supaQuery((c) =>
+    c.rpc('process_utility_payment_atomic', {
+      p_bill_id: billId,
+      p_citizen_id: citizenId,
+    })
+  );
 }
 
 /**
  * payTrafficFine — pays a traffic fine atomically.
  */
 export async function payTrafficFine(userId, fineId) {
-  return supaQuery((c) => c.rpc('process_traffic_fine_atomic', {
-    p_user_id: userId,
-    p_fine_id: fineId
-  }));
+  return supaQuery((c) =>
+    c.rpc('process_traffic_fine_atomic', {
+      p_user_id: userId,
+      p_fine_id: fineId,
+    })
+  );
 }
 
 // ── Format ETB ────────────────────────────────────────────────────────────────
 export function fmtETB(amount, decimals = 2) {
   if (amount === undefined || amount === null) return '0.00';
-  return Number(amount).toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return Number(amount)
+    .toFixed(decimals)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 export default { initialize, verify, calcFee, fmtETB, payUtilityBill, payTrafficFine };

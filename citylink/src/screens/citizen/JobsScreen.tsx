@@ -26,7 +26,7 @@ const DEMO_JOBS = [
 const TYPE_COLORS = { FULL_TIME: '#00A86B', PART_TIME: '#2D7EF0', REMOTE: '#8B5CF6', CONTRACT: '#F5B800' };
 
 export default function JobsScreen() {
-  const navigation = useNavigation<NavigationProp<RootStackParamList & AppStackParamList>>();
+  const navigation = useNavigation<NavigationProp<AppStackParamList>>();
   const isDark = useAppStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
   const currentUser = useAppStore((s) => s.currentUser);
@@ -59,12 +59,11 @@ export default function JobsScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const applicantId = currentUser?.id;
   useRealtimePostgres({
-    channelName: applicantId ? `cl-rt-jobapp-${applicantId}` : 'cl-rt-jobapp',
+    channelName: currentUser?.id ? `cl-rt-jobapp-${currentUser.id}` : 'cl-rt-jobapp',
     table: 'job_applications',
-    filter: applicantId ? `applicant_id=eq.${applicantId}` : undefined,
-    enabled: !!applicantId,
+    filter: currentUser?.id ? `applicant_id=eq.${currentUser.id}` : undefined,
+    enabled: !!currentUser?.id,
     onPayload: load,
   });
 
@@ -78,7 +77,7 @@ export default function JobsScreen() {
     const application: any = {
       id: uid(),
       job_id: selectedJob.id,
-      applicant_id: currentUser?.id,
+      applicant_id: currentUser?.id || '',
       cover_letter: coverLetter.trim() || null,
       status: 'PENDING',
       created_at: new Date().toISOString(),

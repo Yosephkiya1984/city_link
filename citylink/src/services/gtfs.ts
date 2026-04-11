@@ -21,7 +21,7 @@ let _state = {
   lastUpdate: Date.now(),
 };
 
-let _listeners = new Set<(trains: any[]) => void>();
+const _listeners = new Set<(trains: any[]) => void>();
 let _timer = null;
 
 // Initialize trains/buses based on current time to ensure consistency across reloads
@@ -29,7 +29,7 @@ function init() {
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
   const seconds = now.getSeconds();
-  
+
   const trains = [];
 
   // NS Line - 2 trains
@@ -37,7 +37,7 @@ function init() {
     const totalCycleSecs = NS_INTERVAL_MINS * 60;
     const offsetSecs = i * (totalCycleSecs / 2);
     const posSecs = (mins * 60 + seconds + offsetSecs) % totalCycleSecs;
-    
+
     trains.push({
       id,
       line: 'NS',
@@ -100,7 +100,7 @@ function tick() {
   const elapsed = (now - _state.lastUpdate) / 1000;
   _state.lastUpdate = now;
 
-  _state.trains.forEach(t => {
+  _state.trains.forEach((t) => {
     t.etaSecs -= elapsed;
     if (t.etaSecs <= 0) {
       let intervalMins = 10;
@@ -118,7 +118,7 @@ function tick() {
 }
 
 function _notify() {
-  _listeners.forEach(l => l([..._state.trains]));
+  _listeners.forEach((l) => l([..._state.trains]));
 }
 
 export const GTFSService = {

@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  Alert,
+  Platform,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize } from '../../theme';
@@ -22,8 +30,10 @@ export default function AdminBottomNav({ activeTab, onTabChange }) {
 
   const handlePress = (id) => {
     if (id === 'logout') {
-      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); } catch (e) {}
-      
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } catch (e) {}
+
       if (Platform.OS === 'web') {
         if (window.confirm('Are you sure you want to exit the admin portal?')) {
           if (onTabChange) onTabChange('logout');
@@ -33,11 +43,11 @@ export default function AdminBottomNav({ activeTab, onTabChange }) {
 
       Alert.alert('Sign Out', 'Are you sure you want to exit the admin portal?', [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive', 
-          onPress: () => onTabChange && onTabChange('logout') 
-        }
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: () => onTabChange && onTabChange('logout'),
+        },
       ]);
     } else {
       onTabChange(id);
@@ -45,11 +55,18 @@ export default function AdminBottomNav({ activeTab, onTabChange }) {
   };
 
   return (
-    <BlurView intensity={30} tint={theme.isDark ? 'dark' : 'light'} style={[styles.container, { 
-      borderTopWidth: 1, 
-      borderTopColor: theme.rim,
-      backgroundColor: theme.isDark ? 'rgba(16, 19, 25, 0.85)' : 'rgba(255, 255, 255, 0.85)',
-    }]}>
+    <BlurView
+      intensity={30}
+      tint={theme.isDark ? 'dark' : 'light'}
+      style={[
+        styles.container,
+        {
+          borderTopWidth: 1,
+          borderTopColor: theme.rim,
+          backgroundColor: theme.isDark ? 'rgba(16, 19, 25, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+        },
+      ]}
+    >
       {navItems.map((item) => {
         const isActive = activeTab === item.id;
         return (
@@ -58,28 +75,33 @@ export default function AdminBottomNav({ activeTab, onTabChange }) {
             onPress={() => handlePress(item.id)}
             style={styles.navItem}
           >
-            <View style={[styles.iconBox, { 
-              backgroundColor: isActive ? theme.primary + '15' : 'transparent',
-            }]}>
-              <MaterialCommunityIcons 
-                name={item.mIcon} 
-                size={22} 
-                color={item.id === 'logout' ? theme.red : (isActive ? theme.primary : theme.sub)} 
+            <View
+              style={[
+                styles.iconBox,
+                {
+                  backgroundColor: isActive ? theme.primary + '15' : 'transparent',
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={item.mIcon}
+                size={22}
+                color={item.id === 'logout' ? theme.red : isActive ? theme.primary : theme.sub}
               />
             </View>
-            <Text style={[
-              styles.navText, 
-              { 
-                color: item.id === 'logout' ? theme.red : (isActive ? theme.primary : theme.sub), 
-                fontFamily: isActive ? Fonts.label : Fonts.body,
-                fontSize: 10
-              }
-            ]}>
+            <Text
+              style={[
+                styles.navText,
+                {
+                  color: item.id === 'logout' ? theme.red : isActive ? theme.primary : theme.sub,
+                  fontFamily: isActive ? Fonts.label : Fonts.body,
+                  fontSize: 10,
+                },
+              ]}
+            >
               {item.label.toUpperCase()}
             </Text>
-            {isActive && (
-              <View style={[styles.activeDot, { backgroundColor: theme.primary }]} />
-            )}
+            {isActive && <View style={[styles.activeDot, { backgroundColor: theme.primary }]} />}
           </TouchableOpacity>
         );
       })}
@@ -122,5 +144,5 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-  }
+  },
 });

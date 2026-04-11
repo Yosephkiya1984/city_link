@@ -48,30 +48,32 @@ export async function claimLocalPendingForPhone(phone) {
  */
 export async function syncOfflineQueueToSupabase(supabaseClient) {
   const list = await readList();
-  const pending = list.filter(r => r.status === 'pending');
-  
+  const pending = list.filter((r) => r.status === 'pending');
+
   if (pending.length === 0 || !supabaseClient) return { success: true, count: 0 };
-  
+
   let successCount = 0;
-  
+
   for (const item of pending) {
     // Attempt remote insertion
-    const { error } = await supabaseClient.from('pending_p2p_transfers').insert([{
-      id: item.id,
-      sender_id: item.sender_id,
-      recipient_phone: item.recipient_phone,
-      amount: item.amount,
-      note: item.note,
-      status: 'pending' // Let the server handle status resolution over time
-    }]);
-    
+    const { error } = await supabaseClient.from('pending_p2p_transfers').insert([
+      {
+        id: item.id,
+        sender_id: item.sender_id,
+        recipient_phone: item.recipient_phone,
+        amount: item.amount,
+        note: item.note,
+        status: 'pending', // Let the server handle status resolution over time
+      },
+    ]);
+
     // If successful, mark local as synced
     if (!error) {
       item.status = 'synced';
       successCount++;
     }
   }
-  
+
   // Save updated local list
   await writeList(list);
   return { success: true, count: successCount };

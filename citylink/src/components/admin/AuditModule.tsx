@@ -15,42 +15,62 @@ export default function AuditModule() {
     setLoading(true);
     // Fetch recent profile updates and order statuses as a proxy for audit logs
     const [profiles, orders, food] = await Promise.all([
-      supaQuery(c => c.from('profiles').select('id, full_name, created_at, role').order('created_at', { ascending: false }).limit(10)),
-      supaQuery(c => c.from('marketplace_orders').select('id, product_name, status, created_at').order('created_at', { ascending: false }).limit(10)),
-      supaQuery(c => c.from('food_orders').select('id, restaurant_name, status, created_at').order('created_at', { ascending: false }).limit(10))
+      supaQuery((c) =>
+        c
+          .from('profiles')
+          .select('id, full_name, created_at, role')
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ),
+      supaQuery((c) =>
+        c
+          .from('marketplace_orders')
+          .select('id, product_name, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ),
+      supaQuery((c) =>
+        c
+          .from('food_orders')
+          .select('id, restaurant_name, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ),
     ]);
 
     const combined = [
-      ...(profiles.data || []).map(p => ({
+      ...(profiles.data || []).map((p) => ({
         id: p.id,
         event: 'IDENTITY_REGISTRY',
         user: p.full_name || 'Anonymous',
         details: `Role updated to ${p.role}`,
         time: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: 'low'
+        severity: 'low',
       })),
-      ...(orders.data || []).map(o => ({
+      ...(orders.data || []).map((o) => ({
         id: o.id,
         event: 'MKT_TRANSACTION',
         user: 'System_Gate',
         details: `${o.product_name} (${o.status})`,
         time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: o.status === 'DISPUTED' ? 'high' : 'low'
+        severity: o.status === 'DISPUTED' ? 'high' : 'low',
       })),
-      ...(food.data || []).map(o => ({
-          id: o.id,
-          event: 'FOOD_DISPATCH',
-          user: 'Resto_Relay',
-          details: `${o.restaurant_name} (${o.status})`,
-          time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          severity: 'low'
-      }))
-    ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 15);
+      ...(food.data || []).map((o) => ({
+        id: o.id,
+        event: 'FOOD_DISPATCH',
+        user: 'Resto_Relay',
+        details: `${o.restaurant_name} (${o.status})`,
+        time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        severity: 'low',
+      })),
+    ]
+      .sort((a, b) => b.time.localeCompare(a.time))
+      .slice(0, 15);
 
     setLogs(combined);
     setStats({
-      sensitive: combined.filter(l => l.severity === 'high').length,
-      integrity: 'VERIFIED'
+      sensitive: combined.filter((l) => l.severity === 'high').length,
+      integrity: 'VERIFIED',
     });
     setLoading(false);
   };
@@ -60,15 +80,27 @@ export default function AuditModule() {
   }, []);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+    >
       <View style={styles.header}>
         <View>
-          <Text style={[styles.title, { color: theme.text, fontFamily: Fonts.headline }]}>Security Audit Logs</Text>
-          <Text style={[styles.subtitle, { color: theme.sub }]}>Immutable event stream for administrative compliance</Text>
+          <Text style={[styles.title, { color: theme.text, fontFamily: Fonts.headline }]}>
+            Security Audit Logs
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.sub }]}>
+            Immutable event stream for administrative compliance
+          </Text>
         </View>
-        <TouchableOpacity onPress={fetchLogs} style={[styles.statusTag, { backgroundColor: theme.green + '15' }]}>
+        <TouchableOpacity
+          onPress={fetchLogs}
+          style={[styles.statusTag, { backgroundColor: theme.green + '15' }]}
+        >
           <View style={[styles.nodeDot, { backgroundColor: theme.green }]} />
-          <Text style={{ color: theme.green, fontSize: 10, fontWeight: '800' }}>{loading ? 'SYNCING...' : 'LIVE FEED'}</Text>
+          <Text style={{ color: theme.green, fontSize: 10, fontWeight: '800' }}>
+            {loading ? 'SYNCING...' : 'LIVE FEED'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -81,37 +113,76 @@ export default function AuditModule() {
         </View>
 
         {loading ? (
-            <View style={{ padding: 40 }}><ActivityIndicator color={theme.primary} /></View>
+          <View style={{ padding: 40 }}>
+            <ActivityIndicator color={theme.primary} />
+          </View>
         ) : (
-            logs.map((log, index) => (
-                <View key={log.id} style={[
-                  styles.logRow, 
-                  { borderBottomColor: theme.rim, backgroundColor: index % 2 === 0 ? 'transparent' : theme.lift }
-                ]}>
-                  <View style={[styles.cell, { flex: 1.5, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
-                    <View style={[styles.severityDot, { backgroundColor: log.severity === 'high' ? theme.red : log.severity === 'med' ? theme.amber : theme.primary }]} />
-                    <Text style={[styles.eventName, { color: theme.text, fontFamily: Fonts.label }]}>{log.event}</Text>
-                  </View>
-                  <View style={[styles.cell, { flex: 1 }]}>
-                    <Text style={[styles.actorName, { color: theme.textSoft }]}>{log.user}</Text>
-                  </View>
-                  <View style={[styles.cell, { flex: 1.5 }]}>
-                    <Text style={[styles.detailsText, { color: theme.sub }]} numberOfLines={1}>
-                      {log.details}
-                    </Text>
-                  </View>
-                  <View style={[styles.cell, { width: 80, alignItems: 'flex-end' }]}>
-                    <Text style={[styles.timeText, { color: theme.hint }]}>{log.time}</Text>
-                  </View>
-                </View>
-              ))
+          logs.map((log, index) => (
+            <View
+              key={log.id}
+              style={[
+                styles.logRow,
+                {
+                  borderBottomColor: theme.rim,
+                  backgroundColor: index % 2 === 0 ? 'transparent' : theme.lift,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.cell,
+                  { flex: 1.5, flexDirection: 'row', alignItems: 'center', gap: 10 },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.severityDot,
+                    {
+                      backgroundColor:
+                        log.severity === 'high'
+                          ? theme.red
+                          : log.severity === 'med'
+                            ? theme.amber
+                            : theme.primary,
+                    },
+                  ]}
+                />
+                <Text style={[styles.eventName, { color: theme.text, fontFamily: Fonts.label }]}>
+                  {log.event}
+                </Text>
+              </View>
+              <View style={[styles.cell, { flex: 1 }]}>
+                <Text style={[styles.actorName, { color: theme.textSoft }]}>{log.user}</Text>
+              </View>
+              <View style={[styles.cell, { flex: 1.5 }]}>
+                <Text style={[styles.detailsText, { color: theme.sub }]} numberOfLines={1}>
+                  {log.details}
+                </Text>
+              </View>
+              <View style={[styles.cell, { width: 80, alignItems: 'flex-end' }]}>
+                <Text style={[styles.timeText, { color: theme.hint }]}>{log.time}</Text>
+              </View>
+            </View>
+          ))
         )}
       </View>
 
       {/* Security Summary Cards */}
       <View style={styles.summaryGrid}>
-        <SummaryCard label="Sensitive Events" value={stats.sensitive.toString()} sub="Escalated for review" icon="shield-alert-outline" color={theme.amber} />
-        <SummaryCard label="Node Integrity" value={stats.integrity} sub="Shard clusters healthy" icon="database-check-outline" color={theme.green} />
+        <SummaryCard
+          label="Sensitive Events"
+          value={stats.sensitive.toString()}
+          sub="Escalated for review"
+          icon="shield-alert-outline"
+          color={theme.amber}
+        />
+        <SummaryCard
+          label="Node Integrity"
+          value={stats.integrity}
+          sub="Shard clusters healthy"
+          icon="database-check-outline"
+          color={theme.green}
+        />
       </View>
     </ScrollView>
   );
@@ -124,7 +195,9 @@ function SummaryCard({ label, value, sub, icon, color }) {
       <MaterialCommunityIcons name={icon} size={24} color={color} />
       <View style={{ marginTop: 12 }}>
         <Text style={[styles.sumLabel, { color: theme.sub }]}>{label.toUpperCase()}</Text>
-        <Text style={[styles.sumValue, { color: theme.text, fontFamily: Fonts.headline }]}>{value}</Text>
+        <Text style={[styles.sumValue, { color: theme.text, fontFamily: Fonts.headline }]}>
+          {value}
+        </Text>
         <Text style={[styles.sumSub, { color: theme.hint }]}>{sub}</Text>
       </View>
     </View>
@@ -226,5 +299,5 @@ const styles = StyleSheet.create({
   sumSub: {
     fontSize: 11,
     marginTop: 2,
-  }
+  },
 });

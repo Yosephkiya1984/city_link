@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  Image, ActivityIndicator, RefreshControl, StatusBar, TextInput, Animated
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  RefreshControl,
+  StatusBar,
+  TextInput,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/AppStore';
-import { 
-  subscribeToTable, 
-  unsubscribe 
-} from '../../services/supabase';
+import { subscribeToTable, unsubscribe } from '../../services/supabase';
 import { fetchChatThreads } from '../../services/chat.service';
 import * as Haptics from 'expo-haptics';
 
@@ -37,9 +43,9 @@ function fmtRelativeTime(date) {
 }
 
 export default function ChatInboxScreen({ navigation }) {
-  const currentUser = useAppStore(s => s.currentUser);
-  const showToast = useAppStore(s => s.showToast);
-  
+  const currentUser = useAppStore((s) => s.currentUser);
+  const showToast = useAppStore((s) => s.showToast);
+
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,10 +63,15 @@ export default function ChatInboxScreen({ navigation }) {
 
   useEffect(() => {
     loadThreads();
-    
-    const ch = subscribeToTable(`inbox-msgs-${currentUser.id}`, 'chat_messages', null, (payload) => {
-      loadThreads();
-    });
+
+    const ch = subscribeToTable(
+      `inbox-msgs-${currentUser.id}`,
+      'chat_messages',
+      null,
+      (payload) => {
+        loadThreads();
+      }
+    );
 
     return () => unsubscribe(ch);
   }, [currentUser?.id, loadThreads]);
@@ -72,13 +83,14 @@ export default function ChatInboxScreen({ navigation }) {
   };
 
   const filteredThreads = useMemo(() => {
-    return threads.filter(t => {
+    return threads.filter((t) => {
       const isUserA = t.user_a_id === currentUser.id;
       const other = isUserA ? t.user_b : t.user_a;
       const name = (other?.business_name || other?.full_name || '').toLowerCase();
       const lastMsg = (t.last_msg || '').toLowerCase();
-      const matchesSearch = name.includes(search.toLowerCase()) || lastMsg.includes(search.toLowerCase());
-      
+      const matchesSearch =
+        name.includes(search.toLowerCase()) || lastMsg.includes(search.toLowerCase());
+
       if (activeFilter === 'unread') {
         // Simple mock for "new" as we don't have read status yet
         return matchesSearch && new Date(t.last_ts).getTime() > Date.now() - 3600000;
@@ -92,17 +104,17 @@ export default function ChatInboxScreen({ navigation }) {
     const other = isUserA ? item.user_b : item.user_a;
     const displayName = other?.business_name || other?.full_name || 'Unknown User';
     const isNew = new Date(item.last_ts).getTime() > Date.now() - 3600000; // Mock unread
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.threadItem}
         activeOpacity={0.7}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          navigation.navigate('Chat', { 
-            threadId: item.thread_id, 
+          navigation.navigate('Chat', {
+            threadId: item.thread_id,
             recipientName: displayName,
-            recipientId: other?.id 
+            recipientId: other?.id,
           });
         }}
       >
@@ -112,11 +124,15 @@ export default function ChatInboxScreen({ navigation }) {
           </View>
           <View style={styles.onlineDot} />
         </View>
-        
+
         <View style={styles.threadInfo}>
           <View style={styles.threadHeader}>
-            <Text style={[styles.threadName, { color: isNew ? T.text : T.textSub }]}>{displayName}</Text>
-            <Text style={styles.threadTime}>{fmtRelativeTime(item.last_ts || item.created_at)}</Text>
+            <Text style={[styles.threadName, { color: isNew ? T.text : T.textSub }]}>
+              {displayName}
+            </Text>
+            <Text style={styles.threadTime}>
+              {fmtRelativeTime(item.last_ts || item.created_at)}
+            </Text>
           </View>
           <View style={styles.msgPreviewContainer}>
             <Text style={[styles.lastMessage, isNew && styles.lastMessageUnread]} numberOfLines={1}>
@@ -133,7 +149,7 @@ export default function ChatInboxScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Header Section */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -165,9 +181,9 @@ export default function ChatInboxScreen({ navigation }) {
 
         {/* Filters */}
         <View style={styles.filterRow}>
-          {['all', 'unread'].map(f => (
-            <TouchableOpacity 
-              key={f} 
+          {['all', 'unread'].map((f) => (
+            <TouchableOpacity
+              key={f}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setActiveFilter(f);
@@ -190,7 +206,7 @@ export default function ChatInboxScreen({ navigation }) {
         <FlatList
           data={filteredThreads}
           renderItem={renderItem}
-          keyExtractor={item => item.thread_id}
+          keyExtractor={(item) => item.thread_id}
           contentContainerStyle={styles.listContent}
           keyboardDismissMode="on-drag"
           refreshControl={
@@ -203,7 +219,9 @@ export default function ChatInboxScreen({ navigation }) {
               </View>
               <Text style={styles.emptyTitle}>No messages yet</Text>
               <Text style={styles.emptySubtitle}>
-                {search ? "No conversations match your search." : "When you start chatting with users, they'll appear here."}
+                {search
+                  ? 'No conversations match your search.'
+                  : "When you start chatting with users, they'll appear here."}
               </Text>
             </View>
           }
@@ -215,83 +233,137 @@ export default function ChatInboxScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
-  header: { 
-    paddingTop: 60, 
-    paddingHorizontal: 20, 
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
     paddingBottom: 20,
     backgroundColor: T.surface,
     borderBottomWidth: 1,
-    borderBottomColor: T.border
+    borderBottomColor: T.border,
   },
-  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
   headerTitle: { color: T.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center' },
-  
-  searchContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: T.bg, 
-    borderRadius: 12, 
-    paddingHorizontal: 12, 
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: T.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: T.bg,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     height: 48,
     borderWidth: 1,
     borderColor: T.border,
-    marginBottom: 16
+    marginBottom: 16,
   },
   searchInput: { flex: 1, color: T.text, fontSize: 15, marginLeft: 10 },
-  
+
   filterRow: { flexDirection: 'row', gap: 10 },
-  filterBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border },
+  filterBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: T.bg,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
   filterBtnActive: { backgroundColor: T.primary + '20', borderColor: T.primary },
   filterLabel: { fontSize: 10, fontWeight: '800', color: T.textSub, letterSpacing: 1 },
   filterLabelActive: { color: T.primary },
 
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingBottom: 40 },
-  
-  threadItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: 16, 
-    borderBottomWidth: 1, 
+
+  threadItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
     borderBottomColor: T.border,
-    backgroundColor: T.bg
+    backgroundColor: T.bg,
   },
   avatarContainer: { position: 'relative' },
-  avatarPlaceholder: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 30, 
-    backgroundColor: T.surfaceHigh, 
-    alignItems: 'center', 
+  avatarPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: T.surfaceHigh,
+    alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: T.border
+    borderColor: T.border,
   },
   avatarInitial: { color: T.primary, fontSize: 24, fontWeight: '800' },
-  onlineDot: { 
-    position: 'absolute', 
-    bottom: 2, 
-    right: 2, 
-    width: 14, 
-    height: 14, 
-    borderRadius: 7, 
-    backgroundColor: T.primary, 
-    borderWidth: 3, 
-    borderColor: T.bg 
+  onlineDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: T.primary,
+    borderWidth: 3,
+    borderColor: T.bg,
   },
-  
+
   threadInfo: { flex: 1, marginLeft: 16, marginRight: 8 },
-  threadHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  threadHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   threadName: { fontSize: 16, fontWeight: '700' },
   threadTime: { color: T.textSub, fontSize: 12, fontWeight: '500' },
-  msgPreviewContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  msgPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   lastMessage: { color: T.textSub, fontSize: 14, lineHeight: 20, flex: 1 },
   lastMessageUnread: { color: T.text, fontWeight: '600' },
-  unreadBadge: { width: 10, height: 10, borderRadius: 5, backgroundColor: T.primary, marginLeft: 8 },
-  
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, paddingHorizontal: 40 },
-  emptyIconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: T.primary + '10', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  unreadBadge: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: T.primary,
+    marginLeft: 8,
+  },
+
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: T.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
   emptyTitle: { color: T.text, fontSize: 20, fontWeight: '800', marginTop: 10 },
-  emptySubtitle: { color: T.textSub, fontSize: 15, textAlign: 'center', marginTop: 10, lineHeight: 22 },
+  emptySubtitle: {
+    color: T.textSub,
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 22,
+  },
 });

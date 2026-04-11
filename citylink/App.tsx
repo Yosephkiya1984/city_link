@@ -10,29 +10,21 @@ import {
   Inter_700Bold,
   Inter_900Black,
 } from '@expo-google-fonts/inter';
-import { 
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_700Bold 
-} from '@expo-google-fonts/space-grotesk';
-import {
-  Manrope_400Regular,
-  Manrope_500Medium,
-  Manrope_700Bold,
-} from '@expo-google-fonts/manrope';
+import { SpaceGrotesk_400Regular, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { Manrope_400Regular, Manrope_500Medium, Manrope_700Bold } from '@expo-google-fonts/manrope';
 
 import AppNavigator from './src/navigation';
 import { ToastContainer, ErrorBoundary } from './src/components';
-import { AppStoreProvider, useAppStore, loadSession, clearSession } from './src/store/AppStore';
-import { Colors, DarkColors, Fonts } from './src/theme';
+import { AppStoreProvider, useAppStore } from './src/store/AppStore';
 import { GTFSService } from './src/services/gtfs';
 import { useTheme } from './src/hooks/useTheme';
 
 // ── Inner bootstrap component — runs INSIDE AppStoreProvider ─────────────────
 function AppBootstrap() {
-  const { setCurrentUser, setBalance, isDark } = useAppStore();
+  const { isDark } = useAppStore();
   const theme = useTheme();
   const [bootstrapped, setBootstrapped] = useState(false);
-  const [fontsLoaded, setFontsLoaded]   = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
 
   useEffect(() => {
     async function prepare() {
@@ -55,15 +47,11 @@ function AppBootstrap() {
         // 3. Session Restore & State Hydration
         const { hydrateSession } = useAppStore.getState();
         await hydrateSession();
-        
+
         const session = useAppStore.getState().currentUser;
-        if (session) {
-          console.log('🔧 Session hydrated for user:', session.id);
-        }
 
         // 4. Start Transit simulation
         GTFSService.start();
-
       } catch (e) {
         console.warn('[App] Boot error:', e);
       } finally {
@@ -80,18 +68,22 @@ function AppBootstrap() {
 
   if (!bootstrapped || !fontsLoaded) {
     return (
-      <View style={{
-        flex: 1,
-        backgroundColor: theme.ink,
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.ink,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={{
-          marginTop: 20,
-          color: theme.sub,
-          fontSize: 16,
-        }}>
+        <Text
+          style={{
+            marginTop: 20,
+            color: theme.sub,
+            fontSize: 16,
+          }}
+        >
           Loading CityLink...
         </Text>
       </View>

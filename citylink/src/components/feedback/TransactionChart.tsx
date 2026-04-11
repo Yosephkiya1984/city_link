@@ -7,7 +7,7 @@ import { Spacing, FontSize, Fonts } from '../../theme';
 export function TransactionChart({ transactions }) {
   const C = useTheme();
   const [animValue] = useState(new Animated.Value(0));
-  
+
   useEffect(() => {
     Animated.timing(animValue, {
       toValue: 1,
@@ -31,22 +31,26 @@ export function TransactionChart({ transactions }) {
 
   return (
     <View style={{ marginVertical: Spacing.md }}>
-      <Text style={{ 
-        color: C.text, 
-        fontSize: FontSize.md, 
-        fontFamily: Fonts.bold, 
-        marginBottom: Spacing.md 
-      }}>
+      <Text
+        style={{
+          color: C.text,
+          fontSize: FontSize.md,
+          fontFamily: Fonts.bold,
+          marginBottom: Spacing.md,
+        }}
+      >
         Recent Activity
       </Text>
-      
-      <View style={{ 
-        flexDirection: 'row', 
-        alignItems: 'flex-end', 
-        justifyContent: 'space-between', 
-        height: 140,
-        paddingHorizontal: Spacing.sm
-      }}>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          height: 140,
+          paddingHorizontal: Spacing.sm,
+        }}
+      >
         {chartData.map((item, index) => (
           <Animated.View
             key={item.id}
@@ -97,20 +101,26 @@ export function TransactionChart({ transactions }) {
           </Animated.View>
         ))}
       </View>
-      
-      <View style={{ 
-        flexDirection: 'row', 
-        justifyContent: 'center', 
-        gap: Spacing.lg, 
-        marginTop: Spacing.md 
-      }}>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: Spacing.lg,
+          marginTop: Spacing.md,
+        }}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: C.green }} />
-          <Text style={{ color: C.sub, fontSize: FontSize.xs, fontFamily: Fonts.medium }}>Income</Text>
+          <Text style={{ color: C.sub, fontSize: FontSize.xs, fontFamily: Fonts.medium }}>
+            Income
+          </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: C.red }} />
-          <Text style={{ color: C.sub, fontSize: FontSize.xs, fontFamily: Fonts.medium }}>Expenses</Text>
+          <Text style={{ color: C.sub, fontSize: FontSize.xs, fontFamily: Fonts.medium }}>
+            Expenses
+          </Text>
         </View>
       </View>
     </View>

@@ -11,10 +11,10 @@ export function hasSupabase() {
 
 export function getClient() {
   if (_client) return _client;
-  
+
   const url = (Config.supaUrl || '').trim();
   const key = (Config.supaKey || '').trim();
-  
+
   if (!url || url.startsWith('REPLACE') || !key || key.startsWith('REPLACE')) {
     return null;
   }
@@ -48,7 +48,10 @@ interface SupaQueryOptions {
 /**
  * supaQuery — Centralized wrapper for error handling and logging.
  */
-export async function supaQuery(queryFn: (client: any) => Promise<any>, options: SupaQueryOptions = {}) {
+export async function supaQuery(
+  queryFn: (client: any) => Promise<any>,
+  options: SupaQueryOptions = {}
+) {
   const client = getClient();
   if (!client) {
     if (Config.devMode) console.warn('[CityLink] No Supabase client available.');
@@ -69,7 +72,12 @@ export async function supaQuery(queryFn: (client: any) => Promise<any>, options:
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────
-export function subscribeToTable(channelName: string, table: string, filter: string | null, callback: (payload: any) => void) {
+export function subscribeToTable(
+  channelName: string,
+  table: string,
+  filter: string | null,
+  callback: (payload: any) => void
+) {
   const client = getClient();
   if (!client || !table) return null;
   const opts: any = { event: '*', schema: 'public', table };
@@ -84,7 +92,7 @@ export function unsubscribe(channel) {
 
 // ── Backward Compatibility ─────────────────────────────────────────────────────
 // ── Backward Compatibility ─────────────────────────────────────────────────────
-// Aggregate exports removed to break circular dependencies. 
+// Aggregate exports removed to break circular dependencies.
 // Please import domain services directly (e.g. from './auth.service').
 
 export default {

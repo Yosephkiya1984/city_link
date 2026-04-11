@@ -81,43 +81,71 @@ function getFallbackResponse(msg) {
   const m = msg.toLowerCase();
 
   if (m.includes('lrt') || m.includes('rail') || m.includes('light rail'))
-    return "The Addis Ababa LRT has two lines:\n\n🟢 North–South: Menelik II Square ↔ Lebu\n🔵 East–West: Ayat ↔ Akaki\n\nUse the Rail screen to tap in/out with your digital wallet. Base fare is 2 ETB, then 0.45 ETB/km.";
+    return 'The Addis Ababa LRT has two lines:\n\n🟢 North–South: Menelik II Square ↔ Lebu\n🔵 East–West: Ayat ↔ Akaki\n\nUse the Rail screen to tap in/out with your digital wallet. Base fare is 2 ETB, then 0.45 ETB/km.';
 
   if (m.includes('park'))
     return "🅿️ Open the Parking screen, pick a lot, and tap any green spot to start a session. You're billed per hour when you end the session. Rates: 10–15 ETB/hr depending on location.";
 
-  if (m.includes('usd') || m.includes('dollar') || m.includes('exchange') || m.includes('rate') || m.includes('birr'))
-    return "💱 Approximate rates today:\n1 USD ≈ 57 ETB\n1 EUR ≈ 62 ETB\n1 GBP ≈ 72 ETB\n1 SAR ≈ 15.2 ETB\n\nCheck the Exchange screen for the full live table.";
+  if (
+    m.includes('usd') ||
+    m.includes('dollar') ||
+    m.includes('exchange') ||
+    m.includes('rate') ||
+    m.includes('birr')
+  )
+    return '💱 Approximate rates today:\n1 USD ≈ 57 ETB\n1 EUR ≈ 62 ETB\n1 GBP ≈ 72 ETB\n1 SAR ≈ 15.2 ETB\n\nCheck the Exchange screen for the full live table.';
 
   if (m.includes('ekub'))
     return "🤝 Ekub is Ethiopia's traditional rotating savings system. A group of people contribute equally each period, and one member receives the full pot each round.\n\nCityLink makes it digital — browse circles on the Ekub screen, join with one tap, and contributions are tracked automatically.";
 
   if (m.includes('job') || m.includes('work') || m.includes('hire') || m.includes('employ'))
-    return "💼 The Jobs screen lists current openings across Tech, Finance, Healthcare, Hospitality, and more.\n\nTap any job to see details and apply instantly. Your applications are tracked — check your status under Jobs → My Applications.";
+    return '💼 The Jobs screen lists current openings across Tech, Finance, Healthcare, Hospitality, and more.\n\nTap any job to see details and apply instantly. Your applications are tracked — check your status under Jobs → My Applications.';
 
   if (m.includes('food') || m.includes('delivery') || m.includes('restaurant') || m.includes('eat'))
-    return "🍽️ Open the Food screen to order from restaurants near you. Add items to your cart, place the order, and track its status in My Orders. Payment is deducted from your CityLink wallet.";
+    return '🍽️ Open the Food screen to order from restaurants near you. Add items to your cart, place the order, and track its status in My Orders. Payment is deducted from your CityLink wallet.';
 
-  if (m.includes('emergency') || m.includes('police') || m.includes('ambulance') || m.includes('fire'))
-    return "🚨 Emergency Numbers:\n🚓 Police: 991\n🚒 Fire: 939\n🚑 Ambulance: 907\n📞 General: 116\n\nOpen the Emergency screen for one-tap calling.";
+  if (
+    m.includes('emergency') ||
+    m.includes('police') ||
+    m.includes('ambulance') ||
+    m.includes('fire')
+  )
+    return '🚨 Emergency Numbers:\n🚓 Police: 991\n🚒 Fire: 939\n🚑 Ambulance: 907\n📞 General: 116\n\nOpen the Emergency screen for one-tap calling.';
 
   if (m.includes('wallet') || m.includes('top up') || m.includes('topup') || m.includes('balance'))
-    return "💳 To top up your wallet:\n1. Tap ⬆️ Top Up on the Home screen (or open Wallet)\n2. Choose an amount\n3. Select your payment channel (Telebirr, CBE Birr, Awash Bank…)\n4. Confirm payment\n\nFunds appear instantly.";
+    return '💳 To top up your wallet:\n1. Tap ⬆️ Top Up on the Home screen (or open Wallet)\n2. Choose an amount\n3. Select your payment channel (Telebirr, CBE Birr, Awash Bank…)\n4. Confirm payment\n\nFunds appear instantly.';
 
   if (m.includes('send') || m.includes('transfer') || m.includes('pay'))
-    return "📤 To send money: Home → Send → pick a contact or enter a phone number → enter amount → confirm.\n\nThe recipient must also have a CityLink account.";
+    return '📤 To send money: Home → Send → pick a contact or enter a phone number → enter amount → confirm.\n\nThe recipient must also have a CityLink account.';
 
-  if (m.includes('delala') || m.includes('house') || m.includes('apartment') || m.includes('rent') || m.includes('property'))
-    return "🏠 The Delala screen lists apartments for rent, properties for sale, commercial spaces, and land across Addis Ababa sub-cities. Filter by category and tap any listing to contact the agent directly.";
+  if (
+    m.includes('delala') ||
+    m.includes('house') ||
+    m.includes('apartment') ||
+    m.includes('rent') ||
+    m.includes('property')
+  )
+    return '🏠 The Delala screen lists apartments for rent, properties for sale, commercial spaces, and land across Addis Ababa sub-cities. Filter by category and tap any listing to contact the agent directly.';
 
-  if (m.includes('salon') || m.includes('barber') || m.includes('clinic') || m.includes('doctor') || m.includes('appointment'))
-    return "💈 The Services screen lets you book appointments at salons, barbershops, and medical clinics near you. Filter by type, pick a provider, and confirm your slot — no phone call needed.";
+  if (
+    m.includes('salon') ||
+    m.includes('barber') ||
+    m.includes('clinic') ||
+    m.includes('doctor') ||
+    m.includes('appointment')
+  )
+    return '💈 The Services screen lets you book appointments at salons, barbershops, and medical clinics near you. Filter by type, pick a provider, and confirm your slot — no phone call needed.';
 
-  if (m.includes('tonight') || m.includes('event') || m.includes('concert') || m.includes('nightlife'))
+  if (
+    m.includes('tonight') ||
+    m.includes('event') ||
+    m.includes('concert') ||
+    m.includes('nightlife')
+  )
     return "🌙 The Tonight screen shows what's happening in Addis today — live music, theatre, rooftop bars, markets, and cultural events. Filter by category and tap any spot for details and directions.";
 
   if (m.includes('kyc') || m.includes('fayda') || m.includes('verify') || m.includes('identity'))
-    return "🆔 To verify your identity with Fayda:\n1. Open Profile → Verify Identity (KYC)\n2. Enter your 12-digit Fayda FIN\n3. Enter your full name as it appears on your ID\n\nVerification unlocks higher wallet limits and premium services.";
+    return '🆔 To verify your identity with Fayda:\n1. Open Profile → Verify Identity (KYC)\n2. Enter your 12-digit Fayda FIN\n3. Enter your full name as it appears on your ID\n\nVerification unlocks higher wallet limits and premium services.';
 
   if (m.includes('hello') || m.includes('hi') || m.includes('hey') || m.includes('selam'))
     return "Selam! 👋 I'm CityLink AI. I can help you with LRT, parking, jobs, food delivery, ekub savings, real estate, exchange rates, and more.\n\nWhat can I help you with today?";

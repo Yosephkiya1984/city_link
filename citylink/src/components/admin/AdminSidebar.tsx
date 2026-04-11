@@ -1,5 +1,14 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  StyleSheet,
+  Dimensions,
+  Alert,
+  Platform,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize } from '../../theme';
@@ -11,11 +20,16 @@ const IS_TABLET = SCREEN_WIDTH > 768;
 
 export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, toggleCollapse }) {
   const theme = useTheme();
-  const resetStore = useAppStore(s => s.reset);
+  const resetStore = useAppStore((s) => s.reset);
 
   const navItems = [
     { id: 'overview', label: 'Monitor', icon: 'grid-outline', mIcon: 'view-dashboard-outline' },
-    { id: 'merchants', label: 'Shops', icon: 'checkmark-circle-outline', mIcon: 'store-search-outline' },
+    {
+      id: 'merchants',
+      label: 'Shops',
+      icon: 'checkmark-circle-outline',
+      mIcon: 'store-search-outline',
+    },
     { id: 'drivers', label: 'Agents', icon: 'bicycle-outline', mIcon: 'moped-outline' },
     { id: 'disputes', label: 'Disputes', icon: 'hammer-outline', mIcon: 'gavel' },
     { id: 'users', label: 'Identities', icon: 'people-outline', mIcon: 'account-group-outline' },
@@ -24,43 +38,48 @@ export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, togg
   ];
 
   const handleLogout = () => {
-    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); } catch (e) {}
-    
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } catch (e) {}
+
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to exit the admin portal?')) {
         resetStore().then(() => {
-          try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch (e) {}
+          try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch (e) {}
         });
       }
       return;
     }
 
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to exit the admin portal?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: async () => {
-            await resetStore();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-        }
-      ]
-    );
+    Alert.alert('Sign Out', 'Are you sure you want to exit the admin portal?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await resetStore();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+    ]);
   };
 
   const sidebarWidth = isCollapsed ? 80 : 240;
 
   return (
-    <View style={[styles.container, { 
-      width: sidebarWidth, 
-      backgroundColor: theme.lift, 
-      borderColor: theme.rim,
-      paddingTop: 60,
-    }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          width: sidebarWidth,
+          backgroundColor: theme.lift,
+          borderColor: theme.rim,
+          paddingTop: 60,
+        },
+      ]}
+    >
       {/* Brand Header */}
       <View style={[styles.header, { paddingHorizontal: isCollapsed ? 0 : 24 }]}>
         <View style={[styles.logo, { backgroundColor: theme.primary }]}>
@@ -68,8 +87,12 @@ export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, togg
         </View>
         {!isCollapsed && (
           <View style={{ marginLeft: 12 }}>
-            <Text style={[styles.brandName, { color: theme.text, fontFamily: Fonts.headline }]}>CITYLINK</Text>
-            <Text style={[styles.brandSub, { color: theme.primary, fontFamily: Fonts.label }]}>ADMIN OPS</Text>
+            <Text style={[styles.brandName, { color: theme.text, fontFamily: Fonts.headline }]}>
+              CITYLINK
+            </Text>
+            <Text style={[styles.brandSub, { color: theme.primary, fontFamily: Fonts.label }]}>
+              ADMIN OPS
+            </Text>
           </View>
         )}
       </View>
@@ -84,32 +107,39 @@ export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, togg
               onPress={() => onTabChange(item.id)}
               style={[
                 styles.navItem,
-                { 
+                {
                   justifyContent: isCollapsed ? 'center' : 'flex-start',
                   backgroundColor: isActive ? theme.primaryL : 'transparent',
-                }
+                },
               ]}
             >
-              <View style={[styles.iconBox, { 
-                backgroundColor: isActive ? theme.primary : 'transparent',
-                width: isCollapsed ? 48 : 40,
-                height: isCollapsed ? 48 : 40,
-              }]}>
-                <MaterialCommunityIcons 
-                  name={item.mIcon} 
-                  size={isActive ? 20 : 22} 
-                  color={isActive ? theme.ink : theme.sub} 
+              <View
+                style={[
+                  styles.iconBox,
+                  {
+                    backgroundColor: isActive ? theme.primary : 'transparent',
+                    width: isCollapsed ? 48 : 40,
+                    height: isCollapsed ? 48 : 40,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={item.mIcon}
+                  size={isActive ? 20 : 22}
+                  color={isActive ? theme.ink : theme.sub}
                 />
               </View>
               {!isCollapsed && (
-                <Text style={[
-                  styles.navText, 
-                  { 
-                    color: isActive ? theme.text : theme.sub, 
-                    fontFamily: isActive ? Fonts.label : Fonts.body,
-                    fontSize: FontSize.md
-                  }
-                ]}>
+                <Text
+                  style={[
+                    styles.navText,
+                    {
+                      color: isActive ? theme.text : theme.sub,
+                      fontFamily: isActive ? Fonts.label : Fonts.body,
+                      fontSize: FontSize.md,
+                    },
+                  ]}
+                >
                   {item.label}
                 </Text>
               )}
@@ -123,14 +153,14 @@ export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, togg
 
       {/* Collapse Toggle */}
       {IS_TABLET && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={toggleCollapse}
           style={[styles.toggleBtn, { backgroundColor: theme.rim }]}
         >
-          <Ionicons 
-            name={isCollapsed ? 'chevron-forward' : 'chevron-back'} 
-            size={18} 
-            color={theme.sub} 
+          <Ionicons
+            name={isCollapsed ? 'chevron-forward' : 'chevron-back'}
+            size={18}
+            color={theme.sub}
           />
         </TouchableOpacity>
       )}
@@ -142,11 +172,19 @@ export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, togg
         </View>
         {!isCollapsed && (
           <View style={{ marginLeft: 12, flex: 1 }}>
-            <Text style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]} numberOfLines={1}>Admin</Text>
+            <Text
+              style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}
+              numberOfLines={1}
+            >
+              Admin
+            </Text>
             <Text style={[styles.userRole, { color: theme.sub }]}>Super User</Text>
           </View>
         )}
-        <TouchableOpacity onPress={handleLogout} style={[styles.logoutBtn, isCollapsed && { marginTop: 12 }]}>
+        <TouchableOpacity
+          onPress={handleLogout}
+          style={[styles.logoutBtn, isCollapsed && { marginTop: 12 }]}
+        >
           <MaterialCommunityIcons name="logout" size={20} color={theme.red} />
         </TouchableOpacity>
       </View>
@@ -250,5 +288,5 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     padding: 8,
-  }
+  },
 });

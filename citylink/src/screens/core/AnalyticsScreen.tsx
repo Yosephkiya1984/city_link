@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, Animated, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+  Animated,
+  FlatList,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
@@ -76,7 +84,7 @@ const INSIGHTS = [
   {
     id: 'savings',
     title: 'Savings Progress',
-    insight: 'You\'re 75% towards your emergency fund goal',
+    insight: "You're 75% towards your emergency fund goal",
     recommendation: 'Keep up the great work!',
     type: 'success',
     icon: 'checkmark-circle',
@@ -106,7 +114,7 @@ export default function AnalyticsScreen() {
   // Initialize animated values
   useEffect(() => {
     const values = {};
-    Object.keys(ANALYTICS_METRICS).forEach(key => {
+    Object.keys(ANALYTICS_METRICS).forEach((key) => {
       values[key] = new Animated.Value(0);
     });
     setAnimatedValues(values);
@@ -126,8 +134,8 @@ export default function AnalyticsScreen() {
   const analyticsData = useMemo(() => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    
-    const monthTransactions = (transactions || []).filter(t => {
+
+    const monthTransactions = (transactions || []).filter((t) => {
       const date = new Date(t.created_at);
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     });
@@ -139,8 +147,12 @@ export default function AnalyticsScreen() {
       return acc;
     }, {});
 
-    const totalSpending = Object.values(spendingByCategory).reduce((sum, amount) => sum + amount, 0);
-    const averageTransaction = monthTransactions.length > 0 ? totalSpending / monthTransactions.length : 0;
+    const totalSpending = Object.values(spendingByCategory).reduce(
+      (sum, amount) => sum + amount,
+      0
+    );
+    const averageTransaction =
+      monthTransactions.length > 0 ? totalSpending / monthTransactions.length : 0;
 
     return {
       totalSpending,
@@ -175,14 +187,16 @@ export default function AnalyticsScreen() {
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: metric.color + '20',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: metric.color + '20',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <Ionicons name={metric.icon} size={20} color={metric.color} />
             </View>
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black, flex: 1 }}>
@@ -199,7 +213,7 @@ export default function AnalyticsScreen() {
                   key={index}
                   style={{
                     flex: 1,
-                    height: (item.amount / Math.max(...metric.data.map(d => d.amount))) * 50,
+                    height: (item.amount / Math.max(...metric.data.map((d) => d.amount))) * 50,
                     backgroundColor: metric.color,
                     borderRadius: 4,
                   }}
@@ -261,9 +275,20 @@ export default function AnalyticsScreen() {
           </Text>
           {/* Custom Line Chart */}
           <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 16, ...Shadow.md }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}
+            >
               {metric.data.map((item, index) => (
-                <Text key={index} style={{ color: C.sub, fontSize: 10, fontFamily: Fonts.medium, textAlign: 'center', flex: 1 }}>
+                <Text
+                  key={index}
+                  style={{
+                    color: C.sub,
+                    fontSize: 10,
+                    fontFamily: Fonts.medium,
+                    textAlign: 'center',
+                    flex: 1,
+                  }}
+                >
                   {item.month}
                 </Text>
               ))}
@@ -274,12 +299,14 @@ export default function AnalyticsScreen() {
                   <View
                     style={{
                       width: '80%',
-                      height: (item.amount / Math.max(...metric.data.map(d => d.amount))) * 100,
+                      height: (item.amount / Math.max(...metric.data.map((d) => d.amount))) * 100,
                       backgroundColor: metric.color,
                       borderRadius: 4,
                     }}
                   />
-                  <Text style={{ color: C.text, fontSize: 8, fontFamily: Fonts.medium, marginTop: 4 }}>
+                  <Text
+                    style={{ color: C.text, fontSize: 8, fontFamily: Fonts.medium, marginTop: 4 }}
+                  >
                     {fmtETB(item.amount)}
                   </Text>
                 </View>
@@ -300,7 +327,14 @@ export default function AnalyticsScreen() {
           <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 16, ...Shadow.md }}>
             {metric.data.map((item, index) => (
               <View key={index} style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}
+                >
                   <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.medium }}>
                     {item.mode}
                   </Text>
@@ -332,8 +366,19 @@ export default function AnalyticsScreen() {
             {metric.title}
           </Text>
           {metric.data.map((item, index) => (
-            <View key={index} style={{ backgroundColor: C.surface, borderRadius: 16, padding: 16, marginBottom: 12, ...Shadow.md }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <View
+              key={index}
+              style={{
+                backgroundColor: C.surface,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 12,
+                ...Shadow.md,
+              }}
+            >
+              <View
+                style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}
+              >
                 <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
                   {item.category}
                 </Text>
@@ -368,39 +413,55 @@ export default function AnalyticsScreen() {
           </Text>
           {/* Custom Activity Chart */}
           <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 16, ...Shadow.md }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}
+            >
               <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>Day</Text>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>Transactions</Text>
+              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>
+                Transactions
+              </Text>
               <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>Logins</Text>
             </View>
             {metric.data.map((item, index) => (
-              <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <View
+                key={index}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12,
+                }}
+              >
                 <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.medium, flex: 1 }}>
                   {item.day}
                 </Text>
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                  <View style={{ 
-                    width: 30, 
-                    height: 30, 
-                    borderRadius: 15, 
-                    backgroundColor: metric.color + '20', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }}>
+                  <View
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: metric.color + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
                     <Text style={{ color: metric.color, fontSize: 12, fontFamily: Fonts.black }}>
                       {item.transactions}
                     </Text>
                   </View>
                 </View>
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                  <View style={{ 
-                    width: 30, 
-                    height: 30, 
-                    borderRadius: 15, 
-                    backgroundColor: C.primary + '20', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }}>
+                  <View
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: C.primary + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
                     <Text style={{ color: C.primary, fontSize: 12, fontFamily: Fonts.black }}>
                       {item.logins}
                     </Text>
@@ -433,27 +494,42 @@ export default function AnalyticsScreen() {
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-            <View style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: insight.type === 'success' ? C.green + '20' : 
-                             insight.type === 'warning' ? C.amber + '20' : C.primary + '20',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor:
+                  insight.type === 'success'
+                    ? C.green + '20'
+                    : insight.type === 'warning'
+                      ? C.amber + '20'
+                      : C.primary + '20',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <Ionicons
                 name={insight.icon}
                 size={16}
-                color={insight.type === 'success' ? C.green : 
-                       insight.type === 'warning' ? C.amber : C.primary}
+                color={
+                  insight.type === 'success'
+                    ? C.green
+                    : insight.type === 'warning'
+                      ? C.amber
+                      : C.primary
+                }
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, marginBottom: 4 }}>
+              <Text
+                style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, marginBottom: 4 }}
+              >
                 {insight.title}
               </Text>
-              <Text style={{ color: C.sub, fontSize: 14, fontFamily: Fonts.medium, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.sub, fontSize: 14, fontFamily: Fonts.medium, marginBottom: 8 }}
+              >
                 {insight.insight}
               </Text>
               <Text style={{ color: C.primary, fontSize: 12, fontFamily: Fonts.bold }}>
@@ -468,21 +544,42 @@ export default function AnalyticsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar title="📊 Analytics" right={
-        <TouchableOpacity onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          showToast('Analytics refreshed!', 'success');
-        }}
-          style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.lg,
-            backgroundColor: C.primaryL, borderWidth: 1, borderColor: C.edge2 }}>
-          <Text style={{ color: C.primary, fontSize: FontSize.xs, fontWeight: '700' }}>Refresh</Text>
-        </TouchableOpacity>
-      } />
+      <TopBar
+        title="📊 Analytics"
+        right={
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              showToast('Analytics refreshed!', 'success');
+            }}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: Radius.lg,
+              backgroundColor: C.primaryL,
+              borderWidth: 1,
+              borderColor: C.edge2,
+            }}
+          >
+            <Text style={{ color: C.primary, fontSize: FontSize.xs, fontWeight: '700' }}>
+              Refresh
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 20 }}>
         {/* Summary Cards */}
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-          <View style={{ flex: 1, backgroundColor: C.surface, borderRadius: Radius.xl, padding: 16, ...Shadow.md }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: C.surface,
+              borderRadius: Radius.xl,
+              padding: 16,
+              ...Shadow.md,
+            }}
+          >
             <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginBottom: 4 }}>
               Total Balance
             </Text>
@@ -490,7 +587,15 @@ export default function AnalyticsScreen() {
               {fmtETB(balance)}
             </Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: C.surface, borderRadius: Radius.xl, padding: 16, ...Shadow.md }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: C.surface,
+              borderRadius: Radius.xl,
+              padding: 16,
+              ...Shadow.md,
+            }}
+          >
             <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginBottom: 4 }}>
               Monthly Spending
             </Text>
@@ -501,8 +606,11 @@ export default function AnalyticsScreen() {
         </View>
 
         {/* Period Selector */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, marginBottom: 20 }}
+        >
           {['week', 'month', 'quarter', 'year'].map((period) => (
             <TouchableOpacity
               key={period}
@@ -516,12 +624,14 @@ export default function AnalyticsScreen() {
                 borderColor: selectedPeriod === period ? C.primary : C.edge,
               }}
             >
-              <Text style={{
-                color: selectedPeriod === period ? C.white : C.text,
-                fontSize: FontSize.sm,
-                fontFamily: Fonts.bold,
-                textTransform: 'capitalize',
-              }}>
+              <Text
+                style={{
+                  color: selectedPeriod === period ? C.white : C.text,
+                  fontSize: FontSize.sm,
+                  fontFamily: Fonts.bold,
+                  textTransform: 'capitalize',
+                }}
+              >
                 {period}
               </Text>
             </TouchableOpacity>
@@ -532,7 +642,9 @@ export default function AnalyticsScreen() {
         {selectedMetric === 'overview' ? (
           <View>
             <SectionTitle title="Overview" />
-            {Object.entries(ANALYTICS_METRICS).map(([key, metric]) => renderOverviewCard(key, metric))}
+            {Object.entries(ANALYTICS_METRICS).map(([key, metric]) =>
+              renderOverviewCard(key, metric)
+            )}
           </View>
         ) : (
           <View>

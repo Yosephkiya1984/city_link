@@ -1,7 +1,17 @@
 ﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { 
-  View, Text, ScrollView, TouchableOpacity, Animated, 
-  Image, StyleSheet, StatusBar, Dimensions, FlatList, ActivityIndicator, RefreshControl
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Animated,
+  Image,
+  StyleSheet,
+  StatusBar,
+  Dimensions,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,25 +35,25 @@ const COLORS = {
   'surface-container-highest': '#32353b',
   'on-surface': '#e1e2ea',
   'on-surface-variant': '#bccabe',
-  'outline': '#869489',
+  outline: '#869489',
   'outline-variant': '#3d4a41',
-  'primary': '#59de9b',
+  primary: '#59de9b',
   'primary-container': '#00a86b',
   'primary-fixed': '#78fbb6',
   'on-primary': '#003921',
   'on-primary-container': '#00331d',
-  'secondary': '#ffd887',
+  secondary: '#ffd887',
   'secondary-container': '#f4b700',
   'on-secondary': '#402d00',
   'on-secondary-container': '#654a00',
   'inverse-surface': '#e1e2ea',
   'inverse-primary': '#006d43',
-  'error': '#ffb4ab',
-  'tertiary': '#ffb4aa',
+  error: '#ffb4ab',
+  tertiary: '#ffb4aa',
   'tertiary-container': '#ff5a4c',
   'on-tertiary': '#690004',
   'on-tertiary-container': '#600003',
-  'background': '#101319',
+  background: '#101319',
   'on-background': '#e1e2ea',
 };
 
@@ -55,8 +65,8 @@ const EnhancedTopBar = ({ balance }) => {
         <Text style={styles.brandName}>Digital Ekub</Text>
       </View>
       <View style={styles.balanceContainer}>
-         <Text style={styles.balanceLabel}>Wallet</Text>
-         <Text style={styles.balanceAmount}>ETB {balance.toLocaleString()}</Text>
+        <Text style={styles.balanceLabel}>Wallet</Text>
+        <Text style={styles.balanceAmount}>ETB {balance.toLocaleString()}</Text>
       </View>
     </View>
   );
@@ -64,17 +74,30 @@ const EnhancedTopBar = ({ balance }) => {
 
 // â”€â”€ Active Circle Item Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ActiveCircleItem = ({ circle, onContribute }) => {
-  const progress = (circle.pot_balance / (circle.contribution_amount * (circle.total_members || 10))) * 100;
-  
+  const progress =
+    (circle.pot_balance / (circle.contribution_amount * (circle.total_members || 10))) * 100;
+
   return (
     <TouchableOpacity style={styles.activeCircleItem}>
       <View style={styles.circleProgressContainer}>
         <Svg width="56" height="56" style={{ transform: [{ rotate: '-90deg' }] }}>
-          <Circle cx="28" cy="28" r="24" fill="transparent" stroke={COLORS['surface-container-highest']} strokeWidth="4" />
           <Circle
-            cx="28" cy="28" r="24" fill="transparent"
-            stroke={COLORS.primary} strokeWidth="4"
-            strokeDasharray="150" strokeDashoffset={150 - (Math.min(progress, 100) / 100) * 150}
+            cx="28"
+            cy="28"
+            r="24"
+            fill="transparent"
+            stroke={COLORS['surface-container-highest']}
+            strokeWidth="4"
+          />
+          <Circle
+            cx="28"
+            cy="28"
+            r="24"
+            fill="transparent"
+            stroke={COLORS.primary}
+            strokeWidth="4"
+            strokeDasharray="150"
+            strokeDashoffset={150 - (Math.min(progress, 100) / 100) * 150}
           />
         </Svg>
         <View style={styles.circleProgressText}>
@@ -83,7 +106,9 @@ const ActiveCircleItem = ({ circle, onContribute }) => {
       </View>
       <View style={styles.circleInfo}>
         <Text style={styles.circleName}>{circle.name}</Text>
-        <Text style={styles.circleDetails}>Round {circle.current_round || 1} â€¢ ETB {circle.contribution_amount?.toLocaleString()}</Text>
+        <Text style={styles.circleDetails}>
+          Round {circle.current_round || 1} â€¢ ETB {circle.contribution_amount?.toLocaleString()}
+        </Text>
       </View>
       <TouchableOpacity style={styles.payButton} onPress={() => onContribute(circle)}>
         <Text style={styles.payButtonText}>PAY</Text>
@@ -105,11 +130,15 @@ const VerifiedCircleCard = ({ circle, onJoin }) => {
       <View style={styles.verifiedCircleStats}>
         <View style={styles.verifiedCircleStat}>
           <Text style={styles.verifiedCircleStatLabel}>Monthly</Text>
-          <Text style={styles.verifiedCircleStatValue}>ETB {circle.contribution_amount?.toLocaleString()}</Text>
+          <Text style={styles.verifiedCircleStatValue}>
+            ETB {circle.contribution_amount?.toLocaleString()}
+          </Text>
         </View>
         <View style={styles.verifiedCircleStat}>
           <Text style={styles.verifiedCircleStatLabel}>Members</Text>
-          <Text style={styles.verifiedCircleStatValue}>{circle.total_members || 'Verified Only'}</Text>
+          <Text style={styles.verifiedCircleStatValue}>
+            {circle.total_members || 'Verified Only'}
+          </Text>
         </View>
       </View>
       <TouchableOpacity style={styles.verifiedCircleButton} onPress={() => onJoin(circle)}>
@@ -132,11 +161,8 @@ export default function EkubScreen() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [allRes, myRes] = await Promise.all([
-      fetchEkubs(),
-      fetchMyEkubs(currentUser?.id)
-    ]);
-    
+    const [allRes, myRes] = await Promise.all([fetchEkubs(), fetchMyEkubs(currentUser?.id)]);
+
     if (allRes.data) setEkubs(allRes.data);
     if (myRes.data) setMyEkubs(myRes.data);
     setLoading(false);
@@ -169,7 +195,7 @@ export default function EkubScreen() {
   const handleContribute = async (circle) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const res = await contributeToEkub(currentUser.id, circle.id, circle.current_round || 1);
-    
+
     if (res.data?.ok) {
       showToast('Contribution successful!', 'success');
       setBalance(res.data.new_balance);
@@ -183,28 +209,46 @@ export default function EkubScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.surface} />
       <EnhancedTopBar balance={balance} />
-      
-      <ScrollView 
+
+      <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+          />
+        }
       >
         <View style={styles.content}>
           <View style={styles.tabSwitcher}>
-            <TouchableOpacity style={[styles.tab, activeTab === 'browse' && styles.activeTab]} onPress={() => setActiveTab('browse')}>
-              <Text style={[styles.tabText, activeTab === 'browse' && styles.activeTabText]}>Browse</Text>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'browse' && styles.activeTab]}
+              onPress={() => setActiveTab('browse')}
+            >
+              <Text style={[styles.tabText, activeTab === 'browse' && styles.activeTabText]}>
+                Browse
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.tab, activeTab === 'mine' && styles.activeTab]} onPress={() => setActiveTab('mine')}>
-              <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>My Circles</Text>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'mine' && styles.activeTab]}
+              onPress={() => setActiveTab('mine')}
+            >
+              <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>
+                My Circles
+              </Text>
             </TouchableOpacity>
           </View>
-          
+
           {loading ? (
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
           ) : (
             <>
               {activeTab === 'browse' ? (
                 <View style={{ paddingHorizontal: 24 }}>
-                  <LiveDrawBanner onEnterDraw={() => showToast('Draw entry processing...', 'info')} />
+                  <LiveDrawBanner
+                    onEnterDraw={() => showToast('Draw entry processing...', 'info')}
+                  />
                   <Text style={styles.sectionTitle}>Available Circles</Text>
                   <View style={styles.verifiedCirclesGrid}>
                     {ekubs.map((circle) => (
@@ -216,7 +260,9 @@ export default function EkubScreen() {
                 <View style={styles.emptyState}>
                   <Ionicons name="people" size={64} color={COLORS.outline} />
                   <Text style={styles.emptyStateTitle}>No Active Circles</Text>
-                  <Text style={styles.emptyStateSubtitle}>Join verified circles to get started</Text>
+                  <Text style={styles.emptyStateSubtitle}>
+                    Join verified circles to get started
+                  </Text>
                 </View>
               )}
             </>
@@ -233,7 +279,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  
+
   // Top Bar
   topBar: {
     position: 'absolute',
@@ -299,7 +345,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontFamily: Fonts.headline,
   },
-  
+
   // Tab Switcher
   tabSwitcher: {
     flexDirection: 'row',
@@ -328,7 +374,7 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: COLORS['on-primary'],
   },
-  
+
   // Content
   scrollView: {
     flex: 1,
@@ -340,14 +386,14 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  
+
   // Bento Row (Reliability Score + Total Saved)
   bentoRow: {
     flexDirection: 'row',
     gap: 16,
     marginBottom: 32,
   },
-  
+
   // Sections
   section: {
     marginBottom: 32,
@@ -370,7 +416,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
   },
-  
+
   // Live Draw Banner
   liveDrawBanner: {
     position: 'relative',
@@ -494,7 +540,7 @@ const styles = StyleSheet.create({
     color: COLORS.background,
     fontFamily: Fonts.label,
   },
-  
+
   // Reliability Score
   reliabilityCard: {
     flex: 1,
@@ -569,7 +615,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 3,
   },
-  
+
   // Total Saved
   totalSaved: {
     flex: 1,
@@ -608,7 +654,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.05,
   },
-  
+
   // Active Circle Item
   activeCircleItem: {
     backgroundColor: COLORS['surface-container'],
@@ -670,7 +716,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '700',
   },
-  
+
   // Verified Circle Card
   verifiedCircleCard: {
     backgroundColor: COLORS['surface-container-low'],
@@ -775,7 +821,7 @@ const styles = StyleSheet.create({
     color: COLORS['on-surface'],
     fontFamily: Fonts.label,
   },
-  
+
   // Lists
   circlesList: {
     gap: 12,
@@ -783,7 +829,7 @@ const styles = StyleSheet.create({
   verifiedCirclesGrid: {
     gap: 16,
   },
-  
+
   // Empty State
   emptyState: {
     alignItems: 'center',
@@ -804,7 +850,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
-  
+
   // Reliability Score Part 2
   reliabilityContent: {
     position: 'relative',
@@ -854,7 +900,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 3,
   },
-  
+
   // Circular Progress
   circularProgress: {
     position: 'relative',
@@ -881,7 +927,7 @@ const styles = StyleSheet.create({
 // â”€â”€ Live Draw Banner Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LiveDrawBanner = ({ onEnterDraw }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  
+
   const handlePressIn = useCallback(() => {
     Animated.spring(scaleAnim, {
       toValue: 0.95,
@@ -909,12 +955,12 @@ const LiveDrawBanner = ({ onEnterDraw }) => {
         end={{ x: 1, y: 1 }}
         style={styles.ekubGradient}
       />
-      
+
       {/* Campaign Icon */}
       <View style={styles.campaignIcon}>
         <Ionicons name="megaphone" size={60} color="#ffffff" style={{ opacity: 0.1 }} />
       </View>
-      
+
       <View style={styles.bannerContent}>
         <View style={styles.bannerHeader}>
           <View style={styles.bannerTitle}>
@@ -923,34 +969,36 @@ const LiveDrawBanner = ({ onEnterDraw }) => {
             </View>
             <Text style={styles.bannerTitleText}>Merchant Circle B</Text>
           </View>
-          
+
           <View style={styles.bannerStatus}>
             <Text style={styles.statusText}>Draw Status</Text>
             <Text style={styles.statusValue}>2/2 VOUCHES</Text>
           </View>
         </View>
-        
+
         <View style={styles.participants}>
           <View style={styles.participant}>
-            <Image 
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBIkAjegzXnN12qnI8XKQqxGAy8gRqGh-vvtf0aJanZf0LJKjVYoSU4hRPhdByS7krpMb5TqvmloOtrAlesQE5UW6MpuxkO9USeQ45O4Jb9Gpc3if974FjQCqzanIVj96VVCWLDQVqnDwZOLzDACeyOEi-91FdSWWofB1ru_dr2CKfLqmB15NPBP005YMrK0Y-1ULgLuJ_zfKPV5bGFBm3XYwcQyU41Bhd1kHjToq4PL3crgsU4lNxHNNoy-hC4O6HLWhKLgGZECS_l' }} 
-              style={styles.participantImage} 
+            <Image
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBIkAjegzXnN12qnI8XKQqxGAy8gRqGh-vvtf0aJanZf0LJKjVYoSU4hRPhdByS7krpMb5TqvmloOtrAlesQE5UW6MpuxkO9USeQ45O4Jb9Gpc3if974FjQCqzanIVj96VVCWLDQVqnDwZOLzDACeyOEi-91FdSWWofB1ru_dr2CKfLqmB15NPBP005YMrK0Y-1ULgLuJ_zfKPV5bGFBm3XYwcQyU41Bhd1kHjToq4PL3crgsU4lNxHNNoy-hC4O6HLWhKLgGZECS_l',
+              }}
+              style={styles.participantImage}
             />
           </View>
           <View style={styles.participant}>
-            <Image 
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYAMffzBbdeY7wFDdUuv0y-dCnU1s-pPr8EW43aR1vzRy-Zy3b6U7lj53QKkedfuScwFoAjWnuxCyUfHYMGuFD0BBIS7L1dkQfMZ7AablY5hd7lU33pNbVw7PR7LQ-WBGJhq484NzP3s4S2XExf6mg0sFOB08eECwPluTH8PRYWGoekkgRMoLUemOdNRI5XGlCUbGBu0cIrApI5wSopB9PM_0ZzohXHGMsaCvoauGwb0MfNrryZeZrrQH7Gkd6kaQyvrvtwQaHPYo' }} 
-              style={styles.participantImage} 
+            <Image
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYAMffzBbdeY7wFDdUuv0y-dCnU1s-pPr8EW43aR1vzRy-Zy3b6U7lj53QKkedfuScwFoAjWnuxCyUfHYMGuFD0BBIS7L1dkQfMZ7AablY5hd7lU33pNbVw7PR7LQ-WBGJhq484NzP3s4S2XExf6mg0sFOB08eECwPluTH8PRYWGoekkgRMoLUemOdNRI5XGlCUbGBu0cIrApI5wSopB9PM_0ZzohXHGMsaCvoauGwb0MfNrryZeZrrQH7Gkd6kaQyvrvtwQaHPYo',
+              }}
+              style={styles.participantImage}
             />
           </View>
           <View style={styles.participantsPlus}>
             <Text style={styles.participantsPlusText}>+18</Text>
           </View>
         </View>
-        
-        <Animated.View 
-          style={[styles.enterDrawButton, { transform: [{ scale: scaleAnim }] }]}
-        >
+
+        <Animated.View style={[styles.enterDrawButton, { transform: [{ scale: scaleAnim }] }]}>
           <TouchableOpacity
             onPress={onEnterDraw}
             onPressIn={handlePressIn}
@@ -1006,7 +1054,7 @@ const CircularProgress = ({ percentage, color, size = 56, strokeWidth = 4 }) => 
 const ReliabilityScore = () => {
   const score = 982;
   const percentage = 92;
-  
+
   return (
     <View style={styles.reliabilityCard}>
       {/* Pattern Overlay */}
@@ -1020,23 +1068,28 @@ const ReliabilityScore = () => {
               {
                 left: (i % 10) * 20,
                 top: Math.floor(i / 10) * 20,
-              }
+              },
             ]}
           />
         ))}
       </View>
-      
+
       <View style={styles.reliabilityContent}>
         <View style={styles.reliabilityHeader}>
           <Text style={styles.reliabilityLabel}>Reliability Score</Text>
-          <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary} style={{ backgroundColor: 'transparent' }} />
+          <Ionicons
+            name="checkmark-circle"
+            size={20}
+            color={COLORS.secondary}
+            style={{ backgroundColor: 'transparent' }}
+          />
         </View>
-        
+
         <View style={styles.reliabilityScoreRow}>
           <Text style={styles.reliabilityScoreNumber}>{score}</Text>
           <Text style={styles.reliabilityScoreChange}>+12% vs last mo.</Text>
         </View>
-        
+
         <View style={styles.reliabilityProgress}>
           <View style={[styles.reliabilityProgressCircle, { width: `${percentage}%` }]} />
         </View>

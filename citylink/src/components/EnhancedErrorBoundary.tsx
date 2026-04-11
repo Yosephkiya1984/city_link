@@ -24,7 +24,7 @@ const ERROR_TYPES = {
 
 function classifyError(error) {
   const message = error?.message || error?.toString() || '';
-  
+
   if (message.includes('Network') || message.includes('fetch') || message.includes('timeout')) {
     return ERROR_TYPES.NETWORK;
   }
@@ -43,7 +43,7 @@ function classifyError(error) {
   if (message.includes('render') || message.includes('component') || message.includes('props')) {
     return ERROR_TYPES.RENDER;
   }
-  
+
   return ERROR_TYPES.UNKNOWN;
 }
 
@@ -142,17 +142,19 @@ class ErrorBoundaryInner extends Component {
 
       // Store locally for later sync (using AsyncStorage for React Native)
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      AsyncStorage.getItem('error_logs').then((raw) => {
-        const storedErrors = JSON.parse(raw || '[]');
-        storedErrors.push(errorData);
-        
-        // Keep only last 50 errors
-        if (storedErrors.length > 50) {
-          storedErrors.splice(0, storedErrors.length - 50);
-        }
-        
-        AsyncStorage.setItem('error_logs', JSON.stringify(storedErrors));
-      }).catch(() => {});
+      AsyncStorage.getItem('error_logs')
+        .then((raw) => {
+          const storedErrors = JSON.parse(raw || '[]');
+          storedErrors.push(errorData);
+
+          // Keep only last 50 errors
+          if (storedErrors.length > 50) {
+            storedErrors.splice(0, storedErrors.length - 50);
+          }
+
+          AsyncStorage.setItem('error_logs', JSON.stringify(storedErrors));
+        })
+        .catch(() => {});
     } catch (e) {
       console.warn('Failed to log error to analytics:', e);
     }
@@ -243,11 +245,14 @@ class ErrorBoundaryInner extends Component {
         method: 'HEAD',
         timeout: 5000,
       });
-      
+
       if (response.ok) {
         this.setState({ hasError: false });
       } else {
-        Alert.alert('Network Issue', 'Unable to connect to servers. Please check your internet connection.');
+        Alert.alert(
+          'Network Issue',
+          'Unable to connect to servers. Please check your internet connection.'
+        );
       }
     } catch (error) {
       Alert.alert('Network Issue', 'No internet connection. Please check your network settings.');
@@ -316,7 +321,9 @@ Component Stack: ${errorInfo?.componentStack}
 Timestamp: ${new Date().toISOString()}
     `.trim();
 
-    Linking.openURL(`mailto:support@citylink.et?subject=Bug Report&body=${encodeURIComponent(bugReport)}`);
+    Linking.openURL(
+      `mailto:support@citylink.et?subject=Bug Report&body=${encodeURIComponent(bugReport)}`
+    );
   };
 
   contactSupport = () => {
@@ -340,22 +347,18 @@ Timestamp: ${new Date().toISOString()}
   };
 
   resetApp = () => {
-    Alert.alert(
-      'Reset App',
-      'This will reset all app data and settings. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            const { reset } = useAppStore.getState();
-            reset();
-            this.setState({ hasError: false });
-          },
+    Alert.alert('Reset App', 'This will reset all app data and settings. Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset',
+        style: 'destructive',
+        onPress: () => {
+          const { reset } = useAppStore.getState();
+          reset();
+          this.setState({ hasError: false });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   render() {
@@ -378,60 +381,72 @@ Timestamp: ${new Date().toISOString()}
       <View style={{ flex: 1, backgroundColor: C.ink, padding: 20 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
           <View style={{ alignItems: 'center', marginBottom: 30 }}>
-            <View style={{ 
-              width: 80, 
-              height: 80, 
-              borderRadius: 40, 
-              backgroundColor: C.red + '20', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              marginBottom: 20 
-            }}>
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: C.red + '20',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 20,
+              }}
+            >
               <Ionicons name="warning" size={40} color={C.red} />
             </View>
-            
-            <Text style={{ 
-              color: C.text, 
-              fontSize: 24, 
-              fontFamily: Fonts.black, 
-              textAlign: 'center', 
-              marginBottom: 10 
-            }}>
+
+            <Text
+              style={{
+                color: C.text,
+                fontSize: 24,
+                fontFamily: Fonts.black,
+                textAlign: 'center',
+                marginBottom: 10,
+              }}
+            >
               Oops! Something went wrong
             </Text>
-            
-            <Text style={{ 
-              color: C.sub, 
-              fontSize: 16, 
-              fontFamily: Fonts.medium, 
-              textAlign: 'center', 
-              marginBottom: 20,
-              lineHeight: 24 
-            }}>
+
+            <Text
+              style={{
+                color: C.sub,
+                fontSize: 16,
+                fontFamily: Fonts.medium,
+                textAlign: 'center',
+                marginBottom: 20,
+                lineHeight: 24,
+              }}
+            >
               {errorMessage}
             </Text>
-            
+
             {__DEV__ && (
-              <View style={{ 
-                backgroundColor: C.surface, 
-                padding: 15, 
-                borderRadius: Radius.lg, 
-                marginBottom: 20,
-                width: '100%' 
-              }}>
-                <Text style={{ 
-                  color: C.sub, 
-                  fontSize: 12, 
-                  fontFamily: Fonts.regular,
-                  marginBottom: 10 
-                }}>
+              <View
+                style={{
+                  backgroundColor: C.surface,
+                  padding: 15,
+                  borderRadius: Radius.lg,
+                  marginBottom: 20,
+                  width: '100%',
+                }}
+              >
+                <Text
+                  style={{
+                    color: C.sub,
+                    fontSize: 12,
+                    fontFamily: Fonts.regular,
+                    marginBottom: 10,
+                  }}
+                >
                   Error Details (Development Mode):
                 </Text>
-                <Text style={{ 
-                  color: C.hint, 
-                  fontSize: 10, 
-                  fontFamily: Fonts.regular 
-                }}>
+                <Text
+                  style={{
+                    color: C.hint,
+                    fontSize: 10,
+                    fontFamily: Fonts.regular,
+                  }}
+                >
                   {error?.stack || 'No stack trace available'}
                 </Text>
               </View>
@@ -444,26 +459,34 @@ Timestamp: ${new Date().toISOString()}
                 key={index}
                 title={action.label}
                 onPress={() => this.handleRecoveryAction(action.action)}
-                variant={action.action === 'sign_out' || action.action === 'reset_app' ? 'ghost' : 'primary'}
+                variant={
+                  action.action === 'sign_out' || action.action === 'reset_app'
+                    ? 'ghost'
+                    : 'primary'
+                }
                 style={{ marginBottom: 8 }}
               />
             ))}
           </View>
 
           {recoveryAttempted && (
-            <View style={{ 
-              marginTop: 20, 
-              padding: 15, 
-              backgroundColor: C.amberL, 
-              borderRadius: Radius.lg,
-              alignItems: 'center' 
-            }}>
-              <Text style={{ 
-                color: C.amber, 
-                fontSize: 14, 
-                fontFamily: Fonts.medium,
-                textAlign: 'center' 
-              }}>
+            <View
+              style={{
+                marginTop: 20,
+                padding: 15,
+                backgroundColor: C.amberL,
+                borderRadius: Radius.lg,
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  color: C.amber,
+                  fontSize: 14,
+                  fontFamily: Fonts.medium,
+                  textAlign: 'center',
+                }}
+              >
                 Recovery attempt in progress. If the issue persists, please contact support.
               </Text>
             </View>

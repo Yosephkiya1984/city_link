@@ -44,15 +44,15 @@ export interface FaydaKycData {
 // ── Fayda KYC Status Constants ───────────────────────────────────────────────────
 export const FAYDA_STATUS = {
   NOT_STARTED: 'NOT_STARTED',
-  INITIATED: 'INITIATED', 
+  INITIATED: 'INITIATED',
   PENDING_VERIFICATION: 'PENDING_VERIFICATION',
   VERIFIED: 'VERIFIED',
   REJECTED: 'REJECTED',
   EXPIRED: 'EXPIRED',
-  SUSPENDED: 'SUSPENDED'
+  SUSPENDED: 'SUSPENDED',
 } as const;
 
-export type FaydaStatus = typeof FAYDA_STATUS[keyof typeof FAYDA_STATUS];
+export type FaydaStatus = (typeof FAYDA_STATUS)[keyof typeof FAYDA_STATUS];
 
 // ── Ethiopian Fayda Mock Database (Realistic Ethiopian IDs) ───────────────────────
 export const FAYDA_MOCK_DATABASE = {
@@ -81,7 +81,7 @@ export const FAYDA_MOCK_DATABASE = {
     occupation: 'Software Engineer',
     employer: 'Ethio Telecom',
     marital_status: 'Single',
-    education_level: 'Bachelors Degree'
+    education_level: 'Bachelors Degree',
   },
   '1234567890123': {
     fayda_id: '1234567890123',
@@ -107,7 +107,7 @@ export const FAYDA_MOCK_DATABASE = {
     occupation: 'Bank Manager',
     employer: 'Commercial Bank of Ethiopia',
     marital_status: 'Married',
-    education_level: 'Masters Degree'
+    education_level: 'Masters Degree',
   },
   '2345678901234': {
     fayda_id: '2345678901234',
@@ -133,7 +133,7 @@ export const FAYDA_MOCK_DATABASE = {
     occupation: 'Teacher',
     employer: 'Adama Secondary School',
     marital_status: 'Single',
-    education_level: 'Bachelors Degree'
+    education_level: 'Bachelors Degree',
   },
   '3456789012345': {
     fayda_id: '3456789012345',
@@ -159,8 +159,8 @@ export const FAYDA_MOCK_DATABASE = {
     occupation: 'Nurse',
     employer: 'Bahir Dar Hospital',
     marital_status: 'Married',
-    education_level: 'Diploma'
-  }
+    education_level: 'Diploma',
+  },
 };
 
 // ── Fayda KYC Service Class ───────────────────────────────────────────────────────
@@ -173,14 +173,14 @@ export class FaydaKYCService {
         user_data: userData,
         initiated_at: new Date().toISOString(),
         status: FAYDA_STATUS.INITIATED,
-        reference_number: `FAYDA-${Date.now()}`
+        reference_number: `FAYDA-${Date.now()}`,
       };
 
       await AsyncStorage.setItem(FAYDA_TEMP_DATA, JSON.stringify(tempData));
-      
+
       // Simulate API call to Fayda system
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       return {
         success: true,
         reference_number: tempData.reference_number,
@@ -188,14 +188,14 @@ export class FaydaKYCService {
         next_steps: [
           'Visit nearest Fayda registration center',
           'Bring original ID documents',
-          'Complete biometric registration'
-        ]
+          'Complete biometric registration',
+        ],
       };
     } catch (error) {
       console.error('Fayda KYC initiation error:', error);
       return {
         success: false,
-        error: 'Failed to initiate KYC process'
+        error: 'Failed to initiate KYC process',
       };
     }
   }
@@ -204,26 +204,26 @@ export class FaydaKYCService {
   static async verifyFaydaID(faydaId: string, additionalData: any = {}) {
     try {
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // For demo purposes, accept any 13-digit Fayda ID and create a realistic profile
       if (!this.validateFaydaID(faydaId)) {
         return {
           success: false,
           error: 'Invalid Fayda ID format. Must be 13 digits.',
-          status: FAYDA_STATUS.REJECTED
+          status: FAYDA_STATUS.REJECTED,
         };
       }
 
       // Validate basic field requirements
       const validationErrors = this.validateAdditionalData({}, additionalData);
-      
+
       if (validationErrors.length > 0) {
         return {
           success: false,
           error: 'Validation failed',
           validation_errors: validationErrors,
-          status: FAYDA_STATUS.REJECTED
+          status: FAYDA_STATUS.REJECTED,
         };
       }
 
@@ -244,7 +244,9 @@ export class FaydaKYCService {
         iris_hash: `iris_hash_${faydaId.slice(-8)}`,
         verification_status: FAYDA_STATUS.VERIFIED,
         issued_date: new Date().toISOString().split('T')[0],
-        expiry_date: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 10 years from now
+        expiry_date: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0], // 10 years from now
         national_id: `ID${faydaId.slice(-9)}`,
         passport_number: `EP${faydaId.slice(-7)}`,
         blood_group: additionalData.blood_group || 'O+',
@@ -255,7 +257,7 @@ export class FaydaKYCService {
         education_level: additionalData.education_level || 'Bachelors Degree',
         verified_at: new Date().toISOString(),
         verification_method: 'digital_verification',
-        api_ready: false // Flag for real API integration
+        api_ready: false, // Flag for real API integration
       };
 
       await AsyncStorage.setItem(FAYDA_KYC_DATA, JSON.stringify(kycData));
@@ -264,14 +266,15 @@ export class FaydaKYCService {
 
       // Persist to Supabase if userId is provided
       if (additionalData.userId) {
-        await supaQuery(c => 
-          c.from('profiles')
-            .update({ 
+        await supaQuery((c) =>
+          c
+            .from('profiles')
+            .update({
               kyc_status: 'VERIFIED',
               full_name: kycData.full_name,
               is_verified: true,
               fayda_id: faydaId,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq('id', additionalData.userId)
         );
@@ -281,15 +284,14 @@ export class FaydaKYCService {
         success: true,
         status: FAYDA_STATUS.VERIFIED,
         kyc_data: kycData,
-        message: `Fayda KYC verification completed successfully for ${kycData.full_name}!`
+        message: `Fayda KYC verification completed successfully for ${kycData.full_name}!`,
       };
-
     } catch (error) {
       console.error('Fayda ID verification error:', error);
       return {
         success: false,
         error: 'Verification service temporarily unavailable',
-        status: FAYDA_STATUS.PENDING_VERIFICATION
+        status: FAYDA_STATUS.PENDING_VERIFICATION,
       };
     }
   }
@@ -304,14 +306,14 @@ export class FaydaKYCService {
       return {
         status: status ? JSON.parse(status) : FAYDA_STATUS.NOT_STARTED,
         kyc_data: data ? JSON.parse(data) : null,
-        temp_data: tempData ? JSON.parse(tempData) : null
+        temp_data: tempData ? JSON.parse(tempData) : null,
       };
     } catch (error) {
       console.error('Get KYC status error:', error);
       return {
         status: FAYDA_STATUS.NOT_STARTED,
         kyc_data: null,
-        temp_data: null
+        temp_data: null,
       };
     }
   }
@@ -331,7 +333,7 @@ export class FaydaKYCService {
       [FAYDA_STATUS.VERIFIED]: 100,
       [FAYDA_STATUS.REJECTED]: 0,
       [FAYDA_STATUS.EXPIRED]: 0,
-      [FAYDA_STATUS.SUSPENDED]: 0
+      [FAYDA_STATUS.SUSPENDED]: 0,
     };
     return progressMap[status] || 0;
   }
@@ -342,7 +344,7 @@ export class FaydaKYCService {
 
     // For demo purposes, accept any data - no strict validation
     // This allows users to enter their own fake data and feel the KYC experience
-    
+
     // Only check if fields are filled (basic validation)
     if (!additionalData.phone || additionalData.phone.trim().length < 9) {
       errors.push('Please enter a valid phone number (at least 9 digits)');
@@ -370,7 +372,7 @@ export class FaydaKYCService {
           phone: '+251118765432',
           hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
           coordinates: { lat: 9.0202, lng: 38.7466 },
-          services: ['Registration', 'Verification', 'Renewal']
+          services: ['Registration', 'Verification', 'Renewal'],
         },
         {
           id: '2',
@@ -379,10 +381,10 @@ export class FaydaKYCService {
           phone: '+251119876543',
           hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
           coordinates: { lat: 9.0114, lng: 38.7616 },
-          services: ['Registration', 'Verification', 'Renewal']
-        }
+          services: ['Registration', 'Verification', 'Renewal'],
+        },
       ],
-      'Oromia': [
+      Oromia: [
         {
           id: '3',
           name: 'Adama Fayda Registration Center',
@@ -390,10 +392,10 @@ export class FaydaKYCService {
           phone: '+251221123456',
           hours: 'Mon-Fri: 8:30 AM - 4:30 PM',
           coordinates: { lat: 8.5467, lng: 39.2749 },
-          services: ['Registration', 'Verification']
-        }
+          services: ['Registration', 'Verification'],
+        },
       ],
-      'Amhara': [
+      Amhara: [
         {
           id: '4',
           name: 'Bahir Dar Fayda Registration Center',
@@ -401,9 +403,9 @@ export class FaydaKYCService {
           phone: '+251587234567',
           hours: 'Mon-Fri: 8:30 AM - 4:30 PM',
           coordinates: { lat: 11.5937, lng: 37.3875 },
-          services: ['Registration', 'Verification']
-        }
-      ]
+          services: ['Registration', 'Verification'],
+        },
+      ],
     };
 
     return centers[region] || centers['Addis Ababa'];
@@ -439,36 +441,36 @@ export class FaydaKYCService {
         title: 'Fayda Digital ID',
         description: 'Valid 13-digit Fayda identification number',
         required: true,
-        verified: false
+        verified: false,
       },
       {
         id: 'phone_verification',
         title: 'Phone Verification',
         description: 'Mobile number registered with Fayda',
         required: true,
-        verified: false
+        verified: false,
       },
       {
         id: 'biometric',
         title: 'Biometric Data',
         description: 'Fingerprint and iris scan at registration center',
         required: true,
-        verified: false
+        verified: false,
       },
       {
         id: 'address_verification',
         title: 'Address Verification',
         description: 'Proof of residence in Ethiopia',
         required: true,
-        verified: false
+        verified: false,
       },
       {
         id: 'document_verification',
         title: 'Document Verification',
         description: 'National ID or passport verification',
         required: true,
-        verified: false
-      }
+        verified: false,
+      },
     ];
   }
 }
@@ -481,21 +483,24 @@ export class FaydaAPIIntegration {
     VERIFY_ID: '/identity/verify',
     GET_PROFILE: '/identity/profile',
     CHECK_STATUS: '/identity/status',
-    SUBMIT_KYC: '/kyc/submit'
+    SUBMIT_KYC: '/kyc/submit',
   };
 
   // Real API integration method (placeholder)
   static async verifyWithRealAPI(faydaId: string, authToken: string) {
     try {
       // This would be the real API call when available
-      const response = await fetch(`${this.API_ENDPOINTS.BASE_URL}${this.API_ENDPOINTS.VERIFY_ID}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ fayda_id: faydaId })
-      });
+      const response = await fetch(
+        `${this.API_ENDPOINTS.BASE_URL}${this.API_ENDPOINTS.VERIFY_ID}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ fayda_id: faydaId }),
+        }
+      );
 
       const data = await response.json();
       return data;

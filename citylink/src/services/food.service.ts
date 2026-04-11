@@ -4,9 +4,7 @@ import { hasSupabase, supaQuery } from './supabase';
  * fetchRestaurants — fetches all active restaurants.
  */
 export async function fetchRestaurants() {
-  return supaQuery((c) =>
-    c.from('restaurants').select('*').eq('is_open', true)
-  );
+  return supaQuery((c) => c.from('restaurants').select('*').eq('is_open', true));
 }
 
 /**
@@ -22,17 +20,19 @@ export async function fetchFoodItems(merchantId) {
  * placeOrder — places a new food order using atomic purchase RPC.
  */
 export async function placeOrder(orderData) {
-  const res = await supaQuery((c) => c.rpc('process_food_purchase', { 
-    p_order_id:      orderData.id,
-    p_citizen_id:   orderData.citizen_id,
-    p_merchant_id:  orderData.merchant_id,
-    p_restaurant_name: orderData.restaurant,
-    p_items_count:   orderData.items,
-    p_total:         orderData.total,
-    p_delivery_pin:  orderData.delivery_pin,
-    p_items_json:    orderData.items_json
-  }));
-  
+  const res = await supaQuery((c) =>
+    c.rpc('process_food_purchase', {
+      p_order_id: orderData.id,
+      p_citizen_id: orderData.citizen_id,
+      p_merchant_id: orderData.merchant_id,
+      p_restaurant_name: orderData.restaurant,
+      p_items_count: orderData.items,
+      p_total: orderData.total,
+      p_delivery_pin: orderData.delivery_pin,
+      p_items_json: orderData.items_json,
+    })
+  );
+
   if (res.error) return { ok: false, error: res.error };
   return { ok: true, data: res.data };
 }
@@ -42,7 +42,11 @@ export async function placeOrder(orderData) {
  */
 export async function fetchMyFoodOrders(userId) {
   return supaQuery((c) =>
-    c.from('food_orders').select('*').eq('citizen_id', userId).order('created_at', { ascending: false })
+    c
+      .from('food_orders')
+      .select('*')
+      .eq('citizen_id', userId)
+      .order('created_at', { ascending: false })
   );
 }
 
@@ -50,11 +54,13 @@ export async function fetchMyFoodOrders(userId) {
  * completeFoodOrder — processes payout for a completed food order.
  */
 export async function completeFoodOrder(orderId, merchantId) {
-  const res = await supaQuery((c) => c.rpc('complete_food_order_payout', { 
-    p_order_id: orderId, 
-    p_merchant_id: merchantId 
-  }));
-  
+  const res = await supaQuery((c) =>
+    c.rpc('complete_food_order_payout', {
+      p_order_id: orderId,
+      p_merchant_id: merchantId,
+    })
+  );
+
   if (res.error) return { ok: false, error: res.error };
   return { ok: true, merchantNewBalance: res.data?.new_balance };
 }
@@ -64,7 +70,8 @@ export async function completeFoodOrder(orderId, merchantId) {
  */
 export async function fetchFoodOrdersByMerchant(merchantId) {
   return supaQuery((c) =>
-    c.from('food_orders')
+    c
+      .from('food_orders')
       .select('*')
       .eq('merchant_id', merchantId)
       .order('created_at', { ascending: false })
@@ -76,31 +83,69 @@ export async function fetchFoodOrdersByMerchant(merchantId) {
 
 export const fetchRestaurantOrders = async (merchantId) => {
   if (!hasSupabase()) {
-    return { 
+    return {
       data: [
-        { id: 'order1', restaurant_id: merchantId, customer_name: 'Dawit H.', items: [{name: 'Injera', quantity: 2}], total: 1200, status: 'NEW', created_at: new Date().toISOString() },
-        { id: 'order2', restaurant_id: merchantId, customer_name: 'Tigist B.', items: [{name: 'Tibs', quantity: 1}], total: 850, status: 'PREPARING', created_at: new Date(Date.now() - 3600000).toISOString() }
-      ], 
-      error: null 
+        {
+          id: 'order1',
+          restaurant_id: merchantId,
+          customer_name: 'Dawit H.',
+          items: [{ name: 'Injera', quantity: 2 }],
+          total: 1200,
+          status: 'NEW',
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'order2',
+          restaurant_id: merchantId,
+          customer_name: 'Tigist B.',
+          items: [{ name: 'Tibs', quantity: 1 }],
+          total: 850,
+          status: 'PREPARING',
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+        },
+      ],
+      error: null,
     };
   }
-  return supaQuery(client => 
-    client.from('food_orders').select('*').eq('restaurant_id', merchantId).order('created_at', { ascending: false })
+  return supaQuery((client) =>
+    client
+      .from('food_orders')
+      .select('*')
+      .eq('restaurant_id', merchantId)
+      .order('created_at', { ascending: false })
   );
 };
 
 export const fetchRestaurantMenu = async (merchantId) => {
   if (!hasSupabase()) {
-    return { 
+    return {
       data: [
-        { id: 'menu1', restaurant_id: merchantId, name: 'Injera', category: 'Main', price: 450, available: true },
-        { id: 'menu2', restaurant_id: merchantId, name: 'Tibs', category: 'Main', price: 850, available: true }
-      ], 
-      error: null 
+        {
+          id: 'menu1',
+          restaurant_id: merchantId,
+          name: 'Injera',
+          category: 'Main',
+          price: 450,
+          available: true,
+        },
+        {
+          id: 'menu2',
+          restaurant_id: merchantId,
+          name: 'Tibs',
+          category: 'Main',
+          price: 850,
+          available: true,
+        },
+      ],
+      error: null,
     };
   }
-  return supaQuery(client => 
-    client.from('menu_items').select('*').eq('restaurant_id', merchantId).order('category', { ascending: true })
+  return supaQuery((client) =>
+    client
+      .from('menu_items')
+      .select('*')
+      .eq('restaurant_id', merchantId)
+      .order('category', { ascending: true })
   );
 };
 
@@ -108,16 +153,12 @@ export const updateOrderStatus = async (orderId, status) => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
-  return supaQuery(client => 
-    client.from('food_orders').update({ status }).eq('id', orderId)
-  );
+  return supaQuery((client) => client.from('food_orders').update({ status }).eq('id', orderId));
 };
 
 export const updateMenuItem = async (menuItem) => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
-  return supaQuery(client => 
-    client.from('menu_items').upsert(menuItem)
-  );
+  return supaQuery((client) => client.from('menu_items').upsert(menuItem));
 };

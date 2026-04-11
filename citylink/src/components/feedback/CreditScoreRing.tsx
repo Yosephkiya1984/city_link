@@ -11,20 +11,32 @@ export function CreditScoreRing({ score = 742, maxScore = 850, animValue }) {
   const stroke = 5;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
-  
+
   const getScoreTier = (s) => ({ tier: 'Superior', color: '#59de9b' });
   const tier = getScoreTier(score);
 
   return (
-    <Animated.View style={[styles.statsCard, { 
-      backgroundColor: C.surface,
-      borderColor: C.edge2,
-      opacity: animValue, 
-      transform: [{ scale: animValue }] 
-    }]}>
+    <Animated.View
+      style={[
+        styles.statsCard,
+        {
+          backgroundColor: C.surface,
+          borderColor: C.edge2,
+          opacity: animValue,
+          transform: [{ scale: animValue }],
+        },
+      ]}
+    >
       <View style={styles.creditRing}>
         <Svg width={90} height={90} viewBox="0 0 100 100">
-          <Circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={stroke} />
+          <Circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth={stroke}
+          />
           <Path
             d={`M 50,50 m 0,-${radius} a ${radius},${radius} 0 1,1 0,${radius * 2} a ${radius},${radius} 0 1,1 0,-${radius * 2}`}
             fill="none"

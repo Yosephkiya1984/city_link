@@ -14,11 +14,13 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
  * SparklineChart — small visual indicator for wallet activity.
  */
 export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }) => {
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * 100;
-    const y = value;
-    return `${x},${y}`;
-  }).join(' ');
+  const points = data
+    .map((value, index) => {
+      const x = (index / (data.length - 1)) * 100;
+      const y = value;
+      return `${x},${y}`;
+    })
+    .join(' ');
 
   return (
     <View style={{ width: 96, height: 40, opacity: 0.8 }}>
@@ -53,30 +55,69 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
   ];
 
   return (
-    <Animated.View style={{
-      opacity: animValue,
-      transform: [{ translateY: animValue.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
-      paddingHorizontal: 16,
-      marginBottom: 20
-    }}>
+    <Animated.View
+      style={{
+        opacity: animValue,
+        transform: [
+          { translateY: animValue.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) },
+        ],
+        paddingHorizontal: 16,
+        marginBottom: 20,
+      }}
+    >
       <LinearGradient
         colors={['#101319', '#050608']}
         style={{ borderRadius: 24, padding: 1, overflow: 'hidden' }}
       >
         <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 24 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: 20,
+            }}
+          >
             <View>
-              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontFamily: Fonts.bold }}>{t(greetingKey)}, {name}</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: Fonts.black, marginTop: 4 }}>ACTIVE LEDGER</Text>
+              <Text
+                style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontFamily: Fonts.bold }}
+              >
+                {t(greetingKey)}, {name}
+              </Text>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.3)',
+                  fontSize: 10,
+                  fontFamily: Fonts.black,
+                  marginTop: 4,
+                }}
+              >
+                ACTIVE LEDGER
+              </Text>
             </View>
             <TouchableOpacity onPress={toggleBalance} style={{ padding: 8 }}>
-              <Ionicons name={showBalance ? "eye-outline" : "eye-off-outline"} size={22} color="rgba(255,255,255,0.4)" />
+              <Ionicons
+                name={showBalance ? 'eye-outline' : 'eye-off-outline'}
+                size={22}
+                color="rgba(255,255,255,0.4)"
+              />
             </TouchableOpacity>
           </View>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              marginBottom: 24,
+            }}
+          >
             <View>
-              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: Fonts.medium }}>Available Balance</Text>
+              <Text
+                style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: Fonts.medium }}
+              >
+                Available Balance
+              </Text>
               <Text style={{ color: '#fff', fontSize: 32, fontFamily: Fonts.black, marginTop: 4 }}>
                 {showBalance ? `${fmtETB(balance, 2)}` : '••••••'}
               </Text>
@@ -85,26 +126,32 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-            {quickActions.map(action => (
+            {quickActions.map((action) => (
               <TouchableOpacity
                 key={action.id}
                 style={{ flex: 1, alignItems: 'center' }}
                 onPress={() => onQuickAction?.(action.id)}
               >
-                <View style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: action.color + '30',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  marginBottom: 8
-                }}>
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: action.color + '30',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    marginBottom: 8,
+                  }}
+                >
                   <Ionicons name={action.icon} size={22} color={action.color} />
                 </View>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: Fonts.bold }}>{action.label}</Text>
+                <Text
+                  style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
+                  {action.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>

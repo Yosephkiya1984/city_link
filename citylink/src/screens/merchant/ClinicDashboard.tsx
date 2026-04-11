@@ -12,7 +12,12 @@ import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
 
 import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
-import { fetchClinicAppointments, fetchClinicServices, updateAppointmentStatus, createService } from '../../services/services.service';
+import {
+  fetchClinicAppointments,
+  fetchClinicServices,
+  updateAppointmentStatus,
+  createService,
+} from '../../services/services.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -22,12 +27,12 @@ const CLINIC_COLORS = {
   primaryL: 'rgba(6,182,212,0.1)',
   primaryB: 'rgba(6,182,212,0.28)',
   status: {
-    PENDING: '#F5B800',       // Amber
-    CONFIRMED: '#00A86B',     // Green
-    IN_PROGRESS: '#06B6D4',   // Teal
-    COMPLETED: '#00A86B',     // Green
-    CANCELLED: '#E8312A'      // Red
-  }
+    PENDING: '#F5B800', // Amber
+    CONFIRMED: '#00A86B', // Green
+    IN_PROGRESS: '#06B6D4', // Teal
+    COMPLETED: '#00A86B', // Green
+    CANCELLED: '#E8312A', // Red
+  },
 };
 
 export default function ClinicDashboard() {
@@ -38,7 +43,7 @@ export default function ClinicDashboard() {
   const currentUser = useAppStore((s) => s.currentUser);
   const showToast = useAppStore((s) => s.showToast);
   const reset = useAppStore((s) => s.reset);
-  
+
   const [activeTab, setActiveTab] = useState('queue');
   const [appointments, setAppointments] = useState([]);
   const [services, setServices] = useState([]);
@@ -53,21 +58,22 @@ export default function ClinicDashboard() {
     duration_minutes: 30,
     category: 'GP',
     description: '',
-    available: true
+    available: true,
   });
 
   // KPI calculations
-  const todayAppointments = appointments.filter(a => 
-    new Date(a.appointment_time).toDateString() === new Date().toDateString()
+  const todayAppointments = appointments.filter(
+    (a) => new Date(a.appointment_time).toDateString() === new Date().toDateString()
   ).length;
-  
-  const pendingAppointments = appointments.filter(a => a.status === 'PENDING').length;
-  const inProgressAppointments = appointments.filter(a => a.status === 'IN_PROGRESS').length;
-  
+
+  const pendingAppointments = appointments.filter((a) => a.status === 'PENDING').length;
+  const inProgressAppointments = appointments.filter((a) => a.status === 'IN_PROGRESS').length;
+
   const todayRevenue = appointments
-    .filter(a => 
-      a.status === 'COMPLETED' && 
-      new Date(a.appointment_time).toDateString() === new Date().toDateString()
+    .filter(
+      (a) =>
+        a.status === 'COMPLETED' &&
+        new Date(a.appointment_time).toDateString() === new Date().toDateString()
     )
     .reduce((sum, a) => sum + (a.price || 0), 0);
 
@@ -79,11 +85,13 @@ export default function ClinicDashboard() {
     try {
       const [appointmentsRes, servicesRes] = await Promise.all([
         fetchClinicAppointments(currentUser.id),
-        fetchClinicServices(currentUser.id)
+        fetchClinicServices(currentUser.id),
       ]);
-      
+
       if (appointmentsRes.data) {
-        const sortedAppointments = appointmentsRes.data.sort((a, b) => new Date(a.appointment_time).getTime() - new Date(b.appointment_time).getTime());
+        const sortedAppointments = appointmentsRes.data.sort(
+          (a, b) => new Date(a.appointment_time).getTime() - new Date(b.appointment_time).getTime()
+        );
         setAppointments(sortedAppointments);
       }
       if (servicesRes.data) setServices(servicesRes.data);
@@ -111,13 +119,13 @@ export default function ClinicDashboard() {
       } else {
         loadData();
       }
-    }
+    },
   });
 
   const updateAppointment = async (appointmentId, newStatus) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    
+
     try {
       const result = await (updateAppointmentStatus as any)(appointmentId, newStatus);
       if (!result.error) {
@@ -137,10 +145,10 @@ export default function ClinicDashboard() {
       showToast('Please fill all required fields', 'error');
       return;
     }
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    
+
     try {
       const serviceData = {
         id: uid(),
@@ -151,9 +159,9 @@ export default function ClinicDashboard() {
         category: newService.category,
         description: newService.description,
         available: newService.available,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
-      
+
       const result = await (createService as any)(serviceData);
       if (!result.error) {
         setServices([serviceData, ...services]);
@@ -163,7 +171,7 @@ export default function ClinicDashboard() {
           duration_minutes: 30,
           category: 'GP',
           description: '',
-          available: true
+          available: true,
         });
         setShowAddService(false);
         showToast('Service added successfully!', 'success');
@@ -180,7 +188,7 @@ export default function ClinicDashboard() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast('Logged out successfully', 'success');
     reset();
-    
+
     // Use navigation.replace instead of reset to avoid the error
     try {
       (navigation as any).replace('Auth');
@@ -199,75 +207,94 @@ export default function ClinicDashboard() {
   const AppointmentCard = ({ appointment }) => {
     const appointmentTime = new Date(appointment.appointment_time);
     const isToday = appointmentTime.toDateString() === new Date().toDateString();
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => {
           setSelectedAppointment(appointment);
           setShowAppointmentDetail(true);
         }}
       >
-        <Card style={{ 
-          marginBottom: 12, 
-          padding: 16,
-          borderLeftWidth: 3,
-          borderLeftColor: getStatusColor(appointment.status)
-        }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Card
+          style={{
+            marginBottom: 12,
+            padding: 16,
+            borderLeftWidth: 3,
+            borderLeftColor: getStatusColor(appointment.status),
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <Text style={{ color: C.text, fontSize: 15, fontFamily: Fonts.black }}>
                   Patient {appointment.patient_id ? appointment.patient_id.slice(-4) : 'Unknown'}
                 </Text>
-                <View style={{ 
-                  paddingHorizontal: 6, 
-                  paddingVertical: 2, 
-                  borderRadius: 4, 
-                  backgroundColor: getStatusBg(appointment.status) 
-                }}>
-                  <Text style={{ 
-                    color: getStatusColor(appointment.status), 
-                    fontSize: 9, 
-                    fontFamily: Fonts.bold,
-                    textTransform: 'uppercase' 
-                  }}>
+                <View
+                  style={{
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 4,
+                    backgroundColor: getStatusBg(appointment.status),
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: getStatusColor(appointment.status),
+                      fontSize: 9,
+                      fontFamily: Fonts.bold,
+                      textTransform: 'uppercase',
+                    }}
+                  >
                     {appointment.status.replace('_', ' ')}
                   </Text>
                 </View>
                 {isToday && (
-                  <View style={{ 
-                    paddingHorizontal: 4, 
-                    paddingVertical: 2, 
-                    borderRadius: 4, 
-                    backgroundColor: CLINIC_COLORS.primaryL 
-                  }}>
-                    <Text style={{ 
-                      color: CLINIC_COLORS.primary, 
-                      fontSize: 8, 
-                      fontFamily: Fonts.bold 
-                    }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 4,
+                      paddingVertical: 2,
+                      borderRadius: 4,
+                      backgroundColor: CLINIC_COLORS.primaryL,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: CLINIC_COLORS.primary,
+                        fontSize: 8,
+                        fontFamily: Fonts.bold,
+                      }}
+                    >
                       TODAY
                     </Text>
                   </View>
                 )}
               </View>
-              
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}>
+
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}
+              >
                 {appointment.service_name}
               </Text>
-              
+
               <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>
-                {appointmentTime.toLocaleDateString()} at {appointmentTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                {appointmentTime.toLocaleDateString()} at{' '}
+                {appointmentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
-              
+
               <Text style={{ color: C.sub, fontSize: 11, marginBottom: 8 }}>
                 Duration: {appointment.duration_minutes || 30} minutes
               </Text>
-              
+
               <Text style={{ color: CLINIC_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}>
                 {fmtETB(appointment.price || 0)}
               </Text>
-              
+
               {appointment.deposit_amount > 0 && (
                 <Text style={{ color: '#00A86B', fontSize: 11, marginTop: 2 }}>
                   Deposit: {fmtETB(appointment.deposit_amount)}
@@ -275,36 +302,36 @@ export default function ClinicDashboard() {
               )}
             </View>
           </View>
-          
+
           {appointment.status === 'PENDING' && (
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-              <CButton 
-                title="Confirm" 
+              <CButton
+                title="Confirm"
                 onPress={() => updateAppointment(appointment.id, 'CONFIRMED')}
                 style={{ flex: 1 }}
                 size="sm"
               />
-              <CButton 
-                title="Decline" 
+              <CButton
+                title="Decline"
                 onPress={() => updateAppointment(appointment.id, 'CANCELLED')}
                 style={{ flex: 1, backgroundColor: '#E8312A' }}
                 size="sm"
               />
             </View>
           )}
-          
+
           {appointment.status === 'CONFIRMED' && (
-            <CButton 
-              title="Call Patient In" 
+            <CButton
+              title="Call Patient In"
               onPress={() => updateAppointment(appointment.id, 'IN_PROGRESS')}
               style={{ marginTop: 12 }}
               size="sm"
             />
           )}
-          
+
           {appointment.status === 'IN_PROGRESS' && (
-            <CButton 
-              title="Mark Completed" 
+            <CButton
+              title="Mark Completed"
               onPress={() => updateAppointment(appointment.id, 'COMPLETED')}
               style={{ marginTop: 12 }}
               size="sm"
@@ -317,25 +344,27 @@ export default function ClinicDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar 
-        title={`ðŸ ¥ Clinic Dashboard - Est. wait: ${waitTime} min`} 
+      <TopBar
+        title={`ðŸ ¥ Clinic Dashboard - Est. wait: ${waitTime} min`}
         right={
           <TouchableOpacity onPress={logout} style={{ padding: 8 }}>
             <Ionicons name="log-out-outline" size={24} color={C.text} />
           </TouchableOpacity>
         }
       />
-      
+
       {/* Additional Logout Button for visibility */}
-      <View style={{ 
-        paddingHorizontal: 16, 
-        paddingTop: 12, 
-        paddingBottom: 8,
-        backgroundColor: C.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: C.edge2
-      }}>
-        <TouchableOpacity 
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 8,
+          backgroundColor: C.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: C.edge2,
+        }}
+      >
+        <TouchableOpacity
           onPress={logout}
           style={{
             backgroundColor: '#E8312A',
@@ -346,39 +375,46 @@ export default function ClinicDashboard() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            alignSelf: 'flex-end'
+            alignSelf: 'flex-end',
           }}
         >
           <Ionicons name="log-out" size={16} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>
-            LOGOUT
-          </Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>LOGOUT</Text>
         </TouchableOpacity>
       </View>
-      
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Wait Time Banner */}
-        <View style={{ 
-          marginHorizontal: 16, 
-          marginBottom: 16,
-          backgroundColor: 'rgba(245,184,0,0.1)', 
-          borderRadius: Radius.xl, 
-          padding: 12,
-          borderWidth: 1,
-          borderColor: 'rgba(245,184,0,0.28)'
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 16,
+            backgroundColor: 'rgba(245,184,0,0.1)',
+            borderRadius: Radius.xl,
+            padding: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(245,184,0,0.28)',
+          }}
+        >
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ionicons name="time" size={20} color="#F5B800" />
               <Text style={{ color: '#F5B800', fontSize: 12, fontFamily: Fonts.bold }}>
                 Current Wait Time: {waitTime} minutes
               </Text>
             </View>
-            <TouchableOpacity onPress={() => {
-              const newTime = Math.max(0, waitTime - 5);
-              setWaitTime(newTime);
-              showToast(`Wait time updated to ${newTime} minutes`, 'info');
-            }}>
+            <TouchableOpacity
+              onPress={() => {
+                const newTime = Math.max(0, waitTime - 5);
+                setWaitTime(newTime);
+                showToast(`Wait time updated to ${newTime} minutes`, 'info');
+              }}
+            >
               <Text style={{ color: CLINIC_COLORS.primary, fontSize: 10, fontFamily: Fonts.bold }}>
                 UPDATE
               </Text>
@@ -388,8 +424,8 @@ export default function ClinicDashboard() {
 
         {/* Revenue Stats */}
         <View style={{ padding: 16 }}>
-          <LinearGradient 
-            colors={[CLINIC_COLORS.primaryL, 'transparent']} 
+          <LinearGradient
+            colors={[CLINIC_COLORS.primaryL, 'transparent']}
             style={{ borderRadius: Radius['3xl'], padding: 24, ...Shadow.md }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -397,39 +433,67 @@ export default function ClinicDashboard() {
                 <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.bold, opacity: 0.8 }}>
                   Today's Appointments
                 </Text>
-                <Text style={{ color: CLINIC_COLORS.primary, fontSize: 32, fontFamily: Fonts.black, marginTop: 4 }}>
+                <Text
+                  style={{
+                    color: CLINIC_COLORS.primary,
+                    fontSize: 32,
+                    fontFamily: Fonts.black,
+                    marginTop: 4,
+                  }}
+                >
                   {todayAppointments}
                 </Text>
               </View>
-              <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: CLINIC_COLORS.primaryL, alignItems: 'center', justifyContent: 'center' }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: CLINIC_COLORS.primaryL,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Ionicons name="medical" size={24} color={CLINIC_COLORS.primary} />
               </View>
             </View>
-            
-            <View style={{ height: 1, backgroundColor: 'rgba(6,182,212,0.2)', marginVertical: 20 }} />
-            
+
+            <View
+              style={{ height: 1, backgroundColor: 'rgba(6,182,212,0.2)', marginVertical: 20 }}
+            />
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ color: '#F5B800', fontSize: 16, fontFamily: Fonts.black }}>
                   {pendingAppointments}
                 </Text>
-                <Text style={{ color: 'rgba(245,184,0,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(245,184,0,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   PENDING
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: CLINIC_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}>
+                <Text
+                  style={{ color: CLINIC_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}
+                >
                   {inProgressAppointments}
                 </Text>
-                <Text style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   IN PROGRESS
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: CLINIC_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}>
+                <Text
+                  style={{ color: CLINIC_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}
+                >
                   {fmtETB(todayRevenue, 0)}
                 </Text>
-                <Text style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}>
+                <Text
+                  style={{ color: 'rgba(6,182,212,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
+                >
                   REVENUE
                 </Text>
               </View>
@@ -450,15 +514,17 @@ export default function ClinicDashboard() {
                 backgroundColor: activeTab === tab ? CLINIC_COLORS.primaryL : C.surface,
                 borderWidth: 1.5,
                 borderColor: activeTab === tab ? CLINIC_COLORS.primaryB : C.edge2,
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
-              <Text style={{ 
-                color: activeTab === tab ? CLINIC_COLORS.primary : C.sub, 
-                fontSize: 11, 
-                fontFamily: Fonts.black,
-                textTransform: 'uppercase'
-              }}>
+              <Text
+                style={{
+                  color: activeTab === tab ? CLINIC_COLORS.primary : C.sub,
+                  fontSize: 11,
+                  fontFamily: Fonts.black,
+                  textTransform: 'uppercase',
+                }}
+              >
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -470,11 +536,17 @@ export default function ClinicDashboard() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Patient Queue" />
             {loading && appointments.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>Loading appointments...</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                Loading appointments...
+              </Text>
             ) : appointments.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>No appointments yet</Text>
+              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
+                No appointments yet
+              </Text>
             ) : (
-              appointments.map(appointment => <AppointmentCard key={appointment.id} appointment={appointment} />)
+              appointments.map((appointment) => (
+                <AppointmentCard key={appointment.id} appointment={appointment} />
+              ))
             )}
           </View>
         )}
@@ -482,22 +554,30 @@ export default function ClinicDashboard() {
         {activeTab === 'services' && (
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Medical Services" />
-            <CButton 
-              title="Add Service" 
+            <CButton
+              title="Add Service"
               onPress={() => setShowAddService(true)}
               style={{ marginBottom: 16 }}
             />
-            
-            {['GP', 'Diagnostic', 'Specialist'].map(category => (
+
+            {['GP', 'Diagnostic', 'Specialist'].map((category) => (
               <View key={category} style={{ marginBottom: 20 }}>
-                <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black, marginBottom: 8 }}>
+                <Text
+                  style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black, marginBottom: 8 }}
+                >
                   {category}
                 </Text>
                 {services
-                  .filter(service => service.category === category)
-                  .map(service => (
+                  .filter((service) => service.category === category)
+                  .map((service) => (
                     <Card key={service.id} style={{ marginBottom: 8, padding: 12 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
                         <View style={{ flex: 1 }}>
                           <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>
                             {service.name}
@@ -505,15 +585,28 @@ export default function ClinicDashboard() {
                           <Text style={{ color: C.sub, fontSize: 11 }}>
                             {service.duration_minutes || 30} min
                           </Text>
-                          <Text style={{ color: CLINIC_COLORS.primary, fontSize: 12, fontFamily: Fonts.bold }}>
+                          <Text
+                            style={{
+                              color: CLINIC_COLORS.primary,
+                              fontSize: 12,
+                              fontFamily: Fonts.bold,
+                            }}
+                          >
                             {fmtETB(service.price || 0)}
                           </Text>
                         </View>
                         <TouchableOpacity
                           onPress={() => {
                             const newAvailable = !service.available;
-                            setServices(services.map(s => s.id === service.id ? { ...s, available: newAvailable } : s));
-                            showToast(`Service ${newAvailable ? 'available' : 'unavailable'}`, 'info');
+                            setServices(
+                              services.map((s) =>
+                                s.id === service.id ? { ...s, available: newAvailable } : s
+                              )
+                            );
+                            showToast(
+                              `Service ${newAvailable ? 'available' : 'unavailable'}`,
+                              'info'
+                            );
                           }}
                           style={{
                             paddingHorizontal: 8,
@@ -521,14 +614,16 @@ export default function ClinicDashboard() {
                             borderRadius: 6,
                             backgroundColor: service.available ? CLINIC_COLORS.primaryL : C.surface,
                             borderWidth: 1,
-                            borderColor: service.available ? CLINIC_COLORS.primaryB : C.edge2
+                            borderColor: service.available ? CLINIC_COLORS.primaryB : C.edge2,
                           }}
                         >
-                          <Text style={{ 
-                            color: service.available ? CLINIC_COLORS.primary : C.sub, 
-                            fontSize: 10, 
-                            fontFamily: Fonts.bold 
-                          }}>
+                          <Text
+                            style={{
+                              color: service.available ? CLINIC_COLORS.primary : C.sub,
+                              fontSize: 10,
+                              fontFamily: Fonts.bold,
+                            }}
+                          >
                             {service.available ? 'AVAILABLE' : 'UNAVAILABLE'}
                           </Text>
                         </TouchableOpacity>
@@ -553,14 +648,16 @@ export default function ClinicDashboard() {
       {/* Add Service Modal */}
       <Modal visible={showAddService} animationType="slide" presentationStyle="pageSheet">
         <View style={{ flex: 1, backgroundColor: C.ink }}>
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            padding: 16, 
-            borderBottomWidth: 1, 
-            borderBottomColor: C.edge2 
-          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: C.edge2,
+            }}
+          >
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
               Add Medical Service
             </Text>
@@ -568,10 +665,12 @@ export default function ClinicDashboard() {
               <Ionicons name="close" size={24} color={C.text} />
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Service Name *
               </Text>
               <CInput
@@ -582,7 +681,9 @@ export default function ClinicDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Price (ETB) *
               </Text>
               <CInput
@@ -594,11 +695,13 @@ export default function ClinicDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Category
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {['GP', 'Diagnostic', 'Specialist'].map(category => (
+                {['GP', 'Diagnostic', 'Specialist'].map((category) => (
                   <TouchableOpacity
                     key={category}
                     onPress={() => setNewService({ ...newService, category })}
@@ -606,17 +709,21 @@ export default function ClinicDashboard() {
                       flex: 1,
                       paddingVertical: 8,
                       borderRadius: 8,
-                      backgroundColor: newService.category === category ? CLINIC_COLORS.primaryL : C.surface,
+                      backgroundColor:
+                        newService.category === category ? CLINIC_COLORS.primaryL : C.surface,
                       borderWidth: 1,
-                      borderColor: newService.category === category ? CLINIC_COLORS.primaryB : C.edge2,
-                      alignItems: 'center'
+                      borderColor:
+                        newService.category === category ? CLINIC_COLORS.primaryB : C.edge2,
+                      alignItems: 'center',
                     }}
                   >
-                    <Text style={{ 
-                      color: newService.category === category ? CLINIC_COLORS.primary : C.sub, 
-                      fontSize: 10, 
-                      fontFamily: Fonts.bold 
-                    }}>
+                    <Text
+                      style={{
+                        color: newService.category === category ? CLINIC_COLORS.primary : C.sub,
+                        fontSize: 10,
+                        fontFamily: Fonts.bold,
+                      }}
+                    >
                       {category}
                     </Text>
                   </TouchableOpacity>
@@ -625,11 +732,13 @@ export default function ClinicDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Duration (minutes)
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {[15, 30, 45, 60, 90].map(duration => (
+                {[15, 30, 45, 60, 90].map((duration) => (
                   <TouchableOpacity
                     key={duration}
                     onPress={() => setNewService({ ...newService, duration_minutes: duration })}
@@ -637,17 +746,24 @@ export default function ClinicDashboard() {
                       flex: 1,
                       paddingVertical: 8,
                       borderRadius: 8,
-                      backgroundColor: newService.duration_minutes === duration ? CLINIC_COLORS.primaryL : C.surface,
+                      backgroundColor:
+                        newService.duration_minutes === duration
+                          ? CLINIC_COLORS.primaryL
+                          : C.surface,
                       borderWidth: 1,
-                      borderColor: newService.duration_minutes === duration ? CLINIC_COLORS.primaryB : C.edge2,
-                      alignItems: 'center'
+                      borderColor:
+                        newService.duration_minutes === duration ? CLINIC_COLORS.primaryB : C.edge2,
+                      alignItems: 'center',
                     }}
                   >
-                    <Text style={{ 
-                      color: newService.duration_minutes === duration ? CLINIC_COLORS.primary : C.sub, 
-                      fontSize: 10, 
-                      fontFamily: Fonts.bold 
-                    }}>
+                    <Text
+                      style={{
+                        color:
+                          newService.duration_minutes === duration ? CLINIC_COLORS.primary : C.sub,
+                        fontSize: 10,
+                        fontFamily: Fonts.bold,
+                      }}
+                    >
                       {duration}m
                     </Text>
                   </TouchableOpacity>
@@ -656,7 +772,9 @@ export default function ClinicDashboard() {
             </View>
 
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}>
+              <Text
+                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
+              >
                 Description
               </Text>
               <CInput
@@ -668,8 +786,8 @@ export default function ClinicDashboard() {
               />
             </View>
 
-            <CButton 
-              title="Add Service" 
+            <CButton
+              title="Add Service"
               onPress={addService}
               loading={loading}
               style={{ marginTop: 20 }}
@@ -682,47 +800,68 @@ export default function ClinicDashboard() {
       <Modal visible={showAppointmentDetail} animationType="slide" presentationStyle="pageSheet">
         {selectedAppointment && (
           <View style={{ flex: 1, backgroundColor: C.ink }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              padding: 16, 
-              borderBottomWidth: 1, 
-              borderBottomColor: C.edge2 
-            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: C.edge2,
+              }}
+            >
               <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
                 Appointment Details
               </Text>
-              <TouchableOpacity onPress={() => setShowAppointmentDetail(false)} style={{ padding: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowAppointmentDetail(false)}
+                style={{ padding: 8 }}
+              >
                 <Ionicons name="close" size={24} color={C.text} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView contentContainerStyle={{ padding: 16 }}>
               <Card style={{ padding: 16, marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 12,
+                  }}
+                >
                   <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
-                    Patient {selectedAppointment.patient_id ? selectedAppointment.patient_id.slice(-4) : 'Unknown'}
+                    Patient{' '}
+                    {selectedAppointment.patient_id
+                      ? selectedAppointment.patient_id.slice(-4)
+                      : 'Unknown'}
                   </Text>
-                  <View style={{ 
-                    paddingHorizontal: 8, 
-                    paddingVertical: 4, 
-                    borderRadius: 6, 
-                    backgroundColor: getStatusBg(selectedAppointment.status) 
-                  }}>
-                    <Text style={{ 
-                      color: getStatusColor(selectedAppointment.status), 
-                      fontSize: 10, 
-                      fontFamily: Fonts.bold,
-                      textTransform: 'uppercase' 
-                    }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6,
+                      backgroundColor: getStatusBg(selectedAppointment.status),
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: getStatusColor(selectedAppointment.status),
+                        fontSize: 10,
+                        fontFamily: Fonts.bold,
+                        textTransform: 'uppercase',
+                      }}
+                    >
                       {selectedAppointment.status.replace('_', ' ')}
                     </Text>
                   </View>
                 </View>
-                
+
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}>
+                  <Text
+                    style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 4 }}
+                  >
                     {selectedAppointment.service_name}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 12, marginBottom: 2 }}>
@@ -732,9 +871,11 @@ export default function ClinicDashboard() {
                     Duration: {selectedAppointment.duration_minutes || 30} minutes
                   </Text>
                 </View>
-                
+
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ color: CLINIC_COLORS.primary, fontSize: 18, fontFamily: Fonts.black }}>
+                  <Text
+                    style={{ color: CLINIC_COLORS.primary, fontSize: 18, fontFamily: Fonts.black }}
+                  >
                     {fmtETB(selectedAppointment.price || 0)}
                   </Text>
                   {selectedAppointment.deposit_amount > 0 && (
@@ -744,32 +885,32 @@ export default function ClinicDashboard() {
                   )}
                 </View>
               </Card>
-              
+
               {selectedAppointment.status === 'PENDING' && (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <CButton 
-                    title="Confirm" 
+                  <CButton
+                    title="Confirm"
                     onPress={() => updateAppointment(selectedAppointment.id, 'CONFIRMED')}
                     style={{ flex: 1 }}
                   />
-                  <CButton 
-                    title="Decline" 
+                  <CButton
+                    title="Decline"
                     onPress={() => updateAppointment(selectedAppointment.id, 'CANCELLED')}
                     style={{ flex: 1, backgroundColor: '#E8312A' }}
                   />
                 </View>
               )}
-              
+
               {selectedAppointment.status === 'CONFIRMED' && (
-                <CButton 
-                  title="Call Patient In" 
+                <CButton
+                  title="Call Patient In"
                   onPress={() => updateAppointment(selectedAppointment.id, 'IN_PROGRESS')}
                 />
               )}
-              
+
               {selectedAppointment.status === 'IN_PROGRESS' && (
-                <CButton 
-                  title="Mark Completed" 
+                <CButton
+                  title="Mark Completed"
                   onPress={() => updateAppointment(selectedAppointment.id, 'COMPLETED')}
                 />
               )}

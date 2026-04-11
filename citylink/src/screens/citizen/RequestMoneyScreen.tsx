@@ -67,7 +67,7 @@ export default function RequestMoneyScreen() {
   // Send money request
   const sendRequest = async () => {
     const amt = parseFloat(amount);
-    
+
     if (!amt || amt < 10) {
       showToast('Minimum request amount is 10 ETB', 'error');
       return;
@@ -84,13 +84,13 @@ export default function RequestMoneyScreen() {
     }
 
     setLoading(true);
-    
+
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       // Create transaction record
       const transaction = {
         id: uid(),
@@ -105,7 +105,7 @@ export default function RequestMoneyScreen() {
       };
 
       addTransaction(transaction);
-      
+
       // Add to recent requests
       const newRequest = {
         id: transaction.id,
@@ -115,17 +115,17 @@ export default function RequestMoneyScreen() {
         status: 'pending',
         created_at: transaction.created_at,
       };
-      
+
       setRecentRequests([newRequest, ...recentRequests]);
-      
+
       showToast(`Request of ${fmtETB(amt)} sent to ${selectedContact.name}!`, 'success');
-      
+
       // Reset form
       setAmount('');
       setDescription('');
       setSelectedContact(null);
       setLoading(false);
-      
+
       // Go back
       navigation.goBack();
     } catch (error) {
@@ -143,7 +143,7 @@ export default function RequestMoneyScreen() {
     }
 
     const requestLink = `https://citylink.et/request/${currentUser?.id}?amount=${amt}&desc=${description || 'Payment request'}`;
-    
+
     // In a real app, this would use the Share API
     Alert.alert(
       'Share Request',
@@ -158,7 +158,7 @@ export default function RequestMoneyScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
       <TopBar title="Request Money" />
-      
+
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 20 }}>
         {/* Contact Selection */}
         <SectionTitle title="Select Contact" />
@@ -179,14 +179,16 @@ export default function RequestMoneyScreen() {
         >
           {selectedContact ? (
             <>
-              <View style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: C.primary + '20',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: C.primary + '20',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Text style={{ fontSize: 20 }}>{selectedContact.avatar}</Text>
               </View>
               <View style={{ flex: 1 }}>
@@ -223,7 +225,7 @@ export default function RequestMoneyScreen() {
 
         {/* Quick Amounts */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-          {quickAmounts.map(amt => (
+          {quickAmounts.map((amt) => (
             <TouchableOpacity
               key={amt}
               onPress={() => setAmount(String(amt))}
@@ -236,11 +238,13 @@ export default function RequestMoneyScreen() {
                 borderColor: amount === String(amt) ? C.primary : C.edge2,
               }}
             >
-              <Text style={{
-                color: amount === String(amt) ? C.white : C.sub,
-                fontSize: 12,
-                fontFamily: Fonts.bold,
-              }}>
+              <Text
+                style={{
+                  color: amount === String(amt) ? C.white : C.sub,
+                  fontSize: 12,
+                  fontFamily: Fonts.bold,
+                }}
+              >
                 {amt} ETB
               </Text>
             </TouchableOpacity>
@@ -267,7 +271,7 @@ export default function RequestMoneyScreen() {
             disabled={!amount || !selectedContact || !description}
             icon="send"
           />
-          
+
           <CButton
             title="Share Request Link"
             variant="ghost"
@@ -281,7 +285,7 @@ export default function RequestMoneyScreen() {
         {recentRequests.length > 0 && (
           <>
             <SectionTitle title="Recent Requests" />
-            {recentRequests.map(request => (
+            {recentRequests.map((request) => (
               <View
                 key={request.id}
                 style={{
@@ -294,12 +298,32 @@ export default function RequestMoneyScreen() {
                   ...Shadow.md,
                 }}
               >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                  }}
+                >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, marginBottom: 4 }}>
+                    <Text
+                      style={{
+                        color: C.text,
+                        fontSize: 16,
+                        fontFamily: Fonts.black,
+                        marginBottom: 4,
+                      }}
+                    >
                       {request.from}
                     </Text>
-                    <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginBottom: 4 }}>
+                    <Text
+                      style={{
+                        color: C.sub,
+                        fontSize: 12,
+                        fontFamily: Fonts.medium,
+                        marginBottom: 4,
+                      }}
+                    >
                       {request.description}
                     </Text>
                     <Text style={{ color: C.hint, fontSize: 11, fontFamily: Fonts.medium }}>
@@ -310,19 +334,24 @@ export default function RequestMoneyScreen() {
                     <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
                       {fmtETB(request.amount)}
                     </Text>
-                    <View style={{
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      borderRadius: 4,
-                      backgroundColor: request.status === 'completed' ? C.green + '20' : C.amber + '20',
-                      marginTop: 4,
-                    }}>
-                      <Text style={{
-                        color: request.status === 'completed' ? C.green : C.amber,
-                        fontSize: 10,
-                        fontFamily: Fonts.bold,
-                        textTransform: 'capitalize',
-                      }}>
+                    <View
+                      style={{
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 4,
+                        backgroundColor:
+                          request.status === 'completed' ? C.green + '20' : C.amber + '20',
+                        marginTop: 4,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: request.status === 'completed' ? C.green : C.amber,
+                          fontSize: 10,
+                          fontFamily: Fonts.bold,
+                          textTransform: 'capitalize',
+                        }}
+                      >
                         {request.status}
                       </Text>
                     </View>
@@ -337,19 +366,23 @@ export default function RequestMoneyScreen() {
       {/* Contact Selection Modal */}
       <Modal visible={showContacts} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ 
-            backgroundColor: C.surface, 
-            marginTop: 'auto', 
-            borderTopLeftRadius: 24, 
-            borderTopRightRadius: 24, 
-            padding: 24 
-          }}>
-            <Text style={{ color: C.text, fontSize: 20, fontFamily: Fonts.black, marginBottom: 20 }}>
+          <View
+            style={{
+              backgroundColor: C.surface,
+              marginTop: 'auto',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+            }}
+          >
+            <Text
+              style={{ color: C.text, fontSize: 20, fontFamily: Fonts.black, marginBottom: 20 }}
+            >
               Select Contact
             </Text>
-            
+
             <ScrollView style={{ maxHeight: 400 }}>
-              {contacts.map(contact => (
+              {contacts.map((contact) => (
                 <TouchableOpacity
                   key={contact.id}
                   onPress={() => {
@@ -367,14 +400,16 @@ export default function RequestMoneyScreen() {
                     backgroundColor: selectedContact?.id === contact.id ? C.primary + '20' : C.lift,
                   }}
                 >
-                  <View style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: C.primary + '20',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: C.primary + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
                     <Text style={{ fontSize: 20 }}>{contact.avatar}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -391,7 +426,7 @@ export default function RequestMoneyScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            
+
             <CButton
               title="Cancel"
               variant="ghost"

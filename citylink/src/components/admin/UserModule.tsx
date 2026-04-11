@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Dimensions,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
@@ -17,11 +26,8 @@ export default function UserModule() {
   const fetchUsers = async () => {
     // Only show loading for the initial fetch to keep UI responsive during real-time updates
     if (users.length === 0) setLoading(true);
-    const { data } = await supaQuery(c => 
-      c.from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100)
+    const { data } = await supaQuery((c) =>
+      c.from('profiles').select('*').order('created_at', { ascending: false }).limit(100)
     );
     if (data) setUsers(data);
     setLoading(false);
@@ -29,7 +35,7 @@ export default function UserModule() {
 
   useEffect(() => {
     fetchUsers();
-    
+
     const client = getClient();
     if (!client) return;
 
@@ -45,26 +51,44 @@ export default function UserModule() {
     };
   }, []);
 
-  const filteredUsers = users.filter(u => 
-    (u.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.phone || '').includes(search) ||
-    (u.id || '').includes(search)
+  const filteredUsers = users.filter(
+    (u) =>
+      (u.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (u.phone || '').includes(search) ||
+      (u.id || '').includes(search)
   );
 
   const renderItem = ({ item, index }) => {
     if (isMobile) {
       return (
-        <View style={[styles.mobileCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
+        <View
+          style={[styles.mobileCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}
+        >
           <View style={styles.cardTop}>
             <View style={[styles.avatar, { backgroundColor: theme.primary + '15' }]}>
-              <Text style={{ color: theme.primary, fontWeight: '700' }}>{item.full_name?.[0] || 'U'}</Text>
+              <Text style={{ color: theme.primary, fontWeight: '700' }}>
+                {item.full_name?.[0] || 'U'}
+              </Text>
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}>{item.full_name || 'Anonymous'}</Text>
+              <Text style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}>
+                {item.full_name || 'Anonymous'}
+              </Text>
               <Text style={[styles.userId, { color: theme.sub }]}>{item.phone || 'No phone'}</Text>
             </View>
-            <View style={[styles.roleChip, { backgroundColor: item.role === 'merchant' ? theme.primary + '15' : theme.rim }]}>
-              <Text style={{ color: item.role === 'merchant' ? theme.primary : theme.sub, fontSize: 10, fontWeight: '700' }}>
+            <View
+              style={[
+                styles.roleChip,
+                { backgroundColor: item.role === 'merchant' ? theme.primary + '15' : theme.rim },
+              ]}
+            >
+              <Text
+                style={{
+                  color: item.role === 'merchant' ? theme.primary : theme.sub,
+                  fontSize: 10,
+                  fontWeight: '700',
+                }}
+              >
                 {item.role.toUpperCase()}
               </Text>
             </View>
@@ -72,11 +96,25 @@ export default function UserModule() {
           <View style={[styles.cardDivider, { backgroundColor: theme.rim }]} />
           <View style={styles.cardBottom}>
             <View style={styles.statusBox}>
-              <View style={[styles.statusDot, { backgroundColor: item.kyc_status === 'VERIFIED' || item.kyc_status === 'APPROVED' ? theme.green : theme.amber }]} />
-              <Text style={[styles.statusText, { color: theme.textSoft }]}>{item.kyc_status || 'PENDING'}</Text>
+              <View
+                style={[
+                  styles.statusDot,
+                  {
+                    backgroundColor:
+                      item.kyc_status === 'VERIFIED' || item.kyc_status === 'APPROVED'
+                        ? theme.green
+                        : theme.amber,
+                  },
+                ]}
+              />
+              <Text style={[styles.statusText, { color: theme.textSoft }]}>
+                {item.kyc_status || 'PENDING'}
+              </Text>
             </View>
             <TouchableOpacity style={styles.actionBtn}>
-              <Text style={{ color: theme.primary, fontSize: 12, fontFamily: Fonts.label }}>MANAGE</Text>
+              <Text style={{ color: theme.primary, fontSize: 12, fontFamily: Fonts.label }}>
+                MANAGE
+              </Text>
               <Ionicons name="chevron-forward" size={14} color={theme.primary} />
             </TouchableOpacity>
           </View>
@@ -85,33 +123,72 @@ export default function UserModule() {
     }
 
     return (
-      <View style={[styles.row, { borderBottomColor: theme.rim, backgroundColor: index % 2 === 0 ? 'transparent' : theme.lift }]}>
-        <View style={[styles.cell, { flex: 2, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+      <View
+        style={[
+          styles.row,
+          {
+            borderBottomColor: theme.rim,
+            backgroundColor: index % 2 === 0 ? 'transparent' : theme.lift,
+          },
+        ]}
+      >
+        <View
+          style={[styles.cell, { flex: 2, flexDirection: 'row', alignItems: 'center', gap: 12 }]}
+        >
           <View style={[styles.avatar, { backgroundColor: theme.primary + '15' }]}>
-            <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>{item.full_name?.[0] || 'U'}</Text>
+            <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>
+              {item.full_name?.[0] || 'U'}
+            </Text>
           </View>
           <View>
-            <Text style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}>{item.full_name || 'Anonymous'}</Text>
-            <Text style={[styles.userId, { color: theme.sub }]}>ID: {item.id.slice(0,8)}</Text>
+            <Text style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}>
+              {item.full_name || 'Anonymous'}
+            </Text>
+            <Text style={[styles.userId, { color: theme.sub }]}>ID: {item.id.slice(0, 8)}</Text>
           </View>
         </View>
         <View style={[styles.cell, { flex: 1.2 }]}>
           <Text style={[styles.phoneText, { color: theme.textSoft }]}>{item.phone}</Text>
         </View>
         <View style={[styles.cell, { flex: 1 }]}>
-          <View style={[styles.roleChip, { backgroundColor: item.role === 'merchant' ? theme.primary + '15' : theme.rim }]}>
-            <Text style={{ color: item.role === 'merchant' ? theme.primary : theme.sub, fontSize: 10, fontWeight: '700' }}>
+          <View
+            style={[
+              styles.roleChip,
+              { backgroundColor: item.role === 'merchant' ? theme.primary + '15' : theme.rim },
+            ]}
+          >
+            <Text
+              style={{
+                color: item.role === 'merchant' ? theme.primary : theme.sub,
+                fontSize: 10,
+                fontWeight: '700',
+              }}
+            >
               {item.role.toUpperCase()}
             </Text>
           </View>
         </View>
         <View style={[styles.cell, { flex: 1 }]}>
           <View style={styles.statusBox}>
-            <View style={[styles.statusDot, { backgroundColor: item.kyc_status === 'VERIFIED' || item.kyc_status === 'APPROVED' ? theme.green : theme.amber }]} />
-            <Text style={[styles.statusText, { color: theme.textSoft }]}>{item.kyc_status || 'NONE'}</Text>
+            <View
+              style={[
+                styles.statusDot,
+                {
+                  backgroundColor:
+                    item.kyc_status === 'VERIFIED' || item.kyc_status === 'APPROVED'
+                      ? theme.green
+                      : theme.amber,
+                },
+              ]}
+            />
+            <Text style={[styles.statusText, { color: theme.textSoft }]}>
+              {item.kyc_status || 'NONE'}
+            </Text>
           </View>
         </View>
-        <View style={[styles.cell, { width: 80, alignItems: 'center', justifyContent: 'flex-end' }]}>
+        <View
+          style={[styles.cell, { width: 80, alignItems: 'center', justifyContent: 'flex-end' }]}
+        >
           <TouchableOpacity style={styles.actionBtn}>
             <Ionicons name="ellipsis-vertical" size={18} color={theme.sub} />
           </TouchableOpacity>
@@ -124,10 +201,15 @@ export default function UserModule() {
     <View style={styles.container}>
       <View style={[styles.header, isMobile && { padding: 16 }]}>
         <View style={styles.searchBox}>
-          <View style={[styles.searchInputWrap, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
+          <View
+            style={[
+              styles.searchInputWrap,
+              { backgroundColor: theme.surface, borderColor: theme.rim },
+            ]}
+          >
             <Ionicons name="search-outline" size={18} color={theme.sub} />
-            <TextInput 
-              placeholder="Search directory..." 
+            <TextInput
+              placeholder="Search directory..."
               placeholderTextColor={theme.sub}
               value={search}
               onChangeText={setSearch}
@@ -138,7 +220,12 @@ export default function UserModule() {
       </View>
 
       {!isMobile && (
-        <View style={[styles.tableHeader, { backgroundColor: theme.lift, borderBottomColor: theme.rim }]}>
+        <View
+          style={[
+            styles.tableHeader,
+            { backgroundColor: theme.lift, borderBottomColor: theme.rim },
+          ]}
+        >
           <Text style={[styles.headerCell, { flex: 2 }]}>IDENTITY / USER</Text>
           <Text style={[styles.headerCell, { flex: 1.2 }]}>CONTACT</Text>
           <Text style={[styles.headerCell, { flex: 1 }]}>ROLE</Text>
@@ -155,7 +242,7 @@ export default function UserModule() {
         <FlatList
           data={filteredUsers}
           renderItem={renderItem}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 100, padding: isMobile ? 16 : 0 }}
         />
       )}
@@ -269,5 +356,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  }
+  },
 });

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  ScrollView, 
-  Animated, 
-  Alert, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+  Alert,
+  Dimensions,
   ActivityIndicator,
-  Platform
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -33,45 +33,52 @@ export default function DisputeModule() {
     // Combine both Marketplace and Restaurant disputes.
     // We fetch food orders without a join first to avoid relationship hint errors (citizen_id FK ambiguous)
     const [mktRes, foodRes] = await Promise.all([
-      supaQuery(c => c.from('marketplace_orders')
-        .select('*, profiles!buyer_id(full_name, phone)')
-        .eq('status', 'DISPUTED')
-        .order('created_at', { ascending: false })),
-      supaQuery(c => c.from('food_orders')
-        .select('*')
-        .eq('status', 'DISPUTED')
-        .order('created_at', { ascending: false }))
+      supaQuery((c) =>
+        c
+          .from('marketplace_orders')
+          .select('*, profiles!buyer_id(full_name, phone)')
+          .eq('status', 'DISPUTED')
+          .order('created_at', { ascending: false })
+      ),
+      supaQuery((c) =>
+        c
+          .from('food_orders')
+          .select('*')
+          .eq('status', 'DISPUTED')
+          .order('created_at', { ascending: false })
+      ),
     ]);
 
-    const mkt = (mktRes.data || []).map(d => ({ 
-      ...d, 
-      type: 'MARKETPLACE', 
-      name: d.product_name, 
-      amount: d.total 
+    const mkt = (mktRes.data || []).map((d) => ({
+      ...d,
+      type: 'MARKETPLACE',
+      name: d.product_name,
+      amount: d.total,
     }));
 
     // Manual mapping for food users to avoid relationship hint errors
     const foodRaw = foodRes.data || [];
-    const citizenIds = [...new Set(foodRaw.map(o => o.citizen_id).filter(id => !!id))];
-    
-    let profileMap = {};
+    const citizenIds = [...new Set(foodRaw.map((o) => o.citizen_id).filter((id) => !!id))];
+
+    const profileMap = {};
     if (citizenIds.length > 0) {
-      const { data: profiles } = await supaQuery(c => c.from('profiles')
-        .select('id, full_name, phone')
-        .in('id', citizenIds)
+      const { data: profiles } = await supaQuery((c) =>
+        c.from('profiles').select('id, full_name, phone').in('id', citizenIds)
       );
-      (profiles || []).forEach(p => { profileMap[p.id] = p; });
+      (profiles || []).forEach((p) => {
+        profileMap[p.id] = p;
+      });
     }
 
-    const food = foodRaw.map(d => ({ 
-      ...d, 
-      type: 'RESTAURANT', 
-      name: d.restaurant_name || 'Food Order', 
+    const food = foodRaw.map((d) => ({
+      ...d,
+      type: 'RESTAURANT',
+      name: d.restaurant_name || 'Food Order',
       amount: d.total,
-      profiles: profileMap[d.citizen_id] 
+      profiles: profileMap[d.citizen_id],
     }));
 
-    setDisputes([...mkt, ...food].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)));
+    setDisputes([...mkt, ...food].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
     setLoading(false);
     setLoading(false);
   };
@@ -81,23 +88,30 @@ export default function DisputeModule() {
   }, []);
 
   const handleResolve = async (dispute, action) => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) {}
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) {}
     const actionLabel = action === 'REFUND' ? 'Refund Buyer' : 'Release Funds';
-    
+
     if (Platform.OS === 'web') {
       if (window.confirm(`Confirm ${actionLabel.toLowerCase()} for this ${dispute.type} case?`)) {
         let res;
         if (dispute.type === 'MARKETPLACE') {
-            if (action === 'REFUND') res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
-            else res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
+          if (action === 'REFUND')
+            res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
+          else res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
         } else {
-            const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
-            res = await supaQuery(c => c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id));
+          const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
+          res = await supaQuery((c) =>
+            c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id)
+          );
         }
-        
+
         if (res.error) window.alert(res.error);
         else {
-          try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch (e) {}
+          try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch (e) {}
           fetchDisputes();
           setSelectedDispute(null);
         }
@@ -110,28 +124,31 @@ export default function DisputeModule() {
       `Confirm ${actionLabel.toLowerCase()} for this ${dispute.type} case?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: actionLabel, 
+        {
+          text: actionLabel,
           style: action === 'REFUND' ? 'destructive' : 'default',
           onPress: async () => {
             let res;
             if (dispute.type === 'MARKETPLACE') {
-                if (action === 'REFUND') res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
-                else res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
+              if (action === 'REFUND')
+                res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
+              else res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
             } else {
-                // Restaurant resolving (standard status based for now)
-                const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
-                res = await supaQuery(c => c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id));
+              // Restaurant resolving (standard status based for now)
+              const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
+              res = await supaQuery((c) =>
+                c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id)
+              );
             }
-            
+
             if (res.error) Alert.alert('Error', res.error);
             else {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               fetchDisputes();
               setSelectedDispute(null);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -139,39 +156,52 @@ export default function DisputeModule() {
   const renderDisputeCard = ({ item }) => {
     const isSelected = selectedDispute?.id === item.id;
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => {
           setSelectedDispute(item);
           Haptics.selectionAsync();
         }}
         style={[
-          styles.disputeCard, 
-          { 
-            backgroundColor: theme.surface, 
+          styles.disputeCard,
+          {
+            backgroundColor: theme.surface,
             borderColor: isSelected ? theme.primary : theme.rim,
-            borderWidth: isSelected ? 2 : 1
-          }
+            borderWidth: isSelected ? 2 : 1,
+          },
         ]}
       >
         <View style={styles.cardHeader}>
           <View style={styles.typeBox}>
-            <MaterialCommunityIcons 
-              name={item.type === 'MARKETPLACE' ? 'shopping-outline' : 'food-outline'} 
-              size={12} 
-              color={item.type === 'MARKETPLACE' ? theme.primary : theme.secondary} 
+            <MaterialCommunityIcons
+              name={item.type === 'MARKETPLACE' ? 'shopping-outline' : 'food-outline'}
+              size={12}
+              color={item.type === 'MARKETPLACE' ? theme.primary : theme.secondary}
             />
-            <Text style={[styles.typeLabel, { color: item.type === 'MARKETPLACE' ? theme.primary : theme.secondary }]}>{item.type}</Text>
+            <Text
+              style={[
+                styles.typeLabel,
+                { color: item.type === 'MARKETPLACE' ? theme.primary : theme.secondary },
+              ]}
+            >
+              {item.type}
+            </Text>
           </View>
-          <Text style={[styles.timeLabel, { color: theme.hint }]}>ID: {item.id.slice(0,6)}</Text>
+          <Text style={[styles.timeLabel, { color: theme.hint }]}>ID: {item.id.slice(0, 6)}</Text>
         </View>
 
-        <Text style={[styles.productName, { color: theme.text, fontFamily: Fonts.label }]} numberOfLines={1}>
+        <Text
+          style={[styles.productName, { color: theme.text, fontFamily: Fonts.label }]}
+          numberOfLines={1}
+        >
           {item.name}
         </Text>
-        <Text style={[styles.reason, { color: theme.red, fontFamily: Fonts.body }]} numberOfLines={2}>
+        <Text
+          style={[styles.reason, { color: theme.red, fontFamily: Fonts.body }]}
+          numberOfLines={2}
+        >
           {item.dispute_reason || item.reason || 'Buyer claims issue with quality/delivery'}
         </Text>
-        
+
         <View style={styles.amountBox}>
           <Text style={[styles.amount, { color: theme.primary, fontFamily: Fonts.headline }]}>
             {item.total} ETB
@@ -188,28 +218,40 @@ export default function DisputeModule() {
   return (
     <View style={styles.container}>
       {showSidebar && (
-        <View style={[styles.sidebar, isMobile && { width: '100%', borderRightWidth: 0 }, { borderRightColor: theme.rim }]}>
+        <View
+          style={[
+            styles.sidebar,
+            isMobile && { width: '100%', borderRightWidth: 0 },
+            { borderRightColor: theme.rim },
+          ]}
+        >
           <View style={styles.moduleHeader}>
-            <Text style={[styles.moduleTitle, { color: theme.text, fontFamily: Fonts.headline }]}>Active Disputes</Text>
+            <Text style={[styles.moduleTitle, { color: theme.text, fontFamily: Fonts.headline }]}>
+              Active Disputes
+            </Text>
             <View style={[styles.countBadge, { backgroundColor: theme.primary }]}>
-              <Text style={{ color: theme.ink, fontWeight: '800', fontSize: 10 }}>{disputes.length}</Text>
+              <Text style={{ color: theme.ink, fontWeight: '800', fontSize: 10 }}>
+                {disputes.length}
+              </Text>
             </View>
           </View>
 
           <FlatList
             data={disputes}
             renderItem={renderDisputeCard}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
             ListEmptyComponent={() => (
               <View style={{ alignItems: 'center', marginTop: 40, padding: 20 }}>
                 {loading ? (
-                    <ActivityIndicator color={theme.primary} />
+                  <ActivityIndicator color={theme.primary} />
                 ) : (
-                    <>
+                  <>
                     <Ionicons name="documents-outline" size={40} color={theme.rim} />
-                    <Text style={{ color: theme.sub, marginTop: 12, textAlign: 'center' }}>No active disputes in the city registry.</Text>
-                    </>
+                    <Text style={{ color: theme.sub, marginTop: 12, textAlign: 'center' }}>
+                      No active disputes in the city registry.
+                    </Text>
+                  </>
                 )}
               </View>
             )}
@@ -224,35 +266,83 @@ export default function DisputeModule() {
               {isMobile && (
                 <TouchableOpacity onPress={() => setSelectedDispute(null)} style={styles.backBtn}>
                   <Ionicons name="arrow-back" size={24} color={theme.primary} />
-                  <Text style={{ color: theme.primary, marginLeft: 8, fontFamily: Fonts.label }}>BACK TO LIST</Text>
+                  <Text style={{ color: theme.primary, marginLeft: 8, fontFamily: Fonts.label }}>
+                    BACK TO LIST
+                  </Text>
                 </TouchableOpacity>
               )}
 
               <View style={[styles.detailHeader, isMobile && { flexDirection: 'column', gap: 20 }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.caseId, { color: theme.sub }]}>CASE ID: {selectedDispute.id.slice(0,8).toUpperCase()}</Text>
-                  <Text style={[styles.largeTitle, { color: theme.text, fontFamily: Fonts.headline, fontSize: isMobile ? 22 : 28 }]}>
+                  <Text style={[styles.caseId, { color: theme.sub }]}>
+                    CASE ID: {selectedDispute.id.slice(0, 8).toUpperCase()}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.largeTitle,
+                      {
+                        color: theme.text,
+                        fontFamily: Fonts.headline,
+                        fontSize: isMobile ? 22 : 28,
+                      },
+                    ]}
+                  >
                     {selectedDispute.name}
                   </Text>
                   <View style={styles.identityStrip}>
-                    <Text style={{ color: theme.sub, fontSize: 12 }}>Buyer: {selectedDispute.profiles?.full_name || 'Citizen'}</Text>
+                    <Text style={{ color: theme.sub, fontSize: 12 }}>
+                      Buyer: {selectedDispute.profiles?.full_name || 'Citizen'}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.actionGroup}>
-                  <TouchableOpacity onPress={() => handleResolve(selectedDispute, 'REFUND')} style={[styles.actionBtn, { borderColor: theme.red, flex: 1, height: isMobile ? 44 : 48 }]}>
-                    <Text style={{ color: theme.red, fontSize: 12, fontFamily: Fonts.label }}>REFUND</Text>
+                  <TouchableOpacity
+                    onPress={() => handleResolve(selectedDispute, 'REFUND')}
+                    style={[
+                      styles.actionBtn,
+                      { borderColor: theme.red, flex: 1, height: isMobile ? 44 : 48 },
+                    ]}
+                  >
+                    <Text style={{ color: theme.red, fontSize: 12, fontFamily: Fonts.label }}>
+                      REFUND
+                    </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleResolve(selectedDispute, 'RELEASE')} style={[styles.actionBtn, { backgroundColor: theme.primary, flex: 2, height: isMobile ? 44 : 48 }]}>
-                    <Text style={{ color: theme.ink, fontSize: 12, fontFamily: Fonts.label }}>RELEASE FUNDS</Text>
+                  <TouchableOpacity
+                    onPress={() => handleResolve(selectedDispute, 'RELEASE')}
+                    style={[
+                      styles.actionBtn,
+                      { backgroundColor: theme.primary, flex: 2, height: isMobile ? 44 : 48 },
+                    ]}
+                  >
+                    <Text style={{ color: theme.ink, fontSize: 12, fontFamily: Fonts.label }}>
+                      RELEASE FUNDS
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.evidenceSection}>
-                <Text style={[styles.sectionLabel, { color: theme.sub, fontFamily: Fonts.label }]}>CASE EVIDENCE</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                  {[1,2,3].map(i => (
-                    <View key={i} style={[styles.evidencePlaceholder, { backgroundColor: theme.rim, borderColor: theme.rim, width: isMobile ? 120 : 160, height: isMobile ? 90 : 120 }]}>
+                <Text style={[styles.sectionLabel, { color: theme.sub, fontFamily: Fonts.label }]}>
+                  CASE EVIDENCE
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 12 }}
+                >
+                  {[1, 2, 3].map((i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.evidencePlaceholder,
+                        {
+                          backgroundColor: theme.rim,
+                          borderColor: theme.rim,
+                          width: isMobile ? 120 : 160,
+                          height: isMobile ? 90 : 120,
+                        },
+                      ]}
+                    >
                       <Ionicons name="image-outline" size={24} color={theme.sub} />
                     </View>
                   ))}
@@ -260,16 +350,35 @@ export default function DisputeModule() {
               </View>
 
               <View style={styles.historySection}>
-                <Text style={[styles.sectionLabel, { color: theme.sub, fontFamily: Fonts.label }]}>INVESTIGATION LOGS</Text>
-                <LogItem time="10:24 AM" user="SYSTEM" text={`Registry entry for ${selectedDispute.type} dispute.`} isMobile={isMobile} />
-                <LogItem time="10:25 AM" user="BUYER" text={selectedDispute.dispute_reason || "Item/Service was not as described."} isMobile={isMobile} />
-                <LogItem time="12:30 PM" user="BOT" text="Automated damage/quality verification pending." isMobile={isMobile} />
+                <Text style={[styles.sectionLabel, { color: theme.sub, fontFamily: Fonts.label }]}>
+                  INVESTIGATION LOGS
+                </Text>
+                <LogItem
+                  time="10:24 AM"
+                  user="SYSTEM"
+                  text={`Registry entry for ${selectedDispute.type} dispute.`}
+                  isMobile={isMobile}
+                />
+                <LogItem
+                  time="10:25 AM"
+                  user="BUYER"
+                  text={selectedDispute.dispute_reason || 'Item/Service was not as described.'}
+                  isMobile={isMobile}
+                />
+                <LogItem
+                  time="12:30 PM"
+                  user="BOT"
+                  text="Automated damage/quality verification pending."
+                  isMobile={isMobile}
+                />
               </View>
             </ScrollView>
           ) : (
             <View style={styles.centerContent}>
               <MaterialCommunityIcons name="gavel" size={80} color={theme.rim} />
-              <Text style={[styles.emptyPrompt, { color: theme.sub }]}>SELECT A DISPUTE TO RESOLVE</Text>
+              <Text style={[styles.emptyPrompt, { color: theme.sub }]}>
+                SELECT A DISPUTE TO RESOLVE
+              </Text>
             </View>
           )}
         </View>
@@ -281,7 +390,12 @@ export default function DisputeModule() {
 function LogItem({ time, user, text, isMobile }) {
   const theme = useTheme();
   return (
-    <View style={[styles.logItem, { flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 4 : 12, marginBottom: 16 }]}>
+    <View
+      style={[
+        styles.logItem,
+        { flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 4 : 12, marginBottom: 16 },
+      ]}
+    >
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <Text style={[styles.logTime, { color: theme.hint }]}>{time}</Text>
         <Text style={[styles.logUser, { color: theme.primary }]}>[{user}]</Text>
@@ -387,7 +501,7 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   identityStrip: {
-      marginTop: 8,
+    marginTop: 8,
   },
   actionGroup: {
     flexDirection: 'row',

@@ -18,12 +18,12 @@ export async function sendOtp(phone: string, metadata: any = null) {
     console.log(`[CityLink Dev] OTP Bypass active for ${phone}. Simulated OTP: ${otp}`);
     return { error: null, devOtp: otp };
   }
-  
+
   const payload: any = { phone, channel: 'sms' };
   if (metadata) {
     payload.options = { data: metadata };
   }
-  
+
   const { error } = await client.auth.signInWithOtp(payload);
   return { error: error?.message || null, success: !error };
 }

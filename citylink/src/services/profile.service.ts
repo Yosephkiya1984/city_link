@@ -41,7 +41,7 @@ export async function checkPhoneExists(phone) {
     // In dev mode without Supabase, return null (no existing user)
     return null;
   }
-  const { data } = await supaQuery((c) => 
+  const { data } = await supaQuery((c) =>
     c.from('profiles').select('id, role').eq('phone', phone).maybeSingle()
   );
   return data;
@@ -67,7 +67,9 @@ export async function loadSessionProfile(authUser, normalizedPhone) {
     if (r.data) row = r.data;
     else {
       // Fallback: search for variations (some users might have stored it without +251 or with 09)
-      const alt = normalizedPhone.startsWith('+251') ? '0' + normalizedPhone.slice(4) : normalizedPhone;
+      const alt = normalizedPhone.startsWith('+251')
+        ? '0' + normalizedPhone.slice(4)
+        : normalizedPhone;
       const r2 = await supaQuery((c) =>
         c.from('profiles').select('*').eq('phone', alt).maybeSingle()
       );
@@ -89,7 +91,5 @@ export async function loadSessionProfile(authUser, normalizedPhone) {
  * updateUserRole — persists a role change for the user.
  */
 export async function updateUserRole(userId, newRole) {
-  return supaQuery((c) => 
-    c.from('profiles').update({ role: newRole }).eq('id', userId)
-  );
+  return supaQuery((c) => c.from('profiles').update({ role: newRole }).eq('id', userId));
 }

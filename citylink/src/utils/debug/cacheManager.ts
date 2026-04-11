@@ -82,7 +82,7 @@ class CacheManager {
   async set(key, data, ttl = CACHE_CONFIG.DEFAULT_TTL) {
     try {
       const entry = new CacheEntry(key, data, ttl);
-      
+
       // Check cache size limit
       if (this.cacheStats.totalSize + entry.size > CACHE_CONFIG.MAX_CACHE_SIZE) {
         await this.evictLeastUsed();
@@ -93,7 +93,7 @@ class CacheManager {
 
       // Persist to AsyncStorage
       await AsyncStorage.setItem(`cache_${key}`, JSON.stringify(entry));
-      
+
       return true;
     } catch (error) {
       console.error('Cache set error:', error);
@@ -116,7 +116,7 @@ class CacheManager {
       if (persistentData) {
         const entry = JSON.parse(persistentData);
         const cacheEntry = new CacheEntry(entry.key, entry.data, entry.ttl);
-        
+
         if (cacheEntry.isValid()) {
           this.cache.set(key, cacheEntry);
           this.cacheStats.hits++;
@@ -144,7 +144,7 @@ class CacheManager {
         this.cacheStats.totalSize -= entry.size;
         this.cache.delete(key);
       }
-      
+
       await AsyncStorage.removeItem(`cache_${key}`);
       return true;
     } catch (error) {
@@ -158,11 +158,11 @@ class CacheManager {
     try {
       this.cache.clear();
       this.cacheStats.totalSize = 0;
-      
+
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith('cache_'));
+      const cacheKeys = keys.filter((key) => key.startsWith('cache_'));
       await AsyncStorage.multiRemove(cacheKeys);
-      
+
       return true;
     } catch (error) {
       console.error('Cache clear error:', error);
@@ -189,8 +189,8 @@ class CacheManager {
     // Clean persistent cache
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith('cache_'));
-      
+      const cacheKeys = keys.filter((key) => key.startsWith('cache_'));
+
       for (const key of cacheKeys) {
         const data = await AsyncStorage.getItem(key);
         if (data) {
@@ -213,11 +213,11 @@ class CacheManager {
   async evictLeastUsed() {
     const entries = Array.from(this.cache.entries());
     entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-    
+
     // Remove oldest 25% of entries
     const toRemove = Math.ceil(entries.length * 0.25);
     let freedSize = 0;
-    
+
     for (let i = 0; i < toRemove; i++) {
       const [key, entry] = entries[i];
       freedSize += entry.size;
@@ -225,14 +225,14 @@ class CacheManager {
       this.cacheStats.totalSize -= entry.size;
       await AsyncStorage.removeItem(`cache_${key}`);
     }
-    
+
     console.log(`🗑️ Cache eviction: removed ${toRemove} entries, freed ${freedSize} bytes`);
   }
 
   // Get cache statistics
   getStats() {
-    const hitRate = this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses) * 100;
-    
+    const hitRate = (this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)) * 100;
+
     return {
       ...this.cacheStats,
       hitRate: hitRate || 0,
@@ -261,14 +261,20 @@ class CacheManager {
           EUR: 62.3,
           GBP: 73.8,
         },
-        marketplaceCategories: [
-          'Electronics', 'Clothing', 'Food', 'Services', 'Housing'
-        ],
+        marketplaceCategories: ['Electronics', 'Clothing', 'Food', 'Services', 'Housing'],
       };
 
-      await this.set(CACHE_KEYS.TRANSPORT_ROUTES, staticData.transportRoutes, CACHE_CONFIG.STATIC_DATA_TTL);
-      await this.set(CACHE_KEYS.EXCHANGE_RATES, staticData.exchangeRates, CACHE_CONFIG.STATIC_DATA_TTL);
-      
+      await this.set(
+        CACHE_KEYS.TRANSPORT_ROUTES,
+        staticData.transportRoutes,
+        CACHE_CONFIG.STATIC_DATA_TTL
+      );
+      await this.set(
+        CACHE_KEYS.EXCHANGE_RATES,
+        staticData.exchangeRates,
+        CACHE_CONFIG.STATIC_DATA_TTL
+      );
+
       console.log('📦 Common data preloaded successfully');
     } catch (error) {
       console.error('Preload error:', error);
@@ -292,11 +298,14 @@ class DataPersistenceManager {
   async saveWithFallback(key, data, cloudSync = false) {
     try {
       // Save locally first
-      await AsyncStorage.setItem(key, JSON.stringify({
-        data,
-        timestamp: Date.now(),
-        synced: false,
-      }));
+      await AsyncStorage.setItem(
+        key,
+        JSON.stringify({
+          data,
+          timestamp: Date.now(),
+          synced: false,
+        })
+      );
 
       // Sync to cloud if online and requested
       if (cloudSync && this.isOnline) {
@@ -318,11 +327,14 @@ class DataPersistenceManager {
         const cloudData = await this.loadFromCloud(key);
         if (cloudData) {
           // Cache locally
-          await AsyncStorage.setItem(key, JSON.stringify({
-            data: cloudData,
-            timestamp: Date.now(),
-            synced: true,
-          }));
+          await AsyncStorage.setItem(
+            key,
+            JSON.stringify({
+              data: cloudData,
+              timestamp: Date.now(),
+              synced: true,
+            })
+          );
           return cloudData;
         }
       }
@@ -346,10 +358,10 @@ class DataPersistenceManager {
     try {
       // In a real app, this would sync to a backend service
       console.log(`☁️ Syncing ${key} to cloud...`);
-      
+
       // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Mark as synced
       const existing = await AsyncStorage.getItem(key);
       if (existing) {
@@ -358,7 +370,7 @@ class DataPersistenceManager {
         parsed.lastSyncTime = Date.now();
         await AsyncStorage.setItem(key, JSON.stringify(parsed));
       }
-      
+
       return true;
     } catch (error) {
       console.error('Cloud sync error:', error);
@@ -371,10 +383,10 @@ class DataPersistenceManager {
     try {
       // In a real app, this would fetch from a backend service
       console.log(`☁️ Loading ${key} from cloud...`);
-      
+
       // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Return mock data or null
       return null;
     } catch (error) {
@@ -418,7 +430,7 @@ class DataPersistenceManager {
   // Set online status
   setOnlineStatus(isOnline) {
     this.isOnline = isOnline;
-    
+
     if (isOnline) {
       // Sync pending data when coming back online
       this.syncPendingData();
@@ -456,12 +468,12 @@ export const CacheUtils = {
 
   // Invalidate cache by pattern
   invalidateCachePattern: async (pattern) => {
-    const keys = Array.from(cacheManager.cache.keys()).filter(key => key.includes(pattern));
-    
+    const keys = Array.from(cacheManager.cache.keys()).filter((key) => key.includes(pattern));
+
     for (const key of keys) {
       await cacheManager.remove(key);
     }
-    
+
     console.log(`🗑️ Invalidated ${keys.length} cache entries matching pattern: ${pattern}`);
   },
 
@@ -478,12 +490,16 @@ export const CacheUtils = {
 
     if (stats.hitRate < 50) {
       health.status = 'warning';
-      health.recommendations.push('Low cache hit rate. Consider increasing TTL or preloading data.');
+      health.recommendations.push(
+        'Low cache hit rate. Consider increasing TTL or preloading data.'
+      );
     }
 
     if (stats.totalSize > CACHE_CONFIG.MAX_CACHE_SIZE * 0.8) {
       health.status = 'warning';
-      health.recommendations.push('Cache size approaching limit. Consider cleanup or size optimization.');
+      health.recommendations.push(
+        'Cache size approaching limit. Consider cleanup or size optimization.'
+      );
     }
 
     if (stats.entryCount > 1000) {

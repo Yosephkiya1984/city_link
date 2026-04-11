@@ -8,11 +8,19 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search…', styl
   const C = useTheme();
   return (
     <View style={[{ paddingHorizontal: 16, marginBottom: 12 }, style]}>
-      <View style={{ 
-        flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, 
-        borderRadius: Radius.lg, borderWidth: 1.5, borderColor: C.edge2, 
-        paddingHorizontal: 12, height: 48, ...Shadow.sm 
-      }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: C.surface,
+          borderRadius: Radius.lg,
+          borderWidth: 1.5,
+          borderColor: C.edge2,
+          paddingHorizontal: 12,
+          height: 48,
+          ...Shadow.sm,
+        }}
+      >
         <Ionicons name="search" size={20} color={C.hint} style={{ marginRight: 8 }} />
         <TextInput
           value={value}

@@ -4,10 +4,16 @@ export const ONBOARDING_STEPS = [
   {
     id: 'welcome',
     title: 'Welcome to CityLink! 🇪🇹',
-    description: 'Your complete urban companion for Addis Ababa. Let\'s get you started with a quick tour.',
+    description:
+      "Your complete urban companion for Addis Ababa. Let's get you started with a quick tour.",
     icon: 'rocket',
     color: '#6366f1',
-    features: ['Smart transport tracking', 'Digital payments', 'Local services', 'Community features'],
+    features: [
+      'Smart transport tracking',
+      'Digital payments',
+      'Local services',
+      'Community features',
+    ],
   },
   {
     id: 'transport',
@@ -38,7 +44,7 @@ export const ONBOARDING_STEPS = [
   },
   {
     id: 'complete',
-    title: 'You\'re All Set! 🎉',
+    title: "You're All Set! 🎉",
     description: 'CityLink is ready to help you explore Addis Ababa like never before.',
     icon: 'checkmark-circle',
     color: '#22c55e',
@@ -61,5 +67,5 @@ export const OnboardingService = {
   },
   reset: async () => {
     await AsyncStorage.removeItem('has_seen_onboarding');
-  }
+  },
 };

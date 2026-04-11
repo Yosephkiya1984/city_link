@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Dimensions,
+  Alert,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
@@ -12,7 +20,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function AdminTopBar({ title, user }) {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
-  const resetStore = useAppStore(s => s.reset);
+  const resetStore = useAppStore((s) => s.reset);
   const [time, setTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -24,21 +32,17 @@ export default function AdminTopBar({ title, user }) {
 
   const handleProfilePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Account Operations',
-      `Logged in as ${user?.full_name || 'Administrator'}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: async () => {
-            await resetStore();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-        }
-      ]
-    );
+    Alert.alert('Account Operations', `Logged in as ${user?.full_name || 'Administrator'}`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await resetStore();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+    ]);
   };
 
   const handleNotifyPress = () => {
@@ -46,18 +50,30 @@ export default function AdminTopBar({ title, user }) {
   };
 
   return (
-    <BlurView intensity={25} tint={theme.isDark ? 'dark' : 'light'} style={[styles.container, { 
-      borderBottomWidth: 1, 
-      borderBottomColor: theme.rim,
-      backgroundColor: theme.isDark ? 'rgba(16, 19, 25, 0.7)' : 'rgba(255, 255, 255, 0.7)',
-      paddingHorizontal: isMobile ? 16 : 24,
-    }]}>
+    <BlurView
+      intensity={25}
+      tint={theme.isDark ? 'dark' : 'light'}
+      style={[
+        styles.container,
+        {
+          borderBottomWidth: 1,
+          borderBottomColor: theme.rim,
+          backgroundColor: theme.isDark ? 'rgba(16, 19, 25, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+          paddingHorizontal: isMobile ? 16 : 24,
+        },
+      ]}
+    >
       <View style={styles.left}>
-        <Text style={[styles.title, { 
-          color: theme.text, 
-          fontFamily: Fonts.headline,
-          fontSize: isMobile ? 16 : 20 
-        }]}>
+        <Text
+          style={[
+            styles.title,
+            {
+              color: theme.text,
+              fontFamily: Fonts.headline,
+              fontSize: isMobile ? 16 : 20,
+            },
+          ]}
+        >
           {title.toUpperCase()}
         </Text>
         {!isMobile && (
@@ -74,8 +90,8 @@ export default function AdminTopBar({ title, user }) {
         <View style={styles.center}>
           <View style={[styles.searchBar, { backgroundColor: theme.rim }]}>
             <Ionicons name="search-outline" size={18} color={theme.sub} />
-            <TextInput 
-              placeholder="Search records..." 
+            <TextInput
+              placeholder="Search records..."
               placeholderTextColor={theme.sub}
               style={[styles.searchInput, { color: theme.text, fontFamily: Fonts.body }]}
             />
@@ -92,14 +108,22 @@ export default function AdminTopBar({ title, user }) {
           </View>
         )}
 
-        <TouchableOpacity onPress={handleNotifyPress} style={[styles.iconButton, { backgroundColor: theme.rim }]}>
+        <TouchableOpacity
+          onPress={handleNotifyPress}
+          style={[styles.iconButton, { backgroundColor: theme.rim }]}
+        >
           <Ionicons name="notifications-outline" size={isMobile ? 18 : 20} color={theme.text} />
           <View style={[styles.badge, { backgroundColor: theme.primary }]} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleProfilePress} style={[styles.profileButton, { borderColor: theme.rim }]}>
+        <TouchableOpacity
+          onPress={handleProfilePress}
+          style={[styles.profileButton, { borderColor: theme.rim }]}
+        >
           <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-            <Text style={{ color: theme.ink, fontWeight: '800', fontSize: isMobile ? 11 : 13 }}>AD</Text>
+            <Text style={{ color: theme.ink, fontWeight: '800', fontSize: isMobile ? 11 : 13 }}>
+              AD
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -198,5 +222,5 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-  }
+  },
 });

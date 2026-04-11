@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert, Dimensions, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
@@ -20,76 +31,102 @@ export default function MerchantModule({ merchants, onRefresh, loading }) {
           if (res.error) window.alert(res.error);
           else onRefresh();
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
       return;
     }
 
-    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch (e) {}
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {}
 
-    Alert.alert(
-      'Confirm Approval',
-      `Approve ${name} as a verified CityLink merchant?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Approve', 
-          onPress: async () => {
-            const res = await approveMerchant(id);
-            if (res.error) Alert.alert('Error', res.error);
-            else onRefresh();
-          }
-        }
-      ]
-    );
+    Alert.alert('Confirm Approval', `Approve ${name} as a verified CityLink merchant?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Approve',
+        onPress: async () => {
+          const res = await approveMerchant(id);
+          if (res.error) Alert.alert('Error', res.error);
+          else onRefresh();
+        },
+      },
+    ]);
   };
 
   const handleReject = async (id, name) => {
     if (Platform.OS === 'web') {
       try {
-        const reason = window.prompt(`Explain why ${name} is being rejected:`, "");
+        const reason = window.prompt(`Explain why ${name} is being rejected:`, '');
         if (reason !== null) {
           const res = await rejectMerchant(id, reason || 'Incomplete documentation');
           if (res.error) window.alert(res.error);
           else onRefresh();
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
       return;
     }
 
-    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); } catch (e) {}
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } catch (e) {}
 
-    Alert.prompt(
-      'Rejection Reason',
-      `Explain why ${name} is being rejected:`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reject', 
-          style: 'destructive',
-          onPress: async (reason) => {
-            const res = await rejectMerchant(id, reason || 'Incomplete documentation');
-            if (res.error) Alert.alert('Error', res.error);
-            else onRefresh();
-          }
-        }
-      ]
-    );
+    Alert.prompt('Rejection Reason', `Explain why ${name} is being rejected:`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reject',
+        style: 'destructive',
+        onPress: async (reason) => {
+          const res = await rejectMerchant(id, reason || 'Incomplete documentation');
+          if (res.error) Alert.alert('Error', res.error);
+          else onRefresh();
+        },
+      },
+    ]);
   };
 
   const renderMerchant = ({ item }) => (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.rim, padding: isMobile ? 16 : 20 }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.surface, borderColor: theme.rim, padding: isMobile ? 16 : 20 },
+      ]}
+    >
       <View style={styles.cardHeader}>
         <View style={styles.businessInfo}>
-          <View style={[styles.avatar, { backgroundColor: theme.primary + '15', width: isMobile ? 40 : 48, height: isMobile ? 40 : 48 }]}>
+          <View
+            style={[
+              styles.avatar,
+              {
+                backgroundColor: theme.primary + '15',
+                width: isMobile ? 40 : 48,
+                height: isMobile ? 40 : 48,
+              },
+            ]}
+          >
             <Text style={{ color: theme.primary, fontWeight: '800', fontSize: isMobile ? 16 : 18 }}>
               {item.business_name?.[0] || 'B'}
             </Text>
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={[styles.businessName, { color: theme.text, fontFamily: Fonts.label, fontSize: isMobile ? 14 : 16 }]} numberOfLines={1}>
+            <Text
+              style={[
+                styles.businessName,
+                { color: theme.text, fontFamily: Fonts.label, fontSize: isMobile ? 14 : 16 },
+              ]}
+              numberOfLines={1}
+            >
               {item.business_name}
             </Text>
-            <Text style={[styles.ownerName, { color: theme.sub, fontFamily: Fonts.body, fontSize: isMobile ? 11 : 12 }]} numberOfLines={1}>
+            <Text
+              style={[
+                styles.ownerName,
+                { color: theme.sub, fontFamily: Fonts.body, fontSize: isMobile ? 11 : 12 },
+              ]}
+              numberOfLines={1}
+            >
               {item.full_name} • {item.merchant_type?.toUpperCase()}
             </Text>
           </View>
@@ -99,31 +136,50 @@ export default function MerchantModule({ merchants, onRefresh, loading }) {
         </View>
       </View>
 
-      <View style={[styles.divider, { backgroundColor: theme.rim, marginVertical: isMobile ? 12 : 16 }]} />
+      <View
+        style={[styles.divider, { backgroundColor: theme.rim, marginVertical: isMobile ? 12 : 16 }]}
+      />
 
       <View style={isMobile ? styles.detailsStack : styles.detailsGrid}>
         <DetailItem label="TIN" value={item.tin || 'N/A'} icon="card-outline" isMobile={isMobile} />
-        <DetailItem label="License" value={item.license_no || 'N/A'} icon="document-text-outline" isMobile={isMobile} />
+        <DetailItem
+          label="License"
+          value={item.license_no || 'N/A'}
+          icon="document-text-outline"
+          isMobile={isMobile}
+        />
         {(!isMobile || merchants.length < 5) && (
           <>
-            <DetailItem label="Location" value={`${item.subcity || 'Addis'}`} icon="location-outline" isMobile={isMobile} />
+            <DetailItem
+              label="Location"
+              value={`${item.subcity || 'Addis'}`}
+              icon="location-outline"
+              isMobile={isMobile}
+            />
             <DetailItem label="Phone" value={item.phone} icon="call-outline" isMobile={isMobile} />
           </>
         )}
       </View>
 
       <View style={[styles.actions, { gap: isMobile ? 8 : 12 }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => handleReject(item.id, item.business_name)}
           style={[styles.rejectBtn, { borderColor: theme.red + '30', height: isMobile ? 40 : 44 }]}
         >
-          <Text style={{ color: theme.red, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>Reject</Text>
+          <Text style={{ color: theme.red, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>
+            Reject
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => handleApprove(item.id, item.business_name)}
-          style={[styles.approveBtn, { backgroundColor: theme.primary, height: isMobile ? 40 : 44 }]}
+          style={[
+            styles.approveBtn,
+            { backgroundColor: theme.primary, height: isMobile ? 40 : 44 },
+          ]}
         >
-          <Text style={{ color: theme.ink, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>Approve</Text>
+          <Text style={{ color: theme.ink, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>
+            Approve
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -161,7 +217,12 @@ function DetailItem({ label, value, icon, isMobile }) {
       <Ionicons name={icon} size={14} color={theme.sub} style={{ marginRight: 6 }} />
       <View style={{ flex: 1 }}>
         <Text style={[styles.detailLabel, { color: theme.hint }]}>{label.toUpperCase()}</Text>
-        <Text style={[styles.detailValue, { color: theme.textSoft, fontSize: isMobile ? 12 : 13 }]} numberOfLines={1}>{value}</Text>
+        <Text
+          style={[styles.detailValue, { color: theme.textSoft, fontSize: isMobile ? 12 : 13 }]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -250,5 +311,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
-  }
+  },
 });

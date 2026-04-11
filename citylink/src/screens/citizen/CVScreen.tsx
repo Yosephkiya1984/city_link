@@ -56,35 +56,88 @@ export default function CVScreen() {
       <RNText style={{ color: C.sub, fontSize: 13, marginBottom: 20, fontFamily: Fonts.medium }}>
         Build your professional profile. This information will be visible to employers.
       </RNText>
-      
-      <CInput label="Job Title" value={title} onChangeText={setTitle} placeholder="e.g. Senior Software Engineer" />
-      <CInput label="Professional Summary" value={summary} onChangeText={setSummary} placeholder="Brief description of your experience and goals" multiline numberOfLines={3} />
-      
+
+      <CInput
+        label="Job Title"
+        value={title}
+        onChangeText={setTitle}
+        placeholder="e.g. Senior Software Engineer"
+      />
+      <CInput
+        label="Professional Summary"
+        value={summary}
+        onChangeText={setSummary}
+        placeholder="Brief description of your experience and goals"
+        multiline
+        numberOfLines={3}
+      />
+
       <SectionTitle title="Skills" />
-      <CInput label="Skills (comma-separated)" value={skills.join(', ')} onChangeText={(text) => setSkills(text.split(',').map(s => s.trim()).filter(Boolean))} placeholder="React, Node.js, Project Management..." />
-      
+      <CInput
+        label="Skills (comma-separated)"
+        value={skills.join(', ')}
+        onChangeText={(text) =>
+          setSkills(
+            text
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          )
+        }
+        placeholder="React, Node.js, Project Management..."
+      />
+
       <SectionTitle title="Experience" />
       {experience.map((exp, idx) => (
         <Card key={idx} style={{ marginBottom: 10 }}>
           <RNText style={{ color: C.text, fontFamily: Fonts.black }}>{exp.title}</RNText>
-          <RNText style={{ color: C.sub, fontSize: 12 }}>{exp.company} â€¢ {exp.years}</RNText>
+          <RNText style={{ color: C.sub, fontSize: 12 }}>
+            {exp.company} â€¢ {exp.years}
+          </RNText>
         </Card>
       ))}
-      <CButton title="+ Add Experience" variant="ghost" size="sm" onPress={() => showToast('Feature coming soon', 'info')} />
+      <CButton
+        title="+ Add Experience"
+        variant="ghost"
+        size="sm"
+        onPress={() => showToast('Feature coming soon', 'info')}
+      />
 
       <SectionTitle title="Education" />
       {education.map((edu, idx) => (
         <Card key={idx} style={{ marginBottom: 10 }}>
           <RNText style={{ color: C.text, fontFamily: Fonts.black }}>{edu.degree}</RNText>
-          <RNText style={{ color: C.sub, fontSize: 12 }}>{edu.school} â€¢ {edu.year}</RNText>
+          <RNText style={{ color: C.sub, fontSize: 12 }}>
+            {edu.school} â€¢ {edu.year}
+          </RNText>
         </Card>
       ))}
-      <CButton title="+ Add Education" variant="ghost" size="sm" onPress={() => showToast('Feature coming soon', 'info')} />
+      <CButton
+        title="+ Add Education"
+        variant="ghost"
+        size="sm"
+        onPress={() => showToast('Feature coming soon', 'info')}
+      />
 
       <SectionTitle title="Portfolio & Links" />
-      <CInput label="Portfolio URL" value={portfolioUrl} onChangeText={setPortfolioUrl} placeholder="https://yourportfolio.com" />
-      <CInput label="LinkedIn URL" value={linkedinUrl} onChangeText={setLinkedinUrl} placeholder="https://linkedin.com/in/yourprofile" />
-      <CInput label="GitHub URL" value={githubUrl} onChangeText={setGithubUrl} placeholder="https://github.com/yourusername" />
+      <CInput
+        label="Portfolio URL"
+        value={portfolioUrl}
+        onChangeText={setPortfolioUrl}
+        placeholder="https://yourportfolio.com"
+      />
+      <CInput
+        label="LinkedIn URL"
+        value={linkedinUrl}
+        onChangeText={setLinkedinUrl}
+        placeholder="https://linkedin.com/in/yourprofile"
+      />
+      <CInput
+        label="GitHub URL"
+        value={githubUrl}
+        onChangeText={setGithubUrl}
+        placeholder="https://github.com/yourusername"
+      />
 
       <SectionTitle title="Job Preferences" />
       <CSelect
@@ -109,7 +162,13 @@ export default function CVScreen() {
           { value: 'flexible', label: 'Flexible' },
         ]}
       />
-      <CInput label="Expected Salary (ETB)" value={expectedSalary} onChangeText={setExpectedSalary} placeholder="e.g. 15000" keyboardType="numeric" />
+      <CInput
+        label="Expected Salary (ETB)"
+        value={expectedSalary}
+        onChangeText={setExpectedSalary}
+        placeholder="e.g. 15000"
+        keyboardType="numeric"
+      />
 
       <View style={{ marginTop: 30 }}>
         <CButton title={loading ? 'Saving...' : 'Save CV'} onPress={saveCV} loading={loading} />
@@ -146,10 +205,35 @@ export default function CVScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar title={t('prof_profile')} />
-      <View style={{ flexDirection: 'row', padding: 16, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.edge }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          padding: 16,
+          backgroundColor: C.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: C.edge,
+        }}
+      >
         {['profile', 'documents', 'requests'].map((tab) => (
-          <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)} style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === tab ? C.primary : 'transparent' }}>
-            <RNText style={{ color: activeTab === tab ? C.primary : C.sub, fontFamily: Fonts.black, textTransform: 'capitalize', fontSize: 12 }}>
+          <TouchableOpacity
+            key={tab}
+            onPress={() => setActiveTab(tab)}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              alignItems: 'center',
+              borderBottomWidth: 2,
+              borderBottomColor: activeTab === tab ? C.primary : 'transparent',
+            }}
+          >
+            <RNText
+              style={{
+                color: activeTab === tab ? C.primary : C.sub,
+                fontFamily: Fonts.black,
+                textTransform: 'capitalize',
+                fontSize: 12,
+              }}
+            >
               {tab}
             </RNText>
           </TouchableOpacity>
