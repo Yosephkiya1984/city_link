@@ -1,0 +1,152 @@
+{
+  "expo": {
+    "name": "CityLink",
+    "slug": "citylink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a1a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.citylink.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CityLink needs location access for transport and nearby services",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "CityLink needs location access for real-time transport tracking",
+        "NSCameraUsageDescription": "CityLink needs camera access for QR code scanning and profile photos",
+        "NSPhotoLibraryUsageDescription": "CityLink needs photo library access for profile customization",
+        "NSMicrophoneUsageDescription": "CityLink needs microphone access for voice commands"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a1a"
+      },
+      "package": "com.citylink.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "web",
+      "config": {
+        "firebase": {
+          "apiKey": "your-api-key",
+          "authDomain": "citylink.firebaseapp.com",
+          "projectId": "citylink-app",
+          "storageBucket": "citylink-app.appspot.com",
+          "messagingSenderId": "123456789",
+          "appId": "1:123456789:web:abcdef"
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow CityLink to access your camera for QR scanning and profile photos"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow CityLink to access your location for transport tracking and nearby services"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow CityLink to access your microphone for voice commands"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1a1a1a",
+          "defaultChannel": "default",
+          "sounds": [
+            "./assets/sounds/notification.wav"
+          ]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1a1a1a"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "citylink-app"
+      },
+      "apiUrl": "https://api.citylink.et",
+      "websocketUrl": "wss://api.citylink.et/ws",
+      "environment": "production"
+    },
+    "hooks": {
+      "postExport": {
+        "script": "./scripts/post-export.js"
+      }
+    },
+    "build": {
+      "developmentClient": {
+        "channel": "development"
+      },
+      "preview": {
+        "channel": "preview",
+        "distribution": "store"
+      },
+      "production": {
+        "channel": "production",
+        "distribution": "store",
+        "ios": {
+          "autoIncrement": true
+        },
+        "android": {
+          "autoIncrement": true
+        }
+      }
+    },
+    "submit": {
+      "production": {
+        "ios": {
+          "appleId": "your-apple-id",
+          "appleIdPassword": "your-apple-password",
+          "ascAppId": "your-app-store-id",
+          "ascTeamId": "your-team-id"
+        },
+        "android": {
+          "serviceAccountKey": "./google-service-account.json",
+          "track": "production"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,923 @@
+﻿App.tsx(32,11): error TS2339: Property 'setCurrentUser' does not exist on type '{}'.
+App.tsx(32,27): error TS2339: Property 'setBalance' does not exist on type '{}'.
+App.tsx(32,39): error TS2339: Property 'isDark' does not exist on type '{}'.
+App.tsx(32,50): error TS2554: Expected 1 arguments, but got 0.
+src/components/admin/AdminBottomNav.tsx(65,17): error TS2322: Type 'string' is not assignable to type '"symbol" | "function" | "sort" | "map" | "filter" | "at" | "repeat" | "anchor" | "link" | "ghost" | "loading" | "key" | "opacity" | "margin" | "solid" | "wrap" | "scale" | "matrix" | ... 7429 more ... | "blank"'.
+src/components/admin/AdminSidebar.tsx(99,19): error TS2322: Type 'string' is not assignable to type '"symbol" | "function" | "sort" | "map" | "filter" | "at" | "repeat" | "anchor" | "link" | "ghost" | "loading" | "key" | "opacity" | "margin" | "solid" | "wrap" | "scale" | "matrix" | ... 7429 more ... | "blank"'.
+src/components/admin/AuditModule.tsx(69,10): error TS2304: Cannot find name 'TouchableOpacity'.
+src/components/admin/AuditModule.tsx(72,11): error TS2304: Cannot find name 'TouchableOpacity'.
+src/components/admin/DisputeModule.tsx(74,49): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/admin/DisputeModule.tsx(74,74): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/admin/DisputeModule.tsx(161,74): error TS2339: Property 'secondary' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'.
+  Property 'secondary' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/components/admin/DisputeModule.tsx(163,106): error TS2339: Property 'secondary' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'.
+  Property 'secondary' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/components/admin/DisputeModule.tsx(262,35): error TS2339: Property 'historySection' does not exist on type '{ container: { flex: number; flexDirection: "row"; }; sidebar: { width: number; borderRightWidth: number; }; moduleHeader: { padding: number; flexDirection: "row"; alignItems: "center"; gap: number; }; ... 23 more ...; evidencePlaceholder: { ...; }; }'.
+src/components/admin/DisputeModule.tsx(284,26): error TS2339: Property 'logItem' does not exist on type '{ container: { flex: number; flexDirection: "row"; }; sidebar: { width: number; borderRightWidth: number; }; moduleHeader: { padding: number; flexDirection: "row"; alignItems: "center"; gap: number; }; ... 23 more ...; evidencePlaceholder: { ...; }; }'.
+src/components/admin/DisputeModule.tsx(286,30): error TS2339: Property 'logTime' does not exist on type '{ container: { flex: number; flexDirection: "row"; }; sidebar: { width: number; borderRightWidth: number; }; moduleHeader: { padding: number; flexDirection: "row"; alignItems: "center"; gap: number; }; ... 23 more ...; evidencePlaceholder: { ...; }; }'.
+src/components/admin/DisputeModule.tsx(287,30): error TS2339: Property 'logUser' does not exist on type '{ container: { flex: number; flexDirection: "row"; }; sidebar: { width: number; borderRightWidth: number; }; moduleHeader: { padding: number; flexDirection: "row"; alignItems: "center"; gap: number; }; ... 23 more ...; evidencePlaceholder: { ...; }; }'.
+src/components/admin/DisputeModule.tsx(289,28): error TS2339: Property 'logText' does not exist on type '{ container: { flex: number; flexDirection: "row"; }; sidebar: { width: number; borderRightWidth: number; }; moduleHeader: { padding: number; flexDirection: "row"; alignItems: "center"; gap: number; }; ... 23 more ...; evidencePlaceholder: { ...; }; }'.
+src/components/admin/OverviewModule.tsx(54,49): error TS2339: Property 'secondary' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'.
+  Property 'secondary' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/components/admin/OverviewModule.tsx(84,27): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/components/admin/SystemModule.tsx(70,12): error TS2741: Property 'isDanger' is missing in type '{ label: string; sub: string; value: boolean; onToggle: () => void; }' but required in type '{ label: any; sub: any; value: any; onToggle: any; isDanger: any; }'.
+src/components/admin/SystemModule.tsx(76,12): error TS2741: Property 'isDanger' is missing in type '{ label: string; sub: string; value: boolean; onToggle: () => void; }' but required in type '{ label: any; sub: any; value: any; onToggle: any; isDanger: any; }'.
+src/components/admin/SystemModule.tsx(82,12): error TS2741: Property 'isDanger' is missing in type '{ label: string; sub: string; value: boolean; onToggle: () => void; }' but required in type '{ label: any; sub: any; value: any; onToggle: any; isDanger: any; }'.
+src/components/admin/SystemModule.tsx(88,12): error TS2741: Property 'isDanger' is missing in type '{ label: string; sub: string; value: boolean; onToggle: () => void; }' but required in type '{ label: any; sub: any; value: any; onToggle: any; isDanger: any; }'.
+src/components/admin/UserModule.tsx(99,32): error TS2339: Property 'phoneText' does not exist on type '{ container: { flex: number; }; header: { padding: number; }; searchBox: { flexDirection: "row"; }; searchInputWrap: { flex: number; flexDirection: "row"; alignItems: "center"; height: number; borderRadius: number; borderWidth: number; paddingHorizontal: number; gap: number; }; ... 17 more ...; center: { ...; }; }'.
+src/components/EnhancedErrorBoundary.tsx(244,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'timeout' does not exist in type 'RequestInit'.
+src/components/EnhancedErrorBoundary.tsx(258,13): error TS2339: Property 'setOfflineMode' does not exist on type 'AppState'.
+src/components/EnhancedErrorBoundary.tsx(303,16): error TS2304: Cannot find name 'Updates'.
+src/components/EnhancedErrorBoundary.tsx(303,43): error TS2304: Cannot find name 'Updates'.
+src/components/EnhancedErrorBoundary.tsx(304,7): error TS2304: Cannot find name 'Updates'.
+src/components/EnhancedErrorBoundary.tsx(311,13): error TS2339: Property 'error' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(311,20): error TS2339: Property 'errorInfo' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(327,16): error TS2304: Cannot find name 'Updates'.
+src/components/EnhancedErrorBoundary.tsx(327,43): error TS2304: Cannot find name 'Updates'.
+src/components/EnhancedErrorBoundary.tsx(328,7): error TS2304: Cannot find name 'Updates'.
+src/components/EnhancedErrorBoundary.tsx(362,13): error TS2339: Property 'hasError' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(362,23): error TS2339: Property 'error' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(362,30): error TS2339: Property 'errorType' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(362,41): error TS2339: Property 'recoveryAttempted' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(363,13): error TS2339: Property 'fallback' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(363,23): error TS2339: Property 'isDark' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(367,25): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/components/EnhancedErrorBoundary.tsx(457,34): error TS2551: Property 'amberL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'amber'?
+  Property 'amberL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/components/feedback/OnboardingModal.tsx(66,23): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/components/layout/GlassCard.tsx(31,23): error TS2339: Property 'xl' does not exist on type '{ sm: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; md: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; lg: { ...; }; primary: { .....'.
+src/components/layout/WalletHero.tsx(105,29): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/components/OfflineBanner.tsx(13,80): error TS2551: Property 'amberD' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'amber'?
+  Property 'amberD' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/components/TopBar.tsx(22,44): error TS2339: Property 'unreadCount' does not exist on type 'AppState'.
+src/components/TopBar.tsx(84,57): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"ChatInbox"' is not assignable to parameter of type 'never'.
+src/components/TopBar.tsx(92,57): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Notifications"' is not assignable to parameter of type 'never'.
+src/components/ui/CButton.tsx(103,48): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(specifics: ({ ios?: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; android?: { shadowColor: string; shadowOffset: { ...; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; macos?: { ...; }; windows?: { ...; }; web?: { ...; }; native?: { ...; }; } & { ...; }) | { ...; }): { ...; }', gave the following error.
+    Type '{}' is missing the following properties from type '{ shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }': shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
+  Overload 2 of 2, '(specifics: { ios?: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; android?: { shadowColor: string; shadowOffset: { ...; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; macos?: { ...; }; windows?: { ...; }; web?: { ...; }; native?: { ...; }; }): { ...; }', gave the following error.
+    Type '{}' is missing the following properties from type '{ shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }': shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
+src/components/ui/CButton.tsx(107,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: LinearGradientProps): LinearGradient', gave the following error.
+    Type 'string[]' is not assignable to type 'readonly [ColorValue, ColorValue, ...ColorValue[]]'.
+      Source provides no match for required element at position 0 in target.
+  Overload 2 of 2, '(props: LinearGradientProps, context: any): LinearGradient', gave the following error.
+    Type 'string[]' is not assignable to type 'readonly [ColorValue, ColorValue, ...ColorValue[]]'.
+      Source provides no match for required element at position 0 in target.
+src/screens/admin/InspectorScreen.tsx(7,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/admin/InspectorScreen.tsx(87,7): error TS2304: Cannot find name 'Haptics'.
+src/screens/admin/InspectorScreen.tsx(87,33): error TS2304: Cannot find name 'Haptics'.
+src/screens/admin/InspectorScreen.tsx(108,103): error TS2339: Property 'badge_id' does not exist on type 'User'.
+src/screens/admin/InspectorScreen.tsx(111,64): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"ChatInbox"' is not assignable to parameter of type 'never'.
+src/screens/admin/InspectorScreen.tsx(115,64): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Notifications"' is not assignable to parameter of type 'never'.
+src/screens/admin/InspectorScreen.tsx(149,17): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/admin/StationScreen.tsx(83,66): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"ChatInbox"' is not assignable to parameter of type 'never'.
+src/screens/admin/StationScreen.tsx(84,80): error TS2551: Property 'surfaceLow' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'surface'?
+  Property 'surfaceLow' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(87,66): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Notifications"' is not assignable to parameter of type 'never'.
+src/screens/admin/StationScreen.tsx(88,80): error TS2551: Property 'surfaceLow' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'surface'?
+  Property 'surfaceLow' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(93,95): error TS2551: Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(95,44): error TS2551: Property 'greenB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(101,35): error TS2551: Property 'redL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'red'?
+  Property 'redL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(145,52): error TS2551: Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(145,61): error TS2551: Property 'blueL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'blue'?
+  Property 'blueL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(154,39): error TS2551: Property 'redL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'red'?
+  Property 'redL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(185,71): error TS2551: Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(186,68): error TS2551: Property 'greenB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(221,55): error TS2551: Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(221,64): error TS2551: Property 'blueL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'blue'?
+  Property 'blueL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(229,69): error TS2551: Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(230,54): error TS2551: Property 'amberL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'amber'?
+  Property 'amberL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/admin/StationScreen.tsx(230,63): error TS2551: Property 'blueL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'blue'?
+  Property 'blueL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/agent/BecomeDeliveryAgentScreen.tsx(128,25): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/agent/DeliveryAgentDashboard.tsx(64,44): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/agent/DeliveryAgentDashboard.tsx(96,30): error TS2339: Property 'dispatchCard' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dispatchCard' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(97,64): error TS2339: Property 'dispatchGradient' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dispatchGradient' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(99,24): error TS2339: Property 'dispatchHeader' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dispatchHeader' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(100,26): error TS2339: Property 'dispatchBadge' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dispatchBadge' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(102,28): error TS2339: Property 'dispatchBadgeText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dispatchBadgeText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(104,27): error TS2339: Property 'timerBox' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'timerBox' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(106,29): error TS2339: Property 'timerText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'timerText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(113,24): error TS2339: Property 'addressRow' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressRow' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(114,27): error TS2339: Property 'dot' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dot' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(116,28): error TS2339: Property 'addressLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(117,28): error TS2339: Property 'addressText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(120,28): error TS2339: Property 'addressSub' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressSub' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(125,24): error TS2339: Property 'addressRow' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressRow' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(126,27): error TS2339: Property 'dot' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dot' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(128,28): error TS2339: Property 'addressLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(129,28): error TS2339: Property 'addressText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(134,24): error TS2339: Property 'earningsRow' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsRow' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(136,28): error TS2339: Property 'earningsLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(137,28): error TS2339: Property 'earningsValue' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsValue' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(139,26): error TS2339: Property 'earningsDivider' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsDivider' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(141,28): error TS2339: Property 'earningsLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(142,29): error TS2339: Property 'earningsValue' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsValue' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(146,26): error TS2339: Property 'earningsDivider' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsDivider' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(148,28): error TS2339: Property 'earningsLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(149,28): error TS2339: Property 'earningsValue' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'earningsValue' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(154,24): error TS2339: Property 'dispatchBtns' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dispatchBtns' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(155,38): error TS2339: Property 'declineBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'declineBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(157,28): error TS2339: Property 'declineBtnText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'declineBtnText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(159,38): error TS2339: Property 'acceptBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'acceptBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(161,28): error TS2339: Property 'acceptBtnText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'acceptBtnText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(180,20): error TS2339: Property 'activeJobCard' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'activeJobCard' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(182,22): error TS2339: Property 'miniMapContainer' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'miniMapContainer' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(184,20): error TS2339: Property 'miniMap' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'miniMap' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(201,64): error TS2339: Property 'activeJobGradient' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'activeJobGradient' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(202,24): error TS2339: Property 'activeJobHeader' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'activeJobHeader' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(203,27): error TS2339: Property 'statusPill' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'statusPill' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(205,29): error TS2339: Property 'statusPillText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'statusPillText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(207,26): error TS2339: Property 'activeJobTime' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'activeJobTime' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(210,24): error TS2339: Property 'activeJobProduct' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'activeJobProduct' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(211,24): error TS2339: Property 'activeJobEarning' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'activeJobEarning' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(215,24): error TS2339: Property 'addressRow' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressRow' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(216,27): error TS2339: Property 'dot' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dot' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(218,28): error TS2339: Property 'addressLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(219,28): error TS2339: Property 'addressText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(222,24): error TS2339: Property 'addressRow' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressRow' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(223,27): error TS2339: Property 'dot' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'dot' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(225,28): error TS2339: Property 'addressLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(226,28): error TS2339: Property 'addressText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'addressText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(233,25): error TS2339: Property 'actionBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(238,31): error TS2339: Property 'actionBtnText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtnText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(251,39): error TS2339: Property 'actionBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(253,28): error TS2339: Property 'actionBtnText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtnText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(257,39): error TS2339: Property 'actionBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(259,28): error TS2339: Property 'actionBtnText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtnText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(513,23): error TS2339: Property 'root' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'root' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(515,25): error TS2339: Property 'headerTitle' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'headerTitle' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(516,25): error TS2339: Property 'textSub' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'textSub' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(519,37): error TS2339: Property 'actionBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(525,26): error TS2339: Property 'actionBtnText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'actionBtnText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(533,23): error TS2339: Property 'root' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'root' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(540,20): error TS2339: Property 'root' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'root' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(542,64): error TS2339: Property 'navHeader' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'navHeader' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(544,26): error TS2339: Property 'greeting' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'greeting' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(545,26): error TS2339: Property 'headerTitle' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'headerTitle' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(547,24): error TS2339: Property 'headerRight' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'headerRight' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(548,38): error TS2339: Property 'switchBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'switchBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(557,26): error TS2339: Property 'ratingBadge' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'ratingBadge' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(559,28): error TS2339: Property 'ratingText' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'ratingText' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(561,38): error TS2339: Property 'signOutBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'signOutBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(578,22): error TS2339: Property 'tabBar' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'tabBar' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(580,49): error TS2339: Property 'tab' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'tab' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(580,71): error TS2339: Property 'tabActive' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'tabActive' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(581,23): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/agent/DeliveryAgentDashboard.tsx(582,29): error TS2339: Property 'tabLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'tabLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(595,28): error TS2339: Property 'statsRow' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'statsRow' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(601,40): error TS2339: Property 'statCard' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'statCard' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(602,29): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/agent/DeliveryAgentDashboard.tsx(603,35): error TS2339: Property 'statValue' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'statValue' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(604,34): error TS2339: Property 'statLabel' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'statLabel' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(610,29): error TS2339: Property 'onlineCard' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'onlineCard' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(610,55): error TS2339: Property 'onlineCardActive' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'onlineCardActive' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(611,30): error TS2339: Property 'onlineDot' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'onlineDot' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(613,32): error TS2339: Property 'onlineTitle' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'onlineTitle' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(614,32): error TS2339: Property 'onlineSub' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'onlineSub' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(661,30): error TS2339: Property 'emptyState' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'emptyState' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(663,32): error TS2339: Property 'emptyTitle' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'emptyTitle' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(664,32): error TS2339: Property 'emptyBody' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'emptyBody' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(676,28): error TS2339: Property 'emptyState' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'emptyState' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(678,30): error TS2339: Property 'emptyTitle' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'emptyTitle' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(679,30): error TS2339: Property 'emptyBody' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'emptyBody' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(683,46): error TS2339: Property 'historyCard' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'historyCard' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(684,32): error TS2339: Property 'historyLeft' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'historyLeft' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(688,34): error TS2339: Property 'historyProduct' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'historyProduct' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(689,34): error TS2339: Property 'historySub' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'historySub' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(690,34): error TS2339: Property 'historyDate' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'historyDate' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(693,34): error TS2339: Property 'historyEarning' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'historyEarning' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(705,24): error TS2339: Property 'modalOverlay' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'modalOverlay' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(706,26): error TS2339: Property 'modalSheet' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'modalSheet' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(719,24): error TS2339: Property 'modalInput' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'modalInput' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(729,28): error TS2339: Property 'modalBtns' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'modalBtns' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(730,42): error TS2339: Property 'cancelBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'cancelBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(733,43): error TS2339: Property 'submitBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'submitBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(749,28): error TS2339: Property 'cameraOverlay' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'cameraOverlay' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(750,30): error TS2339: Property 'cameraInstruction' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'cameraInstruction' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(751,30): error TS2339: Property 'cameraGrid' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'cameraGrid' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(753,30): error TS2339: Property 'cameraBottom' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'cameraBottom' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(754,44): error TS2339: Property 'cameraClose' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'cameraClose' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(757,44): error TS2339: Property 'shutterBtn' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'shutterBtn' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(758,84): error TS2339: Property 'shutterInner' does not exist on type 'NamedStyles<any> | NamedStyles<unknown>'.
+  Property 'shutterInner' does not exist on type 'NamedStyles<unknown>'.
+src/screens/agent/DeliveryAgentDashboard.tsx(794,14): error TS2322: Type '(on: any) => { width: number; height: number; borderRadius: number; backgroundColor: string; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+src/screens/citizen/AIScreen.tsx(11,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/AIScreen.tsx(72,44): error TS2339: Property 'chatHistory' does not exist on type 'AppState'.
+src/screens/citizen/AIScreen.tsx(73,47): error TS2339: Property 'addChatMessage' does not exist on type 'AppState'.
+src/screens/citizen/AIScreen.tsx(74,42): error TS2339: Property 'clearChat' does not exist on type 'AppState'.
+src/screens/citizen/AIScreen.tsx(140,33): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/citizen/AIScreen.tsx(163,25): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/citizen/AIScreen.tsx(270,36): error TS2554: Expected 1 arguments, but got 0.
+src/screens/citizen/AIScreen.tsx(287,28): error TS2554: Expected 1 arguments, but got 0.
+src/screens/citizen/AnbessaScreen.tsx(44,41): error TS2339: Property 'type' does not exist on type 'object'.
+src/screens/citizen/AnbessaScreen.tsx(47,3): error TS2304: Cannot find name 'useEffect'.
+src/screens/citizen/AnbessaScreen.tsx(102,13): error TS2739: Type '{ children: Element[]; style: { padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/AnbessaScreen.tsx(140,30): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/citizen/AnbessaScreen.tsx(154,16): error TS2739: Type '{ children: Element[]; key: string; style: { width: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/BillPayScreen.tsx(25,41): error TS2339: Property 'type' does not exist on type 'object'.
+src/screens/citizen/BillPayScreen.tsx(83,86): error TS2551: Property 'greenL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/citizen/BillPayScreen.tsx(107,11): error TS2739: Type '{ children: Element[]; style: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; padding: number; marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/CityServicesScreen.tsx(38,76): error TS2345: Argument of type '[string, { type: string; }]' is not assignable to parameter of type 'never'.
+src/screens/citizen/CityServicesScreen.tsx(43,27): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/citizen/CVScreen.tsx(8,56): error TS2305: Module '"../../components"' has no exported member 'EmptyState'.
+src/screens/citizen/CVScreen.tsx(26,51): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(27,55): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(28,53): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(29,61): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(30,59): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(31,65): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(32,63): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(33,59): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(34,69): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(35,55): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(36,65): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(37,61): error TS2339: Property 'cv' does not exist on type 'User'.
+src/screens/citizen/CVScreen.tsx(68,10): error TS2739: Type '{ children: Element[]; key: any; style: { marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/CVScreen.tsx(77,10): error TS2739: Type '{ children: Element[]; key: any; style: { marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/CVScreen.tsx(90,8): error TS2741: Property 'style' is missing in type '{ label: string; value: any; onValueChange: Dispatch<any>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/citizen/CVScreen.tsx(101,8): error TS2741: Property 'style' is missing in type '{ label: string; value: any; onValueChange: Dispatch<any>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/citizen/DelalaScreen.tsx(202,51): error TS2551: Property 'activeNavLink' does not exist on type '{ container: { flex: number; backgroundColor: string; }; topBar: { position: "absolute"; top: number; left: number; right: number; height: number; zIndex: number; backgroundColor: string; paddingHorizontal: number; ... 10 more ...; shadowRadius: number; }; ... 121 more ...; fabTooltipText: { ...; }; }'. Did you mean 'activeNavLinkText'?
+src/screens/citizen/DelalaScreen.tsx(755,25): error TS2345: Argument of type '[string, { threadId: string; recipientId: any; recipientName: any; propertyTitle: any; }]' is not assignable to parameter of type 'never'.
+src/screens/citizen/DelalaScreen.tsx(767,25): error TS2345: Argument of type '[string, { threadId: any; recipientName: any; recipientId: any; }]' is not assignable to parameter of type 'never'.
+src/screens/citizen/DelalaScreen.tsx(859,29): error TS2322: Type '"inventory"' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/citizen/DelalaScreen.tsx(911,8): error TS2741: Property 'userProfile' is missing in type '{ activeScreen: string; onScreenChange: Dispatch<SetStateAction<string>>; userImage: string; }' but required in type '{ activeScreen: any; onScreenChange: any; userImage: any; userProfile: any; }'.
+src/screens/citizen/DelalaScreen.tsx(1108,15): error TS2339: Property 'xl' does not exist on type '{ sm: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; md: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; lg: { ...; }; primary: { .....'.
+src/screens/citizen/DelalaScreen.tsx(1154,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/DelalaScreen.tsx(1219,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/DelalaScreen.tsx(1255,15): error TS2339: Property 'xl' does not exist on type '{ sm: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; md: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; lg: { ...; }; primary: { .....'.
+src/screens/citizen/DelalaScreen.tsx(1288,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/DelalaScreen.tsx(1691,15): error TS2339: Property 'xl' does not exist on type '{ sm: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; md: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; lg: { ...; }; primary: { .....'.
+src/screens/citizen/DelalaScreen.tsx(1706,5): error TS2345: Argument of type '{ container: { flex: number; backgroundColor: string; }; topBar: { position: "absolute"; top: number; left: number; right: number; height: number; zIndex: number; backgroundColor: string; paddingHorizontal: number; ... 10 more ...; shadowRadius: number; }; ... 121 more ...; fabTooltipText: { ...; }; }' is not assignable to parameter of type '{ container: { flex: number; backgroundColor: string; }; topBar: { position: "absolute"; top: number; left: number; right: number; height: number; zIndex: number; backgroundColor: string; paddingHorizontal: number; ... 10 more ...; shadowRadius: number; }; ... 121 more ...; fabTooltipText: { ...; }; } & NamedStyles<...'.
+  Property 'fabTooltipText' is incompatible with index signature.
+    Object literal may only specify known properties, and 'whiteSpace' does not exist in type 'ViewStyle | TextStyle | ImageStyle'.
+src/screens/citizen/DiningScreen.tsx(5,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/DiningScreen.tsx(6,33): error TS2305: Module '"../../components"' has no exported member 'EmptyState'.
+src/screens/citizen/DiningScreen.tsx(8,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchRestaurants'. Did you mean to use 'import fetchRestaurants from "../../services/supabase"' instead?
+src/screens/citizen/DiningScreen.tsx(8,28): error TS2614: Module '"../../services/supabase"' has no exported member 'syncWalletBalance'. Did you mean to use 'import syncWalletBalance from "../../services/supabase"' instead?
+src/screens/citizen/DiningScreen.tsx(18,37): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/screens/citizen/EducationScreen.tsx(99,13): error TS2739: Type '{ children: Element[]; style: { padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/EkubScreen.tsx(88,39): error TS2339: Property 'payButton' does not exist on type '{ container: { flex: number; backgroundColor: string; }; topBar: { position: "absolute"; top: number; left: number; right: number; zIndex: number; backgroundColor: string; paddingHorizontal: number; ... 5 more ...; borderBottomColor: string; }; ... 88 more ...; progressNumber: { ...; }; }'.
+src/screens/citizen/EkubScreen.tsx(89,29): error TS2339: Property 'payButtonText' does not exist on type '{ container: { flex: number; backgroundColor: string; }; topBar: { position: "absolute"; top: number; left: number; right: number; zIndex: number; backgroundColor: string; paddingHorizontal: number; ... 5 more ...; borderBottomColor: string; }; ... 88 more ...; progressNumber: { ...; }; }'.
+src/screens/citizen/EkubScreen.tsx(131,11): error TS2339: Property 'currentUser' does not exist on type '{}'.
+src/screens/citizen/EkubScreen.tsx(131,24): error TS2339: Property 'balance' does not exist on type '{}'.
+src/screens/citizen/EkubScreen.tsx(131,33): error TS2339: Property 'setBalance' does not exist on type '{}'.
+src/screens/citizen/EkubScreen.tsx(131,45): error TS2339: Property 'showToast' does not exist on type '{}'.
+src/screens/citizen/EkubScreen.tsx(131,59): error TS2554: Expected 1 arguments, but got 0.
+src/screens/citizen/EkubScreen.tsx(382,15): error TS2339: Property 'xl' does not exist on type '{ sm: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; md: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; lg: { ...; }; primary: { .....'.
+src/screens/citizen/EkubScreen.tsx(809,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EkubScreen.tsx(813,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EkubScreen.tsx(819,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EkubScreen.tsx(827,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EkubScreen.tsx(833,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EkubScreen.tsx(839,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EkubScreen.tsx(845,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EkubScreen.tsx(852,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/citizen/EmergencyScreen.tsx(46,29): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/citizen/ExchangeScreen.tsx(36,12): error TS2739: Type '{ children: Element[]; key: number; style: { marginBottom: number; flexDirection: string; alignItems: string; justifyContent: string; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/FaydaKYCScreen.tsx(56,31): error TS2339: Property 'region' does not exist on type 'User'.
+src/screens/citizen/FaydaKYCScreen.tsx(74,29): error TS2339: Property 'email' does not exist on type 'User'.
+src/screens/citizen/FaydaKYCScreen.tsx(184,48): error TS2339: Property 'background' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'.
+  Property 'background' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/citizen/FaydaKYCScreen.tsx(189,10): error TS2739: Type '{ children: Element[]; style: { marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/FaydaKYCScreen.tsx(200,25): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/citizen/FaydaKYCScreen.tsx(386,42): error TS2339: Property 'border' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'.
+  Property 'border' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/citizen/FaydaKYCScreen.tsx(485,16): error TS2739: Type '{ children: Element[]; key: any; style: { marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/citizen/FoodScreen.tsx(6,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/FoodScreen.tsx(7,33): error TS2305: Module '"../../components"' has no exported member 'EmptyState'.
+src/screens/citizen/FoodScreen.tsx(9,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchRestaurants'. Did you mean to use 'import fetchRestaurants from "../../services/supabase"' instead?
+src/screens/citizen/FoodScreen.tsx(9,28): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchFoodItems'. Did you mean to use 'import fetchFoodItems from "../../services/supabase"' instead?
+src/screens/citizen/FoodScreen.tsx(9,44): error TS2614: Module '"../../services/supabase"' has no exported member 'placeOrder'. Did you mean to use 'import placeOrder from "../../services/supabase"' instead?
+src/screens/citizen/FoodScreen.tsx(9,56): error TS2614: Module '"../../services/supabase"' has no exported member 'syncWalletBalance'. Did you mean to use 'import syncWalletBalance from "../../services/supabase"' instead?
+src/screens/citizen/FoodScreen.tsx(19,37): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/screens/citizen/FoodScreen.tsx(49,39): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/citizen/FoodScreen.tsx(52,58): error TS2365: Operator '+' cannot be applied to types 'unknown' and 'unknown'.
+src/screens/citizen/FoodScreen.tsx(184,14): error TS2365: Operator '>' cannot be applied to types 'unknown' and 'number'.
+src/screens/citizen/HomeScreen.tsx(111,25): error TS2769: No overload matches this call.
+  Argument of type '[any]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type 'any' is not assignable to parameter of type 'never'.
+src/screens/citizen/HomeScreen.tsx(116,47): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Wallet"' is not assignable to parameter of type 'never'.
+src/screens/citizen/HomeScreen.tsx(117,51): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"MyOrders"' is not assignable to parameter of type 'never'.
+src/screens/citizen/HomeScreen.tsx(118,30): error TS2345: Argument of type '[string, { action: any; }]' is not assignable to parameter of type 'never'.
+src/screens/citizen/HomeScreen.tsx(132,32): error TS2322: Type '{ title: string; showProfile: true; }' is not assignable to type 'IntrinsicAttributes & TopBarProps'.
+  Property 'showProfile' does not exist on type 'IntrinsicAttributes & TopBarProps'.
+src/screens/citizen/HomeScreen.tsx(163,12): error TS2741: Property 'style' is missing in type '{ title: string; description: string; imageSource: string; icon: string; onPress: () => void; }' but required in type '{ title: any; description: any; imageSource: any; icon: any; onPress: any; style: any; }'.
+src/screens/citizen/HomeScreen.tsx(168,48): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Food"' is not assignable to parameter of type 'never'.
+src/screens/citizen/HomeScreen.tsx(175,66): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Wallet"' is not assignable to parameter of type 'never'.
+src/screens/citizen/JobsScreen.tsx(5,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/JobsScreen.tsx(6,39): error TS2305: Module '"../../components"' has no exported member 'EmptyState'.
+src/screens/citizen/JobsScreen.tsx(32,37): error TS2339: Property 'jobs' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(33,40): error TS2339: Property 'setJobs' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(34,47): error TS2339: Property 'myApplications' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(35,50): error TS2339: Property 'setMyApplications' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(36,45): error TS2339: Property 'activeJobCat' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(37,48): error TS2339: Property 'setActiveJobCat' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(38,42): error TS2339: Property 'jobSearch' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(39,45): error TS2339: Property 'setJobSearch' does not exist on type 'AppState'.
+src/screens/citizen/JobsScreen.tsx(185,8): error TS2741: Property 'style' is missing in type '{ chips: string[]; selected: any; onSelect: any; }' but required in type '{ chips: any; selected: any; onSelect: any; style: any; }'.
+src/screens/citizen/MinibusScreen.tsx(5,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/MinibusScreen.tsx(6,24): error TS2305: Module '"../../components"' has no exported member 'EmptyState'.
+src/screens/citizen/MinibusScreen.tsx(7,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchBusRoutes'. Did you mean to use 'import fetchBusRoutes from "../../services/supabase"' instead?
+src/screens/citizen/MinibusScreen.tsx(13,37): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/screens/citizen/MyOrdersScreen.tsx(39,58): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/citizen/MyOrdersScreen.tsx(44,37): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/citizen/MyOrdersScreen.tsx(402,65): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/citizen/MyOrdersScreen.tsx(402,90): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/citizen/MyOrdersScreen.tsx(435,69): error TS2551: Property 'inkL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'ink'?
+  Property 'inkL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/citizen/MyOrdersScreen.tsx(509,63): error TS2551: Property 'inkL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'ink'?
+  Property 'inkL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/citizen/ParkingScreen.tsx(6,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/ParkingScreen.tsx(9,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchParkingLots'. Did you mean to use 'import fetchParkingLots from "../../services/supabase"' instead?
+src/screens/citizen/ParkingScreen.tsx(9,28): error TS2614: Module '"../../services/supabase"' has no exported member 'startParkingSession'. Did you mean to use 'import startParkingSession from "../../services/supabase"' instead?
+src/screens/citizen/ParkingScreen.tsx(9,49): error TS2614: Module '"../../services/supabase"' has no exported member 'endParkingSession'. Did you mean to use 'import endParkingSession from "../../services/supabase"' instead?
+src/screens/citizen/ParkingScreen.tsx(9,68): error TS2614: Module '"../../services/supabase"' has no exported member 'syncWalletBalance'. Did you mean to use 'import syncWalletBalance from "../../services/supabase"' instead?
+src/screens/citizen/ParkingScreen.tsx(56,46): error TS2339: Property 'activeParking' does not exist on type 'AppState'.
+src/screens/citizen/ParkingScreen.tsx(57,49): error TS2339: Property 'setActiveParking' does not exist on type 'AppState'.
+src/screens/citizen/ParkingScreen.tsx(75,47): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/citizen/ParkingScreen.tsx(229,7): error TS2345: Argument of type '{ container: { flex: number; backgroundColor: string; }; header: { position: "absolute"; top: number; left: number; right: number; zIndex: number; backgroundColor: string; backdropFilter: string; shadowColor: string; ... 8 more ...; alignItems: "center"; }; ... 70 more ...; qrDescription: { ...; }; }' is not assignable to parameter of type '{ container: { flex: number; backgroundColor: string; }; header: { position: "absolute"; top: number; left: number; right: number; zIndex: number; backgroundColor: string; backdropFilter: string; ... 9 more ...; alignItems: "center"; }; ... 70 more ...; qrDescription: { ...; }; } & NamedStyles<...>'.
+  Property 'header' is incompatible with index signature.
+    Object literal may only specify known properties, and 'backdropFilter' does not exist in type 'ViewStyle | TextStyle | ImageStyle'.
+src/screens/citizen/QRScannerScreen.tsx(7,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/QRScannerScreen.tsx(17,37): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/screens/citizen/QRScannerScreen.tsx(54,29): error TS2345: Argument of type '[string, { autoFillPhone: any; }]' is not assignable to parameter of type 'never'.
+src/screens/citizen/RailScreen.tsx(5,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/RailScreen.tsx(6,19): error TS2305: Module '"../../components"' has no exported member 'TabBar'.
+src/screens/citizen/RailScreen.tsx(26,43): error TS2339: Property 'lrtJourney' does not exist on type 'AppState'.
+src/screens/citizen/RailScreen.tsx(27,46): error TS2339: Property 'setLrtJourney' does not exist on type 'AppState'.
+src/screens/citizen/RailScreen.tsx(37,13): error TS2345: Argument of type '() => () => boolean' is not assignable to parameter of type 'EffectCallback'.
+  Type '() => boolean' is not assignable to type 'void | Destructor'.
+    Type '() => boolean' is not assignable to type 'Destructor'.
+      Type 'boolean' is not assignable to type 'void | { [UNDEFINED_VOID_ONLY]: never; }'.
+src/screens/citizen/RailScreen.tsx(55,45): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/citizen/RailScreen.tsx(83,5): error TS2304: Cannot find name 'setLoading'.
+src/screens/citizen/RailScreen.tsx(103,7): error TS2304: Cannot find name 'Haptics'.
+src/screens/citizen/RailScreen.tsx(103,27): error TS2304: Cannot find name 'Haptics'.
+src/screens/citizen/RailScreen.tsx(108,7): error TS2304: Cannot find name 'setLoading'.
+src/screens/citizen/RailScreen.tsx(115,5): error TS2304: Cannot find name 'setLoading'.
+src/screens/citizen/RailScreen.tsx(140,7): error TS2304: Cannot find name 'Haptics'.
+src/screens/citizen/RailScreen.tsx(140,33): error TS2304: Cannot find name 'Haptics'.
+src/screens/citizen/RailScreen.tsx(145,7): error TS2304: Cannot find name 'setLoading'.
+src/screens/citizen/RequestMoneyScreen.tsx(8,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/ServicesScreen.tsx(5,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/ServicesScreen.tsx(18,37): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/screens/citizen/ServicesScreen.tsx(90,14): error TS2304: Cannot find name 'EmptyState'.
+src/screens/citizen/ServicesScreen.tsx(100,14): error TS2304: Cannot find name 'CButton'.
+src/screens/citizen/ServicesScreen.tsx(116,14): error TS2304: Cannot find name 'CButton'.
+src/screens/citizen/ServicesScreen.tsx(117,14): error TS2304: Cannot find name 'CButton'.
+src/screens/citizen/TonightScreen.tsx(5,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/TonightScreen.tsx(6,19): error TS2305: Module '"../../components"' has no exported member 'EmptyState'.
+src/screens/citizen/TonightScreen.tsx(8,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchTonightSpots'. Did you mean to use 'import fetchTonightSpots from "../../services/supabase"' instead?
+src/screens/citizen/TonightScreen.tsx(15,46): error TS2339: Property 'tonightFilter' does not exist on type 'AppState'.
+src/screens/citizen/TonightScreen.tsx(16,49): error TS2339: Property 'setTonightFilter' does not exist on type 'AppState'.
+src/screens/citizen/TonightScreen.tsx(17,37): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/screens/citizen/TrackOrderScreen.tsx(27,11): error TS2339: Property 'orderId' does not exist on type '{}'.
+src/screens/citizen/TrackOrderScreen.tsx(28,11): error TS2339: Property 'isDark' does not exist on type '{}'.
+src/screens/citizen/TrackOrderScreen.tsx(28,22): error TS2554: Expected 1 arguments, but got 0.
+src/screens/citizen/TrackOrderScreen.tsx(31,52): error TS2339: Property 'order' does not exist on type 'object'.
+src/screens/citizen/TrackOrderScreen.tsx(32,57): error TS2339: Property 'order' does not exist on type 'object'.
+src/screens/citizen/TransportScreen.tsx(9,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/citizen/TransportScreen.tsx(10,56): error TS2305: Module '"../../components"' has no exported member 'EmptyState'.
+src/screens/citizen/TransportScreen.tsx(208,7): error TS2345: Argument of type '{ container: { flex: number; backgroundColor: string; }; contentArea: { flex: number; paddingTop: number; paddingBottom: number; }; header: { position: "absolute"; top: number; left: number; right: number; ... 12 more ...; alignItems: "center"; }; ... 127 more ...; confirmButtonText: { ...; }; }' is not assignable to parameter of type '{ container: { flex: number; backgroundColor: string; }; contentArea: { flex: number; paddingTop: number; paddingBottom: number; }; header: { position: "absolute"; top: number; left: number; right: number; ... 12 more ...; alignItems: "center"; }; ... 127 more ...; confirmButtonText: { ...; }; } & NamedStyles<...>'.
+  Property 'header' is incompatible with index signature.
+    Object literal may only specify known properties, and 'backdropFilter' does not exist in type 'ViewStyle | TextStyle | ImageStyle'.
+src/screens/core/AnalyticsScreen.tsx(7,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/core/AnalyticsScreen.tsx(116,23): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Value | ValueXY'.
+src/screens/core/AnalyticsScreen.tsx(142,85): error TS2365: Operator '+' cannot be applied to types 'unknown' and 'unknown'.
+src/screens/core/AnalyticsScreen.tsx(143,63): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/core/AnalyticsScreen.tsx(446,17): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/core/AuthScreen.tsx(302,18): error TS2339: Property 'success' does not exist on type '{ user: any; error: any; }'.
+src/screens/core/AuthScreen.tsx(743,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(817,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(891,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(965,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(1064,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(1137,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(1227,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(1309,8): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(1470,21): error TS2339: Property 'xl' does not exist on type '{ sm: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; md: { shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; lg: { ...; }; primary: { .....'.
+src/screens/core/AuthScreen.tsx(1518,13): error TS2322: Type '{ title: string; onPress: () => void; style: { height: number; borderRadius: number; }; textStyle: { fontSize: number; fontFamily: string; }; }' is not assignable to type 'IntrinsicAttributes & CButtonProps'.
+  Property 'textStyle' does not exist on type 'IntrinsicAttributes & CButtonProps'.
+src/screens/core/AuthScreen.tsx(1544,15): error TS2322: Type '({ pressed }: { pressed: any; }) => { transform: { scale: number; }[]; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; flexDirection: string; ... 5 more ...; borderColor: string; }' is not assignable to type 'StyleProp<ViewStyle>'.
+src/screens/core/AuthScreen.tsx(1577,15): error TS2322: Type '({ pressed }: { pressed: any; }) => { transform: { scale: number; }[]; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; flexDirection: string; ... 5 more ...; borderColor: string; }' is not assignable to type 'StyleProp<ViewStyle>'.
+src/screens/core/AuthScreen.tsx(1724,11): error TS2322: Type '{ title: string; onPress: () => Promise<void>; loading: boolean; style: { height: number; borderRadius: number; marginBottom: number; }; textStyle: { fontSize: number; fontFamily: string; }; }' is not assignable to type 'IntrinsicAttributes & CButtonProps'.
+  Property 'textStyle' does not exist on type 'IntrinsicAttributes & CButtonProps'.
+src/screens/core/AuthScreen.tsx(1815,11): error TS2322: Type '{ title: string; onPress: () => Promise<void>; loading: boolean; style: { height: number; borderRadius: number; marginBottom: number; }; textStyle: { fontSize: number; fontFamily: string; }; }' is not assignable to type 'IntrinsicAttributes & CButtonProps'.
+  Property 'textStyle' does not exist on type 'IntrinsicAttributes & CButtonProps'.
+src/screens/core/AuthScreen.tsx(1949,14): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/core/AuthScreen.tsx(1987,11): error TS2322: Type '{ title: string; onPress: () => Promise<void>; loading: boolean; style: { height: number; borderRadius: number; marginBottom: number; }; textStyle: { fontSize: number; fontFamily: string; }; }' is not assignable to type 'IntrinsicAttributes & CButtonProps'.
+  Property 'textStyle' does not exist on type 'IntrinsicAttributes & CButtonProps'.
+src/screens/core/AuthScreen.tsx(2030,11): error TS2322: Type '{ label: string; value: string; onChangeText: Dispatch<SetStateAction<string>>; placeholder: string; keyboardType: string; autoCapitalize: string; iconName: string; }' is not assignable to type 'IntrinsicAttributes & CInputProps'.
+  Property 'autoCapitalize' does not exist on type 'IntrinsicAttributes & CInputProps'.
+src/screens/core/AuthScreen.tsx(2066,11): error TS2322: Type '{ title: string; onPress: () => Promise<void>; loading: boolean; style: { height: number; borderRadius: number; marginBottom: number; }; textStyle: { fontSize: number; fontFamily: string; }; }' is not assignable to type 'IntrinsicAttributes & CButtonProps'.
+  Property 'textStyle' does not exist on type 'IntrinsicAttributes & CButtonProps'.
+src/screens/core/AuthScreen.tsx(2257,32): error TS2551: Property 'greenL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/core/AuthScreen.tsx(2280,60): error TS2339: Property 'border' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'.
+  Property 'border' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/core/AuthScreen.tsx(2371,63): error TS2339: Property 'border' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'.
+  Property 'border' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/core/AuthScreen.tsx(2403,34): error TS2551: Property 'greenL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/core/AuthScreen.tsx(2408,30): error TS2551: Property 'greenB' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenB' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/core/AuthScreen.tsx(2487,32): error TS2551: Property 'amberL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'amber'?
+  Property 'amberL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/core/ChatInboxScreen.tsx(28,16): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/core/ChatInboxScreen.tsx(28,22): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/core/ChatScreen.tsx(44,23): error TS2554: Expected 1 arguments, but got 0.
+src/screens/core/ChatScreen.tsx(185,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: FlatListProps<any>): FlatList<any>', gave the following error.
+    Type 'RefObject<unknown>' is not assignable to type 'Ref<FlatList<any>>'.
+      Type 'RefObject<unknown>' is not assignable to type 'RefObject<FlatList<any>>'.
+        Type '{}' is missing the following properties from type 'FlatList<any>': scrollToEnd, scrollToIndex, scrollToItem, scrollToOffset, and 12 more.
+  Overload 2 of 2, '(props: FlatListProps<any>, context: any): FlatList<any>', gave the following error.
+    Type 'RefObject<unknown>' is not assignable to type 'Ref<FlatList<any>>'.
+      Type 'RefObject<unknown>' is not assignable to type 'RefObject<FlatList<any>>'.
+        Type '{}' is missing the following properties from type 'FlatList<any>': scrollToEnd, scrollToIndex, scrollToItem, scrollToOffset, and 12 more.
+src/screens/core/ChatScreen.tsx(190,59): error TS2339: Property 'scrollToEnd' does not exist on type 'unknown'.
+src/screens/core/ChatScreen.tsx(191,48): error TS2339: Property 'scrollToEnd' does not exist on type 'unknown'.
+src/screens/core/LanguageScreen.tsx(16,37): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/screens/core/LanguageScreen.tsx(17,40): error TS2339: Property 'setLang' does not exist on type 'AppState'.
+src/screens/core/NotificationsScreen.tsx(72,34): error TS2551: Property 'redL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; } | { ...; }'. Did you mean 'red'?
+  Property 'redL' does not exist on type '{ ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; primaryGrad: string[]; ... 18 more ...; black: string; }'.
+src/screens/core/PerformanceProfilerScreen.tsx(7,18): error TS2614: Module '"../../theme"' has no exported member 'LightColors'. Did you mean to use 'import LightColors from "../../theme"' instead?
+src/screens/core/PerformanceProfilerScreen.tsx(25,11): error TS2339: Property 'errors' does not exist on type '{}'.
+src/screens/core/PerformanceProfilerScreen.tsx(25,19): error TS2339: Property 'errorStats' does not exist on type '{}'.
+src/screens/core/PerformanceProfilerScreen.tsx(25,31): error TS2339: Property 'clearErrors' does not exist on type '{}'.
+src/screens/core/PerformanceProfilerScreen.tsx(40,23): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Value | ValueXY'.
+src/screens/core/PerformanceProfilerScreen.tsx(50,48): error TS2339: Property 'calculatePerformanceScore' does not exist on type '{ profileComponent: (Component: any, componentName: any) => MemoExoticComponent<any>; profileFunction: (fn: any, functionName: any) => (...args: any[]) => Promise<any>; profileApiCall: (apiCall: any, endpoint: any) => (...args: any[]) => Promise<...>; generateReport: () => { ...; }; getRecommendations: (memoryStats:...'.
+src/screens/core/PerformanceProfilerScreen.tsx(121,55): error TS2339: Property 'overview' does not exist on type '{}'.
+src/screens/core/PerformanceProfilerScreen.tsx(239,55): error TS2339: Property 'memory' does not exist on type '{}'.
+src/screens/core/PerformanceProfilerScreen.tsx(338,55): error TS2339: Property 'cache' does not exist on type '{}'.
+src/screens/core/PerformanceProfilerScreen.tsx(452,55): error TS2339: Property 'errors' does not exist on type '{}'.
+src/screens/core/ProfileScreen.tsx(40,23): error TS2554: Expected 1 arguments, but got 0.
+src/screens/core/ProfileScreen.tsx(86,63): error TS2551: Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/core/ProfileScreen.tsx(86,74): error TS2551: Property 'amberL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'amber'?
+  Property 'amberL' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/core/ProfileScreen.tsx(86,197): error TS2551: Property 'greenB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'green'?
+  Property 'greenB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/core/ProfileScreen.tsx(86,208): error TS2551: Property 'amberB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; } | { ...; }'. Did you mean 'amber'?
+  Property 'amberB' does not exist on type '{ isDark: boolean; ink: string; surface: string; lift: string; rim: string; overlay: string; hint: string; primary: string; primaryL: string; primaryD: string; primaryGlow: string; primaryB: string; ... 19 more ...; black: string; }'.
+src/screens/core/ProfileScreen.tsx(100,117): error TS2339: Property 'credit_score' does not exist on type 'User'.
+src/screens/core/ProfileScreen.tsx(107,68): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"MerchantPortal"' is not assignable to parameter of type 'never'.
+src/screens/core/ProfileScreen.tsx(137,41): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"BecomeDeliveryAgent"' is not assignable to parameter of type 'never'.
+src/screens/core/ProfileScreen.tsx(196,109): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Language"' is not assignable to parameter of type 'never'.
+src/screens/core/ProfileScreen.tsx(197,108): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"ChatInbox"' is not assignable to parameter of type 'never'.
+src/screens/core/ProfileScreen.tsx(202,30): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/core/ProfileScreen.tsx(215,66): error TS2322: Type '"danger"' is not assignable to type '"primary" | "secondary" | "outline" | "ghost"'.
+src/screens/merchant/BecomeMerchantScreen.tsx(49,22): error TS2345: Argument of type '{ role: string; merchant_name: string; merchant_type: string; tin: string; merchant_status: string; id: string; full_name?: string; business_name?: string; fayda_verified?: boolean; kyc_status?: string; subcity?: string; woreda?: string; phone?: string; avatar_url?: string; }' is not assignable to parameter of type 'User'.
+  Types of property 'role' are incompatible.
+    Type 'string' is not assignable to type '"citizen" | "merchant" | "delivery_agent" | "station" | "inspector" | "admin" | "minister"'.
+src/screens/merchant/BecomeMerchantScreen.tsx(66,107): error TS2322: Type 'string' is not assignable to type 'never'.
+src/screens/merchant/BecomeMerchantScreen.tsx(97,13): error TS2739: Type '{ children: Element[]; style: { padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/BecomeMerchantScreen.tsx(99,16): error TS2741: Property 'style' is missing in type '{ label: string; value: string; onValueChange: Dispatch<SetStateAction<string>>; options: { value: string; label: string; }[]; }' but required in type '{ label: any; value: any; onValueChange: any; options: any; style: any; }'.
+src/screens/merchant/ClinicDashboard.tsx(15,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchClinicAppointments'. Did you mean to use 'import fetchClinicAppointments from "../../services/supabase"' instead?
+src/screens/merchant/ClinicDashboard.tsx(15,35): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchClinicServices'. Did you mean to use 'import fetchClinicServices from "../../services/supabase"' instead?
+src/screens/merchant/ClinicDashboard.tsx(15,56): error TS2614: Module '"../../services/supabase"' has no exported member 'updateAppointmentStatus'. Did you mean to use 'import updateAppointmentStatus from "../../services/supabase"' instead?
+src/screens/merchant/ClinicDashboard.tsx(15,81): error TS2614: Module '"../../services/supabase"' has no exported member 'createService'. Did you mean to use 'import createService from "../../services/supabase"' instead?
+src/screens/merchant/ClinicDashboard.tsx(86,72): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/ClinicDashboard.tsx(86,103): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/ClinicDashboard.tsx(186,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/ClinicDashboard.tsx(190,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/ClinicDashboard.tsx(211,10): error TS2739: Type '{ children: Element[]; style: { marginBottom: number; padding: number; borderLeftWidth: number; borderLeftColor: any; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/ClinicDashboard.tsx(323,9): error TS2322: Type '{ title: string; subtitle: string; right: Element; }' is not assignable to type 'IntrinsicAttributes & TopBarProps'.
+  Property 'subtitle' does not exist on type 'IntrinsicAttributes & TopBarProps'.
+src/screens/merchant/ClinicDashboard.tsx(501,22): error TS2739: Type '{ children: Element; key: any; style: { marginBottom: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/ClinicDashboard.tsx(704,16): error TS2739: Type '{ children: Element[]; style: { padding: number; marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/DelalaDashboard.tsx(15,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchPropertyListings'. Did you mean to use 'import fetchPropertyListings from "../../services/supabase"' instead?
+src/screens/merchant/DelalaDashboard.tsx(15,33): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchPropertyEnquiries'. Did you mean to use 'import fetchPropertyEnquiries from "../../services/supabase"' instead?
+src/screens/merchant/DelalaDashboard.tsx(15,57): error TS2614: Module '"../../services/supabase"' has no exported member 'updateListingStatus'. Did you mean to use 'import updateListingStatus from "../../services/supabase"' instead?
+src/screens/merchant/DelalaDashboard.tsx(15,78): error TS2614: Module '"../../services/supabase"' has no exported member 'createListing'. Did you mean to use 'import createListing from "../../services/supabase"' instead?
+src/screens/merchant/DelalaDashboard.tsx(82,64): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/DelalaDashboard.tsx(82,89): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/DelalaDashboard.tsx(86,66): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/DelalaDashboard.tsx(86,91): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/DelalaDashboard.tsx(185,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/DelalaDashboard.tsx(189,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/DelalaDashboard.tsx(209,10): error TS2739: Type '{ children: Element; style: { marginBottom: number; padding: number; borderLeftWidth: number; borderLeftColor: any; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/DelalaDashboard.tsx(311,8): error TS2739: Type '{ children: Element; style: { marginBottom: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/DelalaDashboard.tsx(645,16): error TS2739: Type '{ children: Element[]; style: { padding: number; marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/EmployerDashboard.tsx(15,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchJobListings'. Did you mean to use 'import fetchJobListings from "../../services/supabase"' instead?
+src/screens/merchant/EmployerDashboard.tsx(15,28): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchJobApplications'. Did you mean to use 'import fetchJobApplications from "../../services/supabase"' instead?
+src/screens/merchant/EmployerDashboard.tsx(15,50): error TS2614: Module '"../../services/supabase"' has no exported member 'updateApplicationStatus'. Did you mean to use 'import updateApplicationStatus from "../../services/supabase"' instead?
+src/screens/merchant/EmployerDashboard.tsx(15,75): error TS2614: Module '"../../services/supabase"' has no exported member 'createJobListing'. Did you mean to use 'import createJobListing from "../../services/supabase"' instead?
+src/screens/merchant/EmployerDashboard.tsx(77,72): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/EmployerDashboard.tsx(77,97): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/EmployerDashboard.tsx(176,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/EmployerDashboard.tsx(180,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/EmployerDashboard.tsx(197,8): error TS2739: Type '{ children: Element[]; style: { marginBottom: number; padding: number; borderLeftWidth: number; borderLeftColor: any; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/EmployerDashboard.tsx(460,18): error TS2739: Type '{ children: Element; key: any; style: { marginBottom: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/EmployerDashboard.tsx(658,16): error TS2739: Type '{ children: Element[]; style: { padding: number; marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/MerchantPortalScreen.tsx(50,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/MerchantPortalScreen.tsx(54,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/MerchantPortalScreen.tsx(58,37): error TS2339: Property 'merchant_type' does not exist on type 'User'.
+src/screens/merchant/ParkingDashboard.tsx(15,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchParkingSessions'. Did you mean to use 'import fetchParkingSessions from "../../services/supabase"' instead?
+src/screens/merchant/ParkingDashboard.tsx(15,32): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchParkingLots'. Did you mean to use 'import fetchParkingLots from "../../services/supabase"' instead?
+src/screens/merchant/ParkingDashboard.tsx(15,50): error TS2614: Module '"../../services/supabase"' has no exported member 'updateSessionStatus'. Did you mean to use 'import updateSessionStatus from "../../services/supabase"' instead?
+src/screens/merchant/ParkingDashboard.tsx(15,71): error TS2614: Module '"../../services/supabase"' has no exported member 'updateParkingLot'. Did you mean to use 'import updateParkingLot from "../../services/supabase"' instead?
+src/screens/merchant/ParkingDashboard.tsx(69,64): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/ParkingDashboard.tsx(69,89): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/ParkingDashboard.tsx(127,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/ParkingDashboard.tsx(131,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/ParkingDashboard.tsx(215,19): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/ParkingDashboard.tsx(215,32): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/ParkingDashboard.tsx(225,10): error TS2739: Type '{ children: Element; style: { marginBottom: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/ParkingDashboard.tsx(463,20): error TS2739: Type '{ children: Element; key: any; style: { marginBottom: number; padding: number; backgroundColor: string; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/ParkingDashboard.tsx(526,16): error TS2739: Type '{ children: Element[]; style: { padding: number; marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/RestaurantDashboard.tsx(15,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchRestaurantOrders'. Did you mean to use 'import fetchRestaurantOrders from "../../services/supabase"' instead?
+src/screens/merchant/RestaurantDashboard.tsx(15,33): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchRestaurantMenu'. Did you mean to use 'import fetchRestaurantMenu from "../../services/supabase"' instead?
+src/screens/merchant/RestaurantDashboard.tsx(15,54): error TS2614: Module '"../../services/supabase"' has no exported member 'updateOrderStatus'. Did you mean to use 'import updateOrderStatus from "../../services/supabase"' instead?
+src/screens/merchant/RestaurantDashboard.tsx(15,73): error TS2614: Module '"../../services/supabase"' has no exported member 'updateMenuItem'. Did you mean to use 'import updateMenuItem from "../../services/supabase"' instead?
+src/screens/merchant/RestaurantDashboard.tsx(80,67): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/RestaurantDashboard.tsx(80,92): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/RestaurantDashboard.tsx(196,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/RestaurantDashboard.tsx(200,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/RestaurantDashboard.tsx(211,6): error TS2739: Type '{ children: Element[]; style: { marginBottom: number; padding: number; borderLeftWidth: number; borderLeftColor: any; opacity: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/RestaurantDashboard.tsx(430,22): error TS2739: Type '{ children: Element; key: any; style: { marginBottom: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/SalonDashboard.tsx(15,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchSalonBookings'. Did you mean to use 'import fetchSalonBookings from "../../services/supabase"' instead?
+src/screens/merchant/SalonDashboard.tsx(15,30): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchSalonServices'. Did you mean to use 'import fetchSalonServices from "../../services/supabase"' instead?
+src/screens/merchant/SalonDashboard.tsx(15,50): error TS2614: Module '"../../services/supabase"' has no exported member 'updateBookingStatus'. Did you mean to use 'import updateBookingStatus from "../../services/supabase"' instead?
+src/screens/merchant/SalonDashboard.tsx(15,71): error TS2614: Module '"../../services/supabase"' has no exported member 'createService'. Did you mean to use 'import createService from "../../services/supabase"' instead?
+src/screens/merchant/SalonDashboard.tsx(82,64): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/SalonDashboard.tsx(82,95): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/SalonDashboard.tsx(180,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/SalonDashboard.tsx(184,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/SalonDashboard.tsx(205,10): error TS2739: Type '{ children: Element[]; style: { marginBottom: number; padding: number; borderLeftWidth: number; borderLeftColor: any; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/SalonDashboard.tsx(463,18): error TS2739: Type '{ children: Element; key: any; style: { marginBottom: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/SalonDashboard.tsx(644,16): error TS2739: Type '{ children: Element[]; style: { padding: number; marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/ShopDashboard.tsx(447,27): error TS2345: Argument of type '[string, { threadId: string; recipientName: any; recipientId: any; }]' is not assignable to parameter of type 'never'.
+src/screens/merchant/ShopDashboard.tsx(633,76): error TS2304: Cannot find name 'setShowAddModal'.
+src/screens/merchant/ShopDashboard.tsx(829,70): error TS2339: Property 'green' does not exist on type '{ bg: string; surface: string; surfaceLow: string; surfaceHigh: string; primary: string; primaryDark: string; secondary: string; tertiary: string; text: string; textSub: string; border: string; }'.
+src/screens/merchant/ShopDashboard.tsx(964,90): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"ChatInbox"' is not assignable to parameter of type 'never'.
+src/screens/merchant/ShopDashboard.tsx(989,27): error TS2322: Type 'string' is not assignable to type '"warning" | "push" | "map" | "filter" | "at" | "search" | "repeat" | "link" | "notifications" | "key" | "scale" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | ... 1338 more ... | "woman-sharp"'.
+src/screens/merchant/TransportDashboard.tsx(16,10): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchTransportRoutes'. Did you mean to use 'import fetchTransportRoutes from "../../services/supabase"' instead?
+src/screens/merchant/TransportDashboard.tsx(16,32): error TS2614: Module '"../../services/supabase"' has no exported member 'fetchTransportTickets'. Did you mean to use 'import fetchTransportTickets from "../../services/supabase"' instead?
+src/screens/merchant/TransportDashboard.tsx(16,55): error TS2614: Module '"../../services/supabase"' has no exported member 'updateTicketStatus'. Did you mean to use 'import updateTicketStatus from "../../services/supabase"' instead?
+src/screens/merchant/TransportDashboard.tsx(16,75): error TS2614: Module '"../../services/supabase"' has no exported member 'createRoute'. Did you mean to use 'import createRoute from "../../services/supabase"' instead?
+src/screens/merchant/TransportDashboard.tsx(85,62): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/TransportDashboard.tsx(85,87): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/merchant/TransportDashboard.tsx(150,35): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/screens/merchant/TransportDashboard.tsx(215,18): error TS2339: Property 'replace' does not exist on type 'Omit<NavigationProp<RootParamList>, "getState"> & { getState(): Readonly<{ key: string; index: number; routeNames: string[]; history?: unknown[]; routes: NavigationRoute<ParamListBase, string>[]; type: string; stale: false; }>; }'.
+src/screens/merchant/TransportDashboard.tsx(219,27): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/screens/merchant/TransportDashboard.tsx(242,10): error TS2739: Type '{ children: Element; style: { marginBottom: number; padding: number; opacity: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/TransportDashboard.tsx(307,45): error TS2345: Argument of type 'string | 0' is not assignable to parameter of type 'number'.
+  Type 'string' is not assignable to type 'number'.
+src/screens/merchant/TransportDashboard.tsx(332,10): error TS2739: Type '{ children: Element; style: { marginBottom: number; padding: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/screens/merchant/TransportDashboard.tsx(739,16): error TS2739: Type '{ children: Element[]; style: { padding: number; marginBottom: number; }; }' is missing the following properties from type '{ children: any; style: any; onPress: any; accentColor: any; glow?: boolean; }': onPress, accentColor
+src/services/admin.service.ts(66,45): error TS2339: Property 'vehicle_type' does not exist on type '{ id: any; agent_status: string; }'.
+src/services/admin.service.ts(67,47): error TS2339: Property 'license_number' does not exist on type '{ id: any; agent_status: string; }'.
+src/services/admin.service.ts(68,45): error TS2339: Property 'plate_number' does not exist on type '{ id: any; agent_status: string; }'.
+src/services/auth.service.ts(23,13): error TS2339: Property 'options' does not exist on type '{ phone: any; channel: string; }'.
+src/services/backupService.tsx(5,42): error TS2307: Cannot find module './securityService' or its corresponding type declarations.
+src/services/backupService.tsx(8,23): error TS2554: Expected 1 arguments, but got 0.
+src/services/backupService.tsx(97,30): error TS2339: Property 'chatHistory' does not exist on type 'AppState'.
+src/services/backupService.tsx(98,29): error TS2339: Property 'foodOrders' does not exist on type 'AppState'.
+src/services/backupService.tsx(99,38): error TS2339: Property 'marketplaceListings' does not exist on type 'AppState'.
+src/services/backupService.tsx(100,29): error TS2339: Property 'ekubGroups' does not exist on type 'AppState'.
+src/services/backupService.tsx(101,28): error TS2339: Property 'favorites' does not exist on type 'AppState'.
+src/services/backupService.tsx(102,27): error TS2339: Property 'settings' does not exist on type 'AppState'.
+src/services/backupService.tsx(105,27): error TS2339: Property 'lang' does not exist on type 'AppState'.
+src/services/backupService.tsx(107,24): error TS2339: Property 'theme' does not exist on type 'AppState'.
+src/services/backupService.tsx(110,21): error TS2304: Cannot find name 'Platform'.
+src/services/backupService.tsx(350,48): error TS2339: Property 'setChatHistory' does not exist on type 'AppState'.
+src/services/backupService.tsx(351,47): error TS2339: Property 'setFoodOrders' does not exist on type 'AppState'.
+src/services/backupService.tsx(352,56): error TS2339: Property 'setMarketplaceListings' does not exist on type 'AppState'.
+src/services/backupService.tsx(353,47): error TS2339: Property 'setEkubGroups' does not exist on type 'AppState'.
+src/services/backupService.tsx(354,46): error TS2339: Property 'setFavorites' does not exist on type 'AppState'.
+src/services/backupService.tsx(355,45): error TS2339: Property 'setSettings' does not exist on type 'AppState'.
+src/services/backupService.tsx(360,44): error TS2339: Property 'setLang' does not exist on type 'AppState'.
+src/services/backupService.tsx(362,41): error TS2339: Property 'setTheme' does not exist on type 'AppState'.
+src/services/documents.ts(156,32): error TS2339: Property 'verified_by' does not exist on type '{ status: any; updated_at: string; }'.
+src/services/documents.ts(157,27): error TS2339: Property 'verification_notes' does not exist on type '{ status: any; updated_at: string; }'.
+src/services/documents.ts(254,32): error TS2339: Property 'document_id' does not exist on type '{ status: any; updated_at: string; }'.
+src/services/documents.ts(255,29): error TS2339: Property 'response_message' does not exist on type '{ status: any; updated_at: string; }'.
+src/services/documents.ts(357,17): error TS2339: Property 'skills' does not exist on type '{}'.
+src/services/documents.ts(358,48): error TS2339: Property 'skills' does not exist on type '{}'.
+src/services/documents.ts(360,17): error TS2339: Property 'location' does not exist on type '{}'.
+src/services/documents.ts(361,54): error TS2339: Property 'location' does not exist on type '{}'.
+src/services/documents.ts(363,17): error TS2339: Property 'job_type' does not exist on type '{}'.
+src/services/documents.ts(364,44): error TS2339: Property 'job_type' does not exist on type '{}'.
+src/services/documents.ts(366,17): error TS2339: Property 'remote_work' does not exist on type '{}'.
+src/services/documents.ts(367,47): error TS2339: Property 'remote_work' does not exist on type '{}'.
+src/services/documents.ts(369,17): error TS2339: Property 'availability' does not exist on type '{}'.
+src/services/documents.ts(370,48): error TS2339: Property 'availability' does not exist on type '{}'.
+src/services/documents.ts(372,17): error TS2339: Property 'min_salary' does not exist on type '{}'.
+src/services/documents.ts(373,52): error TS2339: Property 'min_salary' does not exist on type '{}'.
+src/services/documents.ts(375,17): error TS2339: Property 'max_salary' does not exist on type '{}'.
+src/services/documents.ts(376,52): error TS2339: Property 'max_salary' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(200,35): error TS2339: Property 'full_name' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(201,39): error TS2339: Property 'date_of_birth' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(202,32): error TS2339: Property 'gender' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(203,32): error TS2339: Property 'region' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(204,34): error TS2339: Property 'sub_city' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(205,32): error TS2339: Property 'woreda' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(206,38): error TS2339: Property 'house_number' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(207,31): error TS2339: Property 'phone' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(208,31): error TS2339: Property 'email' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(208,58): error TS2339: Property 'phone' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(217,37): error TS2339: Property 'blood_group' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(218,43): error TS2339: Property 'emergency_contact' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(218,79): error TS2339: Property 'phone' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(219,36): error TS2339: Property 'occupation' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(220,34): error TS2339: Property 'employer' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(221,40): error TS2339: Property 'marital_status' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(222,41): error TS2339: Property 'education_level' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(233,26): error TS2339: Property 'userId' does not exist on type '{}'.
+src/services/fayda-kyc.service.ts(243,38): error TS2339: Property 'userId' does not exist on type '{}'.
+src/services/gtfs.ts(121,27): error TS2349: This expression is not callable.
+  Type '{}' has no call signatures.
+src/services/marketplace.service.ts(242,27): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+src/services/marketplace.service.ts(243,35): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/services/payment.service.ts(63,10): error TS2304: Cannot find name 'supaQuery'.
+src/services/payment.service.ts(73,10): error TS2304: Cannot find name 'supaQuery'.
+src/services/serviceAccess.tsx(66,31): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"Auth"' is not assignable to parameter of type 'never'.
+src/services/serviceAccess.tsx(71,31): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"FaydaKYC"' is not assignable to parameter of type 'never'.
+src/services/serviceAccess.tsx(156,26): error TS2552: Cannot find name 'navigation'. Did you mean 'useNavigation'?
+src/services/serviceAccess.tsx(173,8): error TS2741: Property 'fallbackComponent' is missing in type '{ children: Element; serviceName: any; }' but required in type '{ children: any; serviceName: any; fallbackComponent: any; }'.
+src/services/supabase.ts(56,38): error TS2339: Property 'isSilent' does not exist on type '{}'.
+src/services/supabase.ts(72,20): error TS2339: Property 'filter' does not exist on type '{ event: string; schema: string; table: any; }'.
+src/utils/debug/cacheManager.ts(30,10): error TS2339: Property 'key' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(31,10): error TS2339: Property 'data' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(32,10): error TS2339: Property 'timestamp' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(33,10): error TS2339: Property 'ttl' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(34,10): error TS2339: Property 'expiry' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(34,24): error TS2339: Property 'timestamp' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(35,10): error TS2339: Property 'size' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(39,32): error TS2339: Property 'data' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(43,30): error TS2339: Property 'expiry' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(47,38): error TS2339: Property 'size' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(54,10): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(55,10): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(77,16): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(77,45): error TS2339: Property 'size' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(81,12): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(82,12): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(82,42): error TS2339: Property 'size' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(98,32): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(100,14): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(111,16): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(112,16): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(113,29): error TS2339: Property 'data' does not exist on type 'CacheEntry'.
+src/utils/debug/cacheManager.ts(120,12): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(124,12): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(132,26): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(134,14): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(135,14): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(149,12): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(150,12): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(170,37): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(174,14): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(175,14): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(198,10): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(204,37): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(212,13): error TS2488: Type 'unknown' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/utils/debug/cacheManager.ts(214,12): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(215,12): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(224,26): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(224,50): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(224,73): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(227,15): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(229,24): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(230,30): error TS2339: Property 'cacheStats' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(230,58): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(272,10): error TS2339: Property 'isOnline' does not exist on type 'DataPersistenceManager'.
+src/utils/debug/cacheManager.ts(273,10): error TS2339: Property 'syncQueue' does not exist on type 'DataPersistenceManager'.
+src/utils/debug/cacheManager.ts(274,10): error TS2339: Property 'lastSyncTime' does not exist on type 'DataPersistenceManager'.
+src/utils/debug/cacheManager.ts(288,29): error TS2339: Property 'isOnline' does not exist on type 'DataPersistenceManager'.
+src/utils/debug/cacheManager.ts(303,16): error TS2339: Property 'isOnline' does not exist on type 'DataPersistenceManager'.
+src/utils/debug/cacheManager.ts(406,10): error TS2339: Property 'isOnline' does not exist on type 'DataPersistenceManager'.
+src/utils/debug/cacheManager.ts(445,42): error TS2339: Property 'cache' does not exist on type 'CacheManager'.
+src/utils/debug/cacheManager.ts(445,74): error TS2339: Property 'includes' does not exist on type 'unknown'.
+src/utils/debug/errorReporting.tsx(8,22): error TS2554: Expected 1 arguments, but got 0.
+src/utils/debug/errorReporting.tsx(283,13): error TS2339: Property 'reportError' does not exist on type 'Readonly<{}>'.
+src/utils/debug/errorReporting.tsx(297,20): error TS2339: Property 'hasError' does not exist on type 'Readonly<{}>'.
+src/utils/debug/errorReporting.tsx(299,10): error TS2304: Cannot find name 'View'.
+src/utils/debug/errorReporting.tsx(300,11): error TS2607: JSX element class does not support attributes because it does not have a 'props' property.
+src/utils/debug/errorReporting.tsx(300,12): error TS2786: 'Text' cannot be used as a JSX component.
+  Its type '{ new (data?: string): Text; prototype: Text; }' is not a valid JSX element type.
+    Type '{ new (data?: string): Text; prototype: Text; }' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Text' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, render, and 2 more.
+src/utils/debug/errorReporting.tsx(303,11): error TS2607: JSX element class does not support attributes because it does not have a 'props' property.
+src/utils/debug/errorReporting.tsx(303,12): error TS2786: 'Text' cannot be used as a JSX component.
+  Its type '{ new (data?: string): Text; prototype: Text; }' is not a valid JSX element type.
+    Type '{ new (data?: string): Text; prototype: Text; }' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Text' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, render, and 2 more.
+src/utils/debug/errorReporting.tsx(306,12): error TS2304: Cannot find name 'TouchableOpacity'.
+src/utils/debug/errorReporting.tsx(315,13): error TS2607: JSX element class does not support attributes because it does not have a 'props' property.
+src/utils/debug/errorReporting.tsx(315,14): error TS2786: 'Text' cannot be used as a JSX component.
+  Its type '{ new (data?: string): Text; prototype: Text; }' is not a valid JSX element type.
+    Type '{ new (data?: string): Text; prototype: Text; }' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Text' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, render, and 2 more.
+src/utils/debug/errorReporting.tsx(318,13): error TS2304: Cannot find name 'TouchableOpacity'.
+src/utils/debug/errorReporting.tsx(319,11): error TS2304: Cannot find name 'View'.
+src/utils/debug/errorReporting.tsx(323,23): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/utils/debug/errorReporting.tsx(340,13): error TS2339: Property 'reportError' does not exist on type '{}'.
+src/utils/debug/errorReporting.tsx(356,13): error TS2339: Property 'reportError' does not exist on type '{}'.
+src/utils/debug/errorReporting.tsx(371,13): error TS2339: Property 'reportError' does not exist on type '{}'.
+src/utils/debug/errorReporting.tsx(387,13): error TS2339: Property 'reportError' does not exist on type '{}'.
+src/utils/debug/errorReporting.tsx(408,17): error TS2339: Property 'reportError' does not exist on type '{}'.
+src/utils/debug/memoryManager.ts(161,15): error TS2339: Property 'reportError' does not exist on type '{}'.
+src/utils/debug/memoryManager.ts(365,24): error TS2532: Object is possibly 'undefined'.
+src/utils/index.ts(52,44): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
