@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, Animated, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -170,7 +170,7 @@ export default function AnalyticsScreen() {
             padding: 16,
             marginBottom: 12,
             borderWidth: 1,
-            borderColor: C.border,
+            borderColor: C.edge,
             ...Shadow.md,
           }}
         >
@@ -428,7 +428,7 @@ export default function AnalyticsScreen() {
             padding: 16,
             marginBottom: 12,
             borderWidth: 1,
-            borderColor: C.border,
+            borderColor: C.edge,
             ...Shadow.md,
           }}
         >
@@ -467,7 +467,7 @@ export default function AnalyticsScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.background }}>
+    <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar title="📊 Analytics" right={
         <TouchableOpacity onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -513,7 +513,7 @@ export default function AnalyticsScreen() {
                 borderRadius: Radius.lg,
                 backgroundColor: selectedPeriod === period ? C.primary : C.surface,
                 borderWidth: 1,
-                borderColor: selectedPeriod === period ? C.primary : C.border,
+                borderColor: selectedPeriod === period ? C.primary : C.edge,
               }}
             >
               <Text style={{
