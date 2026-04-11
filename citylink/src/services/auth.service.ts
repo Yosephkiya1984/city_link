@@ -12,7 +12,9 @@ export { checkPhoneExists } from './profile.service';
  */
 export async function sendOtp(phone: string, metadata: any = null) {
   const client = getClient();
-  if (!client || Config.otpBypass) {
+  // FAIL-CLOSED: Bypass only if explicitly enabled AND we have a client.
+  // If client is missing, we must NOT bypass as it indicates a serious config error.
+  if (Config.otpBypass && (Config.devMode || __DEV__)) {
     // OTP bypass: return simulated OTP
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     console.log(`[CityLink Dev] OTP Bypass active for ${phone}. Simulated OTP: ${otp}`);
@@ -34,7 +36,7 @@ export async function sendOtp(phone: string, metadata: any = null) {
  */
 export async function verifyOtp(phone: string, token: string) {
   const client = getClient();
-  if (!client || Config.otpBypass) {
+  if (Config.otpBypass && (Config.devMode || __DEV__)) {
     // In bypass mode just return a mock user with a valid UUID format
     console.log(`[CityLink Dev] OTP Verification Bypass active for ${phone}`);
     return {

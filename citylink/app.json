@@ -2,6 +2,7 @@
   "expo": {
     "name": "CityLink",
     "slug": "citylink",
+    "scheme": "citylink",
     "version": "2.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -45,7 +46,8 @@
           "cameraPermission": "Allow CityLink to use the camera for QR scanning."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

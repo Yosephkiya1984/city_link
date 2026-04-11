@@ -1,54 +1,78 @@
 import { Config, CHAPA_CHANNELS } from '../config';
 import { supaQuery } from './supabase';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
-const _delay = (ms) => new Promise((r) => setTimeout(r, ms));
-const _pendingTx = {};
-
-// ── Initialize a payment ──────────────────────────────────────────────────────
+/**
+ * initialize — Starts a real Chapa payment flow.
+ */
 export async function initialize({ amount, description, channel = 'telebirr', phone, name }) {
-  await _delay(400 + Math.random() * 400);
   if (!amount || amount <= 0) return { status: 'error', message: 'Invalid amount.' };
-  if (!CHAPA_CHANNELS[channel])
-    return { status: 'error', message: `Unsupported channel: ${channel}` };
-
-  if (!Config.devMode && Config.chapaKey && !Config.chapaKey.startsWith('REPLACE')) {
-    // Real Chapa API call (must go through a backend proxy to avoid CORS)
-    // POST to your backend: /api/chapa/initialize
-    try {
-      const res = await fetch('YOUR_BACKEND_URL/api/chapa/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, description, channel, phone, name }),
-      });
-      return await res.json();
-    } catch (e) {
-      return { status: 'error', message: e.message };
-    }
+  
+  const supaUrl = Config.supaUrl;
+  const anonKey = Config.supaKey;
+  if (!supaUrl || !anonKey || supaUrl.includes('REPLACE')) {
+    return { status: 'error', message: 'Payment gateway not configured.' };
   }
 
-  // ── Simulation ──
-  const txRef = 'CL-' + Math.random().toString(36).slice(2).toUpperCase();
-  const ch = CHAPA_CHANNELS[channel];
-  const fee = Math.ceil(amount * ch.fee_pct * 100) / 100;
-  _pendingTx[txRef] = { amount, fee, channel, description, phone, name, status: 'pending' };
-  return {
-    status: 'success',
-    message: 'Payment initiated.',
-    data: { tx_ref: txRef, amount, fee, channel, checkout_url: null },
-  };
+  const txRef = `CL-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
+  const callbackUrl = Linking.createURL('payment-callback', { scheme: 'citylink' });
+
+  try {
+    const res = await fetch(`${supaUrl}/functions/v1/chapa-payment/initialize`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({
+        amount,
+        currency: 'ETB',
+        phone_number: phone,
+        first_name: name.split(' ')[0] || 'User',
+        last_name: name.split(' ')[1] || 'CityLink',
+        tx_ref: txRef,
+        callback_url: callbackUrl,
+        return_url: callbackUrl,
+        customization: {
+          title: 'CityLink Wallet Top-up',
+          description,
+        }
+      }),
+    });
+
+    const data = await res.json();
+    
+    if (data.status === 'success' && data.data?.checkout_url) {
+      // Open real Chapa checkout
+      await WebBrowser.openBrowserAsync(data.data.checkout_url);
+      return { status: 'success', tx_ref: txRef, data: data.data };
+    }
+    
+    throw new Error(data.message || 'Chapa initialization failed');
+  } catch (e) {
+    console.error('[Payment] Init Error:', e.message);
+    return { status: 'error', message: e.message };
+  }
 }
 
-// ── Verify a payment ──────────────────────────────────────────────────────────
+/**
+ * verify — Verifies a payment via the backend proxy.
+ */
 export async function verify(txRef) {
-  await _delay(500 + Math.random() * 500);
-  const tx = _pendingTx[txRef];
-  if (!tx) return { status: 'error', message: 'Transaction not found.' };
-  tx.status = 'success';
-  return {
-    status: 'success',
-    message: 'Payment verified.',
-    data: { ...tx, tx_ref: txRef, verified_at: new Date().toISOString() },
-  };
+  const supaUrl = Config.supaUrl;
+  const anonKey = Config.supaKey;
+  
+  try {
+    const res = await fetch(`${supaUrl}/functions/v1/chapa-payment/verify/${txRef}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${anonKey}` },
+    });
+
+    return await res.json();
+  } catch (e) {
+    return { status: 'error', message: e.message };
+  }
 }
 
 // ── Calculate fee ─────────────────────────────────────────────────────────────

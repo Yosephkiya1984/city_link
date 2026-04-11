@@ -20,21 +20,12 @@ export async function fetchWalletData(userId: string) {
 
   try {
     // 1. Fetch from Supabase
-    const { data: wallet, error: wErr } = await supaQuery<Wallet>((c) =>
-      c.from('wallets').select('*').eq('user_id', userId).maybeSingle()
-    );
+    const { data: wallet, error: wErr } = await DataEngine.wallets.get(userId);
 
     if (wErr) throw new Error(wErr);
     if (!wallet) return null;
 
-    const { data: txs, error: tErr } = await supaQuery<Transaction[]>((c) =>
-      c
-        .from('transactions')
-        .select('*')
-        .eq('wallet_id', wallet.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-    );
+    const { data: txs, error: tErr } = await DataEngine.wallets.getTransactions(wallet.id, 20);
 
     const result = {
       balance: wallet.balance,
