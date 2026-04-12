@@ -248,8 +248,6 @@ export const BundleOptimizer = {
             return import('../../screens/citizen/HomeScreen');
           case 'MarketplaceScreen':
             return import('../../screens/citizen/MarketplaceScreen');
-          case 'TransportScreen':
-            return import('../../screens/citizen/TransportScreen');
           case 'AnalyticsScreen':
             return import('../../screens/core/AnalyticsScreen');
           case 'PerformanceProfilerScreen':

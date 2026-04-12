@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,25 +26,19 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Enhanced AI suggestions based on user behavior
 const SMART_SUGGESTIONS = [
-  { id: 'lrt', icon: 'ðŸš‡', text: 'LRT Schedule', category: 'transport', priority: 'high' },
-  { id: 'parking', icon: 'ðŸ…¿ï¸', text: 'Find Parking', category: 'services', priority: 'high' },
-  { id: 'exchange', icon: 'ðŸ’±', text: 'Exchange Rate', category: 'finance', priority: 'medium' },
-  { id: 'ekub', icon: 'ðŸ¤', text: 'Ekub Groups', category: 'social', priority: 'medium' },
-  { id: 'jobs', icon: 'ï¿½', text: 'Job Search', category: 'career', priority: 'high' },
-  { id: 'emergency', icon: 'ðŸš¨', text: 'Emergency Help', category: 'safety', priority: 'high' },
-  { id: 'food', icon: 'ðŸœ', text: 'Food Delivery', category: 'lifestyle', priority: 'medium' },
-  { id: 'housing', icon: 'ðŸ ', text: 'Find Housing', category: 'lifestyle', priority: 'medium' },
+  { id: 'parking', icon: '🅿️', text: 'Find Parking', category: 'services', priority: 'high' },
+  { id: 'ekub', icon: '🤝', text: 'Ekub Groups', category: 'social', priority: 'high' },
+  { id: 'food', icon: '🍜', text: 'Food Delivery', category: 'lifestyle', priority: 'high' },
+  { id: 'housing', icon: '🏠', text: 'Find Housing (Delala)', category: 'lifestyle', priority: 'medium' },
+  { id: 'market', icon: '🛍️', text: 'Browse Marketplace', category: 'services', priority: 'medium' },
+  { id: 'delivery', icon: '🚚', text: 'Track My Delivery', category: 'services', priority: 'medium' },
 ];
 
 const CATEGORIES = [
   { id: 'all', name: 'All', icon: 'grid' },
-  { id: 'transport', name: 'Transport', icon: 'car' },
   { id: 'services', name: 'Services', icon: 'build' },
-  { id: 'finance', name: 'Finance', icon: 'card' },
   { id: 'social', name: 'Social', icon: 'people' },
-  { id: 'career', name: 'Career', icon: 'briefcase' },
   { id: 'lifestyle', name: 'Lifestyle', icon: 'home' },
-  { id: 'safety', name: 'Safety', icon: 'shield-checkmark' },
 ];
 
 // AI Insights and Analytics

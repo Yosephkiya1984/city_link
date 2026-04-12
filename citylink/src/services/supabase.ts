@@ -49,7 +49,7 @@ interface SupaQueryOptions {
  * supaQuery — Centralized wrapper for error handling and logging.
  */
 export async function supaQuery<T = any>(
-  queryFn: (client: SupabaseClient<any, "public", any>) => Promise<{ data: T | null; error: any; count?: number | null }>,
+  queryFn: (client: SupabaseClient<any, "public", any>) => PromiseLike<{ data: T | null; error: any; count?: number | null }>,
   options: SupaQueryOptions = {}
 ): Promise<{ data: T | null; count?: number | null; error: string | null }> {
   const client = getClient();

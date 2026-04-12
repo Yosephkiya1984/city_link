@@ -60,8 +60,8 @@ export function timeAgo(dateStr: string | number | Date | null | undefined): str
 export function isValidEthPhone(phone: string): boolean {
   if (!phone) return false;
   const cleaned = phone.replace(/\s/g, '');
-  // Accept: EthioTelecom (+2519, 09, 2519) AND Safaricom Ethiopia (+2517, 07, 2517)
-  return /^(\+2519|09|2519|\+2517|07|2517)\d{8}$/.test(cleaned);
+  // Accept: EthioTelecom (+2519, 09, 2519, +2518, 08, 2518) AND Safaricom Ethiopia (+2517, 07, 2517)
+  return /^(\+2519|09|2519|\+2517|07|2517|\+2518|08|2518)\d{8}$/.test(cleaned);
 }
 
 export function normalizePhone(phone: string): string {
@@ -69,10 +69,24 @@ export function normalizePhone(phone: string): string {
   const cleaned = phone.replace(/\s/g, '');
   if (cleaned.startsWith('09')) return '+2519' + cleaned.slice(2);
   if (cleaned.startsWith('2519')) return '+' + cleaned;
+  if (cleaned.startsWith('08')) return '+2518' + cleaned.slice(2);
+  if (cleaned.startsWith('2518')) return '+' + cleaned;
   if (cleaned.startsWith('07')) return '+2517' + cleaned.slice(2);
   if (cleaned.startsWith('2517')) return '+' + cleaned;
-  if (cleaned.startsWith('+2519') || cleaned.startsWith('+2517')) return cleaned;
+  if (cleaned.startsWith('+2519') || cleaned.startsWith('+2518') || cleaned.startsWith('+2517')) return cleaned;
   return cleaned;
+}
+
+/**
+ * identifyPhoneProvider — Returns the best top-up channel for a number.
+ * Ethio Telecom -> telebirr
+ * Safaricom -> mpesa
+ */
+export function getPhoneProvider(phone: string): 'telebirr' | 'mpesa' | 'unknown' {
+  const norm = normalizePhone(phone);
+  if (norm.startsWith('+2519') || norm.startsWith('+2518')) return 'telebirr';
+  if (norm.startsWith('+2517')) return 'mpesa';
+  return 'unknown';
 }
 
 // —— Greeting (Semantic Keys) ——————————————————————————————————————————————————

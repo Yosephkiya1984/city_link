@@ -3,27 +3,16 @@ export interface User {
   full_name?: string;
   business_name?: string;
   merchant_name?: string;
-  role?: 'citizen' | 'merchant' | 'delivery_agent' | 'station' | 'inspector' | 'admin' | 'minister';
+  role?: 'citizen' | 'merchant' | 'delivery_agent' | 'admin';
   fayda_verified?: boolean;
   kyc_status?: string;
+  merchant_type?: string;
+  merchant_status?: string;
+  tin?: string;
   subcity?: string;
   woreda?: string;
   phone?: string;
   avatar_url?: string;
-  cv?: {
-    title?: string;
-    summary?: string;
-    skills?: string[];
-    experience?: any[];
-    education?: any[];
-    portfolio_url?: string;
-    linkedin_url?: string;
-    github_url?: string;
-    expected_salary?: string;
-    job_type?: string;
-    availability?: string;
-    remote_work?: boolean;
-  };
 }
 
 export interface Product {
@@ -56,24 +45,6 @@ export interface FoodItem {
   restaurant_id?: string;
 }
 
-export interface ServiceBooking {
-  id: string;
-  citizen_id: string;
-  merchant_id: string;
-  provider_name?: string;
-  service_type: string;
-  service_name?: string;
-  amount_escrowed?: number;
-  deposit_amount?: number;
-  price?: number;
-  status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  appointment_time: string;
-  client_name?: string;
-  patient_id?: string;
-  duration_minutes?: number;
-  created_at?: string;
-}
-
 export interface PropertyListing {
   id: string;
   agent_id: string;
@@ -87,16 +58,16 @@ export interface PropertyListing {
   created_at?: string;
 }
 
-export interface BusRoute {
+export interface ParkingSession {
   id: string;
-  operator_id: string;
-  from_city: string;
-  to_city: string;
-  departure_time: string;
-  price: number;
-  available_seats: number;
-  status: 'active' | 'inactive' | 'full';
-  duration?: string;
+  citizen_id: string;
+  lot_id: string;
+  lot_name?: string;
+  plate_number: string;
+  started_at: string;
+  ended_at?: string;
+  amount_charged?: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 }
 
 export interface AppState {
@@ -110,7 +81,6 @@ export interface AppState {
   selProdCat: string;
   unreadCount: number;
   activeParking: any;
-  tonightFilter: string;
   setIsDark: (val: boolean) => void;
   toggleTheme: () => void;
   setCurrentUser: (user: User | null) => Promise<void>;
@@ -141,7 +111,6 @@ export interface AppState {
   setMarketplaceListings: (listings: any[]) => void;
   setEkubGroups: (groups: any[]) => void;
   setActiveParking: (session: any) => void;
-  setTonightFilter: (filter: string) => void;
   setUnreadCount: (count: number) => void;
   reset: () => Promise<void>;
   hydrateSession: () => Promise<void>;
@@ -214,4 +183,3 @@ export interface EkubVouch {
   reason?: string;
   vouched_at: string;
 }
-

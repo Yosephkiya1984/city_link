@@ -6,6 +6,7 @@
 import React, { Component } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Updates from 'expo-updates';
 
 import { useAppStore } from '../store/AppStore';
 import { Colors, DarkColors, Radius, Shadow, Fonts } from '../theme';

@@ -1,11 +1,10 @@
 /**
- * Real-time Service - Comprehensive Supabase Realtime Subscriptions
- * Handles all real-time updates for CityLink app
+ * Real-time Service - Core 6 Supabase Realtime Subscriptions
+ * Handles real-time updates for wallet, notifications, P2P, Ekub, and merchant orders.
  */
 
 import React from 'react';
 import { getClient } from './supabase';
-import { Config } from '../config';
 import { useAppStore } from '../store/AppStore';
 import { uid, fmtETB } from '../utils';
 
@@ -14,7 +13,6 @@ const subscriptions = new Map();
 // ── Real-time Hook for React Components ────────────────────────────────────────
 export function useRealtimeSubscription(channelName, table, filter, onPayload, enabled = true) {
   const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
 
   React.useEffect(() => {
     if (!enabled || !currentUser?.id || !getClient()) return;
@@ -24,12 +22,7 @@ export function useRealtimeSubscription(channelName, table, filter, onPayload, e
       .channel(channelName)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table,
-          filter,
-        },
+        { event: '*', schema: 'public', table, filter },
         (payload) => {
           console.log(`[Realtime] ${table} update:`, payload);
           onPayload?.(payload);
@@ -65,33 +58,23 @@ export function setupUserRealtime() {
     .channel(`wallet-${userId}`)
     .on(
       'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'wallets',
-        filter: `user_id=eq.${userId}`,
-      },
+      { event: 'UPDATE', schema: 'public', table: 'wallets', filter: `user_id=eq.${userId}` },
       (payload) => {
         const newBalance = payload.new?.balance;
         if (newBalance !== undefined) {
           useAppStore.getState().setBalance(newBalance);
-          useAppStore.getState().showToast('Wallet updated 💰', 'success');
+          useAppStore.getState().showToast('Wallet updated', 'success');
         }
       }
     )
     .subscribe();
 
-  // 2. Notifications
+  // 2. In-app Notifications
   const notifChannel = client
     .channel(`notifications-${userId}`)
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${userId}`,
-      },
+      { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
       (payload) => {
         const notif = payload.new;
         useAppStore
@@ -102,52 +85,16 @@ export function setupUserRealtime() {
     )
     .subscribe();
 
-  // 3. Job application status updates
-  const jobsChannel = client
-    .channel(`jobs-${userId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'job_applications',
-        filter: `applicant_id=eq.${userId}`,
-      },
-      (payload) => {
-        const newStatus = payload.new?.status;
-        if (newStatus) {
-          const statusMessages = {
-            REVIEWING: 'Your application is being reviewed 📋',
-            SHORTLISTED: "You've been shortlisted! ⭐",
-            OFFERED: 'Job offer received! 🎊',
-            REJECTED: 'Application not successful 📭',
-          };
-          useAppStore
-            .getState()
-            .showToast(statusMessages[newStatus] || 'Application updated', 'info');
-        }
-      }
-    )
-    .subscribe();
-
-  // 4. P2P transfers received
+  // 3. P2P transfers received
   const p2pChannel = client
     .channel(`p2p-${userId}`)
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'p2p_transfers',
-        filter: `recipient_id=eq.${userId}`,
-      },
+      { event: 'INSERT', schema: 'public', table: 'p2p_transfers', filter: `recipient_id=eq.${userId}` },
       (payload) => {
         const transfer = payload.new;
         if (transfer.status === 'PENDING') {
-          useAppStore
-            .getState()
-            .showToast(`Received ${fmtETB(transfer.amount)} ETB! 💸`, 'success');
-          // Auto-claim for small amounts
+          useAppStore.getState().showToast(`Received ${fmtETB(transfer.amount)} ETB!`, 'success');
           if (transfer.amount <= 1000) {
             claimP2PTransfer(transfer.id);
           }
@@ -156,23 +103,15 @@ export function setupUserRealtime() {
     )
     .subscribe();
 
-  // 5. Ekub updates for joined circles
+  // 4. Ekub circle updates
   const ekubChannel = client
     .channel(`ekub-${userId}`)
     .on(
       'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'ekub_members',
-        filter: `user_id=eq.${userId}`,
-      },
+      { event: '*', schema: 'public', table: 'ekub_members', filter: `user_id=eq.${userId}` },
       (payload) => {
-        const ekubId = payload.new?.ekub_id || payload.old?.ekub_id;
-        if (ekubId) {
-          useAppStore.getState().showToast('Ekub circle updated 🤝', 'info');
-          // Refresh ekub data
-          // This would trigger a refresh of the Ekub screen
+        if (payload.new?.ekub_id || payload.old?.ekub_id) {
+          useAppStore.getState().showToast('Ekub circle updated', 'info');
         }
       }
     )
@@ -181,7 +120,6 @@ export function setupUserRealtime() {
   // Store channels for cleanup
   subscriptions.set(`wallet-${userId}`, walletChannel);
   subscriptions.set(`notifications-${userId}`, notifChannel);
-  subscriptions.set(`jobs-${userId}`, jobsChannel);
   subscriptions.set(`p2p-${userId}`, p2pChannel);
   subscriptions.set(`ekub-${userId}`, ekubChannel);
 }
@@ -194,21 +132,14 @@ export function setupMerchantRealtime() {
   const client = getClient();
   const merchantId = currentUser.id;
 
-  // 1. New orders
+  // 1. New marketplace orders
   const ordersChannel = client
     .channel(`merchant-orders-${merchantId}`)
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'marketplace_orders',
-        filter: `merchant_id=eq.${merchantId}`,
-      },
-      (payload) => {
-        const order = payload.new;
-        useAppStore.getState().showToast('New order received! 🛍️', 'success');
-        // Vibrate for attention
+      { event: 'INSERT', schema: 'public', table: 'marketplace_orders', filter: `merchant_id=eq.${merchantId}` },
+      () => {
+        useAppStore.getState().showToast('New order received!', 'success');
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([200, 100, 200]);
         }
@@ -216,46 +147,23 @@ export function setupMerchantRealtime() {
     )
     .subscribe();
 
-  // 2. Food orders
+  // 2. New food orders
   const foodOrdersChannel = client
     .channel(`food-orders-${merchantId}`)
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'food_orders',
-        filter: `merchant_id=eq.${merchantId}`,
-      },
-      (payload) => {
-        useAppStore.getState().showToast('New food order! 🍽️', 'success');
+      { event: 'INSERT', schema: 'public', table: 'food_orders', filter: `merchant_id=eq.${merchantId}` },
+      () => {
+        useAppStore.getState().showToast('New food order!', 'success');
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([200, 100, 200]);
         }
-      }
-    )
-    .subscribe();
-
-  // 3. Job applications
-  const jobAppsChannel = client
-    .channel(`job-apps-${merchantId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'job_applications',
-        filter: `merchant_id=eq.${merchantId}`,
-      },
-      (payload) => {
-        useAppStore.getState().showToast('New job application! 📨', 'success');
       }
     )
     .subscribe();
 
   subscriptions.set(`merchant-orders-${merchantId}`, ordersChannel);
   subscriptions.set(`food-orders-${merchantId}`, foodOrdersChannel);
-  subscriptions.set(`job-apps-${merchantId}`, jobAppsChannel);
 }
 
 // ── Claim P2P Transfer ───────────────────────────────────────────────────────────
@@ -264,21 +172,15 @@ async function claimP2PTransfer(transferId: string) {
   if (!client) return;
 
   try {
-    // Mark the transfer as claimed
     const { data, error } = await client
       .from('p2p_transfers')
-      .update({
-        status: 'CLAIMED',
-        claimed_at: new Date().toISOString(),
-      })
+      .update({ status: 'CLAIMED', claimed_at: new Date().toISOString() })
       .eq('id', transferId)
       .select()
       .single();
 
     if (error) throw error;
 
-    // Use server-authoritative balance by refreshing from the wallet table
-    // instead of doing a dangerous client-side `setBalance(current + amount)`
     const userId = useAppStore.getState().currentUser?.id;
     if (userId) {
       const { data: wallet } = await client
@@ -286,7 +188,6 @@ async function claimP2PTransfer(transferId: string) {
         .select('balance')
         .eq('user_id', userId)
         .single();
-
       if (wallet) {
         useAppStore.getState().setBalance(wallet.balance);
       }
@@ -311,8 +212,6 @@ export function cleanupRealtime() {
 
 // ── Push Notification Helper ───────────────────────────────────────────────────────
 export function sendPushNotification(userId, title, body, data = {}) {
-  // This would integrate with Expo Push Notifications or Firebase Cloud Messaging
-  // For now, we'll just create an in-app notification
   const client = getClient();
   if (!client) return;
 

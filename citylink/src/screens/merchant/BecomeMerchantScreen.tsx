@@ -21,10 +21,12 @@ import { CButton, Card, SectionTitle, CInput, CSelect } from '../../components';
 import { fmtETB, uid } from '../../utils';
 
 const MERCHANT_TYPES = [
-  { value: 'retail', label: 'ðŸª Retail / Shop' },
-  { value: 'service', label: '💈 Service Provider' },
-  { value: 'driver', label: '🚕 Transport Driver' },
-  { value: 'delala', label: 'ðŸ¤ Broker / Delala' },
+  { value: 'retail', label: '🛍️ Retail / Shop' },
+  { value: 'restaurant', label: '🍽️ Restaurant / Cafe' },
+  { value: 'delala', label: '🤝 Broker / Delala' },
+  { value: 'ekub', label: '👥 Ekub Organiser' },
+  { value: 'parking', label: '🅿️ Parking Operator' },
+  { value: 'delivery', label: '🚚 Delivery Service' },
 ];
 
 export default function BecomeMerchantScreen() {

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -33,7 +33,7 @@ export default function TrackOrderScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { orderId } = route.params || {};
-  const { isDark } = useAppStore();
+  const isDark = useAppStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
 
   const [order, setOrder] = useState(route.params?.order || null);

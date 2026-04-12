@@ -6,7 +6,7 @@ interface TranslationEntry {
 
 // Dictionary of English strings/keys to Amharic and Oromo
 const translations: Record<string, TranslationEntry> = {
-  // Navigation & Core Action
+  // Navigation & Core Actions
   Home: { am: 'መነሻ', or: 'Mana' },
   Wallet: { am: 'ዋሌት', or: 'Galmee' },
   Profile: { am: 'ፕሮፋይል', or: 'Profaayila' },
@@ -20,19 +20,15 @@ const translations: Record<string, TranslationEntry> = {
   send: { am: 'ላክ', or: 'Ergi' },
   wal_bal: { am: 'ዋሌት ቀሪ ሂሳብ', or: 'Hambaa galmee' },
 
-  // Modules
+  // Core 6 Modules
   Ekub: { am: 'እቁብ', or: 'Iquubii' },
   Marketplace: { am: 'ገበያ', or: 'Gabaa' },
-  Transport: { am: 'ትራንስፖርት', or: 'Traanispoortii' },
-  Rail: { am: 'ባቡር', or: 'Baabura' },
-  'City Services': { am: 'አገልግሎቶች', or: 'Tajaajila' },
-  Jobs: { am: 'ስራዎች', or: 'Hojii' },
   Delala: { am: 'ደላላ', or: 'Dallaala' },
-  Emergency: { am: 'አደጋ ጥሪ', or: 'Sariitii' },
   Food: { am: 'ምግብ', or: 'Nyaata' },
-  'Tonight in Addis': { am: 'ዛሬ ማታ', or: "Halkan har'aa" },
+  Parking: { am: 'ፓርኪንግ', or: 'Paarkingii' },
+  Delivery: { am: 'ክፍያ', or: 'Geejjiba' },
 
-  // Home Service Labels (Shortened for Dock) - Enhanced for Addis Ababa
+  // Home Service Labels
   search_products: { en: 'Search products...', am: 'እቃዎችን ይፈልጉ...', or: "Madaala too'adhu..." },
   listings: { en: 'Listings', am: 'ርዝሮች', or: 'Ibsaa' },
   your_listings: { en: 'Your Listings', am: 'የእርስዎ ዝርዝሮች', or: 'Ibsaa keessan' },
@@ -44,26 +40,13 @@ const translations: Record<string, TranslationEntry> = {
   },
   parking_label: { en: 'Parking', am: 'ፓርኪንግ', or: 'Paarkingii' },
   food_label: { en: 'Food', am: 'ምግብ', or: 'Nyaata' },
-  transport_label: { en: 'Transport', am: 'ትራንስፖርት', or: 'Geejjiba' },
-  jobs_label: { en: 'Jobs', am: 'ስራዎች', or: 'Hojii' },
   delala_label: { en: 'Property', am: 'ደላላ', or: 'Dallaala' },
   ekub_label: { en: 'Ekub', am: 'እቁብ', or: 'Iquubii' },
-  tonight_label: { en: 'Tonight', am: 'ዛሬ ማታ', or: 'Halkan' },
-  fx_label: { en: 'Exchange', am: 'ምንዛሬ', or: 'Madda' },
-  gov_label: { en: 'City Services', am: 'ከተማ አገልግሎት', or: 'Tajaajila Magaalaa' },
-  services_label: { en: 'Services', am: 'አገልግሎት', or: 'Tajaajila' },
-  emergency_label: { en: 'Emergency', am: 'አደጋ', or: 'Sariitii' },
+  market_label: { en: 'Market', am: 'ገበያ', or: 'Gabaa' },
 
-  // Enhanced Professional Labels
+  // Generic UI
   see_all: { en: 'See All', am: 'ሁሉንም ይመልከቱ', or: 'Hundaa ilaali' },
   manage: { en: 'Manage', am: 'አስተዳድር', or: 'Geggeessi' },
-  live_transit: { en: 'Live Transit', am: 'በቀጥታ የሚጓዝ', or: 'Geejjiba Kallattii' },
-  live: { en: 'Live', am: 'ቀጥታ', or: 'Kallattii' },
-  city_services_title: {
-    en: 'Addis Ababa City Services',
-    am: 'የአዲስ አበባ አገልግሎቶች',
-    or: 'Tajaajilota Addis Ababa',
-  },
   credit_score_title: { en: 'Credit Score', am: 'የክሬዲት ነጥብ', or: 'Qabxii Kireeditii' },
   member: { en: 'Member', am: 'ዜጋ', or: 'Lammi' },
   build_info: {
@@ -99,7 +82,7 @@ const translations: Record<string, TranslationEntry> = {
     or: 'Kaffaltii fudhaachuuf koodii QR keessan buufadhaa.',
   },
 
-  // Food Module
+  // Food / Dining Module
   food_delivery_title: { am: 'ምግብ ማዘዣ', or: 'Nyaata Ajajuu' },
   rests_near_you: { am: 'በአቅራቢያዎ ያሉ ምግብ ቤቶች', or: 'Nyaata dhihoo' },
   no_rests_title: { am: 'ምንም ምግብ ቤት የለም', or: 'Nyaata hin jiru' },
@@ -138,7 +121,6 @@ const translations: Record<string, TranslationEntry> = {
   cat_furniture: { en: 'Furniture', am: 'የቤት ንዥረት', or: 'Mooqa' },
   cat_food: { en: 'Food', am: 'ምግብ', or: 'Nyaata' },
   cat_books: { en: 'Books', am: 'መጽሐፍት', or: 'Kitaaba' },
-  cat_services: { en: 'Services', am: 'ገለግፎች', or: 'Tajaajila' },
   cat_other: { en: 'Other', am: 'ሌሎ', or: 'Kan bira' },
 
   // Marketplace Placeholders
@@ -155,40 +137,6 @@ const translations: Record<string, TranslationEntry> = {
   post_listing: { en: 'Post Listing', am: 'ዝርዝር አስገቡ', or: 'Ibsaa galchi' },
   posting: { en: 'Posting...', am: 'በማስገብ ላይ...', or: 'Galchaa jiru...' },
   price_etb: { en: 'Price (ETB)', am: 'ዋጋ (ኢቲቢ)', or: 'Gatii (ETB)' },
-
-  // Professional / CV
-  prof_profile: { am: 'የሙያ መገለጫ', or: 'Piroofayila ogummaa' },
-  cv_builder_desc: {
-    am: 'የእርስዎን የሙያ መገለጫ እዚህ ይገንቡ። ይህ መረጃ ለሥራ ማመልከቻዎች ጥቅም ላይ ይውላል።',
-    or: 'Piroofayila ogummaa keessan asitti ijaaraa. Kun iyyata hojiitiif ni tajaajila.',
-  },
-  skills: { am: 'ክህሎቶች', or: 'Dandeettiiwwan' },
-  experience: { am: 'የሥራ ልምድ', or: 'Muxannoo hojii' },
-  education: { am: 'ትምህርት', or: 'Barumsa' },
-  add_exp: { am: 'የሥራ ልምድ ጨምር', or: 'Muxannoo dabaladhu' },
-  add_edu: { am: 'ትምህርት ጨምር', or: 'Barumsa dabaladhu' },
-  job_title: { am: 'የሥራ መደብ', or: 'Godaannisa hojii' },
-  company: { am: 'ድርጅት', or: 'Dhaabbata' },
-  school: { am: 'ትምህርት ቤት', or: 'Mana barumsaa' },
-  degree: { am: 'ደረጃ/ዲግሪ', or: 'Digrii' },
-
-  // Emergency
-  emergency_contacts: { am: 'የአደጋ ጊዜ ስልኮች', or: 'Lakkoofsota ariifachiisoo' },
-  police: { am: 'ፖሊስ', or: 'Poolisii' },
-  ambulance: { am: 'አምቡላንስ', or: 'Ambulansii' },
-  fire: { am: 'የእሳት አደጋ', or: 'Abiddatti dirmachuu' },
-  red_cross: { am: 'ቀይ መስቀል', or: 'Fannoo Diimaa' },
-
-  // Exchange
-  exchange_rates: { am: 'የምንዛሬ ተመኖች (ETB)', or: 'Gatiwwan jijjiirraa' },
-  bank_rates: { am: 'የባንክ ተመኖች', or: 'Gatiwwan baankii' },
-  black_market: { am: 'ትይዩ ገበያ (ግምት)', or: 'Gabaa gurraacha' },
-
-  // Transport Hub
-  city_transport: { am: 'የከተማ ትራንስፖርት', or: 'Geejjiba magaalaa' },
-  lrt_train: { am: 'ቀላል ባቡር (LRT)', or: 'Baabura LRT' },
-  minibus: { am: 'ሚኒባስ (ሰማያዊ ታክሲ)', or: 'Minibaasii' },
-  anbessa_bus: { am: 'አንበሳ አውቶቡስ', or: 'Busii Anbeessaa' },
 };
 
 /**

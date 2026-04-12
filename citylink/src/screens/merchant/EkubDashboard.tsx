@@ -23,6 +23,7 @@ export default function EkubDashboard() {
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'circles' | 'apps' | 'draws'>('circles');
   const [circles, setCircles] = useState<EkubCircle[]>([]);
   const [pendingApps, setPendingApps] = useState<EkubMember[]>([]);
   const [activeDraws, setActiveDraws] = useState<EkubDraw[]>([]);

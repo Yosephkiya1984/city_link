@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -107,12 +107,14 @@ export default function AnalyticsScreen() {
   const balance = useAppStore((s) => s.balance);
   const transactions = useAppStore((s) => s.transactions);
   const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAppStore((s) => s.currentUser);
 
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedMetric, setSelectedMetric] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [insightList, setInsightList] = useState(INSIGHTS);
   const [metricData, setMetricData] = useState<any>(ANALYTICS_METRICS);
+  const [animatedValues, setAnimatedValues] = useState<Record<string, Animated.Value>>({});
 
   const loadData = useCallback(async () => {
     if (!currentUser) return;

@@ -10,7 +10,7 @@ export const Config = {
   // Set to actual URL for live Claude integration.
   aiProxyUrl: process.env.EXPO_PUBLIC_AI_PROXY_URL || 'OFFLINE_MODE',
   devMode: process.env.EXPO_PUBLIC_DEV_MODE === 'true' || false,
-  otpBypass: process.env.EXPO_PUBLIC_OTP_BYPASS === 'true' || false, // Disabled for production
+  otpBypass: process.env.EXPO_PUBLIC_OTP_BYPASS === 'true' || __DEV__, // Enabled by default in DEV
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null, // Optional: Error tracking
 };
 
@@ -23,6 +23,7 @@ export const P2P_PIN_THRESHOLD_ETB = 5000;
 // Payment channels
 export const CHAPA_CHANNELS = {
   telebirr: { name: 'Telebirr', icon: '📱', fee_pct: 0.005 },
+  mpesa: { name: 'M-Pesa (Safaricom)', icon: '📱', fee_pct: 0.005 },
   cbebirr: { name: 'CBE Birr', icon: '🏦', fee_pct: 0.006 },
   awash: { name: 'Awash Bank', icon: '🏦', fee_pct: 0.007 },
   dashen: { name: 'Dashen Bank', icon: '🏦', fee_pct: 0.007 },

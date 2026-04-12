@@ -46,7 +46,7 @@ export interface AppState {
 }
 
 // We use a "Derived Store" pattern for the bridge
-export const useAppStore = <T,>(selector: (state: AppState) => T): T => {
+export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T => {
   const auth = useAuthStore();
   const wallet = useWalletStore();
   const system = useSystemStore();
@@ -90,7 +90,7 @@ export const useAppStore = <T,>(selector: (state: AppState) => T): T => {
     }
   };
 
-  return selector(bridgeState);
+  return selector ? selector(bridgeState) : (bridgeState as unknown as T);
 };
 
 // Static access for service files
@@ -106,6 +106,18 @@ useAppStore.getState = () => {
     isDark: system.isDark,
     products: market.products,
     favorites: market.favorites,
+    hydrateSession: async () => {
+      await auth.hydrate();
+      if (auth.currentUser) {
+        await wallet.hydrate(auth.currentUser.id);
+      }
+    },
+    reset: async () => {
+      await auth.signOut();
+      wallet.setBalance(0);
+      wallet.setTransactions([]);
+      market.reset();
+    }
   } as any;
 };
 

@@ -3,6 +3,7 @@ import { WELCOME_BONUS_ETB } from '../config';
 import { SecurePersist } from '../store/SecurePersist';
 import { uid } from '../utils';
 import { Wallet, Transaction } from '../types/domain_types';
+import { DataEngine } from './data.engine';
 
 /**
  * fetchWallet — returns the raw wallet row for a given user ID.
@@ -20,9 +21,18 @@ export async function fetchWalletData(userId: string) {
 
   try {
     // 1. Fetch from Supabase
-    const { data: wallet, error: wErr } = await DataEngine.wallets.get(userId);
+    const { data: walletData, error: wErr } = await DataEngine.wallets.get(userId);
 
     if (wErr) throw new Error(wErr);
+    
+    let wallet = walletData;
+    if (!wallet) {
+      console.log('🔧 Wallet missing for user, attempting creation/recovery...');
+      const { data: newWallet, error: ensureErr } = await ensureWallet(userId);
+      if (ensureErr) throw new Error(ensureErr);
+      wallet = newWallet as any;
+    }
+
     if (!wallet) return null;
 
     const { data: txs, error: tErr } = await DataEngine.wallets.getTransactions(wallet.id, 20);

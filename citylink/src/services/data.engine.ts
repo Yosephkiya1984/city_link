@@ -22,7 +22,7 @@ export const DataEngine = {
   
   profiles: {
     get: (id: string) => 
-      supaQuery((c) => c.from('profiles').select('*').eq('id', id).single()),
+      supaQuery((c) => c.from('profiles').select('*').eq('id', id).maybeSingle()),
     
     update: (id: string, updates: any) =>
       supaQuery((c) => c.from('profiles').update(updates).eq('id', id)),
@@ -32,7 +32,7 @@ export const DataEngine = {
   
   wallets: {
     get: (userId: string) =>
-      supaQuery((c) => c.from('wallets').select('*').eq('user_id', userId).single()),
+      supaQuery((c) => c.from('wallets').select('*').eq('user_id', userId).maybeSingle()),
     
     getTransactions: (walletId: string, limit = 20) =>
       supaQuery((c) => 
@@ -48,14 +48,13 @@ export const DataEngine = {
 
   marketplace: {
     getListings: (category?: string) => {
-      let query = supaQuery((c) => {
+      return supaQuery((c: any) => {
         let q = c.from('marketplace_listings').select('*, profiles(full_name)');
         if (category && category !== 'All') {
           return q.eq('category', category);
         }
         return q;
-      } as any);
-      return query;
+      });
     },
 
     getOrder: (orderId: string) =>
@@ -63,7 +62,7 @@ export const DataEngine = {
         c.from('marketplace_orders')
          .select('*, merchant:profiles!merchant_id(full_name), buyer:profiles!buyer_id(full_name)')
          .eq('id', orderId)
-         .single()
+         .maybeSingle()
       ),
   },
 
@@ -79,7 +78,7 @@ export const DataEngine = {
          .select('*')
          .eq('group_id', groupId)
          .eq('user_id', userId)
-         .single()
+         .maybeSingle()
       ),
   },
 
@@ -87,7 +86,7 @@ export const DataEngine = {
 
   delivery: {
     getAgent: (id: string) =>
-      supaQuery((c) => c.from('delivery_agents').select('*').eq('id', id).single()),
+      supaQuery((c) => c.from('delivery_agents').select('*').eq('id', id).maybeSingle()),
     
     getActiveJobs: (agentId: string) =>
       supaQuery((c) => 

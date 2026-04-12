@@ -50,16 +50,12 @@ export default function AppNavigator() {
           <RootStack.Screen name="Auth" component={AuthScreen} />
         ) : !isVerified && currentUser.role === 'citizen' ? (
           <RootStack.Screen name="FaydaKYC" component={FaydaKYCScreen} />
+        ) : currentUser.role === 'delivery_agent' ? (
+          <RootStack.Screen name="AgentRoot" component={AgentStack} />
+        ) : currentUser.role === 'merchant' ? (
+          <RootStack.Screen name="MerchantRoot" component={MerchantStack} />
         ) : (
-          <>{/* Role-based flow switching */}
-            {currentUser.role === 'delivery_agent' ? (
-              <RootStack.Screen name="AgentRoot" component={AgentStack} />
-            ) : currentUser.role === 'merchant' ? (
-              <RootStack.Screen name="MerchantRoot" component={MerchantStack} />
-            ) : (
-              <RootStack.Screen name="CitizenRoot" component={CitizenStack} />
-            )}
-          </>
+          <RootStack.Screen name="CitizenRoot" component={CitizenStack} />
         )}
       </RootStack.Navigator>
     </NavigationContainer>

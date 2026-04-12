@@ -21,26 +21,16 @@ import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
 
-// Import all merchant dashboards
+// Import only Core 6 merchant dashboards
 import {
   RestaurantDashboard,
   ParkingDashboard,
-  EmployerDashboard,
   EkubDashboard,
-  SalonDashboard,
-  ClinicDashboard,
   DelalaDashboard,
-  TransportDashboard,
 } from './index';
 import ShopDashboard from './ShopDashboard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const SALES_DEMO = [
-  { id: 'tx1', customer: 'Dawit H.', amount: 1200, status: 'COMPLETED', time: '10 min ago' },
-  { id: 'tx2', customer: 'Tigist B.', amount: 450, status: 'PENDING', time: '1 hour ago' },
-  { id: 'tx3', customer: 'Anonymous', amount: 85, status: 'COMPLETED', time: '3 hours ago' },
-];
 
 export default function MerchantPortalScreen() {
   const navigation = useNavigation();
@@ -66,27 +56,21 @@ export default function MerchantPortalScreen() {
   const merchantType = (currentUser as any)?.merchant_type || 'restaurant';
   const normalizedType = merchantType.toLowerCase();
 
-  // Handle unknown merchant type toast in useEffect to avoid concurrent rendering errors
+  // Handle unknown merchant type toast in useEffect
   React.useEffect(() => {
     const knownTypes = [
-      'restaurant',
-      'parking',
+      'retail',
       'shop',
       'seller',
-      'retail',
-      'employer',
+      'restaurant',
       'delala',
-      'transport',
-      'bus',
-      'driver',
-      'salon',
-      'service',
-      'clinic',
       'ekub',
+      'parking',
+      'delivery',
     ];
     if (currentUser && !knownTypes.includes(normalizedType)) {
-      console.log('âš ï¸ Unknown merchant type, defaulting to Restaurant');
-      showToast(`Unknown merchant type: ${merchantType}. Defaulting to Restaurant.`, 'warning');
+      console.log('⚠️ Unknown merchant type, defaulting to Restaurant');
+      showToast(`Account Type Not Supported: ${merchantType}. Contact support.`, 'warning');
     }
   }, [normalizedType, currentUser]);
 
@@ -94,50 +78,37 @@ export default function MerchantPortalScreen() {
   const renderDashboard = () => {
     switch (normalizedType) {
       case 'restaurant':
-        console.log('ðŸ½ï¸ Loading Restaurant Dashboard');
         return <RestaurantDashboard />;
       case 'parking':
-        console.log('ðŸ…¿ï¸ Loading Parking Dashboard');
         return <ParkingDashboard />;
       case 'shop':
       case 'seller':
       case 'retail':
-        console.log('ðŸ›ï¸ Loading Shop Dashboard');
         return <ShopDashboard />;
-      case 'employer':
-        console.log('👥 Loading Employer Dashboard');
-        return <EmployerDashboard />;
       case 'delala':
-        console.log('ðŸ  Loading Delala Dashboard');
         return <DelalaDashboard />;
-      case 'transport':
-      case 'bus':
-      case 'driver':
-        console.log('🚌 Loading Transport Dashboard');
-        return <TransportDashboard />;
-      case 'salon':
-      case 'service':
-        console.log('💈 Loading Salon Dashboard');
-        return <SalonDashboard />;
-      case 'clinic':
-        console.log('ðŸ¥ Loading Clinic Dashboard');
-        return <ClinicDashboard />;
       case 'ekub':
-        console.log('👥 Loading Ekub Dashboard');
         return <EkubDashboard />;
       default:
-        // Already handled warning in useEffect
-        return <RestaurantDashboard />;
+        return (
+          <View style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+            <Ionicons name="lock-closed-outline" size={64} color={C.primary} />
+            <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.bold, marginTop: 16 }}>
+              Dashboard Unavailable
+            </Text>
+            <Text style={{ color: C.sub, textAlign: 'center', marginTop: 8 }}>
+              This account type is not part of the Core 6 production network. Please contact your administrator.
+            </Text>
+            <CButton title="Logout" onPress={logout} variant="outline" style={{ marginTop: 32, width: '100%' }} />
+          </View>
+        );
     }
   };
 
-  // Add a loading state while determining the dashboard
   if (!currentUser) {
     return (
-      <View
-        style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center' }}
-      >
-        <Text style={{ color: C.sub }}>Loading user data...</Text>
+      <View style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: C.sub }}>Loading portal...</Text>
       </View>
     );
   }

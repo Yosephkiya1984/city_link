@@ -15,20 +15,19 @@ import * as Haptics from 'expo-haptics';
 
 // â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import {
+  FeaturedCard,
+  CreditScoreRing,
+  TransactionItem,
+  useTheme,
   TopBar,
   OfflineBanner,
   WalletHero,
   ServiceTile,
-  FeaturedCard,
-  CreditScoreRing,
-  LiveTransit,
-  TransactionItem,
-  useTheme,
 } from '../../components';
 
 // â”€â”€ State & Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { useAppStore } from '../../store/AppStore';
-import { Fonts, Spacing } from '../../theme';
+import { Fonts, Spacing, Radius } from '../../theme';
 import { greeting, t } from '../../utils';
 
 // â”€â”€ Domain Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -38,33 +37,14 @@ import * as WalletService from '../../services/wallet.service';
  * Service Configuration â€” local to Home for easier modification.
  */
 const SERVICES = [
-  { id: 'Marketplace', icon: 'storefront', label: 'market_label', color: '#59de9b' },
-  { id: 'Parking', icon: 'car', label: 'parking_label', color: '#ffd887' },
-  { id: 'Food', icon: 'restaurant', label: 'food_label', color: '#f4b700' },
-  { id: 'Transport', icon: 'train', label: 'transport_label', color: '#06b6d4' },
-  { id: 'Jobs', icon: 'briefcase', label: 'jobs_label', color: '#ffd887' },
-  { id: 'Delala', icon: 'home', label: 'delala_label', color: '#f4b700' },
-  { id: 'Ekub', icon: 'people', label: 'ekub_label', color: '#8b5cf6' },
-  { id: 'Tonight', icon: 'moon', label: 'tonight_label', color: '#06b6d4' },
-  { id: 'Exchange', icon: 'swap-horizontal', label: 'fx_label', color: '#f4b700' },
-  { id: 'CityServices', icon: 'business', label: 'gov_label', color: '#59de9b' },
-  { id: 'Services', icon: 'cut', label: 'services_label', color: '#ffd887' },
-  { id: 'Emergency', icon: 'warning', label: 'emergency_label', color: '#ef4444' },
-  // ── New modules explicitly requested ──
+  { id: 'Market', icon: 'storefront', label: 'Marketplace', color: '#59de9b' },
+  { id: 'Food', icon: 'restaurant', label: 'Food Delivery', color: '#f4b700' },
+  { id: 'Ekub', icon: 'people', label: 'Ekub Savings', color: '#8b5cf6' },
+  { id: 'Delala', icon: 'home', label: 'Delala/Broker', color: '#f4b700' },
+  { id: 'Parking', icon: 'car', label: 'Smart Parking', color: '#ffd887' },
   { id: 'AI', icon: 'sparkles', label: 'AI Assistant', color: '#8b5cf6' },
-  { id: 'Anbessa', icon: 'bus', label: 'Anbessa Bus', color: '#f4b700' },
-  { id: 'BillPay', icon: 'receipt', label: 'Utility Bills', color: '#59de9b' },
-  { id: 'CV', icon: 'document-text', label: 'Build CV', color: '#06b6d4' },
-  { id: 'Dining', icon: 'cafe', label: 'Dining', color: '#ffd887' },
-  { id: 'Education', icon: 'school', label: 'Education', color: '#8b5cf6' },
-  { id: 'FaydaKYC', icon: 'finger-print', label: 'Fayda ID', color: '#59de9b' },
-  { id: 'Minibus', icon: 'car-sport', label: 'Minibus', color: '#f4b700' },
-  { id: 'Rail', icon: 'train-outline', label: 'LRT Train', color: '#06b6d4' },
-  { id: 'MyOrders', icon: 'cube', label: 'My Orders', color: '#ffd887' },
-  { id: 'QRScanner', icon: 'qr-code', label: 'Scan & Pay', color: '#8b5cf6' },
-  { id: 'RequestMoney', icon: 'cash', label: 'Request', color: '#ef4444' },
-  { id: 'SendMoney', icon: 'send', label: 'Send Money', color: '#59de9b' },
-  { id: 'TrackOrder', icon: 'map', label: 'Track Order', color: '#06b6d4' },
+  { id: 'SendMoney', icon: 'send', label: 'Send ETB', color: '#59de9b' },
+  { id: 'FaydaKYC', icon: 'finger-print', label: 'Fayda ID', color: '#06b6d4' },
 ];
 
 /**
@@ -170,7 +150,10 @@ export default function HomeScreen() {
 
         <View style={styles.statsRow}>
           <CreditScoreRing animValue={fadeAnim} />
-          <LiveTransit animValue={fadeAnim} />
+          <View style={{ flex: 1, backgroundColor: C.surface, borderRadius: Radius.xl, padding: 16, justifyContent: 'center' }}>
+            <Text style={{ color: C.sub, fontSize: 10, fontFamily: Fonts.bold }}>CITY STATUS</Text>
+            <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.medium, marginTop: 4 }}>System Online</Text>
+          </View>
         </View>
 
         <View style={styles.sectionContainer}>

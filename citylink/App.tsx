@@ -15,7 +15,7 @@ import { Manrope_400Regular, Manrope_700Bold } from '@expo-google-fonts/manrope'
 import AppNavigator from './src/navigation';
 import { ToastContainer, ErrorBoundary } from './src/components';
 import { AppStoreProvider, useAppStore } from './src/store/AppStore';
-import { GTFSService } from './src/services/gtfs';
+
 import { useTheme } from './src/hooks/useTheme';
 import { memoryManager, PerformanceProfiler } from './src/utils/debug/memoryManager';
 import { cacheManager } from './src/utils/debug/cacheManager';

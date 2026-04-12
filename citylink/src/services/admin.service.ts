@@ -168,7 +168,7 @@ export const fetchAdminLiveStats = async () => {
       profilesRes,
       mktOrdersRes,
       foodOrdersRes,
-      jobsRes,
+      deliveryRes,
       listingsRes,
       parkingRes,
       disputeMktRes,
@@ -177,7 +177,7 @@ export const fetchAdminLiveStats = async () => {
       supaQuery((c: any) => c.from('profiles').select('id', { count: 'exact', head: true })),
       supaQuery((c: any) => c.from('marketplace_orders').select('total')),
       supaQuery((c: any) => c.from('food_orders').select('total')),
-      supaQuery((c: any) => c.from('job_listings').select('id', { count: 'exact', head: true })),
+      supaQuery((c: any) => c.from('delivery_dispatches').select('id', { count: 'exact', head: true })),
       supaQuery((c: any) => c.from('property_listings').select('id', { count: 'exact', head: true })),
       supaQuery((c: any) => c.from('parking_sessions').select('id', { count: 'exact', head: true })),
       supaQuery((c: any) =>
@@ -209,7 +209,7 @@ export const fetchAdminLiveStats = async () => {
       data: {
         identities: profilesRes.count || 0,
         revenue: totalRevenue,
-        jobs: jobsRes.count || 0,
+        deliveries: deliveryRes.count || 0,
         realEstate: listingsRes.count || 0,
         parking: parkingRes.count || 0,
         openDisputes: (disputeMktRes.count || 0) + (disputeFoodRes.count || 0),
@@ -218,7 +218,7 @@ export const fetchAdminLiveStats = async () => {
   } catch (e: any) {
     console.error('🔧 fetchAdminLiveStats crash:', e);
     return {
-      data: { identities: 0, revenue: 0, jobs: 0, realEstate: 0, parking: 0, openDisputes: 0 },
+      data: { identities: 0, revenue: 0, deliveries: 0, realEstate: 0, parking: 0, openDisputes: 0 },
       error: e.message,
     };
   }

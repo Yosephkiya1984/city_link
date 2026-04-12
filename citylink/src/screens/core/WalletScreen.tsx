@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -30,7 +30,8 @@ import {
 // â”€â”€ State & Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { useAppStore } from '../../store/AppStore';
 import { Radius, Shadow, Fonts, FontSize, Spacing } from '../../theme';
-import { fmtETB, uid, t } from '../../utils';
+import { fmtETB, uid, t, getPhoneProvider } from '../../utils';
+import { CHAPA_CHANNELS } from '../../config';
 
 // â”€â”€ Domain Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import * as WalletService from '../../services/wallet.service';
@@ -63,6 +64,14 @@ export default function WalletScreen() {
     const isVerified =
       (currentUser as any)?.fayda_verified || (currentUser as any)?.kyc_status === 'VERIFIED';
     setWalletLimit(isVerified ? 50000 : 100);
+
+    // Auto-detect provider based on phone
+    if (currentUser?.phone) {
+      const detected = getPhoneProvider(currentUser.phone);
+      if (detected !== 'unknown') {
+        setSelectedProvider(detected);
+      }
+    }
   }, [currentUser]);
 
   // â”€â”€ Data Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -246,6 +255,42 @@ export default function WalletScreen() {
             placeholder="500"
             keyboardType="numeric"
           />
+
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.bold, marginBottom: 12 }}>
+              Select Payment Channel
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {Object.entries(CHAPA_CHANNELS).map(([id, info]) => (
+                <TouchableOpacity
+                  key={id}
+                  onPress={() => setSelectedProvider(id)}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderRadius: 16,
+                    backgroundColor: selectedProvider === id ? C.primary + '20' : C.surface,
+                    borderWidth: 1.5,
+                    borderColor: selectedProvider === id ? C.primary : C.edge2,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>{(info as any).icon}</Text>
+                  <Text
+                    style={{
+                      color: selectedProvider === id ? C.text : C.sub,
+                      fontSize: 13,
+                      fontFamily: Fonts.bold,
+                    }}
+                  >
+                    {(info as any).name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           <View style={styles.amountPresetRow}>
             {[100, 500, 1000, 5000].map((a) => (

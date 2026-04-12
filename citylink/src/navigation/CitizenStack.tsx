@@ -17,11 +17,7 @@ import WalletScreen from '../screens/core/WalletScreen';
 import ParkingScreen from '../screens/citizen/ParkingScreen';
 import DiningScreen from '../screens/citizen/DiningScreen';
 import FoodScreen from '../screens/citizen/FoodScreen';
-import JobsScreen from '../screens/citizen/JobsScreen';
-import CVScreen from '../screens/citizen/CVScreen';
-import TransportScreen from '../screens/citizen/TransportScreen';
-import RailScreen from '../screens/citizen/RailScreen';
-import TonightScreen from '../screens/citizen/TonightScreen';
+import DelalaScreen from '../screens/citizen/DelalaScreen';
 import MyOrdersScreen from '../screens/citizen/MyOrdersScreen';
 import SendMoneyScreen from '../screens/citizen/SendMoneyScreen';
 import FaydaKYCScreen from '../screens/citizen/FaydaKYCScreen';
@@ -62,11 +58,7 @@ export function CitizenStack() {
       <Stack.Screen name="Parking" component={ParkingScreen} />
       <Stack.Screen name="Dining" component={DiningScreen} />
       <Stack.Screen name="Food" component={FoodScreen} />
-      <Stack.Screen name="Jobs" component={JobsScreen} />
-      <Stack.Screen name="CV" component={CVScreen} />
-      <Stack.Screen name="Transport" component={TransportScreen} />
-      <Stack.Screen name="Rail" component={RailScreen} />
-      <Stack.Screen name="Tonight" component={TonightScreen} />
+      <Stack.Screen name="Delala" component={DelalaScreen} />
       <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
       <Stack.Screen name="SendMoney" component={SendMoneyScreen} />
       <Stack.Screen name="FaydaKYC" component={FaydaKYCScreen} />

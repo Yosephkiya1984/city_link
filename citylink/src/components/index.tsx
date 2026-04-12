@@ -31,6 +31,5 @@ export * from './feedback/SkeletonLoader';
 export * from './feedback/TransactionItem';
 export * from './feedback/TransactionChart';
 export * from './feedback/CreditScoreRing';
-export * from './feedback/LiveTransit';
 export { default as OfflineBanner } from './OfflineBanner';
 export { default as ErrorBoundary } from './EnhancedErrorBoundary';
