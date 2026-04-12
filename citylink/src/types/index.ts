@@ -13,6 +13,10 @@ export interface User {
   woreda?: string;
   phone?: string;
   avatar_url?: string;
+  region?: string;
+  credit_score?: number;
+  credit_tier?: string;
+  credit_updated_at?: string;
 }
 
 export interface Product {

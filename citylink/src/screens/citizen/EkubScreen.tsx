@@ -314,6 +314,12 @@ export default function EkubScreen() {
                   <LiveDrawBanner
                     onEnterDraw={() => showToast('Draw entry processing...', 'info')}
                   />
+
+                  <View style={styles.bentoRow}>
+                    <ReliabilityScore score={currentUser?.credit_score ?? 300} />
+                    <TotalSaved amount={myEkubs.reduce((acc, m) => acc + (m.ekubs?.pot_balance || 0), 0)} />
+                  </View>
+
                   <Text style={styles.sectionTitle}>Available Circles</Text>
                   <View style={styles.verifiedCirclesGrid}>
                     {ekubs.map((circle) => (
@@ -728,7 +734,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(134, 148, 137, 0.05)',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+  },
+  totalSavedContent: {
+    gap: 4,
   },
   totalSavedHeader: {
     flexDirection: 'row',
@@ -745,7 +754,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   totalSavedNumber: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: '700',
     color: COLORS['on-surface'],
     fontFamily: Fonts.headline,
@@ -754,7 +763,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.outline,
     fontFamily: Fonts.body,
-    marginTop: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.05,
   },
@@ -1201,15 +1209,13 @@ const CircularProgress = ({ percentage, color, size = 56, strokeWidth = 4 }: { p
 };
 
 // â”€â”€ Reliability Score Component (WITH PATTERN OVERLAY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const ReliabilityScore = () => {
-  const score = 982;
-  const percentage = 92;
+const ReliabilityScore = ({ score }: { score: number }) => {
+  const percentage = Math.max(0, Math.min(100, (score / 850) * 100));
 
   return (
     <View style={styles.reliabilityCard}>
       {/* Pattern Overlay */}
       <View style={styles.patternOverlay}>
-        {/* Create star pattern manually since React Native doesn't support SVG data URIs */}
         {Array.from({ length: 50 }).map((_, i) => (
           <View
             key={i}
@@ -1231,18 +1237,32 @@ const ReliabilityScore = () => {
             name="checkmark-circle"
             size={20}
             color={COLORS.secondary}
-            style={{ backgroundColor: 'transparent' }}
           />
         </View>
 
         <View style={styles.reliabilityScoreRow}>
           <Text style={styles.reliabilityScoreNumber}>{score}</Text>
-          <Text style={styles.reliabilityScoreChange}>+12% vs last mo.</Text>
+          <Text style={styles.reliabilityScoreChange}>Verified Account</Text>
         </View>
 
         <View style={styles.reliabilityProgress}>
           <View style={[styles.reliabilityProgressCircle, { width: `${percentage}%` }]} />
         </View>
+      </View>
+    </View>
+  );
+};
+
+const TotalSaved = ({ amount }: { amount: number }) => {
+  return (
+    <View style={styles.totalSaved}>
+      <View style={styles.totalSavedContent}>
+        <View style={styles.totalSavedHeader}>
+          <Text style={styles.totalSavedLabel}>Total Pot Saved</Text>
+          <Ionicons name="stats-chart" size={16} color={COLORS.primary} />
+        </View>
+        <Text style={styles.totalSavedNumber}>ETB {amount.toLocaleString()}</Text>
+        <Text style={styles.totalSavedSubtext}>Across all joined circles</Text>
       </View>
     </View>
   );

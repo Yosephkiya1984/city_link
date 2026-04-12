@@ -46,7 +46,7 @@ const AI_INSIGHTS = [
   {
     id: 'usage',
     title: 'Usage Pattern',
-    insight: 'You search for parking most often in the morning',
+    insight: 'Most users search for parking in the morning',
     recommendation: 'Set up favorite zones for faster parking access',
     icon: 'analytics',
     color: '#6366f1',
@@ -54,7 +54,7 @@ const AI_INSIGHTS = [
   {
     id: 'savings',
     title: 'Potential Savings',
-    insight: 'You saved 1,200 ETB this month through Ekub circles',
+    insight: 'Participating in Ekub circles can help save money',
     recommendation: 'Join a high-yield Ekub for better return rates',
     icon: 'trending-up',
     color: '#10b981',
@@ -62,7 +62,7 @@ const AI_INSIGHTS = [
   {
     id: 'activity',
     title: 'Activity Peak',
-    insight: 'Your app usage peaks during evening hours',
+    insight: 'App usage typically peaks during evening hours',
     recommendation: 'Enable evening notifications for best experience',
     icon: 'time',
     color: '#f59e0b',

@@ -61,7 +61,7 @@ export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T 
     setTransactions: wallet.setTransactions,
     addTransaction: wallet.addTransaction,
     isDark: system.isDark,
-    setIsDark: (val) => system.setLang(system.lang), // Dummy for theme
+    setIsDark: (val) => system.setIsDark(val),
     toggleTheme: system.toggleTheme,
     theme: system.isDark ? 'dark' : 'light',
     toasts: system.toasts,
@@ -95,7 +95,7 @@ export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T 
 };
 
 // Static access for service files
-useAppStore.getState = () => {
+useAppStore.getState = (): AppState => {
   const auth = useAuthStore.getState();
   const wallet = useWalletStore.getState();
   const system = useSystemStore.getState();
@@ -103,10 +103,28 @@ useAppStore.getState = () => {
 
   return {
     currentUser: auth.currentUser,
+    setCurrentUser: auth.setCurrentUser,
     balance: wallet.balance,
+    setBalance: wallet.setBalance,
+    transactions: wallet.transactions,
+    setTransactions: wallet.setTransactions,
+    addTransaction: wallet.addTransaction,
     isDark: system.isDark,
+    setIsDark: (val) => system.setIsDark(val),
+    toggleTheme: system.toggleTheme,
+    theme: system.isDark ? 'dark' : 'light',
+    toasts: system.toasts,
+    showToast: system.showToast,
+    notifications: system.notifications,
+    unreadCount: system.unreadCount,
+    
     products: market.products,
+    setProducts: market.setProducts,
+    selProdCat: market.selProdCat,
+    setSelProdCat: market.setSelProdCat,
     favorites: market.favorites,
+    setFavorites: market.setFavorites,
+
     hydrateSession: async () => {
       await auth.hydrate();
       const freshUser = useAuthStore.getState().currentUser;
@@ -120,7 +138,7 @@ useAppStore.getState = () => {
       wallet.setTransactions([]);
       market.reset();
     }
-  } as any;
+  };
 };
 
 export const AppStoreProvider = ({ children }: any) => children;

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import {
   FAYDA_MOCK_DATABASE,
   FaydaAPIIntegration,
 } from '../../services/fayda-kyc.service';
+import { Config } from '../../config';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -435,95 +436,96 @@ export default function FaydaKYCScreen() {
                   onPress={() => setShowVerificationForm(true)}
                   icon="finger-print"
                   style={{ marginBottom: 20 }}
-                />
-
-                {/* Test Data Buttons (for development) */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text
-                    style={{
-                      color: C.hint,
-                      fontSize: 12,
-                      fontFamily: Fonts.medium,
-                      marginBottom: 8,
-                      textAlign: 'center',
-                    }}
-                  >
-                    Test with mock data (development only):
-                  </Text>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {Object.keys(FAYDA_MOCK_DATABASE)
-                      .slice(0, 3)
-                      .map((mockId) => (
-                        <TouchableOpacity
-                          key={mockId}
-                          onPress={() => testWithMockData(mockId)}
-                          style={{
-                            flex: 1,
-                            backgroundColor: C.surface,
-                            borderRadius: Radius.lg,
-                            padding: 8,
-                            borderWidth: 1,
-                            borderColor: C.border,
-                            alignItems: 'center',
-                          }}
-                        >
-                          <Text style={{ color: C.sub, fontSize: 10, fontFamily: Fonts.medium }}>
-                            {FAYDA_MOCK_DATABASE[mockId].full_name.split(' ')[0]}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                  </View>
-                  <View
-                    style={{
-                      marginTop: 12,
-                      padding: 12,
-                      backgroundColor: C.amber + '10',
-                      borderRadius: Radius.lg,
-                      borderWidth: 1,
-                      borderColor: C.amber + '30',
-                    }}
-                  >
+                                {/* Test Data Buttons (for development) */}
+                {Config.devMode && (
+                  <View style={{ marginBottom: 20 }}>
                     <Text
                       style={{
-                        color: C.amber,
-                        fontSize: 11,
+                        color: C.hint,
+                        fontSize: 12,
                         fontFamily: Fonts.medium,
+                        marginBottom: 8,
                         textAlign: 'center',
                       }}
                     >
-                      Available Test IDs (Click to auto-fill):
+                      Test with mock data (development only):
                     </Text>
-                    {Object.keys(FAYDA_MOCK_DATABASE).map((mockId, index) => {
-                      const mockRecord = FAYDA_MOCK_DATABASE[mockId];
-                      return (
-                        <View key={mockId} style={{ marginTop: 4 }}>
-                          <Text
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {Object.keys(FAYDA_MOCK_DATABASE)
+                        .slice(0, 3)
+                        .map((mockId) => (
+                          <TouchableOpacity
+                            key={mockId}
+                            onPress={() => testWithMockData(mockId)}
                             style={{
-                              color: C.amber,
-                              fontSize: 9,
-                              fontFamily: Fonts.regular,
-                              textAlign: 'center',
+                              flex: 1,
+                              backgroundColor: C.surface,
+                              borderRadius: Radius.lg,
+                              padding: 8,
+                              borderWidth: 1,
+                              borderColor: C.border,
+                              alignItems: 'center',
                             }}
                           >
-                            {index + 1}. {mockId} - {mockRecord.full_name}
-                          </Text>
-                          <Text
-                            style={{
-                              color: C.amber,
-                              fontSize: 8,
-                              fontFamily: Fonts.regular,
-                              textAlign: 'center',
-                              opacity: 0.8,
-                            }}
-                          >
-                            ðŸ“± {mockRecord.phone} | ðŸŽ‚ {mockRecord.date_of_birth} | ðŸ“{' '}
-                            {mockRecord.region}
-                          </Text>
-                        </View>
-                      );
-                    })}
+                            <Text style={{ color: C.sub, fontSize: 10, fontFamily: Fonts.medium }}>
+                              {FAYDA_MOCK_DATABASE[mockId].full_name.split(' ')[0]}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </View>
+                    <View
+                      style={{
+                        marginTop: 12,
+                        padding: 12,
+                        backgroundColor: C.amber + '10',
+                        borderRadius: Radius.lg,
+                        borderWidth: 1,
+                        borderColor: C.amber + '30',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: C.amber,
+                          fontSize: 11,
+                          fontFamily: Fonts.medium,
+                          textAlign: 'center',
+                        }}
+                      >
+                        Available Test IDs (Click to auto-fill):
+                      </Text>
+                      {Object.keys(FAYDA_MOCK_DATABASE).map((mockId, index) => {
+                        const mockRecord = FAYDA_MOCK_DATABASE[mockId];
+                        return (
+                          <View key={mockId} style={{ marginTop: 4 }}>
+                            <Text
+                              style={{
+                                color: C.amber,
+                                fontSize: 9,
+                                fontFamily: Fonts.regular,
+                                textAlign: 'center',
+                              }}
+                            >
+                              {index + 1}. {mockId} - {mockRecord.full_name}
+                            </Text>
+                            <Text
+                              style={{
+                                color: C.amber,
+                                fontSize: 8,
+                                fontFamily: Fonts.regular,
+                                textAlign: 'center',
+                                opacity: 0.8,
+                              }}
+                            >
+                              📱 {mockRecord.phone} | 🎂 {mockRecord.date_of_birth} | 📍{' '}
+                              {mockRecord.region}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
                   </View>
-                </View>
+                )}
+           </View>
               </View>
             ) : (
               <View>

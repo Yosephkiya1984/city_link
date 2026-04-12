@@ -24,6 +24,9 @@ export function useServiceAccess() {
 
 export const ServiceAccessUtils = {
   checkAccess: async () => {
+    if (process.env.ENABLE_FAKE_ACCESS === 'true' && process.env.NODE_ENV === 'production') {
+      throw new Error('ServiceAccessUtils.checkAccess: Fake access is not allowed in production');
+    }
     if (process.env.ENABLE_FAKE_ACCESS === 'true') {
       console.warn('ServiceAccessUtils.checkAccess: Using fake permissive access for development');
       return true;
@@ -31,6 +34,9 @@ export const ServiceAccessUtils = {
     throw new Error('ServiceAccessUtils.checkAccess: Not implemented - real access checks required');
   },
   validateRequirements: async () => {
+    if (process.env.ENABLE_FAKE_ACCESS === 'true' && process.env.NODE_ENV === 'production') {
+      throw new Error('ServiceAccessUtils.validateRequirements: Fake access is not allowed in production');
+    }
     if (process.env.ENABLE_FAKE_ACCESS === 'true') {
       console.warn('ServiceAccessUtils.validateRequirements: Using fake empty requirements for development');
       return [];

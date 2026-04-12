@@ -19,9 +19,6 @@ export type AppStackParamList = {
   CitizenRoot: undefined;
   MerchantRoot: undefined;
   AgentRoot: undefined;
-  Wallet: { action?: string } | undefined;
-  MyOrders: undefined;
-  Food: undefined;
 };
 
 export type RootStackParamList = AppStackParamList;

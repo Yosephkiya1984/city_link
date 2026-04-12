@@ -25,6 +25,7 @@ interface SystemState {
   
   // Actions
   toggleTheme: () => void;
+  setIsDark: (isDark: boolean) => void;
   setLang: (lang: string) => void;
   showToast: (message: string, type?: Toast['type']) => void;
   addNotification: (notif: Notification) => void;
@@ -43,6 +44,7 @@ export const useSystemStore = create<SystemState>()(
       unreadCount: 0,
 
       toggleTheme: () => set((s) => ({ isDark: !s.isDark })),
+      setIsDark: (isDark) => set({ isDark }),
       setLang: (lang) => set({ lang }),
 
       showToast: (message, type = 'info') => {
