@@ -58,6 +58,7 @@ export default function WalletScreen() {
   const [amount, setAmount] = useState('');
   const [selectedProvider, setSelectedProvider] = useState('telebirr');
   const [walletLimit, setWalletLimit] = useState(100);
+  const [hasManuallySelected, setHasManuallySelected] = useState(false);
 
   // â”€â”€ Verification Effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
@@ -65,14 +66,21 @@ export default function WalletScreen() {
       (currentUser as any)?.fayda_verified || (currentUser as any)?.kyc_status === 'VERIFIED';
     setWalletLimit(isVerified ? 50000 : 100);
 
-    // Auto-detect provider based on phone
-    if (currentUser?.phone) {
+    // Auto-detect provider based on phone (only if not manually selected)
+    if (!hasManuallySelected && currentUser?.phone) {
       const detected = getPhoneProvider(currentUser.phone);
       if (detected !== 'unknown') {
         setSelectedProvider(detected);
       }
     }
-  }, [currentUser]);
+  }, [currentUser, hasManuallySelected]);
+
+  // Reset manual selection flag when modal opens to allow auto-detection
+  useEffect(() => {
+    if (topupModal) {
+      setHasManuallySelected(false);
+    }
+  }, [topupModal]);
 
   // â”€â”€ Data Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchWallet = useCallback(async () => {
@@ -264,7 +272,10 @@ export default function WalletScreen() {
               {Object.entries(CHAPA_CHANNELS).map(([id, info]) => (
                 <TouchableOpacity
                   key={id}
-                  onPress={() => setSelectedProvider(id)}
+                  onPress={() => {
+                    setSelectedProvider(id);
+                    setHasManuallySelected(true);
+                  }}
                   style={{
                     paddingHorizontal: 16,
                     paddingVertical: 12,

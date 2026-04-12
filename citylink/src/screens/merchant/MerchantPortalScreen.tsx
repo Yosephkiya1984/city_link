@@ -66,10 +66,9 @@ export default function MerchantPortalScreen() {
       'delala',
       'ekub',
       'parking',
-      'delivery',
     ];
     if (currentUser && !knownTypes.includes(normalizedType)) {
-      console.log('⚠️ Unknown merchant type, defaulting to Restaurant');
+      console.log('⚠️ Unknown merchant type, dashboard unavailable');
       showToast(`Account Type Not Supported: ${merchantType}. Contact support.`, 'warning');
     }
   }, [normalizedType, currentUser]);

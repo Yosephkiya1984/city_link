@@ -78,7 +78,7 @@ export function normalizePhone(phone: string): string {
 }
 
 /**
- * identifyPhoneProvider — Returns the best top-up channel for a number.
+ * getPhoneProvider — Returns the best top-up channel for a number.
  * Ethio Telecom -> telebirr
  * Safaricom -> mpesa
  */

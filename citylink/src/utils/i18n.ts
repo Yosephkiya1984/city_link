@@ -26,7 +26,7 @@ const translations: Record<string, TranslationEntry> = {
   Delala: { am: 'ደላላ', or: 'Dallaala' },
   Food: { am: 'ምግብ', or: 'Nyaata' },
   Parking: { am: 'ፓርኪንግ', or: 'Paarkingii' },
-  Delivery: { am: 'ክፍያ', or: 'Geejjiba' },
+  Delivery: { am: 'ደሊቨሪ', or: 'Geejjiba' },
 
   // Home Service Labels
   search_products: { en: 'Search products...', am: 'እቃዎችን ይፈልጉ...', or: "Madaala too'adhu..." },

@@ -13,13 +13,18 @@ import { AgentStack } from './AgentStack';
 import AuthScreen from '../screens/core/AuthScreen';
 import FaydaKYCScreen from '../screens/citizen/FaydaKYCScreen';
 
-export type RootStackParamList = {
+export type AppStackParamList = {
   Auth: undefined;
   FaydaKYC: undefined;
   CitizenRoot: undefined;
   MerchantRoot: undefined;
   AgentRoot: undefined;
+  Wallet: { action?: string } | undefined;
+  MyOrders: undefined;
+  Food: undefined;
 };
+
+export type RootStackParamList = AppStackParamList;
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 

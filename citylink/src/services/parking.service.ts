@@ -21,42 +21,58 @@ export async function endParkingSession(
   spotNumber: string,
   fare: number
 ) {
-  // First, update the parking session to completed
-  const res = await supaQuery((c) =>
-    c
-      .from('parking_sessions')
-      .update({
-        status: 'completed',
-        end_time: new Date().toISOString(),
-        calculated_cost: fare,
-      })
-      .eq('id', sessionId)
-      .select()
-      .single()
-  );
-
-  if (res.error) return res;
-
-  // Ideally, deduct the balance via RPC here. But let's fallback to returning the session
-  // The client side uses res.data?.new_balance if available.
-  
-  // Try calling payment/wallet RPC if exists (we assume process_payment atomic transaction is there, but if not we ignore)
+  // Perform payment first for atomicity, then update session only on success
   if (userId && fare > 0) {
     try {
-       const balanceRes = await supabase.rpc('process_wallet_payment_atomic', {
-         p_sender_id: userId,
-         p_amount: fare,
-         p_reference: `PRK-END-${sessionId.substring(0, 5)}`
-       });
-       if (!balanceRes.error && balanceRes.data) {
-         res.data.new_balance = balanceRes.data.sender_balance || balanceRes.data;
-       }
-    } catch(e) {
-      // Ignore RPC error, fallback to client side mock logic
-    }
-  }
+      const balanceRes = await supabase.rpc('process_wallet_payment_atomic', {
+        p_sender_id: userId,
+        p_amount: fare,
+        p_reference: `PRK-END-${lotName}-${spotNumber}-${sessionId.substring(0, 5)}`
+      });
+      if (balanceRes.error) throw balanceRes.error;
 
-  return res;
+      // Payment succeeded, now update the parking session to completed
+      const res = await supaQuery((c) =>
+        c
+          .from('parking_sessions')
+          .update({
+            status: 'completed',
+            end_time: new Date().toISOString(),
+            calculated_cost: fare,
+          })
+          .eq('id', sessionId)
+          .select()
+          .single()
+      );
+
+      if (!res.error && balanceRes.data) {
+        res.data.new_balance = balanceRes.data.sender_balance || balanceRes.data;
+      }
+
+      return res;
+    } catch (e) {
+      console.error('Parking payment failed, session not completed:', e);
+      // Update session to payment_failed status
+      await supaQuery((c) =>
+        c.from('parking_sessions').update({ status: 'payment_failed' }).eq('id', sessionId)
+      );
+      return { error: { message: 'Payment failed, session marked as payment_failed', details: e } };
+    }
+  } else {
+    // No payment needed, just update session
+    return supaQuery((c) =>
+      c
+        .from('parking_sessions')
+        .update({
+          status: 'completed',
+          end_time: new Date().toISOString(),
+          calculated_cost: fare,
+        })
+        .eq('id', sessionId)
+        .select()
+        .single()
+    );
+  }
 }
 
 export async function fetchParkingSessions(operatorId: string) {

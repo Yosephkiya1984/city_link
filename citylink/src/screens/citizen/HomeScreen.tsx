@@ -37,7 +37,7 @@ import * as WalletService from '../../services/wallet.service';
  * Service Configuration â€” local to Home for easier modification.
  */
 const SERVICES = [
-  { id: 'Market', icon: 'storefront', label: 'Marketplace', color: '#59de9b' },
+  { id: 'Marketplace', icon: 'storefront', label: 'Marketplace', color: '#59de9b' },
   { id: 'Food', icon: 'restaurant', label: 'Food Delivery', color: '#f4b700' },
   { id: 'Ekub', icon: 'people', label: 'Ekub Savings', color: '#8b5cf6' },
   { id: 'Delala', icon: 'home', label: 'Delala/Broker', color: '#f4b700' },
@@ -102,13 +102,12 @@ export default function HomeScreen() {
   }, [fetchData]);
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handleServicePress = (serviceId) => {
+  const handleServicePress = (serviceId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const screenName = serviceId === 'Marketplace' ? 'Marketplace' : serviceId;
-    navigation.navigate(screenName);
+    navigation.navigate(serviceId as any);
   };
 
-  const handleQuickAction = (id) => {
+  const handleQuickAction = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (id === 'history') navigation.navigate('Wallet');
     else if (id === 'orders') navigation.navigate('MyOrders');

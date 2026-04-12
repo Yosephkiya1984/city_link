@@ -78,8 +78,9 @@ export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T 
 
     hydrateSession: async () => {
       await auth.hydrate();
-      if (auth.currentUser) {
-        await wallet.hydrate(auth.currentUser.id);
+      const freshUser = useAuthStore.getState().currentUser;
+      if (freshUser) {
+        await wallet.hydrate(freshUser.id);
       }
     },
     reset: async () => {
@@ -108,8 +109,9 @@ useAppStore.getState = () => {
     favorites: market.favorites,
     hydrateSession: async () => {
       await auth.hydrate();
-      if (auth.currentUser) {
-        await wallet.hydrate(auth.currentUser.id);
+      const freshUser = useAuthStore.getState().currentUser;
+      if (freshUser) {
+        await wallet.hydrate(freshUser.id);
       }
     },
     reset: async () => {

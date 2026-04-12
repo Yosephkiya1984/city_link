@@ -38,8 +38,8 @@ export const useSystemStore = create<SystemState>()(
     (set) => ({
       isDark: true,
       lang: 'en',
-      toasts: [],
-      notifications: [],
+      toasts: [] as Toast[],
+      notifications: [] as Notification[],
       unreadCount: 0,
 
       toggleTheme: () => set((s) => ({ isDark: !s.isDark })),

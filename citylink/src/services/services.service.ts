@@ -1,4 +1,5 @@
 import { supaQuery } from './supabase';
+import { PropertyListing } from '../types';
 
 export async function fetchPropertyListings(agentId: string) {
   return supaQuery((c) =>
@@ -18,6 +19,6 @@ export async function updateListingStatus(listingId: string, newStatus: string) 
   );
 }
 
-export async function createListing(listingData: any) {
+export async function createListing(listingData: Partial<PropertyListing>) {
   return supaQuery((c) => c.from('property_listings').insert([listingData]));
 }

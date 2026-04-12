@@ -42,7 +42,7 @@ function CitizenTabs() {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: C.surface, borderTopColor: C.edge } }}>
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarIcon: (p) => <TabIcon {...p} iconName="home-outline" label="Home" C={C} /> }} />
-      <Tab.Screen name="Market" component={MarketplaceScreen} options={{ tabBarIcon: (p) => <TabIcon {...p} iconName="grid-outline" label="Market" C={C} /> }} />
+      <Tab.Screen name="Marketplace" component={MarketplaceScreen} options={{ tabBarIcon: (p) => <TabIcon {...p} iconName="grid-outline" label="Marketplace" C={C} /> }} />
       <Tab.Screen name="Ekub" component={EkubScreen} options={{ tabBarIcon: (p) => <TabIcon {...p} iconName="people-outline" label="Ekub" C={C} /> }} />
       <Tab.Screen name="AI" component={AIScreen} options={{ tabBarIcon: (p) => <TabIcon {...p} iconName="sparkles-outline" label="AI" C={C} /> }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarIcon: (p) => <TabIcon {...p} iconName="person-outline" label="Me" C={C} /> }} />
