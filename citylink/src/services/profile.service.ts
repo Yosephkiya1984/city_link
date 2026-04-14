@@ -1,17 +1,18 @@
 import { getClient, supaQuery, hasSupabase } from './supabase';
 import { fetchWallet, ensureWallet } from './wallet.service';
+import { User } from '../types';
 
 /**
  * fetchProfile — fetches a user's profile by their ID.
  */
 export async function fetchProfile(userId: string) {
-  return supaQuery((c) => c.from('profiles').select('*').eq('id', userId).maybeSingle());
+  return supaQuery<User>((c) => c.from('profiles').select('*').eq('id', userId).maybeSingle());
 }
 
 /**
  * upsertProfile — creates or updates a user's profile.
  */
-export async function upsertProfile(profile: any) {
+export async function upsertProfile(profile: Partial<User> & { id: string }) {
   // Only use fields that exist in database schema
   const data = {
     id: profile.id,
@@ -31,38 +32,44 @@ export async function upsertProfile(profile: any) {
     merchant_details: profile.merchant_details,
     updated_at: new Date().toISOString(),
   };
-  return supaQuery((c) => c.from('profiles').upsert(data, { onConflict: 'id' }));
+  return supaQuery<User>((c) => c.from('profiles').upsert(data, { onConflict: 'id' }).select().single());
 }
 
 /**
  * checkPhoneExists — checks if a phone number is already registered.
  */
-export async function checkPhoneExists(phone: string) {
+export async function checkPhoneExists(phone: string): Promise<{ id: string, role: string } | null> {
   if (!hasSupabase()) {
-    // In dev mode without Supabase, return null (no existing user)
     return null;
   }
-  const { data } = await supaQuery((c) =>
+  const { data } = await supaQuery<{ id: string, role: string }>((c) =>
     c.from('profiles').select('id, role').eq('phone', phone).maybeSingle()
   );
   return data;
+}
+
+interface SessionProfileResult {
+  profile: User;
+  balance: number;
 }
 
 /**
  * loadSessionProfile — load profile + balance for a session.
  * Resolves OTP-bypass IDs via phone lookup if necessary.
  */
-export async function loadSessionProfile(authUser: any, normalizedPhone: string) {
+export async function loadSessionProfile(authUser: { id: string } | null, normalizedPhone: string): Promise<SessionProfileResult | null> {
   if (!getClient()) return null;
-  let row = null;
+  let row: User | null = null;
   const authId = authUser?.id;
+
   if (authId && !String(authId).startsWith('local-')) {
     const r = await fetchProfile(authId);
     if (r.data) row = r.data;
   }
+
   if (!row && normalizedPhone) {
     // Attempt lookup by normalized phone
-    const r = await supaQuery((c) =>
+    const r = await supaQuery<User>((c) =>
       c.from('profiles').select('*').eq('phone', normalizedPhone).maybeSingle()
     );
     if (r.data) row = r.data;
@@ -71,20 +78,24 @@ export async function loadSessionProfile(authUser: any, normalizedPhone: string)
       const alt = normalizedPhone.startsWith('+251')
         ? '0' + normalizedPhone.slice(4)
         : normalizedPhone;
-      const r2 = await supaQuery((c) =>
+      const r2 = await supaQuery<User>((c) =>
         c.from('profiles').select('*').eq('phone', alt).maybeSingle()
       );
       if (r2.data) row = r2.data;
     }
   }
+
   if (!row) return null;
+
   let balance = 0;
   const w = await fetchWallet(row.id);
-  if (w.data) balance = Number(w.data.balance) || 0;
-  else {
+  if (w.data) {
+    balance = Number(w.data.balance) || 0;
+  } else {
     const ensured = await ensureWallet(row.id);
     if (ensured.data) balance = Number(ensured.data.balance) || 0;
   }
+
   return { profile: row, balance };
 }
 
@@ -92,5 +103,5 @@ export async function loadSessionProfile(authUser: any, normalizedPhone: string)
  * updateUserRole — persists a role change for the user.
  */
 export async function updateUserRole(userId: string, newRole: string) {
-  return supaQuery((c) => c.from('profiles').update({ role: newRole }).eq('id', userId));
+  return supaQuery<void>((c) => c.from('profiles').update({ role: newRole }).eq('id', userId));
 }

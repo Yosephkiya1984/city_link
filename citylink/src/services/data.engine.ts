@@ -1,5 +1,5 @@
 import { supaQuery } from './supabase';
-import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+import { User, Wallet, Transaction, MarketplaceOrder, EkubGroup, DeliveryAgent, Product, PropertyListing } from '../types';
 
 /**
  * DataEngine — Centralized production-grade query bank.
@@ -22,20 +22,20 @@ export const DataEngine = {
   
   profiles: {
     get: (id: string) => 
-      supaQuery((c) => c.from('profiles').select('*').eq('id', id).maybeSingle()),
+      supaQuery<User>((c) => c.from('profiles').select('*').eq('id', id).maybeSingle()),
     
-    update: (id: string, updates: any) =>
-      supaQuery((c) => c.from('profiles').update(updates).eq('id', id)),
+    update: (id: string, updates: Partial<User>) =>
+      supaQuery<User>((c) => c.from('profiles').update(updates).eq('id', id).select().single()),
   },
 
   // ── Wallet & Financial ──
   
   wallets: {
     get: (userId: string) =>
-      supaQuery((c) => c.from('wallets').select('*').eq('user_id', userId).maybeSingle()),
+      supaQuery<Wallet>((c) => c.from('wallets').select('*').eq('user_id', userId).maybeSingle()),
     
     getTransactions: (walletId: string, limit = 20) =>
-      supaQuery((c) => 
+      supaQuery<Transaction[]>((c) => 
         c.from('transactions')
          .select('*')
          .eq('wallet_id', walletId)
@@ -48,17 +48,17 @@ export const DataEngine = {
 
   marketplace: {
     getListings: (category?: string) => {
-      return supaQuery((c: any) => {
+      return supaQuery<Product[]>((c) => {
         let q = c.from('products').select('*, profiles(id, full_name, business_name, merchant_name)');
         if (category && category !== 'All') {
-          return q.eq('category', category);
+          return q.eq('category', category) as any; // Cast needed due to complex return type in select
         }
-        return q;
+        return q as any;
       });
     },
 
     getOrder: (orderId: string) =>
-      supaQuery((c) => 
+      supaQuery<MarketplaceOrder>((c) => 
         c.from('marketplace_orders')
          .select('*, merchant:profiles!merchant_id(full_name), buyer:profiles!buyer_id(full_name)')
          .eq('id', orderId)
@@ -70,10 +70,10 @@ export const DataEngine = {
 
   ekub: {
     getGroups: () =>
-      supaQuery((c) => c.from('ekubs').select('*').neq('status', 'COMPLETE')),
+      supaQuery<EkubGroup[]>((c) => c.from('ekubs').select('*').neq('status', 'COMPLETE')),
     
     getMemberStatus: (groupId: string, userId: string) =>
-      supaQuery((c) => 
+      supaQuery<{ id: string; status: string }>((c) => 
         c.from('ekub_members')
          .select('*')
          .eq('ekub_id', groupId)
@@ -86,10 +86,10 @@ export const DataEngine = {
 
   delivery: {
     getAgent: (id: string) =>
-      supaQuery((c) => c.from('delivery_agents').select('*').eq('id', id).maybeSingle()),
+      supaQuery<DeliveryAgent>((c) => c.from('delivery_agents').select('*').eq('id', id).maybeSingle()),
     
     getActiveJobs: (agentId: string) =>
-      supaQuery((c) => 
+      supaQuery<MarketplaceOrder[]>((c) => 
         c.from('marketplace_orders')
          .select('*')
          .eq('agent_id', agentId)

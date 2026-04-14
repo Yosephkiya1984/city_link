@@ -3,10 +3,32 @@ import { supaQuery } from './supabase';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 
+export interface ChapaInitResponse {
+  status: 'success' | 'error';
+  message?: string;
+  tx_ref?: string;
+  data?: {
+    checkout_url: string;
+    [key: string]: any;
+  };
+}
+
+export interface ChapaVerifyResponse {
+  status: 'success' | 'error';
+  message?: string;
+  data?: {
+    status: 'success' | 'failed' | 'pending';
+    amount: number;
+    currency: string;
+    tx_ref: string;
+    [key: string]: any;
+  };
+}
+
 /**
  * initialize — Starts a real Chapa payment flow.
  */
-export async function initialize({ amount, description, channel = 'telebirr', phone, name }: { amount: number, description: string, channel?: string, phone: string, name: string }) {
+export async function initialize({ amount, description, channel = 'telebirr', phone, name }: { amount: number, description: string, channel?: string, phone: string, name: string }): Promise<ChapaInitResponse> {
   if (!amount || amount <= 0) return { status: 'error', message: 'Invalid amount.' };
   
   const supaUrl = Config.supaUrl;
@@ -41,7 +63,7 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
       }),
     });
 
-    const data = await res.json();
+    const data: ChapaInitResponse = await res.json();
     
     if (data.status === 'success' && data.data?.checkout_url) {
       // Open real Chapa checkout
@@ -50,7 +72,7 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
     }
     
     throw new Error(data.message || 'Chapa initialization failed');
-  } catch (e) {
+  } catch (e: any) {
     console.error('[Payment] Init Error:', e.message);
     return { status: 'error', message: e.message };
   }
@@ -59,7 +81,7 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
 /**
  * verify — Verifies a payment via the backend proxy.
  */
-export async function verify(txRef: string) {
+export async function verify(txRef: string): Promise<ChapaVerifyResponse> {
   const supaUrl = Config.supaUrl;
   const anonKey = Config.supaKey;
   
@@ -70,13 +92,13 @@ export async function verify(txRef: string) {
     });
 
     return await res.json();
-  } catch (e) {
+  } catch (e: any) {
     return { status: 'error', message: e.message };
   }
 }
 
 // ── Calculate fee ─────────────────────────────────────────────────────────────
-export function calcFee(amount: number, channel: string = 'telebirr') {
+export function calcFee(amount: number, channel: string = 'telebirr'): number {
   const ch = CHAPA_CHANNELS[channel as keyof typeof CHAPA_CHANNELS];
   if (!ch) return 0;
   return Math.ceil(amount * ch.fee_pct * 100) / 100;
@@ -86,7 +108,7 @@ export function calcFee(amount: number, channel: string = 'telebirr') {
  * payUtilityBill — pays a utility bill atomically.
  */
 export async function payUtilityBill(billId: string, citizenId: string) {
-  return supaQuery((c) =>
+  return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_utility_payment_atomic', {
       p_bill_id: billId,
       p_citizen_id: citizenId,
@@ -98,7 +120,7 @@ export async function payUtilityBill(billId: string, citizenId: string) {
  * payTrafficFine — pays a traffic fine atomically.
  */
 export async function payTrafficFine(userId: string, fineId: string) {
-  return supaQuery((c) =>
+  return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_traffic_fine_atomic', {
       p_user_id: userId,
       p_fine_id: fineId,
@@ -107,11 +129,12 @@ export async function payTrafficFine(userId: string, fineId: string) {
 }
 
 // ── Format ETB ────────────────────────────────────────────────────────────────
-export function fmtETB(amount: number | string, decimals = 2) {
+export function fmtETB(amount: number | string, decimals = 2): string {
   if (amount === undefined || amount === null) return '0.00';
   return Number(amount)
     .toFixed(decimals)
     .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-export default { initialize, verify, calcFee, fmtETB, payUtilityBill, payTrafficFine };
+const PaymentService = { initialize, verify, calcFee, fmtETB, payUtilityBill, payTrafficFine };
+export default PaymentService;

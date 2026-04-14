@@ -1,0 +1,158 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, TextInput, Image, Dimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { DarkColors as T } from '../../../theme';
+import { Product } from '../../../types/domain_types';
+
+const { width } = Dimensions.get('window');
+
+export interface InventoryTabProps {
+  inventory: Product[];
+  inventorySearch: string;
+  setInventorySearch: (s: string) => void;
+  setShowProductModal: (b: boolean) => void;
+  handleEditProduct: (p: Product) => void;
+  handleDeleteProduct: (id: string) => void;
+  loading: boolean;
+  styles: any;
+}
+
+export function DashboardInventoryTab({
+  inventory,
+  inventorySearch,
+  setInventorySearch,
+  setShowProductModal,
+  handleEditProduct,
+  handleDeleteProduct,
+  loading,
+  styles,
+}: InventoryTabProps) {
+  const filteredInventory = inventory.filter(
+    (p: Product) => !inventorySearch || (p.name || p.title || '').toLowerCase().includes(inventorySearch.toLowerCase())
+  );
+
+  return (
+    <View style={styles.tabContent}>
+      <View style={styles.headerTitleRow}>
+        <View>
+          <Text style={styles.pageTitle}>Inventory</Text>
+          <Text style={styles.pageSubtitle}>Manage product catalogue</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.primaryButtonSolid}
+          onPress={() => setShowProductModal(true)}
+        >
+          <Ionicons name="add" size={16} color={T.ink} />
+          <Text style={styles.btnTextThick}>Add</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.filterRowMobile}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={16} color={T.onVariant} />
+          <TextInput
+            placeholder="Search products..."
+            placeholderTextColor={T.onVariant}
+            style={styles.searchInput}
+            value={inventorySearch}
+            onChangeText={setInventorySearch}
+          />
+        </View>
+        {inventorySearch.length > 0 && (
+          <TouchableOpacity
+            style={styles.iconButtonOutlined}
+            onPress={() => setInventorySearch('')}
+          >
+            <Ionicons name="close" size={20} color={T.onVariant} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={{ gap: 12 }}>
+        {filteredInventory.length === 0 && !loading && (
+          <View style={{ alignItems: 'center', padding: 40 }}>
+            <Ionicons name="cube-outline" size={48} color={T.edge} />
+            <Text style={{ color: T.onVariant, marginTop: 12 }}>
+              {inventorySearch ? 'No matching products' : 'No products in stock'}
+            </Text>
+          </View>
+        )}
+        {filteredInventory.map((p: Product) => {
+          const isLow = (p.stock || 0) < 15;
+          const barColor = p.stock === 0 ? T.tertiary : isLow ? T.secondary : T.primary;
+          const maxStock = p.max_stock || 100;
+          const imgUri = p.image_url || p.image || (p.images_json && p.images_json[0]);
+          return (
+            <View key={p.id} style={styles.productMobileCard}>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={[styles.productMobileImg, { overflow: 'hidden' }]}>
+                  {imgUri ? (
+                    <Image source={{ uri: imgUri }} style={{ width: '100%', height: '100%' }} />
+                  ) : (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="cube" size={24} color={T.primary} />
+                    </View>
+                  )}
+                </View>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                  <Text style={styles.tsName} numberOfLines={1}>
+                    {p.name || p.title}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 4,
+                    }}
+                  >
+                    <Text style={styles.tableSku}>ID: {p.id.slice(0, 8)}</Text>
+                    <Text style={styles.tsPrice}>{p.price} ETB</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
+                <View style={styles.catBadge}>
+                  <Text style={styles.catBadgeText}>
+                    {p.category?.toUpperCase() || 'GENERAL'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.deleteBtnSmall}
+                  onPress={() => handleEditProduct(p)}
+                >
+                  <Ionicons name="create-outline" size={14} color={T.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.deleteBtnSmall, { marginLeft: 8 }]}
+                  onPress={() => handleDeleteProduct(p.id)}
+                >
+                  <Ionicons name="trash-outline" size={14} color={T.tertiary} />
+                </TouchableOpacity>
+                <View style={{ flex: 1 }} />
+                <Text style={styles.stockText}>
+                  <Text style={{ color: p.stock > 0 ? T.onSurface : T.tertiary }}>
+                    {p.stock || 0}
+                  </Text>
+                  /{maxStock}
+                </Text>
+                <View style={styles.stockBarBgMob}>
+                  <View
+                    style={[
+                      styles.stockBarFill,
+                      {
+                        width: `${((p.stock || 0) / maxStock) * 100}%`,
+                        backgroundColor: barColor,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}

@@ -27,7 +27,7 @@ import { unsubscribe } from '../../services/supabase';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
-// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Constants -----------------------------------------------------------------------------
 const ADDIS_LAT = 9.0333;
 const ADDIS_LNG = 38.75;
 
@@ -38,33 +38,27 @@ export default function TrackOrderScreen() {
   const isDark = useAppStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
 
-  const [order, setOrder] = useState(route.params?.order || null);
+  const [order, setOrder] = useState<any>(route.params?.order || null);
   const [loading, setLoading] = useState(!route.params?.order);
-  const [eta, setEta] = useState(null);
-  const [agentLocation, setAgentLocation] = useState(null);
+  const [eta, setEta] = useState<any>(null);
+  const [agentLocation, setAgentLocation] = useState<any>(null);
 
   const mapRef = useRef(null);
-  const markerAnim = useRef(new RNAnimated.Value(0)).current; // For smooth marker movement if needed
+  const markerAnim = useRef(new RNAnimated.Value(0)).current; 
 
-  // â”€â”€ Data Subscription â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Data Subscription -------------------------------------------------------------------
   useEffect(() => {
     if (!orderId) return;
 
     const sub = subscribeToOrderStatus(orderId, (payload: any) => {
       const newOrder = payload.new;
       setOrder((prev: any) => ({ ...prev, ...newOrder }));
-
-      // Update agent location if available
-      if (newOrder.agent_id) {
-        // In a real app, we'd fetch the agent's lat/lng from the delivery_agents table
-        // For this demo/implementation, we assume agent coords are synced
-      }
     });
 
     return () => unsubscribe(sub);
   }, [orderId]);
 
-  // Periodically fetch agent location (Simulated or Real)
+  // Periodically fetch agent location
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (order?.agent_id && (order.status === 'IN_TRANSIT' || order.status === 'AGENT_ASSIGNED')) {
@@ -80,63 +74,43 @@ export default function TrackOrderScreen() {
           const newLoc = { latitude: data.current_lat, longitude: data.current_lng };
           setAgentLocation(newLoc);
 
-          // Calculate ETA
-          if (order.shipping_address_coords) {
-            // Mock target if not in order
-          } else {
-            // Assume some target near Addis center for demo
-            const target = { latitude: ADDIS_LAT + 0.01, longitude: ADDIS_LNG + 0.01 };
-            setEta(
-              calculateETA(newLoc.latitude, newLoc.longitude, target.latitude, target.longitude)
-            );
-          }
+          const destLat = order?.destination_lat || (ADDIS_LAT + 0.01);
+          const destLng = order?.destination_lng || (ADDIS_LNG + 0.01);
+          setEta(
+            calculateETA(newLoc.latitude, newLoc.longitude, destLat, destLng)
+          );
         }
       };
 
       fetchLoc();
-      interval = setInterval(fetchLoc, 15000); // Every 15s
+      interval = setInterval(fetchLoc, 15000);
     }
     return () => clearInterval(interval);
   }, [order?.agent_id, order?.status]);
 
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'PAID':
-        return 'Ready for Dispatch';
-      case 'DISPATCHING':
-        return 'Finding Agent';
-      case 'AGENT_ASSIGNED':
-        return 'Agent en Route';
-      case 'SHIPPED':
-        return 'Picked Up';
-      case 'IN_TRANSIT':
-        return 'On the Way';
-      case 'AWAITING_PIN':
-        return 'Arrived';
-      case 'COMPLETED':
-        return 'Delivered';
-      default:
-        return status?.replace('_', ' ');
+      case 'PAID': return 'Ready for Dispatch';
+      case 'DISPATCHING': return 'Finding Agent';
+      case 'AGENT_ASSIGNED': return 'Agent en Route';
+      case 'SHIPPED': return 'Picked Up';
+      case 'IN_TRANSIT': return 'On the Way';
+      case 'AWAITING_PIN': return 'Arrived';
+      case 'COMPLETED': return 'Delivered';
+      default: return status ? status.toLowerCase().split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') : 'Unknown Status';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'PAID':
-        return 'time-outline';
-      case 'AGENT_ASSIGNED':
-        return 'bicycle-outline';
-      case 'IN_TRANSIT':
-        return 'navigate-outline';
-      case 'AWAITING_PIN':
-        return 'checkmark-circle-outline';
-      default:
-        return 'cube-outline';
+      case 'PAID': return 'time-outline';
+      case 'AGENT_ASSIGNED': return 'bicycle-outline';
+      case 'IN_TRANSIT': return 'navigate-outline';
+      case 'AWAITING_PIN': return 'checkmark-circle-outline';
+      default: return 'cube-outline';
     }
   };
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading && !order) {
     return (
       <View style={[styles.container, { backgroundColor: C.ink, justifyContent: 'center' }]}>
@@ -149,7 +123,6 @@ export default function TrackOrderScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* â”€â”€ Header â”€â”€ */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={C.text} />
@@ -158,7 +131,6 @@ export default function TrackOrderScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      {/* â”€â”€ Map View â”€â”€ */}
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -182,15 +154,18 @@ export default function TrackOrderScreen() {
           </Marker>
         )}
 
-        {/* Destination Marker (Mock) */}
-        <Marker coordinate={{ latitude: ADDIS_LAT + 0.01, longitude: ADDIS_LNG + 0.01 }}>
+        <Marker 
+          coordinate={{ 
+            latitude: order?.destination_lat || (ADDIS_LAT + 0.01), 
+            longitude: order?.destination_lng || (ADDIS_LNG + 0.01) 
+          }}
+        >
           <View style={styles.destMarker}>
             <Ionicons name="location" size={30} color={C.red} />
           </View>
         </Marker>
       </MapView>
 
-      {/* â”€â”€ Status Overlay â”€â”€ */}
       <View style={styles.overlay}>
         <BlurView
           intensity={Platform.OS === 'ios' ? 80 : 100}
@@ -219,7 +194,6 @@ export default function TrackOrderScreen() {
 
           <View style={[styles.divider, { backgroundColor: C.edge }]} />
 
-          {/* Delivery Agent Info */}
           {order?.agent_id ? (
             <View style={styles.agentRow}>
               <View style={[styles.avatar, { backgroundColor: C.lift }]}>
@@ -244,7 +218,6 @@ export default function TrackOrderScreen() {
             </View>
           )}
 
-          {/* Progress Bar */}
           <View style={styles.progressTrack}>
             <View
               style={[
@@ -252,21 +225,15 @@ export default function TrackOrderScreen() {
                 { backgroundColor: C.primary },
                 {
                   width:
-                    order?.status === 'COMPLETED'
-                      ? '100%'
-                      : order?.status === 'AWAITING_PIN'
-                        ? '90%'
-                        : order?.status === 'IN_TRANSIT'
-                          ? '65%'
-                          : order?.status === 'AGENT_ASSIGNED'
-                            ? '35%'
-                            : '10%',
+                    order?.status === 'COMPLETED' ? '100%' :
+                    order?.status === 'AWAITING_PIN' ? '90%' :
+                    order?.status === 'IN_TRANSIT' ? '65%' :
+                    order?.status === 'AGENT_ASSIGNED' ? '35%' : '10%',
                 },
               ]}
             />
           </View>
 
-          {/* Proof of Delivery (POD) Image Preview */}
           {order?.delivery_proof_url && (
             <View style={styles.podContainer}>
               <View style={styles.podHeader}>
@@ -299,7 +266,6 @@ const mapStyleDark = [
   { elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#212121' }] },
   { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#757575' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#181818' }] },
   { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#2c2c2c' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#000000' }] },
 ];
@@ -315,7 +281,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight + 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight || 0) + 20,
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
@@ -405,7 +371,6 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 2 },
   closeBtn: { paddingTop: 15, marginTop: 10, borderTopWidth: 1, alignItems: 'center' },
   closeBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  // POD Styles
   podContainer: {
     marginTop: 15,
     borderRadius: 12,

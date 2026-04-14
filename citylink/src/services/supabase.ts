@@ -3,13 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Config } from '../config';
 
 // ── Client Initialization ─────────────────────────────────────────────────────
-let _client: SupabaseClient<any, "public", any> | null = null;
+let _client: SupabaseClient | null = null;
 
-export function hasSupabase() {
+export function hasSupabase(): boolean {
   return getClient() != null;
 }
 
-export function getClient() {
+export function getClient(): SupabaseClient | null {
   if (_client) return _client;
 
   const url = (Config.supaUrl || '').trim();
@@ -34,7 +34,7 @@ export function getClient() {
 
     _client = createClient(url, key, options);
     return _client;
-  } catch (e) {
+  } catch (e: any) {
     console.warn('[CityLink] Supabase init failed:', e.message);
     return null;
   }
@@ -49,7 +49,7 @@ interface SupaQueryOptions {
  * supaQuery — Centralized wrapper for error handling and logging.
  */
 export async function supaQuery<T = any>(
-  queryFn: (client: SupabaseClient<any, "public", any>) => PromiseLike<{ data: T | null; error: any; count?: number | null }>,
+  queryFn: (client: SupabaseClient) => PromiseLike<{ data: T | null; error: any; count?: number | null }>,
   options: SupaQueryOptions = {}
 ): Promise<{ data: T | null; count?: number | null; error: string | null }> {
   const client = getClient();
@@ -66,8 +66,8 @@ export async function supaQuery<T = any>(
       return { data: null, error: result.error.message };
     }
     return { data: result.data, count: result.count, error: null };
-  } catch (e) {
-    return { data: null, error: String((e as any)?.message || e) };
+  } catch (e: any) {
+    return { data: null, error: String(e?.message || e) };
   }
 }
 
@@ -80,9 +80,9 @@ export function subscribeToTable(
 ) {
   const client = getClient();
   if (!client || !table) return null;
-  const opts: any = { event: '*', schema: 'public', table };
+  const opts: { event: string; schema: string; table: string; filter?: string } = { event: '*', schema: 'public', table };
   if (filter) opts.filter = filter;
-  return client.channel(channelName).on('postgres_changes', opts, callback).subscribe();
+  return client.channel(channelName).on('postgres_changes' as any, opts, callback).subscribe();
 }
 
 export function unsubscribe(channel: any) {
@@ -90,7 +90,6 @@ export function unsubscribe(channel: any) {
   if (client && channel) client.removeChannel(channel);
 }
 
-// ── Backward Compatibility ─────────────────────────────────────────────────────
 // ── Backward Compatibility ─────────────────────────────────────────────────────
 // Aggregate exports removed to break circular dependencies.
 // Please import domain services directly (e.g. from './auth.service').
@@ -101,4 +100,14 @@ export default {
   getClient,
 };
 
-export const supabase = getClient();
+/** @deprecated Use getClient() directly. This getter exists only for backward compatibility. */
+export const supabase = new Proxy({} as NonNullable<ReturnType<typeof getClient>>, {
+  get(_target, prop) {
+    const client = getClient();
+    if (!client) {
+      console.warn(`[CityLink] supabase.${String(prop)} called but no client available.`);
+      return undefined;
+    }
+    return (client as unknown as Record<string, unknown>)[prop as string];
+  },
+});

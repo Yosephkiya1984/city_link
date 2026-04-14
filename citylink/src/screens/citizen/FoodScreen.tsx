@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable } from 'react-native';
-import { User, FoodItem } from '../../types';
+import { User, FoodItem, FoodOrderItem } from '../../types';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
 import { useAppStore } from '../../store/AppStore';
@@ -83,23 +83,46 @@ export function FoodScreen() {
 
     setLoading(true); // Re-using loading state for submission
 
+    // Transform cart Record into FoodOrderItem array with defensive filtering
+    const items: FoodOrderItem[] = Object.entries(cart)
+      .map(([itemId, qty]) => {
+        const item = menuItems.find((m) => m.id === itemId);
+        if (!item) return null;
+        return {
+          id: itemId,
+          name: item.name,
+          qty: qty,
+          price: item.price,
+          subtotal: item.price * qty,
+        };
+      })
+      .filter((x): x is FoodOrderItem => x !== null);
+
+    if (items.length === 0) {
+      showToast(t('Cart empty or items no longer available', lang), 'error');
+      setLoading(false);
+      return;
+    }
+
+    const finalTotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+
     const payload = {
       id: orderId,
       citizen_id: currentUser.id,
       merchant_id: selectedRest!.id,
       restaurant: selectedRest!.merchant_name || 'Restaurant',
-      items: cartCount,
-      total: cartTotal,
+      items_count: items.reduce((sum, item) => sum + item.qty, 0),
+      total: finalTotal,
       delivery_pin: pin,
-      items_json: JSON.stringify(cart),
+      items: items, // Maps to DB 'items' jsonb column
     };
 
     try {
-      const r = await placeOrder(payload);
+      const r = await placeOrder(payload as any); // cast to any for RPC call if necessary, but payload is now correct for FoodOrder
 
       if (r.ok) {
         // Success: New balance is returned by the atomic RPC
-        const finalBalance = r.data?.new_balance ?? balance - cartTotal;
+        const finalBalance = (r.data as any)?.new_balance ?? balance - cartTotal;
         setBalance(finalBalance);
 
         showToast(t('Order placed! ðŸ›µ On the way!', lang), 'success');

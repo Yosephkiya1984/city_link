@@ -14,7 +14,7 @@ import { Manrope_400Regular, Manrope_700Bold } from '@expo-google-fonts/manrope'
 
 import AppNavigator from './src/navigation';
 import { ToastContainer, ErrorBoundary } from './src/components';
-import { AppStoreProvider, useAppStore } from './src/store/AppStore';
+import { useAppStore } from './src/store/AppStore';
 
 import { useTheme } from './src/hooks/useTheme';
 import { memoryManager, PerformanceProfiler } from './src/utils/debug/memoryManager';
@@ -76,7 +76,7 @@ function AppBootstrap() {
 
     prepare();
     return () => {
-      stopMemoryMonitor();
+      stopMemoryMonitor?.();
     };
   }, []);
 
@@ -124,8 +124,6 @@ function AppBootstrap() {
 // ── Root export — wraps everything in AppStoreProvider ───────────────────────
 export default function App() {
   return (
-    <AppStoreProvider>
-      <AppBootstrap />
-    </AppStoreProvider>
+    <AppBootstrap />
   );
 }

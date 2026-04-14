@@ -2,22 +2,18 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
-  Dimensions,
   FlatList,
-  Animated,
   Image,
   TextInput,
   RefreshControl,
   StyleSheet,
   StatusBar,
-  Platform,
   Modal,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 
@@ -26,291 +22,46 @@ import { fmtETB } from '../../utils';
 import { subscribeToTable, unsubscribe, supabase } from '../../services/supabase';
 import { createChatThread, createChatMessage } from '../../services/chat.service';
 import { marketplaceService } from '../../services/marketplace.service';
+import { useTheme } from '../../hooks/useTheme';
+import { Radius, Shadow, Fonts, FontSize } from '../../theme';
 
-const { width: SW, height: SH } = Dimensions.get('window');
+// Modular Components
+import { T, SW, SH } from '../../components/marketplace/constants';
+import MarketplaceHeader from '../../components/marketplace/MarketplaceHeader';
+import MarketplaceSearchBar from '../../components/marketplace/MarketplaceSearchBar';
+import CategoryPills from '../../components/marketplace/CategoryPills';
+import FeaturedCard from '../../components/marketplace/FeaturedCard';
+import ProductCard from '../../components/marketplace/ProductCard';
+import MarketplaceSkeleton from '../../components/marketplace/MarketplaceSkeleton';
 
-// â”€â”€ Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const T = {
-  bg: '#0c0e12',
-  surface: '#161a20',
-  surfaceHigh: '#1e2228',
-  card: '#12161c',
-  primary: '#40d991',
-  primaryDim: '#40d99120',
-  secondary: '#f59e0b',
-  secondaryDim: '#f59e0b18',
-  accent: '#7c3aed',
-  accentDim: '#7c3aed18',
-  red: '#ef4444',
-  redDim: '#ef444418',
-  text: '#e2e8f0',
-  textSub: '#64748b',
-  textMuted: '#334155',
-  border: 'rgba(255,255,255,0.06)',
-  borderBright: 'rgba(255,255,255,0.12)',
-  glass: 'rgba(12,14,18,0.9)',
-};
-
-const CATEGORIES = [
-  { id: 'All', name: 'All', icon: 'grid', color: T.primary },
-  { id: 'Electronics', name: 'Electronics', icon: 'phone-portrait', color: '#06b6d4' },
-  { id: 'Fashion', name: 'Fashion', icon: 'shirt', color: '#ec4899' },
-  { id: 'Food', name: 'Food', icon: 'restaurant', color: T.secondary },
-  { id: 'Home', name: 'Home', icon: 'home', color: '#10b981' },
-  { id: 'Beauty', name: 'Beauty', icon: 'color-palette', color: '#8b5cf6' },
-  { id: 'Tech', name: 'Tech', icon: 'hardware-chip', color: '#3b82f6' },
-];
-
-// â”€â”€ Shimmer Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const Shimmer = ({ style }: any) => {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 900, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-  const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
-  return <Animated.View style={[{ backgroundColor: T.surfaceHigh, opacity }, style]} />;
-};
-
-const ProductSkeleton = ({ style }: any) => (
-  <View style={[styles.productCard, { backgroundColor: T.card }]}>
-    <Shimmer style={{ height: 140, borderRadius: 10, marginBottom: 12 }} />
-    <Shimmer style={{ height: 10, borderRadius: 5, width: '50%', marginBottom: 8 }} />
-    <Shimmer style={{ height: 14, borderRadius: 5, width: '80%', marginBottom: 8 }} />
-    <Shimmer style={{ height: 14, borderRadius: 5, width: '40%' }} />
-  </View>
-);
-
-// ——————————————————————————————————————————————————————————————————————————————————————————————
-const Header = ({ balance, name }: any) => {
-  const navigation = useNavigation();
-  return (
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.headerGreeting}>Hello, {name?.split(' ')[0] || 'Shopper'} 👋</Text>
-        <Text style={styles.headerTitle}>
-          CityLink <Text style={{ color: T.primary }}>Market</Text>
-        </Text>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => (navigation as any).navigate('MyOrders')}
-        >
-          <Ionicons name="receipt-outline" size={20} color={T.textSub} />
-        </TouchableOpacity>
-        <View style={styles.balancePill}>
-          <Ionicons name="wallet-outline" size={13} color={T.primary} />
-          <Text style={styles.balanceText}>{fmtETB(balance, 0)} ETB</Text>
-        </View>
-      </View>
-    </View>
-  );
-};
-
-// ——————————————————————————————————————————————————————————————————————————————————————————————
-const SearchBar = ({ value, onChangeText, onClear }: any) => (
-  <View style={styles.searchWrap}>
-    <Ionicons name="search" size={18} color={T.textSub} style={styles.searchIcon} />
-    <TextInput
-      style={styles.searchInput}
-      placeholder="Search products..."
-      placeholderTextColor={T.textSub}
-      value={value}
-      onChangeText={onChangeText}
-      returnKeyType="search"
-    />
-    {value.length > 0 && (
-      <TouchableOpacity onPress={onClear} style={{ padding: 4 }}>
-        <Ionicons name="close-circle" size={18} color={T.textSub} />
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-// ——————————————————————————————————————————————————————————————————————————————————————————————
-const CategoryPills = ({ selected, onSelect }: any) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={styles.pillRow}
-    contentContainerStyle={{ paddingRight: 20, gap: 8 }}
-  >
-    {CATEGORIES.map((cat: any) => {
-      const active = selected === cat.id;
-      return (
-        <TouchableOpacity
-          key={cat.id}
-          activeOpacity={0.7}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onSelect(cat.id);
-          }}
-          style={[
-            styles.pill,
-            active && { backgroundColor: cat.color + '22', borderColor: cat.color + '60' },
-          ]}
-        >
-          <Ionicons name={cat.icon as any} size={13} color={active ? cat.color : T.textSub} />
-          <Text style={[styles.pillText, active && { color: cat.color, fontWeight: '700' }]}>
-            {cat.name}
-          </Text>
-        </TouchableOpacity>
-      );
-    })}
-  </ScrollView>
-);
-
-// ——————————————————————————————————————————————————————————————————————————————————————————————
-const FeaturedCard = ({ item, onPress }: any) => {
-  const scale = useRef(new Animated.Value(1)).current;
-  const img = item.image_url || item.images_json?.[0] || null;
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => onPress(item)}
-      onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start()}
-      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
-    >
-      <Animated.View style={[styles.featuredCard, { transform: [{ scale }] }]}>
-        {img ? (
-          <Image source={{ uri: img }} style={styles.featuredImg} />
-        ) : (
-          <View
-            style={[
-              styles.featuredImg,
-              { backgroundColor: T.surfaceHigh, alignItems: 'center', justifyContent: 'center' },
-            ]}
-          >
-            <Ionicons name="cube-outline" size={40} color={T.textMuted} />
-          </View>
-        )}
-        <LinearGradient
-          colors={['transparent', 'rgba(12,14,18,0.95)']}
-          style={styles.featuredGradient}
-        />
-        <View style={styles.featuredOverlay}>
-          <View style={styles.featuredBadge}>
-            <Text style={styles.featuredBadgeText}>✦ FEATURED</Text>
-          </View>
-          <Text style={styles.featuredName} numberOfLines={2}>
-            {item.name || item.title}
-          </Text>
-          <Text style={styles.featuredPrice}>ETB {fmtETB(item.price, 0)}</Text>
-        </View>
-        {item.stock > 0 && item.stock <= 5 && (
-          <View style={styles.lowStockBadge}>
-            <Text style={styles.lowStockText}>Only {item.stock} left</Text>
-          </View>
-        )}
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
-
-// ——————————————————————————————————————————————————————————————————————————————————————————————
-const ProductCard = ({ item, onPress }: any) => {
-  const scale = useRef(new Animated.Value(1)).current;
-  const img = item.image_url || item.images_json?.[0] || null;
-  const soldOut = (item.stock || 0) <= 0;
-  const lowStock = !soldOut && (item.stock || 0) <= 5;
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => onPress(item)}
-      onPressIn={() => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start()}
-      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
-    >
-      <Animated.View style={[styles.productCard, { transform: [{ scale }] }]}>
-        <View style={styles.productImgWrap}>
-          {img ? (
-            <Image source={{ uri: img }} style={styles.productImg} />
-          ) : (
-            <View
-              style={[
-                styles.productImg,
-                { backgroundColor: T.surfaceHigh, alignItems: 'center', justifyContent: 'center' },
-              ]}
-            >
-              <Ionicons name="cube-outline" size={32} color={T.textMuted} />
-            </View>
-          )}
-          {soldOut && (
-            <View
-              style={[styles.stockLabel, { backgroundColor: T.redDim, borderColor: T.red + '40' }]}
-            >
-              <Text style={[styles.stockLabelText, { color: T.red }]}>SOLD OUT</Text>
-            </View>
-          )}
-          {lowStock && (
-            <View
-              style={[
-                styles.stockLabel,
-                { backgroundColor: T.secondaryDim, borderColor: T.secondary + '40' },
-              ]}
-            >
-              <Text style={[styles.stockLabelText, { color: T.secondary }]}>LOW STOCK</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.productBody}>
-          <Text style={styles.productCat}>{(item.category || 'GENERAL').toUpperCase()}</Text>
-          <Text style={styles.productName} numberOfLines={2}>
-            {item.name || item.title}
-          </Text>
-          <View style={styles.productFooter}>
-            <Text style={styles.productPrice}>ETB {fmtETB(item.price, 0)}</Text>
-            <TouchableOpacity
-              style={[styles.buyQuickBtn, soldOut && { opacity: 0.4 }]}
-              onPress={() => {
-                if (!soldOut) {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onPress(item);
-                }
-              }}
-              disabled={soldOut}
-            >
-              <Ionicons name="flash" size={16} color={soldOut ? T.textSub : T.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
-
-// ——————————————————————————————————————————————————————————————————————————————————————————————
-const EscrowBadge = () => (
-  <View style={styles.escrowBadge}>
-    <Ionicons name="shield-checkmark" size={14} color={T.primary} />
-    <Text style={styles.escrowBadgeText}>Escrow Protected · Funds only release on delivery</Text>
+// Internal Modal Badge
+const EscrowBadge = ({ C }: { C: any }) => (
+  <View style={[styles.escrowBadge, { backgroundColor: C.primary + '15', borderColor: C.primary + '30' }]}>
+    <Ionicons name="shield-checkmark" size={14} color={C.primary} />
+    <Text style={[styles.escrowBadgeText, { color: C.primary, fontFamily: Fonts.label }]}>Escrow Protected · Funds only release on delivery</Text>
   </View>
 );
 
 // ——————————————————————————————————————————————————————————————————————————————————————————————
 // MAIN SCREEN
 // ——————————————————————————————————————————————————————————————————————————————————————————————
-export default function MarketplaceScreen({ navigation: nav }: any) {
+export default function MarketplaceScreen() {
+  const C = useTheme();
   const navigation = useNavigation();
   const balance = useAppStore((s) => s.balance);
   const showToast = useAppStore((s) => s.showToast);
   const currentUser = useAppStore((s) => s.currentUser);
 
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [buying, setBuying] = useState(false);
   const [qty, setQty] = useState(1);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
-  const searchTimer = useRef(null);
+  const searchTimer = useRef<any>(null);
 
   // ——————————————————————————————————————————————————————————————————————————————————————————————
   const loadProducts = useCallback(
@@ -339,9 +90,11 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
   }, [category]);
 
   useEffect(() => {
-    clearTimeout(searchTimer.current);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => loadProducts(search, category), 350);
-    return () => clearTimeout(searchTimer.current);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
   }, [search]);
 
   // Real-time product updates
@@ -409,14 +162,13 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
         showToast('Purchase placed! Funds locked in escrow 🔒', 'success');
         setTimeout(() => (navigation as any).navigate('MyOrders'), 800);
       }
-    } catch (e) {
+    } catch (e: any) {
       showToast(e.message || 'Purchase failed', 'error');
     } finally {
       setBuying(false);
     }
   };
 
-  // ——————————————————————————————————————————————————————————————————————————————————————————————
   const handleMessageSeller = async () => {
     if (!currentUser) {
       showToast('Please login to message sellers', 'info');
@@ -433,12 +185,10 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
     }
 
     try {
-      // Stable thread_id between two users
       const ids = [(currentUser as any).id, merchantId].sort();
       const threadId = `${ids[0]}-${ids[1]}`;
       const initMsg = `Hi! I'm interested in your product: ${selectedProduct.name}`;
 
-      // Check if thread exists
       const { data: existing } = await supabase
         .from('message_threads')
         .select('thread_id')
@@ -446,7 +196,6 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
         .maybeSingle();
 
       if (!existing) {
-        // Create it via service helper
         const { error } = await createChatThread({
           thread_id: threadId,
           user_a_id: ids[0],
@@ -462,6 +211,7 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
         });
       }
 
+      const sellerName = selectedProduct.business_name || selectedProduct.merchant_name || 'Seller';
       setSelectedProduct(null);
       setDeliveryInstructions('');
       (navigation as any).navigate('Chat', {
@@ -479,11 +229,10 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
   const featured = useMemo(() => products.slice(0, 4), [products]);
 
   const renderProductItem = useCallback(
-    ({ item }: any) => (
+    ({ item }: { item: any }) => (
       <ProductCard
         item={item}
         onPress={(p: any) => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setQty(1);
           setSelectedProduct(p);
         }}
@@ -492,115 +241,93 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
     []
   );
 
-  const renderSkeleton = () => (
-    <View style={styles.grid}>
-      {[1, 2, 3, 4].map((k) => (
-        <ProductSkeleton key={k} />
-      ))}
-    </View>
-  );
+  const ListHeader = useMemo(() => (
+    <View>
+      <MarketplaceSearchBar value={search} onChangeText={setSearch} onClear={() => setSearch('')} />
+      <CategoryPills
+        selected={category}
+        onSelect={(cat: string) => {
+          setCategory(cat);
+          setLoading(true);
+        }}
+      />
 
-  const sellerName = selectedProduct
-    ? selectedProduct.business_name ||
-      selectedProduct.merchant_name ||
-      selectedProduct.seller_name ||
-      'Verified Seller'
-    : '';
+      {!loading && search === '' && category === 'All' && featured.length > 0 && (
+        <View style={{ marginBottom: 32 }}>
+          <View style={styles.sectionRow}>
+            <Text style={[styles.sectionTitle, { color: C.text, fontFamily: Fonts.headline }]}>Featured</Text>
+            <Text style={[styles.sectionSub, { color: C.sub, fontFamily: Fonts.label }]}>{products.length} listings</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={SW * 0.78 + 16}
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingLeft: 20, paddingRight: 4, gap: 16 }}
+          >
+            {featured.map((item: any) => (
+              <FeaturedCard
+                key={item.id}
+                item={item}
+                onPress={(p: any) => {
+                  setQty(1);
+                  setSelectedProduct(p);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      <View style={styles.sectionRow}>
+        <Text style={[styles.sectionTitle, { color: C.text, fontFamily: Fonts.headline }]}>
+          {search ? `Results for "${search}"` : category === 'All' ? 'All Products' : category}
+        </Text>
+      </View>
+    </View>
+  ), [search, category, loading, featured, products.length]);
+
+  const ListEmpty = useMemo(() => {
+    if (loading) return null;
+    return (
+      <View style={styles.emptyState}>
+        <Ionicons name="search-outline" size={56} color={C.edge2} />
+        <Text style={[styles.emptyTitle, { color: C.text, fontFamily: Fonts.headline }]}>No Products Found</Text>
+        <Text style={[styles.emptySub, { color: C.sub, fontFamily: Fonts.body }]}>Try a different category or search term</Text>
+      </View>
+    );
+  }, [loading]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={T.bg} />
+    <View style={[styles.container, { backgroundColor: C.ink }]}>
+      <StatusBar barStyle="light-content" backgroundColor={C.ink} />
+      <MarketplaceHeader balance={balance} name={(currentUser as any)?.full_name} />
 
-      {/* —————————————————————————————————————————————————————————————————————————————————————————————— */}
-      <Header balance={balance} name={(currentUser as any)?.full_name} />
-
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={T.primary} />
-        }
-        contentContainerStyle={{ paddingTop: 100, paddingBottom: 60 }}
-      >
-        {/* Search */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-          <SearchBar value={search} onChangeText={setSearch} onClear={() => setSearch('')} />
+      {loading && products.length === 0 ? (
+        <View style={{ marginTop: 120, paddingHorizontal: 20 }}>
+          <MarketplaceSkeleton />
         </View>
+      ) : (
+        <FlatList
+          data={products}
+          renderItem={renderProductItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={ListEmpty}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />
+          }
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          initialNumToRender={6}
+          maxToRenderPerBatch={10}
+        />
+      )}
 
-        {/* Categories */}
-        <View style={{ paddingLeft: 20, marginBottom: 24 }}>
-          <CategoryPills
-            selected={category}
-            onSelect={(cat: string) => {
-              setCategory(cat);
-              setLoading(true);
-            }}
-          />
-        </View>
-
-        {/* Featured Carousel */}
-        {!loading && search === '' && category === 'All' && featured.length > 0 && (
-          <View style={{ marginBottom: 32 }}>
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>Featured</Text>
-              <Text style={styles.sectionSub}>{products.length} listings</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={SW * 0.78 + 16}
-              decelerationRate="fast"
-              contentContainerStyle={{ paddingLeft: 20, paddingRight: 4, gap: 16 }}
-            >
-              {featured.map((item: any) => (
-                <FeaturedCard
-                  key={item.id}
-                  item={item}
-                  onPress={(p: any) => {
-                    setQty(1);
-                    setSelectedProduct(p);
-                  }}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Product Grid */}
-        <View style={{ paddingHorizontal: 20 }}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>
-              {search ? `Results for "${search}"` : category === 'All' ? 'All Products' : category}
-            </Text>
-          </View>
-
-          {loading ? (
-            renderSkeleton()
-          ) : products.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={52} color={T.textMuted} />
-              <Text style={styles.emptyTitle}>No Products Found</Text>
-              <Text style={styles.emptySub}>Try a different category or search term</Text>
-            </View>
-          ) : (
-            <View style={styles.grid}>
-              {products.map((item: any) => (
-                <ProductCard
-                  key={item.id}
-                  item={item}
-                  onPress={(p: any) => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setQty(1);
-                    setSelectedProduct(p);
-                  }}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* —————————————————————————————————————————————————————————————————————————————————————————————— */}
+      {/* Product Detail Modal */}
       <Modal visible={!!selectedProduct} animationType="slide" transparent statusBarTranslucent>
         <View style={styles.modalBg}>
           <TouchableOpacity
@@ -608,42 +335,34 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
             onPress={() => setSelectedProduct(null)}
             activeOpacity={1}
           />
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { backgroundColor: C.surface }]}>
             {selectedProduct &&
               (() => {
                 const img = selectedProduct.image_url || selectedProduct.images_json?.[0] || null;
                 const soldOut = (selectedProduct.stock || 0) <= 0;
                 const totalCost = (selectedProduct.price || 0) * qty;
                 const canAfford = ((balance as any) || 0) >= totalCost;
+                const sellerName = selectedProduct.business_name || selectedProduct.merchant_name || 'Seller';
+
                 return (
                   <>
-                    {/* Image */}
                     <View style={styles.modalImgWrap}>
                       {img ? (
                         <Image source={{ uri: img }} style={styles.modalImg} />
                       ) : (
-                        <View
-                          style={[
-                            styles.modalImg,
-                            {
-                              backgroundColor: T.surfaceHigh,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            },
-                          ]}
-                        >
-                          <Ionicons name="cube-outline" size={60} color={T.textMuted} />
+                        <View style={styles.modalImgPlaceholder}>
+                          <Ionicons name="cube-outline" size={60} color={C.hint} />
                         </View>
                       )}
                       <TouchableOpacity
-                        style={styles.modalClose}
+                        style={[styles.modalClose, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1 }]}
                         onPress={() => setSelectedProduct(null)}
                       >
-                        <Ionicons name="close" size={20} color={T.text} />
+                        <Ionicons name="close" size={20} color={C.white} />
                       </TouchableOpacity>
                       {selectedProduct.condition && (
                         <View style={styles.conditionBadge}>
-                          <Text style={styles.conditionText}>
+                          <Text style={[styles.conditionText, { fontFamily: Fonts.label }]}>
                             {selectedProduct.condition.toUpperCase()}
                           </Text>
                         </View>
@@ -651,58 +370,51 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
                     </View>
 
                     <ScrollView
-                      style={{ maxHeight: SH * 0.55 }}
+                      style={{ maxHeight: SH * 0.6 }}
                       showsVerticalScrollIndicator={false}
-                      contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+                      contentContainerStyle={{ padding: 28, paddingBottom: 60 }}
                     >
-                      {/* Category + Name */}
-                      <Text style={styles.modalCat}>
+                      <Text style={[styles.modalCat, { color: C.primary, fontFamily: Fonts.label }]}>
                         {(selectedProduct.category || 'GENERAL').toUpperCase()}
                       </Text>
-                      <Text style={styles.modalTitle}>
+                      <Text style={[styles.modalTitle, { color: C.text, fontFamily: Fonts.headline }]}>
                         {selectedProduct.name || selectedProduct.title}
                       </Text>
                       {selectedProduct.description && (
-                        <Text style={styles.modalDesc}>{selectedProduct.description}</Text>
+                        <Text style={[styles.modalDesc, { color: C.sub, fontFamily: Fonts.body }]}>{selectedProduct.description}</Text>
                       )}
 
-                      {/* Seller Row */}
-                      <View style={styles.sellerRow}>
-                        <View style={styles.sellerIcon}>
-                          <Ionicons name="storefront-outline" size={18} color={T.primary} />
+                      <View style={[styles.sellerRow, { backgroundColor: C.surface, borderColor: C.edge2 }]}>
+                        <View style={[styles.sellerIcon, { backgroundColor: C.primary + '15' }]}>
+                          <Ionicons name="storefront-outline" size={20} color={C.primary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.sellerLabel}>SELLER</Text>
-                          <Text style={styles.sellerName}>{sellerName}</Text>
+                          <Text style={[styles.sellerLabel, { color: C.sub, fontFamily: Fonts.label }]}>SELLER</Text>
+                          <Text style={[styles.sellerName, { color: C.text, fontFamily: Fonts.headline }]}>{sellerName}</Text>
                         </View>
-                        <TouchableOpacity style={styles.chatBtn} onPress={handleMessageSeller}>
-                          <Ionicons name="chatbubble-outline" size={14} color={T.primary} />
-                          <Text style={styles.chatBtnText}>Chat</Text>
+                        <TouchableOpacity style={[styles.chatBtn, { borderColor: C.primary + '40' }]} onPress={handleMessageSeller}>
+                          <Ionicons name="chatbubble-outline" size={14} color={C.primary} />
+                          <Text style={[styles.chatBtnText, { color: C.primary, fontFamily: Fonts.label }]}>Chat</Text>
                         </TouchableOpacity>
                       </View>
 
-                      {/* Escrow Trust Badge */}
-                      <EscrowBadge />
-
-                      {/* Divider */}
+                      <EscrowBadge C={C} />
                       <View style={styles.divider} />
 
-                      {/* Price + Qty + CTA */}
                       <View style={styles.buyRow}>
                         <View>
-                          <Text style={styles.priceLabel}>PRICE</Text>
-                          <Text style={styles.priceValue}>
+                          <Text style={[styles.priceLabel, { color: C.sub, fontFamily: Fonts.label }]}>PRICE</Text>
+                          <Text style={[styles.priceValue, { color: C.text, fontFamily: Fonts.headline }]}>
                             ETB {fmtETB(selectedProduct.price, 0)}
                           </Text>
                           {qty > 1 && (
-                            <Text style={styles.priceTotal}>Total: ETB {fmtETB(totalCost, 0)}</Text>
+                            <Text style={[styles.priceTotal, { color: C.sub, fontFamily: Fonts.label }]}>Total: ETB {fmtETB(totalCost, 0)}</Text>
                           )}
                         </View>
 
-                        {/* Qty Picker */}
-                        <View style={styles.qtyPicker}>
+                        <View style={[styles.qtyPicker, { backgroundColor: C.ink, borderColor: C.edge2 }]}>
                           <TouchableOpacity
-                            style={styles.qtyBtn}
+                            style={[styles.qtyBtn, { backgroundColor: C.surface }]}
                             onPress={() => {
                               if (qty > 1) {
                                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -711,15 +423,11 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
                             }}
                             disabled={qty <= 1}
                           >
-                            <Ionicons
-                              name="remove"
-                              size={18}
-                              color={qty <= 1 ? T.textMuted : T.text}
-                            />
+                            <Ionicons name="remove" size={18} color={qty <= 1 ? C.hint : C.text} />
                           </TouchableOpacity>
-                          <Text style={styles.qtyText}>{qty}</Text>
+                          <Text style={[styles.qtyText, { color: C.text, fontFamily: Fonts.headline }]}>{qty}</Text>
                           <TouchableOpacity
-                            style={styles.qtyBtn}
+                            style={[styles.qtyBtn, { backgroundColor: C.surface }]}
                             onPress={() => {
                               if (qty < Math.min(selectedProduct.stock, 10)) {
                                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -728,75 +436,44 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
                             }}
                             disabled={qty >= Math.min(selectedProduct.stock, 10)}
                           >
-                            <Ionicons
-                              name="add"
-                              size={18}
-                              color={
-                                qty >= Math.min(selectedProduct.stock, 10) ? T.textMuted : T.text
-                              }
-                            />
+                            <Ionicons name="add" size={18} color={qty >= Math.min(selectedProduct.stock, 10) ? C.hint : C.text} />
                           </TouchableOpacity>
                         </View>
                       </View>
 
-                      {/* Delivery Instructions */}
                       <View style={styles.deliveryInputBox}>
-                        <Text style={styles.priceLabel}>DELIVERY INSTRUCTIONS (OPTIONAL)</Text>
+                        <Text style={[styles.priceLabel, { color: C.sub, fontFamily: Fonts.label }]}>DELIVERY INSTRUCTIONS (OPTIONAL)</Text>
                         <TextInput
-                          style={styles.deliveryInput}
+                          style={[styles.deliveryInput, { backgroundColor: C.ink, color: C.text, borderColor: C.edge2 }]}
                           placeholder="E.g., Next to building X, call me on arrival..."
-                          placeholderTextColor={T.textSub}
+                          placeholderTextColor={C.hint}
                           value={deliveryInstructions}
                           onChangeText={setDeliveryInstructions}
                         />
                       </View>
 
-                      <Text
-                        style={[
-                          styles.stockInfo,
-                          {
-                            color: soldOut
-                              ? T.red
-                              : selectedProduct.stock <= 5
-                                ? T.secondary
-                                : T.textSub,
-                          },
-                        ]}
-                      >
+                      <Text style={[styles.stockInfo, { color: soldOut ? T.red : selectedProduct.stock <= 5 ? T.secondary : T.textSub }]}>
                         {soldOut ? 'Out of stock' : `${selectedProduct.stock} units available`}
                       </Text>
 
                       {!canAfford && (
                         <Text style={{ color: T.red, fontSize: 12, marginBottom: 12, marginTop: -4 }}>
-                          Insufficient balance — need ETB{' '}
-                          {fmtETB(totalCost - ((balance as any) || 0), 0)} more
+                          Insufficient balance — need ETB {fmtETB(totalCost - ((balance as any) || 0), 0)} more
                         </Text>
                       )}
 
                       <TouchableOpacity
-                        style={[
-                          styles.buyNowBtn,
-                          (buying || soldOut || !canAfford) && { opacity: 0.5 },
-                        ]}
+                        style={[styles.buyNowBtn, { backgroundColor: C.primary }, (buying || soldOut || !canAfford) && { opacity: 0.5 }]}
                         onPress={handleBuy}
                         disabled={buying || soldOut || !canAfford}
                       >
                         {buying ? (
-                          <ActivityIndicator color={T.bg} />
+                          <ActivityIndicator color={C.ink} />
                         ) : (
                           <>
-                            <Ionicons
-                              name="lock-closed"
-                              size={16}
-                              color={T.bg}
-                              style={{ marginRight: 8 }}
-                            />
-                            <Text style={styles.buyNowText}>
-                              {soldOut
-                                ? 'Out of Stock'
-                                : !canAfford
-                                  ? 'Insufficient Balance'
-                                  : `Buy Now · ETB ${fmtETB(totalCost, 0)}`}
+                            <Ionicons name="lock-closed" size={16} color={C.ink} style={{ marginRight: 8 }} />
+                            <Text style={[styles.buyNowText, { color: C.ink, fontFamily: Fonts.headline }]}>
+                              {soldOut ? 'Out of Stock' : !canAfford ? 'Insufficient Balance' : `Buy Now · ETB ${fmtETB(totalCost, 0)}`}
                             </Text>
                           </>
                         )}
@@ -812,338 +489,50 @@ export default function MarketplaceScreen({ navigation: nav }: any) {
   );
 }
 
-// ——————————————————————————————————————————————————————————————————————————————————————————————
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: T.bg },
+  container: { flex: 1 },
+  listContent: { paddingTop: 110, paddingBottom: 100 },
+  columnWrapper: { paddingHorizontal: 20, justifyContent: 'space-between', marginBottom: 16 },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20, paddingHorizontal: 20 },
+  sectionTitle: { fontSize: 24, fontWeight: '900', letterSpacing: -0.8 },
+  sectionSub: { fontSize: 13, opacity: 0.6 },
+  emptyState: { alignItems: 'center', paddingVertical: 100 },
+  emptyTitle: { fontSize: 20, fontWeight: '900', marginTop: 24, marginBottom: 8 },
+  emptySub: { fontSize: 14, textAlign: 'center', opacity: 0.6 },
 
-  // Header
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 50,
-    backgroundColor: T.glass,
-    paddingTop: Platform.OS === 'ios' ? 54 : (StatusBar.currentHeight || 28) + 12,
-    paddingBottom: 14,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    borderBottomWidth: 1,
-    borderBottomColor: T.border,
-  },
-  headerGreeting: {
-    fontSize: 11,
-    color: T.textSub,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    marginBottom: 2,
-  },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: T.text, letterSpacing: -0.5 },
-  headerBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: T.surface,
-    borderWidth: 1,
-    borderColor: T.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  balancePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: T.primaryDim,
-    borderWidth: 1,
-    borderColor: T.primary + '40',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  balanceText: { fontSize: 13, fontWeight: '700', color: T.primary },
-
-  // Search
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: T.surface,
-    borderWidth: 1,
-    borderColor: T.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 14, color: T.text, fontWeight: '500' },
-
-  // Category pills
-  pillRow: {},
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  pillText: { fontSize: 12, color: T.textSub, fontWeight: '600' },
-
-  // Section header
-  sectionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 16,
-  },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: T.text, letterSpacing: -0.5 },
-  sectionSub: { fontSize: 12, color: T.textSub },
-
-  // Featured
-  featuredCard: {
-    width: SW * 0.78,
-    height: 240,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  featuredImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  featuredGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '65%' },
-  featuredOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 },
-  featuredBadge: {
-    backgroundColor: T.primary + '20',
-    borderWidth: 1,
-    borderColor: T.primary + '60',
-    alignSelf: 'flex-start',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginBottom: 8,
-  },
-  featuredBadgeText: { fontSize: 9, fontWeight: '800', color: T.primary, letterSpacing: 1 },
-  featuredName: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4, lineHeight: 22 },
-  featuredPrice: { fontSize: 15, fontWeight: '700', color: T.primary },
-  lowStockBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: T.secondaryDim,
-    borderWidth: 1,
-    borderColor: T.secondary + '60',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  lowStockText: { fontSize: 9, fontWeight: '800', color: T.secondary },
-
-  // Product grid
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
-  productCard: {
-    width: (SW - 52) / 2,
-    backgroundColor: T.card,
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  productImgWrap: { height: 145, position: 'relative' },
-  productImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  stockLabel: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  stockLabelText: { fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
-  productBody: { padding: 12 },
-  productCat: {
-    fontSize: 9,
-    color: T.textSub,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  productName: { fontSize: 13, fontWeight: '700', color: T.text, lineHeight: 17, marginBottom: 10 },
-  productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  productPrice: { fontSize: 15, fontWeight: '800', color: T.primary },
-  buyQuickBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: T.primaryDim,
-    borderWidth: 1,
-    borderColor: T.primary + '40',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Skeleton
-  skeletonCard: { width: (SW - 52) / 2, borderRadius: 14, overflow: 'hidden' },
-
-  // Empty
-  emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: T.text, marginTop: 16, marginBottom: 6 },
-  emptySub: { fontSize: 13, color: T.textSub, textAlign: 'center' },
-
-  // Modal
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: T.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-    maxHeight: SH * 0.92,
-  },
-  modalImgWrap: { height: 240, position: 'relative' },
+  // Modal Styles
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+  modalSheet: { borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden', maxHeight: SH * 0.95 },
+  modalImgWrap: { height: 260, position: 'relative' },
   modalImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  modalClose: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  conditionBadge: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  conditionText: { fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 1 },
-  modalCat: {
-    fontSize: 10,
-    color: T.primary,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: T.text,
-    letterSpacing: -0.5,
-    marginBottom: 10,
-  },
-  modalDesc: { fontSize: 14, color: T.textSub, lineHeight: 21, marginBottom: 20 },
-  sellerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: T.card,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: T.border,
-    marginBottom: 12,
-  },
-  sellerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: T.primaryDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sellerLabel: {
-    fontSize: 9,
-    color: T.textSub,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  sellerName: { fontSize: 13, fontWeight: '700', color: T.text },
-  chatBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  chatBtnText: { fontSize: 12, color: T.primary, fontWeight: '700' },
-  escrowBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: T.primaryDim,
-    borderWidth: 1,
-    borderColor: T.primary + '30',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 20,
-  },
-  escrowBadgeText: { flex: 1, fontSize: 12, color: T.primary, fontWeight: '600', lineHeight: 17 },
-  divider: { height: 1, backgroundColor: T.border, marginBottom: 20 },
-  buyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 8,
-  },
-  priceLabel: {
-    fontSize: 10,
-    color: T.textSub,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  priceValue: { fontSize: 28, fontWeight: '800', color: T.text },
-  priceTotal: { fontSize: 12, color: T.textSub, marginTop: 2 },
-  qtyPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: T.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: T.border,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  qtyBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: T.surfaceHigh,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qtyText: { fontSize: 16, fontWeight: '700', color: T.text, minWidth: 28, textAlign: 'center' },
-  stockInfo: { fontSize: 12, marginBottom: 12, fontWeight: '600' },
-  buyNowBtn: {
-    backgroundColor: T.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buyNowText: { color: T.bg, fontSize: 15, fontWeight: '800' },
-  deliveryInputBox: { marginTop: 16, marginBottom: 4 },
-  deliveryInput: {
-    backgroundColor: T.bg,
-    borderRadius: 8,
-    padding: 12,
-    color: T.text,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: T.border,
-    fontSize: 13,
-  },
+  modalImgPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+  modalClose: { position: 'absolute', top: 20, right: 20, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  conditionBadge: { position: 'absolute', bottom: 20, left: 20, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  conditionText: { fontSize: 10, fontWeight: '900', color: '#fff', letterSpacing: 1.5 },
+  modalCat: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5, marginBottom: 8 },
+  modalTitle: { fontSize: 28, fontWeight: '900', letterSpacing: -1, marginBottom: 12 },
+  modalDesc: { fontSize: 15, lineHeight: 24, marginBottom: 24, opacity: 0.7 },
+  sellerRow: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 18, padding: 14, borderWidth: 1.5, marginBottom: 16 },
+  sellerIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  sellerLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 2 },
+  sellerName: { fontSize: 14, fontWeight: '900' },
+  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  chatBtnText: { fontSize: 13, fontWeight: '900' },
+  escrowBadge: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 16, padding: 16, marginBottom: 24 },
+  escrowBadgeText: { flex: 1, fontSize: 13, fontWeight: '700', lineHeight: 20 },
+  divider: { height: 1, marginBottom: 24, opacity: 0.1 },
+  buyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 },
+  priceLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, marginBottom: 6 },
+  priceValue: { fontSize: 32, fontWeight: '900' },
+  priceTotal: { fontSize: 13, marginTop: 4, opacity: 0.6 },
+  qtyPicker: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 16, borderWidth: 1.5, padding: 6 },
+  qtyBtn: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  qtyText: { fontSize: 18, fontWeight: '900', minWidth: 32, textAlign: 'center' },
+  deliveryInputBox: { marginTop: 20, marginBottom: 8 },
+  deliveryInput: { borderRadius: 12, padding: 16, marginTop: 10, borderWidth: 1.5, fontSize: 14, fontFamily: Fonts.body },
+  stockInfo: { fontSize: 13, marginBottom: 16, fontWeight: '800' },
+  buyNowBtn: { borderRadius: 18, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...Shadow.md },
+  buyNowText: { fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
 });
+
+

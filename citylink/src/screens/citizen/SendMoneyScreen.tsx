@@ -8,6 +8,7 @@ import {
   Pressable,
   TextInput,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -59,7 +60,11 @@ export default function SendMoneyScreen() {
     }
 
     if (amt >= P2P_PIN_THRESHOLD_ETB) {
-      const hasPinSet = await hasWalletPin(currentUser?.id);
+      if (!currentUser?.id) {
+        showToast('Authentication error', 'error');
+        return;
+      }
+      const hasPinSet = await hasWalletPin(currentUser.id);
       if (!hasPinSet) {
         showToast('Please set up wallet PIN first for transfers â‰¥ 5,000 ETB', 'error');
         return;
@@ -109,14 +114,14 @@ export default function SendMoneyScreen() {
         type: 'debit',
         category: 'transfer',
         description: `Sent to ${phone}`,
-        status: (res.status as any) || 'pending',
+        status: (res.status === 'completed' ? 'completed' : 'pending') as 'pending' | 'completed' | 'failed',
         created_at: new Date().toISOString(),
       });
 
       const successStatus = res.status === 'completed' ? 'Completed' : 'Pending';
       showToast(`Transfer ${successStatus}: ${fmtETB(amt, 0)} to ${phone}`, 'success');
       navigation.goBack();
-    } catch (error) {
+    } catch (error: any) {
       console.error('P2P Transfer Error:', error);
       const msg =
         error.message === 'recipient_not_found'
@@ -138,7 +143,12 @@ export default function SendMoneyScreen() {
 
     setLoading(true);
     try {
-      const isValid = await verifyWalletPin(currentUser?.id, pinValue);
+      if (!currentUser?.id) {
+        showToast('Authentication error', 'error');
+        setLoading(false);
+        return;
+      }
+      const isValid = await verifyWalletPin(currentUser.id, pinValue);
       if (isValid) {
         const amt = parseFloat(amount);
         setPinModal(false);
@@ -158,47 +168,44 @@ export default function SendMoneyScreen() {
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar title={t('send_money')} />
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <View
+        <LinearGradient
+          colors={[C.primary, C.primaryD]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            marginBottom: 30,
-            padding: 24,
-            backgroundColor: C.primary,
+            marginBottom: 32,
+            padding: 28,
             borderRadius: Radius['3xl'],
             alignItems: 'center',
-            ...Shadow.md,
+            ...Shadow.lg,
           }}
         >
-          <Text style={{ color: C.white, fontSize: 14, fontFamily: Fonts.bold, opacity: 0.8 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontFamily: Fonts.label, textTransform: 'uppercase', letterSpacing: 1 }}>
             {t('avail_bal')}
           </Text>
-          <Text style={{ color: C.white, fontSize: 36, fontFamily: Fonts.black, marginTop: 4 }}>
+          <Text style={{ color: C.white, fontSize: 42, fontFamily: Fonts.headline, marginTop: 8 }}>
             {fmtETB(balance, 0)}
           </Text>
-          <Text
-            style={{
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: 11,
-              fontFamily: Fonts.medium,
-              marginTop: 4,
-            }}
-          >
-            Daily limit: 150,000 ETB
-          </Text>
-        </View>
+          <View style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radius.full }}>
+            <Text style={{ color: C.white, fontSize: 11, fontFamily: Fonts.label }}>
+              Daily limit: 150,000 ETB
+            </Text>
+          </View>
+        </LinearGradient>
 
         <View
           style={{
-            marginBottom: 20,
-            padding: 12,
-            backgroundColor: C.amber + '20',
+            marginBottom: 24,
+            padding: 16,
+            backgroundColor: 'rgba(245,184,0,0.1)',
             borderRadius: Radius.xl,
-            borderWidth: 1,
-            borderColor: C.amber + '40',
+            borderWidth: 1.5,
+            borderColor: 'rgba(245,184,0,0.2)',
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Ionicons name="information-circle" size={16} color={C.amber} />
-            <Text style={{ color: C.amber, fontSize: 12, fontFamily: Fonts.medium }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="shield-checkmark" size={18} color={C.amber} />
+            <Text style={{ color: C.amber, fontSize: 13, fontFamily: Fonts.label }}>
               PIN required for transfers â‰¥ {fmtETB(P2P_PIN_THRESHOLD_ETB, 0)}
             </Text>
           </View>

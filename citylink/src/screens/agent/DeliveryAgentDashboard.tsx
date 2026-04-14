@@ -346,31 +346,31 @@ export default function DeliveryAgentDashboard() {
   const balance = useAppStore((s) => s.balance);
 
   const [tab, setTab] = useState('home'); // home | history
-  const [agentProfile, setAgentProfile] = useState(null);
+  const [agentProfile, setAgentProfile] = useState<any>(null);
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
-  const [dispatches, setDispatches] = useState([]);
-  const [activeJobs, setActiveJobs] = useState([]);
-  const [history, setHistory] = useState([]);
+  const [dispatches, setDispatches] = useState<any[]>([]);
+  const [activeJobs, setActiveJobs] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState(0);
 
-  const [pinPromptJob, setPinPromptJob] = useState(null);
+  const [pinPromptJob, setPinPromptJob] = useState<any>(null);
   const [pinInput, setPinInput] = useState('');
   const [submittingPin, setSubmittingPin] = useState(false);
 
   // Proof of Delivery (POD) State
   const [showCamera, setShowCamera] = useState(false);
-  const [arrivedJob, setArrivedJob] = useState(null); // Which job we are currently taking POD for
+  const [arrivedJob, setArrivedJob] = useState<any>(null); // Which job we are currently taking POD for
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [capturing, setCapturing] = useState(false);
-  const cameraRef = useRef(null);
+  const cameraRef = useRef<any>(null);
 
-  const locationInterval = useRef(null);
-  const dispatchSub = useRef(null);
-  const jobsSub = useRef(null);
-  const activeJobsRef = useRef([]);
+  const locationInterval = useRef<any>(null);
+  const dispatchSub = useRef<any>(null);
+  const jobsSub = useRef<any>(null);
+  const activeJobsRef = useRef<any[]>([]);
 
   useEffect(() => {
     activeJobsRef.current = activeJobs;
@@ -409,6 +409,8 @@ export default function DeliveryAgentDashboard() {
     setLoading(true);
     loadDashboard().finally(() => setLoading(false));
 
+    if (!currentUser?.id) return;
+
     // Realtime subscription for dispatches
     dispatchSub.current = subscribeToAgentDispatches(currentUser.id, () => loadDashboard());
 
@@ -432,6 +434,7 @@ export default function DeliveryAgentDashboard() {
 
   // â”€â”€ Online Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleToggleOnline = async (val: boolean) => {
+    if (!currentUser?.id) return;
     setTogglingOnline(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
@@ -480,6 +483,7 @@ export default function DeliveryAgentDashboard() {
 
   // —— Accept Dispatch —————————————————————————————————————————————————————
   const handleAccept = async (dispatch: any) => {
+    if (!currentUser?.id) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const { ok, error } = await acceptDeliveryJob(dispatch.order_id, currentUser.id);
     if (!ok) {
@@ -498,6 +502,7 @@ export default function DeliveryAgentDashboard() {
 
   // —— Decline Dispatch ————————————————————————————————————————————————————————
   const handleDecline = async (dispatch: any) => {
+    if (!currentUser?.id) return;
     await declineDeliveryJob(dispatch.order_id, currentUser.id);
     setDispatches((prev) => prev.filter((d) => d.order_id !== dispatch.order_id));
     showToast('Job declined', 'info');
@@ -505,6 +510,7 @@ export default function DeliveryAgentDashboard() {
 
   // —— Picked Up (Dual Confirmation) ———————————————————————————————————————————
   const handlePickedUp = async (job: any) => {
+    if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
     try {
@@ -542,7 +548,7 @@ export default function DeliveryAgentDashboard() {
   };
 
   const handleTakePODPhoto = async () => {
-    if (!cameraRef.current || capturing || !arrivedJob) return;
+    if (!cameraRef.current || capturing || !arrivedJob || !currentUser?.id) return;
     setCapturing(true);
     try {
       const photo = await (cameraRef.current as any).takePictureAsync({ base64: true, quality: 0.5 });
@@ -570,7 +576,7 @@ export default function DeliveryAgentDashboard() {
   };
 
   const handleConfirmWithPin = async () => {
-    if (!pinPromptJob) return;
+    if (!pinPromptJob || !currentUser?.id) return;
     if (pinInput.trim().length < 4) {
       showToast('Please enter a 4-digit PIN', 'error');
       return;

@@ -2,6 +2,13 @@ import { getClient, supaQuery, hasSupabase } from './supabase';
 import { rpcDebitWallet, rpcCreditWallet } from './wallet.service';
 import { uid } from '../utils';
 import { decode } from 'base64-arraybuffer';
+import { 
+  Product, 
+  MarketplaceOrder, 
+  Dispute, 
+  MerchantMetrics, 
+  User 
+} from '../types';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 const PRODUCT_COLS =
@@ -9,10 +16,29 @@ const PRODUCT_COLS =
 const ORDER_COLS =
   '*, buyer:profiles(full_name, phone), merchant:profiles(business_name, merchant_name)';
 
+/**
+ * Type for product joined with merchant info from Supabase
+ */
+interface ProductWithMerchant extends Product {
+  merchant?: {
+    id: string;
+    full_name: string;
+    business_name: string;
+    merchant_name: string;
+  } | {
+    id: string;
+    full_name: string;
+    business_name: string;
+    merchant_name: string;
+  }[];
+}
+
 // Helper to map relational result to existing flat structure for backward compatibility
-const mapProductMerchant = (p: any) => {
+const mapProductMerchant = (p: ProductWithMerchant): Product => {
   if (!p) return p;
-  const merchant = p.merchant?.[0] || p.merchant; // handle single vs array return
+  const rawMerchant = p.merchant;
+  const merchant = Array.isArray(rawMerchant) ? rawMerchant[0] : rawMerchant;
+  
   return {
     ...p,
     business_name: merchant?.business_name,
@@ -23,7 +49,7 @@ const mapProductMerchant = (p: any) => {
 // —— Products ——————————————————————————————————————————————————————————————————
 
 export async function fetchProducts(limit: number = 50) {
-  const res = await supaQuery((c) =>
+  const res = await supaQuery<ProductWithMerchant[]>((c) =>
     c
       .from('products')
       .select(PRODUCT_COLS)
@@ -37,7 +63,7 @@ export async function fetchProducts(limit: number = 50) {
 
 export async function searchProducts(query: string, limit: number = 40) {
   if (!query?.trim()) return fetchProducts(limit);
-  const res = await supaQuery((c) =>
+  const res = await supaQuery<ProductWithMerchant[]>((c) =>
     c
       .from('products')
       .select(PRODUCT_COLS)
@@ -52,7 +78,7 @@ export async function searchProducts(query: string, limit: number = 40) {
 
 export async function fetchProductsByCategory(category: string, limit: number = 40) {
   if (!category || category === 'All') return fetchProducts(limit);
-  const res = await supaQuery((c) =>
+  const res = await supaQuery<ProductWithMerchant[]>((c) =>
     c
       .from('products')
       .select(PRODUCT_COLS)
@@ -66,13 +92,13 @@ export async function fetchProductsByCategory(category: string, limit: number = 
 }
 
 export async function fetchProductById(productId: string) {
-  return supaQuery((c) =>
+  return supaQuery<ProductWithMerchant>((c) =>
     c.from('products').select(PRODUCT_COLS).eq('id', productId).maybeSingle()
   );
 }
 
 export async function fetchMerchantInventory(merchantId: string) {
-  return supaQuery((c) =>
+  return supaQuery<Product[]>((c) =>
     c
       .from('products')
       .select('*')
@@ -82,21 +108,23 @@ export async function fetchMerchantInventory(merchantId: string) {
   );
 }
 
-export async function insertProduct(product: any) {
-  const officialProduct = {
+export async function insertProduct(product: Partial<Product>) {
+  const officialProduct: Partial<Product> = {
     ...product,
     id: product.id || uid(),
-    image_url: product.image_url || product.image,
-    images_json: product.images_json || (product.images ? product.images : []),
     created_at: new Date().toISOString(),
   };
-  delete (officialProduct as any).image;
-  delete (officialProduct as any).images;
-  return supaQuery((c) => c.from('products').insert(officialProduct).select().single());
+  
+  // Clean up any legacy fields that might be passed from UI
+  const { image, images, ...payload } = officialProduct as any;
+  if (image && !payload.image_url) payload.image_url = image;
+  if (images && !payload.images_json) payload.images_json = images;
+
+  return supaQuery<Product>((c) => c.from('products').insert(payload).select().single());
 }
 
-export async function updateProduct(productId: string, updates: any) {
-  return supaQuery((c) =>
+export async function updateProduct(productId: string, updates: Partial<Product>) {
+  return supaQuery<Product>((c) =>
     c
       .from('products')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -107,7 +135,7 @@ export async function updateProduct(productId: string, updates: any) {
 }
 
 export async function deleteProduct(productId: string) {
-  return supaQuery((c) =>
+  return supaQuery<void>((c) =>
     c
       .from('products')
       .update({ status: 'removed', updated_at: new Date().toISOString() })
@@ -115,11 +143,11 @@ export async function deleteProduct(productId: string) {
   );
 }
 
-export async function uploadProductImage(imageData: any): Promise<{ data: string | null; error: string | null }> {
+export async function uploadProductImage(imageData: { uri: string; base64: string }): Promise<{ data: string | null; error: string | null }> {
   const client = getClient();
   if (!client) return { data: null, error: 'no-credentials' };
   try {
-    const fileExt = imageData.uri.split('.').pop().toLowerCase() || 'jpg';
+    const fileExt = imageData.uri.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${uid()}.${fileExt}`;
     const contentType = `image/${fileExt === 'png' ? 'png' : 'jpeg'}`;
     const { error: uploadError } = await client.storage
@@ -135,22 +163,12 @@ export async function uploadProductImage(imageData: any): Promise<{ data: string
 
 // ── Orders & Escrow ──────────────────────────────────────────────────────────
 
-// —— Orders & Escrow ——————————————————————————————————————————————————————————
-
 export async function fetchMarketplaceOrdersByBuyer(buyerId: string) {
-  // Use SECURITY DEFINER RPC to bypass RLS — works even without a live auth session
-  const res = await supaQuery((c) => c.rpc('fetch_buyer_orders', { p_buyer_id: buyerId }));
-  if (res.error) console.error('🔧 fetchMarketplaceOrdersByBuyer error:', res.error);
-  console.log('🔧 fetchMarketplaceOrdersByBuyer count:', (res.data as any[])?.length || 0);
-  return res;
+  return supaQuery<MarketplaceOrder[]>((c) => c.rpc('fetch_buyer_orders', { p_buyer_id: buyerId }));
 }
 
 export async function fetchMarketplaceOrdersByMerchant(merchantId: string) {
-  // Use SECURITY DEFINER RPC to bypass RLS — mirrors the buyer-side pattern
-  const res = await supaQuery((c) => c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId }));
-  if (res.error) console.error('🔧 fetchMarketplaceOrdersByMerchant error:', res.error);
-  console.log('🔧 fetchMarketplaceOrdersByMerchant count:', (res.data as any[])?.length || 0);
-  return res;
+  return supaQuery<MarketplaceOrder[]>((c) => c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId }));
 }
 
 export async function executeMarketplacePurchase({
@@ -159,15 +177,14 @@ export async function executeMarketplacePurchase({
   qty,
   address,
 }: {
-  product: any;
+  product: Product;
   buyerId: string;
   qty: number;
   address: string;
 }) {
-  const merchantId = product.merchant_id || product.seller_id;
+  const merchantId = product.merchant_id;
 
-  // Use atomic server-side RPC for security and consistency
-  const res = await supaQuery((c) =>
+  const res = await supaQuery<{ ok: boolean; order_id: string; total: number; error?: string }>((c) =>
     c.rpc('process_marketplace_purchase', {
       p_buyer_id: buyerId,
       p_product_id: product.id,
@@ -178,15 +195,14 @@ export async function executeMarketplacePurchase({
   );
 
   if (res.error) return { ok: false, error: res.error || 'purchase_failed' };
-  const data = res.data as any;
+  const data = res.data;
   if (!data?.ok) return { ok: false, error: data?.error || 'purchase_failed' };
 
   return { ok: true, orderId: data.order_id, total: data.total };
 }
 
 export async function releaseMarketplaceEscrow(orderId: string, escrowId: string) {
-  // Uses hardened release_escrow RPC
-  return supaQuery((c) =>
+  return supaQuery<void>((c) =>
     c.rpc('release_escrow', {
       p_order_id: orderId,
       p_escrow_id: escrowId,
@@ -196,7 +212,7 @@ export async function releaseMarketplaceEscrow(orderId: string, escrowId: string
 }
 
 export async function openMarketplaceDispute(orderId: string, buyerId: string, reason: string) {
-  const { data, error } = await supaQuery((c: any) =>
+  const { data, error } = await supaQuery<MarketplaceOrder>((c) =>
     c
       .from('marketplace_orders')
       .update({ status: 'DISPUTED', updated_at: new Date().toISOString() })
@@ -207,17 +223,16 @@ export async function openMarketplaceDispute(orderId: string, buyerId: string, r
   );
 
   if (!error && data) {
-    const orderData = data as any;
-    await supaQuery((c: any) =>
+    await supaQuery<Dispute>((c) =>
       c.from('disputes').insert({
         order_id: orderId,
         buyer_id: buyerId,
-        merchant_id: orderData.merchant_id,
-        product_name: orderData.product_name,
-        amount: orderData.total,
+        merchant_id: data.merchant_id,
+        product_name: data.product_name || 'Generic Product',
+        amount: data.total,
         reason: reason || 'Other',
         description: reason || 'Other',
-        stage: 'MERCHANT_REVIEW',
+        stage: 'before_pin',
         status: 'OPEN',
         raised_at: new Date().toISOString(),
       })
@@ -232,7 +247,7 @@ export async function merchantMarkShippedMarketplace(
   merchantId: string,
   pin: string
 ) {
-  return supaQuery((c) =>
+  return supaQuery<void>((c) =>
     c
       .from('marketplace_orders')
       .update({ status: 'SHIPPED', delivery_pin: pin, updated_at: new Date().toISOString() })
@@ -247,7 +262,7 @@ export async function rpcReleaseEscrow(escrowId: string, orderId: string) {
 }
 
 export async function rpcCancelAndRefundOrder(orderId: string, reason: string) {
-  return supaQuery((c) =>
+  return supaQuery<{ ok: boolean; error?: string }>((c) =>
     c.rpc('cancel_and_refund_marketplace_order', {
       p_order_id: orderId,
       p_reason: reason,
@@ -257,13 +272,13 @@ export async function rpcCancelAndRefundOrder(orderId: string, reason: string) {
 
 // —— Metrics & Analytics ——————————————————————————————————————————————————————
 
-export async function fetchMerchantMetrics(merchantId: string) {
+export async function fetchMerchantMetrics(merchantId: string): Promise<MerchantMetrics> {
   if (!hasSupabase() || !merchantId)
     return { totalRevenue: 0, activeOrders: 0, totalProducts: 0, lowStock: 0 };
 
   const [{ data: ordersData }, { data: productsData }] = await Promise.all([
-    supaQuery((c) => c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId })),
-    supaQuery((c) =>
+    fetchMarketplaceOrdersByMerchant(merchantId),
+    supaQuery<Pick<Product, 'id' | 'stock' | 'status'>[]>((c) =>
       c
         .from('products')
         .select('id, stock, status')
@@ -272,8 +287,8 @@ export async function fetchMerchantMetrics(merchantId: string) {
     ),
   ]);
 
-  const orders = (ordersData as any[]) || [];
-  const products = (productsData as any[]) || [];
+  const orders = ordersData || [];
+  const products = productsData || [];
 
   const allActiveStatuses = [
     'PAID',
@@ -298,11 +313,9 @@ export async function fetchMerchantMetrics(merchantId: string) {
 export async function fetchMerchantSalesHistory(merchantId: string) {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  // Use RPC to bypass RLS, then filter client-side
-  const { data: allOrdersData } = await supaQuery((c) =>
-    c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId })
-  );
-  const allOrders = (allOrdersData as any[]) || [];
+  
+  const { data: allOrdersData } = await fetchMarketplaceOrdersByMerchant(merchantId);
+  const allOrders = allOrdersData || [];
 
   const salesStatuses = [
     'PAID',
@@ -338,43 +351,28 @@ export async function fetchMerchantSalesHistory(merchantId: string) {
 // —— Unified Service Object ———————————————————————————————————————————————————
 
 export const marketplaceService = {
-  /**
-   * getActiveProducts — fetches all active products with stock > 0
-   */
   getActiveProducts: async (limit: number = 50) => {
-    const { data, error } = await fetchProducts(limit);
-    if (error) throw error || new Error('Failed to fetch products');
-    return (data as any[]) || [];
+    const { data } = await fetchProducts(limit);
+    return data || [];
   },
 
-  /**
-   * getProductsByCategory — filters products by category string
-   */
   getProductsByCategory: async (category: string, limit: number = 50) => {
-    const { data, error } = await fetchProductsByCategory(category, limit);
-    if (error) throw error || new Error(`Failed to fetch category ${category}`);
-    return (data as any[]) || [];
+    const { data } = await fetchProductsByCategory(category, limit);
+    return data || [];
   },
 
-  /**
-   * searchProducts — performs a fuzzy search on name, title, category, description
-   */
   searchProducts: async (query: string, limit: number = 50) => {
-    const { data, error } = await searchProducts(query, limit);
-    if (error) throw error || new Error(`Failed to search for ${query}`);
-    return (data as any[]) || [];
+    const { data } = await searchProducts(query, limit);
+    return data || [];
   },
 
-  /**
-   * completePurchase — unified wrapper for marketplace transaction & escrow
-   */
   completePurchase: async ({
     product,
     buyerId,
     qty,
     shippingAddress,
   }: {
-    product: any;
+    product: Product;
     buyerId: string;
     qty: number;
     shippingAddress: string;
@@ -389,9 +387,6 @@ export const marketplaceService = {
     return { success: true, orderId: res.orderId, total: res.total };
   },
 
-  /**
-   * fetchWalletTransactions — fetches history for a specific wallet
-   */
   fetchWalletTransactions: async (walletId: string) => {
     return supaQuery((c) =>
       c
@@ -403,99 +398,71 @@ export const marketplaceService = {
     );
   },
 
-  /**
-   * getMerchantSalesHistory — daily sales curve for merchant dashboard
-   */
   getMerchantSalesHistory: async (merchantId: string) => {
     return fetchMerchantSalesHistory(merchantId);
   },
 
-  /**
-   * getMerchantOpenDisputes — fetches currently disputed orders for merchant
-   */
   getMerchantOpenDisputes: async (merchantId: string) => {
-    const { data }: any = await supaQuery((c) =>
-      c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId })
-    );
-    return (data || []).filter((o: any) => o.status === 'DISPUTED');
+    const { data } = await fetchMarketplaceOrdersByMerchant(merchantId);
+    return (data || []).filter((o) => o.status === 'DISPUTED');
   },
 
-  /**
-   * updateProduct — updates existing product listing
-   */
-  updateProduct: async (productId: string, updates: any) => {
+  updateProduct: async (productId: string, updates: Partial<Product>) => {
     return updateProduct(productId, updates);
   },
 
-  /**
-   * deleteProduct — soft-deletes a product listing
-   */
   deleteProduct: async (productId: string) => {
     return deleteProduct(productId);
   },
 
-  /**
-   * shipOrder — initiates agent search (DISPATCHING) without generating PIN yet
-   */
   shipOrder: async (
     orderId: string,
     merchantId: string,
     lat: number | null = null,
     lng: number | null = null
   ) => {
-    // Uses dispatch_marketplace_order RPC
-    const { data, error } = (await supaQuery((c) =>
+    const res = await supaQuery<{ ok: boolean; dispatched_count: number; error?: string }>((c) =>
       c.rpc('dispatch_marketplace_order', {
         p_order_id: orderId,
         p_merchant_id: merchantId,
         p_lat: lat,
         p_lng: lng,
       })
-    )) as any;
-    if (error || !data?.ok) throw error || new Error(data?.error || 'Failed to dispatch order');
+    );
+    if (res.error || !res.data?.ok) throw res.error || new Error(res.data?.error || 'Failed to dispatch order');
     return {
       success: true,
-      dispatchedCount: data.dispatched_count,
+      dispatchedCount: res.data.dispatched_count,
     };
   },
 
-  /**
-   * confirmPickup — confirms that the delivery agent has taken the item
-   */
   confirmPickup: async (orderId: string, userId: string) => {
-    const { data, error } = (await supaQuery((c) =>
+    const res = await supaQuery<{ ok: boolean; status: string; delivery_pin?: string; error?: string }>((c) =>
       c.rpc('confirm_order_pickup', {
         p_order_id: orderId,
         p_user_id: userId,
       })
-    )) as any;
-    if (error || !data?.ok) throw error || new Error(data?.error || 'Pickup confirmation failed');
+    );
+    if (res.error || !res.data?.ok) throw res.error || new Error(res.data?.error || 'Pickup confirmation failed');
     return {
       success: true,
-      status: data.status,
-      delivery_pin: data.delivery_pin, // Only available if both confirmed
+      status: res.data.status,
+      delivery_pin: res.data.delivery_pin,
     };
   },
 
-  /**
-   * cancelOrder — cancels order and triggers potential refund logic
-   */
   cancelOrder: async (orderId: string, reason: string) => {
-    // Use RPC to cancel + refund escrow atomically
-    const { data, error } = (await supaQuery((c) =>
+    const { data, error } = await supaQuery<{ ok: boolean; error?: string }>((c) =>
       c.rpc('cancel_and_refund_marketplace_order', {
         p_order_id: orderId,
         p_reason: reason || 'cancelled_by_merchant',
       })
-    )) as any;
+    );
     if (error) return { success: false, error };
     return { success: data?.ok === true, error: data?.error || null };
   },
 
-  /**
-   * subscribeToProducts — real-time helper for product updates
-   */
-  subscribeToProducts: (callback: any) => {
+  subscribeToProducts: (callback: (payload: any) => void) => {
     const { subscribeToTable } = require('./supabase');
     return subscribeToTable('products-realtime', 'products', null, callback);
   },

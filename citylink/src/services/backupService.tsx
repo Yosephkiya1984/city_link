@@ -3,8 +3,10 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../store/AppStore';
 import { uid } from '../utils';
+import { User, Transaction, MarketplaceOrder, FoodOrder } from '../types';
+
 // Mock security service to satisfy backup service dependencies
-export const encryptData = async (data: string) => data;
+export const encryptData = async (data: string | object) => (typeof data === 'string' ? data : JSON.stringify(data));
 export const decryptData = async (data: string) => data;
 
 // Backup types
@@ -16,6 +18,43 @@ export interface BackupHistoryItem {
   location: string[];
 }
 
+export interface BackupData {
+  version: string;
+  timestamp: number;
+  userData: {
+    currentUser: User | null;
+    balance: number;
+    transactions: Transaction[];
+    notifications: any[]; // Notification type not yet strictly defined
+    chatHistory: any[];
+    favorites: string[];
+  };
+  appData: {
+    language: string;
+    isDark: boolean;
+    theme: any;
+  };
+  metadata: {
+    platform: string;
+    appVersion: string;
+    backupType: string;
+    createdAt?: number;
+    size?: number;
+  };
+  encrypted?: boolean;
+  data?: string;
+}
+
+export interface BackupStats {
+  totalBackups: number;
+  localBackups: number;
+  cloudBackups: number;
+  totalSize: number;
+  lastBackup: number | null;
+  isBackupEnabled: boolean;
+  lastAutoBackup: number | null;
+}
+
 export interface BackupContextValue {
   isBackupEnabled: boolean;
   setIsBackupEnabled: (enabled: boolean) => void;
@@ -23,10 +62,10 @@ export interface BackupContextValue {
   backupHistory: BackupHistoryItem[];
   isRestoring: boolean;
   backupProgress: number;
-  createBackup: (data: any, type?: string) => Promise<BackupHistoryItem>;
+  createBackup: (data: BackupData, type?: string) => Promise<BackupHistoryItem>;
   restoreBackup: (backupId: string) => Promise<{ success: boolean }>;
   deleteBackup: (backupId: string) => Promise<{ success: boolean }>;
-  getBackupStats: () => any;
+  getBackupStats: () => BackupStats;
 }
 
 // Backup context with default value
@@ -59,7 +98,6 @@ export function BackupProvider({ children }: BackupProviderProps) {
   useEffect(() => {
     initializeBackupSystem();
     return () => {
-      // Clear the auto-backup interval on unmount to prevent memory leak
       if (autoBackupIntervalRef.current) {
         clearInterval(autoBackupIntervalRef.current);
         autoBackupIntervalRef.current = null;
@@ -70,19 +108,16 @@ export function BackupProvider({ children }: BackupProviderProps) {
   // Initialize backup system
   const initializeBackupSystem = async () => {
     try {
-      // Load backup history
       const history = await AsyncStorage.getItem('backup_history');
       if (history) {
         setBackupHistory(JSON.parse(history));
       }
 
-      // Load last backup time
       const lastBackup = await AsyncStorage.getItem('last_backup_time');
       if (lastBackup) {
         setLastBackupTime(parseInt(lastBackup));
       }
 
-      // Setup auto backup
       if (isBackupEnabled) {
         setupAutoBackup();
       }
@@ -93,7 +128,6 @@ export function BackupProvider({ children }: BackupProviderProps) {
 
   // Setup auto backup
   const setupAutoBackup = () => {
-    // Clear any existing interval before setting a new one
     if (autoBackupIntervalRef.current) {
       clearInterval(autoBackupIntervalRef.current);
     }
@@ -125,11 +159,11 @@ export function BackupProvider({ children }: BackupProviderProps) {
   };
 
   // Collect backup data
-  const collectBackupData = async () => {
+  const collectBackupData = async (): Promise<BackupData> => {
     const store = useAppStore.getState();
 
     try {
-      const backupData = {
+      const backupData: BackupData = {
         version: BACKUP_CONFIG.BACKUP_VERSION,
         timestamp: Date.now(),
         userData: {
@@ -153,20 +187,18 @@ export function BackupProvider({ children }: BackupProviderProps) {
       };
 
       return backupData;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Backup data collection error:', error);
       throw error;
     }
   };
 
   // Create backup
-  const createBackup = async (data: any, type = 'manual') => {
+  const createBackup = async (data: BackupData, type: string = 'manual'): Promise<BackupHistoryItem> => {
     try {
       setBackupProgress(0);
 
-      // Add metadata
-      const backup = {
-        id: uid(),
+      const backup: BackupData = {
         ...data,
         metadata: {
           ...data.metadata,
@@ -202,22 +234,22 @@ export function BackupProvider({ children }: BackupProviderProps) {
       setBackupProgress(100);
 
       // Update history
-      const newBackup = {
-        id: backup.id,
-        timestamp: backup.metadata.createdAt,
+      const newHistoryItem: BackupHistoryItem = {
+        id: processedBackup.metadata.createdAt ? processedBackup.metadata.createdAt.toString() : uid(),
+        timestamp: processedBackup.metadata.createdAt || Date.now(),
         type: type,
-        size: backup.metadata.size,
-        location: ['local', BACKUP_CONFIG.CLOUD_BACKUP_ENABLED ? 'cloud' : null].filter(Boolean),
+        size: processedBackup.metadata.size || 0,
+        location: ['local', BACKUP_CONFIG.CLOUD_BACKUP_ENABLED ? 'cloud' : null].filter((l): l is string => !!l),
       };
 
-      const updatedHistory = [newBackup, ...backupHistory].slice(0, BACKUP_CONFIG.MAX_BACKUP_COUNT);
+      const updatedHistory = [newHistoryItem, ...backupHistory].slice(0, BACKUP_CONFIG.MAX_BACKUP_COUNT);
       setBackupHistory(updatedHistory);
       await AsyncStorage.setItem('backup_history', JSON.stringify(updatedHistory));
 
       setTimeout(() => setBackupProgress(0), 1000);
 
-      return newBackup;
-    } catch (error) {
+      return newHistoryItem;
+    } catch (error: any) {
       console.error('Backup creation error:', error);
       setBackupProgress(0);
       throw error;
@@ -225,15 +257,13 @@ export function BackupProvider({ children }: BackupProviderProps) {
   };
 
   // Compress backup
-  const compressBackup = async (backup: any) => {
-    // In a real app, this would use compression libraries
-    // For now, just return the backup as-is
+  const compressBackup = async (backup: BackupData): Promise<BackupData> => {
     return backup;
   };
 
   // Encrypt backup
-  const encryptBackup = async (backup: any) => {
-    const encrypted = encryptData(backup);
+  const encryptBackup = async (backup: BackupData): Promise<BackupData> => {
+    const encrypted = await encryptData(backup);
     return {
       ...backup,
       encrypted: true,
@@ -242,14 +272,13 @@ export function BackupProvider({ children }: BackupProviderProps) {
   };
 
   // Save backup locally
-  const saveBackupLocally = async (backup: any) => {
-    const backupKey = `backup_${backup.id}`;
+  const saveBackupLocally = async (backup: BackupData) => {
+    const backupKey = `backup_${backup.timestamp}`;
     await AsyncStorage.setItem(backupKey, JSON.stringify(backup));
   };
 
   // Save backup to cloud
-  const saveBackupToCloud = async (backup: any) => {
-    // In a real app, this would upload to cloud storage
+  const saveBackupToCloud = async (backup: BackupData) => {
     console.log('☁️ Saving backup to cloud...');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   };
@@ -260,30 +289,25 @@ export function BackupProvider({ children }: BackupProviderProps) {
       setIsRestoring(true);
       setBackupProgress(0);
 
-      // Load backup
       const backup = await loadBackup(backupId);
       setBackupProgress(25);
 
-      // Decrypt if needed
       let processedBackup = backup;
       if (backup.encrypted) {
-        processedBackup = decryptBackup(backup);
+        processedBackup = await decryptBackup(backup);
       }
       setBackupProgress(50);
 
-      // Decompress if needed
       if (BACKUP_CONFIG.COMPRESSION_ENABLED) {
         processedBackup = await decompressBackup(processedBackup);
       }
       setBackupProgress(75);
 
-      // Validate backup
       const validation = validateBackup(processedBackup);
       if (!validation.isValid) {
         throw new Error(`Invalid backup: ${validation.error}`);
       }
 
-      // Restore data
       await restoreBackupData(processedBackup);
       setBackupProgress(100);
 
@@ -293,7 +317,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
       }, 1000);
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Backup restore error:', error);
       setIsRestoring(false);
       setBackupProgress(0);
@@ -302,9 +326,8 @@ export function BackupProvider({ children }: BackupProviderProps) {
   };
 
   // Load backup
-  const loadBackup = async (backupId: string) => {
+  const loadBackup = async (backupId: string): Promise<BackupData> => {
     try {
-      // Try local first
       const backupKey = `backup_${backupId}`;
       const localBackup = await AsyncStorage.getItem(backupKey);
 
@@ -312,75 +335,68 @@ export function BackupProvider({ children }: BackupProviderProps) {
         return JSON.parse(localBackup);
       }
 
-      // Try cloud
       if (BACKUP_CONFIG.CLOUD_BACKUP_ENABLED) {
         return await loadBackupFromCloud(backupId);
       }
 
       throw new Error('Backup not found');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Backup load error:', error);
       throw error;
     }
   };
 
   // Load backup from cloud
-  const loadBackupFromCloud = async (backupId: string) => {
-    // In a real app, this would download from cloud storage
+  const loadBackupFromCloud = async (backupId: string): Promise<BackupData> => {
     console.log('☁️ Loading backup from cloud...');
     await new Promise((resolve) => setTimeout(resolve, 1000));
     throw new Error('Cloud backup not implemented');
   };
 
   // Decrypt backup
-  const decryptBackup = (backup: any) => {
+  const decryptBackup = async (backup: BackupData): Promise<BackupData> => {
     if (!backup.data) {
       throw new Error('No encrypted data found');
     }
 
-    const decrypted = decryptData(backup.data);
-    return decrypted;
+    const decrypted = await decryptData(backup.data);
+    return JSON.parse(decrypted);
   };
 
   // Decompress backup
-  const decompressBackup = async (backup: any) => {
-    // In a real app, this would decompress the data
+  const decompressBackup = async (backup: BackupData): Promise<BackupData> => {
     return backup;
   };
 
   // Validate backup
-  const validateBackup = (backup: any) => {
+  const validateBackup = (backup: BackupData): { isValid: boolean; error?: string } => {
     try {
-      // Check version compatibility
       if (backup.version !== BACKUP_CONFIG.BACKUP_VERSION) {
         return { isValid: false, error: 'Incompatible backup version' };
       }
 
-      // Check required fields
-      const requiredFields = ['userData', 'appData', 'metadata'];
+      const requiredFields: (keyof BackupData)[] = ['userData', 'appData', 'metadata'];
       for (const field of requiredFields) {
         if (!backup[field]) {
           return { isValid: false, error: `Missing required field: ${field}` };
         }
       }
 
-      // Check data integrity
       if (!backup.userData || !backup.appData) {
         return { isValid: false, error: 'Corrupted backup data' };
       }
 
       return { isValid: true };
-    } catch (error) {
+    } catch (error: any) {
       return { isValid: false, error: error.message };
     }
   };
 
   // Restore backup data
-  const restoreBackupData = async (backup: any) => {
+  const restoreBackupData = async (backup: BackupData) => {
     const store = useAppStore.getState();
 
     try {
-      // Restore user data
       if (backup.userData) {
         if (backup.userData.currentUser) store.setCurrentUser(backup.userData.currentUser);
         if (backup.userData.balance !== undefined) store.setBalance(backup.userData.balance);
@@ -388,14 +404,13 @@ export function BackupProvider({ children }: BackupProviderProps) {
         if (backup.userData.favorites) store.setFavorites(backup.userData.favorites);
       }
 
-      // Restore app data
       if (backup.appData) {
         if (backup.appData.language) store.setLang(backup.appData.language);
         if (backup.appData.isDark !== undefined) store.setIsDark(backup.appData.isDark);
       }
 
       console.log('✅ Backup data restored successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Backup data restore error:', error);
       throw error;
     }
@@ -404,22 +419,19 @@ export function BackupProvider({ children }: BackupProviderProps) {
   // Delete backup
   const deleteBackup = async (backupId: string) => {
     try {
-      // Delete from local storage
       const backupKey = `backup_${backupId}`;
       await AsyncStorage.removeItem(backupKey);
 
-      // Delete from cloud
       if (BACKUP_CONFIG.CLOUD_BACKUP_ENABLED) {
         await deleteBackupFromCloud(backupId);
       }
 
-      // Update history
       const updatedHistory = backupHistory.filter((backup) => backup.id !== backupId);
       setBackupHistory(updatedHistory);
       await AsyncStorage.setItem('backup_history', JSON.stringify(updatedHistory));
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Backup delete error:', error);
       throw error;
     }
@@ -427,13 +439,12 @@ export function BackupProvider({ children }: BackupProviderProps) {
 
   // Delete backup from cloud
   const deleteBackupFromCloud = async (backupId: string) => {
-    // In a real app, this would delete from cloud storage
     console.log('☁️ Deleting backup from cloud...');
     await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
   // Get backup statistics
-  const getBackupStats = () => {
+  const getBackupStats = (): BackupStats => {
     const totalBackups = backupHistory.length;
     const localBackups = backupHistory.filter((b) => b.location.includes('local')).length;
     const cloudBackups = backupHistory.filter((b) => b.location.includes('cloud')).length;
@@ -498,7 +509,7 @@ export const BackupUtils = {
   },
 
   // Check backup health
-  checkBackupHealth: (backupHistory: any[]) => {
+  checkBackupHealth: (backupHistory: BackupHistoryItem[]) => {
     const health = {
       status: 'healthy',
       issues: [] as string[],

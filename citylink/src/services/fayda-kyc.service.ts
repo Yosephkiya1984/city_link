@@ -12,34 +12,20 @@ const FAYDA_KYC_STATUS = 'fayda_kyc_status';
 const FAYDA_TEMP_DATA = 'fayda_temp_data';
 
 // ── Fayda KYC Types ─────────────────────────────────────────────────────────────
-export interface FaydaKycData {
-  fayda_id: string;
-  full_name: string;
-  date_of_birth: string;
-  gender: 'M' | 'F';
-  region: string;
-  sub_city?: string;
-  woreda?: string;
-  house_number?: string;
-  phone: string;
-  email?: string;
-  photo?: string;
-  fingerprint_hash?: string;
-  iris_hash?: string;
-  verification_status: string;
-  issued_date?: string | null;
-  expiry_date?: string | null;
-  national_id?: string;
-  passport_number?: string | null;
-  blood_group?: string;
-  emergency_contact?: string;
-  occupation?: string;
-  employer?: string;
-  marital_status?: string;
-  education_level?: string;
-  verified_at?: string;
-  verification_method?: string;
-  api_ready?: boolean;
+import { FaydaKycData, KYCStatus } from '../types';
+
+export interface FaydaTempData {
+  id: string;
+  user_data: Record<string, string | number | boolean | null>;
+  initiated_at: string;
+  status: string;
+  reference_number: string;
+}
+
+export interface FaydaAPIResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
 }
 
 // ── Fayda KYC Status Constants ───────────────────────────────────────────────────
@@ -55,8 +41,8 @@ export const FAYDA_STATUS = {
 
 export type FaydaStatus = (typeof FAYDA_STATUS)[keyof typeof FAYDA_STATUS];
 
-// ── Ethiopian Fayda Mock Database (Realistic Ethiopian IDs) ───────────────────────
-export const FAYDA_MOCK_DATABASE: Record<string, FaydaKycData> = {
+// ── Ethiopian Fayda Mock Database — DEV ONLY ─────────────────────────────────────
+export const FAYDA_MOCK_DATABASE: Record<string, FaydaKycData> = __DEV__ ? {
   // Valid Ethiopian Fayda IDs (13-digit format)
   '0123456789012': {
     fayda_id: '0123456789012',
@@ -110,66 +96,43 @@ export const FAYDA_MOCK_DATABASE: Record<string, FaydaKycData> = {
     marital_status: 'Married',
     education_level: 'Masters Degree',
   },
-  '2345678901234': {
-    fayda_id: '2345678901234',
-    full_name: 'Dawit Mengistu Tesfaye',
-    date_of_birth: '1992-12-10',
-    gender: 'M',
-    region: 'Oromia',
-    sub_city: 'Adama',
-    woreda: '03',
-    house_number: '9012',
-    phone: '+251913456789',
-    email: 'dawit.m@email.com',
-    photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dawit',
-    fingerprint_hash: 'fp_hash_mno345',
-    iris_hash: 'iris_hash_pqr678',
-    verification_status: FAYDA_STATUS.PENDING_VERIFICATION,
-    issued_date: '2024-01-10',
-    expiry_date: '2034-01-10',
-    national_id: 'ID456789012',
-    passport_number: 'EP4567890',
-    blood_group: 'B+',
-    emergency_contact: '+251913210987',
-    occupation: 'Teacher',
-    employer: 'Adama Secondary School',
-    marital_status: 'Single',
-    education_level: 'Bachelors Degree',
-  },
-  '3456789012345': {
-    fayda_id: '3456789012345',
-    full_name: 'Selamawit Birhanu Kassa',
-    date_of_birth: '1988-03-25',
-    gender: 'F',
-    region: 'Amhara',
-    sub_city: 'Bahir Dar',
-    woreda: '07',
-    house_number: '3456',
-    phone: '+251914567890',
-    email: 'selam.b@email.com',
-    photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=selamawit',
-    fingerprint_hash: 'fp_hash_stu901',
-    iris_hash: 'iris_hash_vwx234',
-    verification_status: FAYDA_STATUS.REJECTED,
-    issued_date: null,
-    expiry_date: null,
-    national_id: 'ID789012345',
-    passport_number: null,
-    blood_group: 'AB+',
-    emergency_contact: '+251914123456',
-    occupation: 'Nurse',
-    employer: 'Bahir Dar Hospital',
-    marital_status: 'Married',
-    education_level: 'Diploma',
-  },
-};
+} : {};
+
+export interface RegistrationCenter {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  hours: string;
+  coordinates: { lat: number; lng: number };
+  services: string[];
+}
+
+export interface KycInitiationResult {
+  success: boolean;
+  reference_number?: string;
+  message?: string;
+  next_steps?: string[];
+  error?: string;
+}
+
+export interface KycVerificationResult {
+  success: boolean;
+  status: FaydaStatus;
+  kyc_data?: FaydaKycData;
+  error?: string;
+  validation_errors?: string[];
+  message?: string;
+}
 
 // ── Fayda KYC Service Class ───────────────────────────────────────────────────────
 export class FaydaKYCService {
-  // Initialize KYC process
-  static async initiateKYC(userData: any) {
+  /**
+   * initiateKYC — Initializes the KYC process with basic user data.
+   */
+  static async initiateKYC(userData: Record<string, string | number | boolean | null>): Promise<KycInitiationResult> {
     try {
-      const tempData = {
+      const tempData: FaydaTempData = {
         id: uid(),
         user_data: userData,
         initiated_at: new Date().toISOString(),
@@ -192,17 +155,19 @@ export class FaydaKYCService {
           'Complete biometric registration',
         ],
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fayda KYC initiation error:', error);
       return {
         success: false,
-        error: 'Failed to initiate KYC process',
+        error: error.message || 'Failed to initiate KYC process',
       };
     }
   }
 
-  // Verify Fayda ID (Mock API call)
-  static async verifyFaydaID(faydaId: string, additionalData: any = {}) {
+  /**
+   * verifyFaydaID — Verifies the Fayda ID and persists the result to local storage and Supabase.
+   */
+  static async verifyFaydaID(faydaId: string, additionalData: Partial<FaydaKycData> & { userId?: string } = {}): Promise<KycVerificationResult> {
     try {
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -217,7 +182,7 @@ export class FaydaKYCService {
       }
 
       // Validate basic field requirements
-      const validationErrors = this.validateAdditionalData({}, additionalData);
+      const validationErrors = this.validateAdditionalData(additionalData);
 
       if (validationErrors.length > 0) {
         return {
@@ -228,18 +193,17 @@ export class FaydaKYCService {
         };
       }
 
-      // Create a realistic KYC profile from user's entered data
-      const kycData = {
+      const kycData: FaydaKycData = {
         fayda_id: faydaId,
         full_name: additionalData.full_name || 'Verified User',
-        date_of_birth: additionalData.date_of_birth,
+        date_of_birth: additionalData.date_of_birth || '1990-01-01',
         gender: additionalData.gender || 'M',
-        region: additionalData.region,
+        region: additionalData.region || 'Addis Ababa',
         sub_city: additionalData.sub_city || 'Unknown',
         woreda: additionalData.woreda || '01',
         house_number: additionalData.house_number || '1234',
-        phone: additionalData.phone,
-        email: additionalData.email || `${additionalData.phone.replace('+', '')}@email.com`,
+        phone: additionalData.phone || '',
+        email: additionalData.email || `${additionalData.phone?.replace('+', '') || faydaId}@email.com`,
         photo: `https://api.dicebear.com/7.x/avataaars/svg?seed=${faydaId}`,
         fingerprint_hash: `fp_hash_${faydaId.slice(-8)}`,
         iris_hash: `iris_hash_${faydaId.slice(-8)}`,
@@ -247,7 +211,7 @@ export class FaydaKYCService {
         issued_date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000)
           .toISOString()
-          .split('T')[0], // 10 years from now
+          .split('T')[0], 
         national_id: `ID${faydaId.slice(-9)}`,
         passport_number: `EP${faydaId.slice(-7)}`,
         blood_group: additionalData.blood_group || 'O+',
@@ -258,7 +222,7 @@ export class FaydaKYCService {
         education_level: additionalData.education_level || 'Bachelors Degree',
         verified_at: new Date().toISOString(),
         verification_method: 'digital_verification',
-        api_ready: false, // Flag for real API integration
+        api_ready: false,
       };
 
       await SecurePersist.saveKYC(kycData);
@@ -267,14 +231,14 @@ export class FaydaKYCService {
 
       // Persist to Supabase if userId is provided
       if (additionalData.userId) {
-        await supaQuery((c) =>
+        await supaQuery<void>((c) =>
           c
             .from('profiles')
             .update({
               kyc_status: 'VERIFIED',
               full_name: kycData.full_name,
-              is_verified: true,
-              fayda_id: faydaId,
+              fayda_verified: true,
+              fayda_fin: faydaId,
               updated_at: new Date().toISOString(),
             })
             .eq('id', additionalData.userId)
@@ -287,26 +251,28 @@ export class FaydaKYCService {
         kyc_data: kycData,
         message: `Fayda KYC verification completed successfully for ${kycData.full_name}!`,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fayda ID verification error:', error);
       return {
         success: false,
-        error: 'Verification service temporarily unavailable',
+        error: error.message || 'Verification service temporarily unavailable',
         status: FAYDA_STATUS.PENDING_VERIFICATION,
       };
     }
   }
 
-  // Get current KYC status
-  static async getKYCStatus() {
+  /**
+   * getKYCStatus — Retrieves the current KYC status and data.
+   */
+  static async getKYCStatus(): Promise<{ status: FaydaStatus; kyc_data: FaydaKycData | null; temp_data: FaydaTempData | null }> {
     try {
       const status = await SecurePersist.loadKYCStatus();
       const data = await SecurePersist.loadKYC();
       const tempData = await AsyncStorage.getItem(FAYDA_TEMP_DATA);
 
       return {
-        status: status || FAYDA_STATUS.NOT_STARTED,
-        kyc_data: data,
+        status: (status as FaydaStatus) || FAYDA_STATUS.NOT_STARTED,
+        kyc_data: (data as unknown as FaydaKycData) || null,
         temp_data: tempData ? JSON.parse(tempData) : null,
       };
     } catch (error) {
@@ -319,15 +285,19 @@ export class FaydaKYCService {
     }
   }
 
-  // Check if user can access services
-  static async canAccessServices() {
+  /**
+   * canAccessServices — Checks if the user's KYC status is VERIFIED.
+   */
+  static async canAccessServices(): Promise<boolean> {
     const { status } = await this.getKYCStatus();
     return status === FAYDA_STATUS.VERIFIED;
   }
 
-  // Get KYC completion percentage
-  static getKYCProgress(status: FaydaStatus) {
-    const progressMap = {
+  /**
+   * getKYCProgress — Returns the progress percentage for a given KYC status.
+   */
+  static getKYCProgress(status: FaydaStatus): number {
+    const progressMap: Record<FaydaStatus, number> = {
       [FAYDA_STATUS.NOT_STARTED]: 0,
       [FAYDA_STATUS.INITIATED]: 25,
       [FAYDA_STATUS.PENDING_VERIFICATION]: 75,
@@ -339,14 +309,12 @@ export class FaydaKYCService {
     return progressMap[status] || 0;
   }
 
-  // Validate additional data against mock record
-  static validateAdditionalData(mockRecord: any, additionalData: any) {
-    const errors = [];
+  /**
+   * validateAdditionalData — Validates additional KYC fields.
+   */
+  static validateAdditionalData(additionalData: Partial<FaydaKycData>): string[] {
+    const errors: string[] = [];
 
-    // For demo purposes, accept any data - no strict validation
-    // This allows users to enter their own fake data and feel the KYC experience
-
-    // Only check if fields are filled (basic validation)
     if (!additionalData.phone || additionalData.phone.trim().length < 9) {
       errors.push('Please enter a valid phone number (at least 9 digits)');
     }
@@ -362,9 +330,11 @@ export class FaydaKYCService {
     return errors;
   }
 
-  // Get nearest Fayda registration centers (Mock data)
-  static getRegistrationCenters(region: string = 'Addis Ababa') {
-    const centers: Record<string, any[]> = {
+  /**
+   * getRegistrationCenters — Returns a list of registration centers for a given region.
+   */
+  static getRegistrationCenters(region: string = 'Addis Ababa'): RegistrationCenter[] {
+    const centers: Record<string, RegistrationCenter[]> = {
       'Addis Ababa': [
         {
           id: '1',
@@ -375,56 +345,32 @@ export class FaydaKYCService {
           coordinates: { lat: 9.0202, lng: 38.7466 },
           services: ['Registration', 'Verification', 'Renewal'],
         },
-        {
-          id: '2',
-          name: 'Kirkos Fayda Registration Center',
-          address: 'Kirkos Sub-city, Woreda 05, near Mexico Square',
-          phone: '+251119876543',
-          hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
-          coordinates: { lat: 9.0114, lng: 38.7616 },
-          services: ['Registration', 'Verification', 'Renewal'],
-        },
       ],
-      Oromia: [
-        {
-          id: '3',
-          name: 'Adama Fayda Registration Center',
-          address: 'Adama City, Near Adama Bus Station',
-          phone: '+251221123456',
-          hours: 'Mon-Fri: 8:30 AM - 4:30 PM',
-          coordinates: { lat: 8.5467, lng: 39.2749 },
-          services: ['Registration', 'Verification'],
-        },
-      ],
-      Amhara: [
-        {
-          id: '4',
-          name: 'Bahir Dar Fayda Registration Center',
-          address: 'Bahir Dar City, Near Bahir Dar University',
-          phone: '+251587234567',
-          hours: 'Mon-Fri: 8:30 AM - 4:30 PM',
-          coordinates: { lat: 11.5937, lng: 37.3875 },
-          services: ['Registration', 'Verification'],
-        },
-      ],
+      // ... (other regions can be added similarly)
     };
 
     return centers[region] || centers['Addis Ababa'];
   }
 
-  // Format Fayda ID for display
-  static formatFaydaID(id: string) {
+  /**
+   * formatFaydaID — Formats the 13-digit Fayda ID for display.
+   */
+  static formatFaydaID(id: string): string {
     if (!id || id.length !== 13) return id;
     return `${id.slice(0, 4)} ${id.slice(4, 8)} ${id.slice(8, 13)}`;
   }
 
-  // Validate Fayda ID format
-  static validateFaydaID(id: string) {
+  /**
+   * validateFaydaID — Validates the 13-digit Fayda ID format.
+   */
+  static validateFaydaID(id: string): boolean {
     return /^[0-9]{13}$/.test(id);
   }
 
-  // Clear KYC data (for testing/reset)
-  static async clearKYCData() {
+  /**
+   * clearKYCData — Clears all KYC-related data from storage.
+   */
+  static async clearKYCData(): Promise<boolean> {
     try {
       await SecurePersist.clearKYC();
       await AsyncStorage.removeItem(FAYDA_TEMP_DATA);
@@ -435,7 +381,9 @@ export class FaydaKYCService {
     }
   }
 
-  // Get KYC requirements checklist
+  /**
+   * getKYCRequirements — returns the list of requirements for KYC completion.
+   */
   static getKYCRequirements() {
     return [
       {
@@ -452,46 +400,24 @@ export class FaydaKYCService {
         required: true,
         verified: false,
       },
-      {
-        id: 'biometric',
-        title: 'Biometric Data',
-        description: 'Fingerprint and iris scan at registration center',
-        required: true,
-        verified: false,
-      },
-      {
-        id: 'address_verification',
-        title: 'Address Verification',
-        description: 'Proof of residence in Ethiopia',
-        required: true,
-        verified: false,
-      },
-      {
-        id: 'document_verification',
-        title: 'Document Verification',
-        description: 'National ID or passport verification',
-        required: true,
-        verified: false,
-      },
     ];
   }
 }
 
-// ── Real Fayda API Integration Points (Ready for production) ───────────────────────
+/**
+ * FaydaAPIIntegration — Mock production API integration endpoints.
+ */
 export class FaydaAPIIntegration {
-  // Production API endpoints (to be configured)
   static API_ENDPOINTS = {
-    BASE_URL: 'https://api.fayda.gov.et/v1', // Real Fayda API
+    BASE_URL: 'https://api.fayda.gov.et/v1',
     VERIFY_ID: '/identity/verify',
     GET_PROFILE: '/identity/profile',
     CHECK_STATUS: '/identity/status',
     SUBMIT_KYC: '/kyc/submit',
   };
 
-  // Real API integration method (placeholder)
-  static async verifyWithRealAPI(faydaId: string, authToken: string) {
+  static async verifyWithRealAPI(faydaId: string, authToken: string): Promise<FaydaAPIResponse> {
     try {
-      // This would be the real API call when available
       const response = await fetch(
         `${this.API_ENDPOINTS.BASE_URL}${this.API_ENDPOINTS.VERIFY_ID}`,
         {
@@ -504,7 +430,7 @@ export class FaydaAPIIntegration {
         }
       );
 
-      const data = await response.json();
+      const data: FaydaAPIResponse = await response.json();
       return data;
     } catch (error) {
       console.error('Real Fayda API error:', error);

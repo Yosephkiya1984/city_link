@@ -180,14 +180,14 @@ const AnimatedOrderCard = ({ order, C, onDispute, onCancel, navigation }: any) =
           <View style={styles.headerText}>
             <Text style={[styles.productName, { color: C.text }]} numberOfLines={1}>
               {order.type === 'food'
-                ? order.items_json?.[0]?.name || 'Food Order'
+                ? order.items?.[0]?.name || 'Food Order'
                 : order.product_name || 'Product'}
             </Text>
             <Text style={[styles.orderId, { color: C.sub }]}>
               #{order.id?.slice(0, 8).toUpperCase()} Â·{' '}
               {order.type === 'food'
                 ? `${order.items_count || 1} items`
-                : `Qty ${order.quantity || 1}`}
+                : `Qty ${order.qty || 1}`}
             </Text>
             {order.type === 'food' && (
               <Text
@@ -391,12 +391,12 @@ export default function MyOrdersScreen() {
 
   const [tab, setTab] = useState('active');
   const tabAnim = useRef(new Animated.Value(0)).current;
-  const [mktOrders, setMktOrders] = useState([]);
-  const [foodOrders, setFoodOrders] = useState([]);
+  const [mktOrders, setMktOrders] = useState<any[]>([]);
+  const [foodOrders, setFoodOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
-  const [promptConfig, setPromptConfig] = useState(null);
+  const [error, setError] = useState<any>(null);
+  const [promptConfig, setPromptConfig] = useState<any>(null);
   const [promptInput, setPromptInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -508,7 +508,7 @@ export default function MyOrdersScreen() {
   };
 
   const executePromptAction = async () => {
-    if (!promptConfig) return;
+    if (!promptConfig || !user?.id) return;
     const { type, order } = promptConfig;
 
     if (type === 'dispute') {

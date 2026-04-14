@@ -5,37 +5,14 @@
  * Anthropic API keys must never be embedded in a mobile app bundle — the
  * binary can be extracted and the key abused. All requests must go through
  * a thin server-side proxy that holds the key securely.
- *
- * RECOMMENDED PROXY: Supabase Edge Function
- * 1. Create supabase/functions/ai-chat/index.ts (template below)
- * 2. Deploy: `supabase functions deploy ai-chat`
- * 3. Set secret: `supabase secrets set ANTHROPIC_API_KEY=sk-ant-...`
- * 4. Update PROXY_URL in src/config.js
- *
- * EDGE FUNCTION TEMPLATE (supabase/functions/ai-chat/index.ts):
- * ─────────────────────────────────────────────────────────────
- * import { serve } from "https://deno.land/std/http/server.ts";
- * serve(async (req) => {
- *   const { messages, system } = await req.json();
- *   const res = await fetch("https://api.anthropic.com/v1/messages", {
- *     method: "POST",
- *     headers: {
- *       "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
- *       "anthropic-version": "2023-06-01",
- *       "content-type": "application/json",
- *     },
- *     body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 600, system, messages }),
- *   });
- *   const data = await res.json();
- *   return new Response(JSON.stringify(data), {
- *     headers: { "Content-Type": "application/json",
- *                "Access-Control-Allow-Origin": "*" },
- *   });
- * });
- * ─────────────────────────────────────────────────────────────
  */
 
 import { Config } from '../config';
+
+export interface AIMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 const SYSTEM_PROMPT = `You are CityLink AI, a helpful assistant for residents of Addis Ababa, Ethiopia.
 You help citizens navigate city services: LRT (light rail), parking, food delivery, job search,
@@ -46,11 +23,8 @@ Always be friendly, concise, and culturally aware. Mention Ethiopian context whe
 /**
  * sendMessage — sends a conversation to the AI proxy and returns the reply.
  * Falls back to local canned answers if the proxy is not configured or fails.
- *
- * @param {Array<{role:'user'|'assistant', content:string}>} messages
- * @returns {Promise<string>} assistant reply text
  */
-export async function sendMessage(messages: any[]) {
+export async function sendMessage(messages: AIMessage[]): Promise<string> {
   const supaUrl = Config.supaUrl;
   const anonKey = Config.supaKey;
   
@@ -71,7 +45,7 @@ export async function sendMessage(messages: any[]) {
     });
 
     if (!res.ok) {
-      const errData = await res.json();
+      const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || `Proxy responded ${res.status}`);
     }
     
@@ -80,7 +54,7 @@ export async function sendMessage(messages: any[]) {
     
     if (text) return text;
     throw new Error('Empty response from AI proxy');
-  } catch (e) {
+  } catch (e: any) {
     console.warn('[CityLink AI] Proxy failed:', e.message);
     return `[System] I'm having trouble connecting to my central brain right now. Please try again in a moment. (Error: ${e.message})`;
   }

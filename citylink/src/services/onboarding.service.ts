@@ -1,6 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const ONBOARDING_STEPS = [
+export interface OnboardingStep {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  color: string;
+  features: string[];
+  action?: {
+    text: string;
+    screen: string;
+  };
+}
+
+export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to CityLink! 🇪🇹',
@@ -53,7 +66,7 @@ export const ONBOARDING_STEPS = [
 ];
 
 export const OnboardingService = {
-  checkStatus: async () => {
+  checkStatus: async (): Promise<boolean> => {
     const hasSeen = await AsyncStorage.getItem('has_seen_onboarding');
     const isFirst = await AsyncStorage.getItem('is_first_launch');
     if (isFirst === null) {
@@ -62,10 +75,10 @@ export const OnboardingService = {
     }
     return hasSeen === null;
   },
-  markCompleted: async () => {
+  markCompleted: async (): Promise<void> => {
     await AsyncStorage.setItem('has_seen_onboarding', 'true');
   },
-  reset: async () => {
+  reset: async (): Promise<void> => {
     await AsyncStorage.removeItem('has_seen_onboarding');
   },
 };

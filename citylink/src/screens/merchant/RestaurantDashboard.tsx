@@ -66,7 +66,7 @@ export default function RestaurantDashboard() {
   const todayRevenue = orders
     .filter(
       (o: any) =>
-        o.status !== 'CANCELLED' &&
+        o.status !== 'CANCELLED' && o.created_at &&
         new Date(o.created_at).toDateString() === new Date().toDateString()
     )
     .reduce((sum: number, o: any) => sum + (o.total || 0), 0);
@@ -76,7 +76,7 @@ export default function RestaurantDashboard() {
   ).length;
   const deliveredToday = orders.filter(
     (o: any) =>
-      o.status === 'DELIVERED' &&
+      o.status === 'DELIVERED' && o.created_at &&
       new Date(o.created_at).toDateString() === new Date().toDateString()
   ).length;
 
@@ -91,8 +91,8 @@ export default function RestaurantDashboard() {
 
       if (ordersRes.data)
         setOrders(
-          ordersRes.data.sort(
-            (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          (ordersRes.data || []).sort(
+            (a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
           )
         );
       if (menuRes.data) setMenu(menuRes.data);
@@ -166,6 +166,7 @@ export default function RestaurantDashboard() {
       return;
     }
 
+    if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -263,7 +264,7 @@ export default function RestaurantDashboard() {
           </View>
 
           <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>
-            {new Date(order.created_at).toLocaleTimeString()}
+            {new Date(order.created_at || 0).toLocaleTimeString()}
           </Text>
 
           <Text style={{ color: C.text, fontSize: 12, marginBottom: 8 }}>

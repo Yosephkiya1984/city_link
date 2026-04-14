@@ -63,8 +63,8 @@ export const AuthRegister = ({
   return (
     <Animated.View style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name="arrow-back" size={24} color={C.text} />
+        <TouchableOpacity style={[styles.backButton, { borderColor: C.edge }]} onPress={onBack}>
+          <Ionicons name="chevron-back" size={24} color={C.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: C.text }]}>Create Account</Text>
       </View>
@@ -180,56 +180,61 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 24,
+    padding: 32,
     paddingTop: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    borderWidth: 1.5,
   },
   title: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
+    fontSize: 28,
+    fontFamily: Fonts.headline,
+    letterSpacing: -0.5,
   },
   scroll: {
-    padding: 24,
+    padding: 32,
     paddingTop: 0,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
   typeSelector: {
     flexDirection: 'row',
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 4,
-    marginBottom: 32,
+    height: 56,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 6,
+    marginBottom: 40,
   },
   typeBtn: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   typeText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
+    fontSize: 15,
+    fontFamily: Fonts.label,
+    letterSpacing: 0.5,
   },
   form: {
-    gap: 20,
+    gap: 24,
   },
   errorBox: {
-    padding: 12,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 16,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E8312A30',
   },
   errorText: {
-    color: '#ff6b6b',
+    color: '#E8312A',
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.label,
     textAlign: 'center',
   },
 });

@@ -116,9 +116,9 @@ export default function DelalaDashboard() {
 
   // Real-time enquiry updates
   useRealtimePostgres({
-    channelName: `delala-enquiries-${currentUser?.id}`,
+    channelName: `delala-enquiries-${currentUser?.id || 'guest'}`,
     table: 'property_enquiries',
-    filter: `agent_id=eq.${currentUser?.id}`,
+    filter: `agent_id=eq.${currentUser?.id || ''}`,
     enabled: !!currentUser?.id,
     onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {
@@ -155,6 +155,7 @@ export default function DelalaDashboard() {
       return;
     }
 
+    if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
 
@@ -302,7 +303,7 @@ export default function DelalaDashboard() {
               </Text>
 
               <Text style={{ color: C.sub, fontSize: 11, marginBottom: 8 }}>
-                Listed: {new Date(listing.created_at).toLocaleDateString()}
+                Listed: {new Date(listing.created_at || Date.now()).toLocaleDateString()}
               </Text>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -370,7 +371,7 @@ export default function DelalaDashboard() {
               Re: {enquiry.listing_title}
             </Text>
             <Text style={{ color: C.sub, fontSize: 11 }}>
-              {new Date(enquiry.created_at).toLocaleDateString()}
+              {new Date(enquiry.created_at || Date.now()).toLocaleDateString()}
             </Text>
           </View>
           <View
@@ -805,7 +806,7 @@ export default function DelalaDashboard() {
                     ðŸ“ {selectedListing.location}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 12 }}>
-                    Listed: {new Date(selectedListing.created_at).toLocaleDateString()}
+                    Listed: {new Date(selectedListing.created_at || Date.now()).toLocaleDateString()}
                   </Text>
                 </View>
 

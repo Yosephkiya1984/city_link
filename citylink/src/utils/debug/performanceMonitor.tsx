@@ -16,10 +16,25 @@ const PERFORMANCE_KEYS = {
   USER_INTERACTIONS: 'user_interactions',
 };
 
+interface MetricItem {
+  duration: number;
+  [key: string]: any;
+}
+
+interface Metrics {
+  appStartupTime: number;
+  screenLoadTimes: Record<string, number>;
+  apiCallTimes: MetricItem[];
+  memoryUsage: any[];
+  bundleSize: number;
+  userInteractions: MetricItem[];
+}
+
+
 // Performance monitoring provider
 export function PerformanceProvider({ children }: { children: React.ReactNode }) {
   const appStartTime = useRef(Date.now());
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState<Metrics>({
     appStartupTime: 0,
     screenLoadTimes: {},
     apiCallTimes: [],
@@ -122,14 +137,14 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
           0
         ) as number) / (Object.keys(metrics.screenLoadTimes).length || 1),
       averageApiCallTime:
-        metrics.apiCallTimes.reduce((a, b) => a + b.duration, 0) / metrics.apiCallTimes.length || 0,
+        metrics.apiCallTimes.reduce((a: number, b: MetricItem) => a + b.duration, 0) / (metrics.apiCallTimes.length || 1),
       currentMemoryUsage: metrics.memoryUsage[metrics.memoryUsage.length - 1],
       totalInteractions: metrics.userInteractions.length,
       slowestScreen: Object.entries(metrics.screenLoadTimes).reduce(
         (a, b) => (a[1] > b[1] ? a : b),
         ['', 0]
       )[0],
-      slowestApiCall: metrics.apiCallTimes.reduce((a, b) => (a.duration > b.duration ? a : b), {
+      slowestApiCall: metrics.apiCallTimes.reduce((a: MetricItem, b: MetricItem) => (a.duration > b.duration ? a : b), {
         endpoint: '',
         duration: 0,
       }).endpoint,

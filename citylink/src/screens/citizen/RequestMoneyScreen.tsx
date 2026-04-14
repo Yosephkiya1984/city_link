@@ -20,10 +20,10 @@ export default function RequestMoneyScreen() {
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
   const [showContacts, setShowContacts] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [recentRequests, setRecentRequests] = useState([]);
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
 
   // Mock contacts
   const contacts = [
@@ -165,14 +165,14 @@ export default function RequestMoneyScreen() {
           onPress={() => setShowContacts(true)}
           style={{
             backgroundColor: C.surface,
-            borderRadius: Radius.xl,
-            padding: 16,
-            marginBottom: 20,
-            borderWidth: 1,
-            borderColor: C.edge,
+            borderRadius: Radius['2xl'],
+            padding: 20,
+            marginBottom: 24,
+            borderWidth: 1.5,
+            borderColor: C.edge2,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 12,
+            gap: 16,
             ...Shadow.md,
           }}
         >
@@ -180,30 +180,34 @@ export default function RequestMoneyScreen() {
             <>
               <View
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: C.primary + '20',
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: C.primary + '15',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: C.primary + '30',
                 }}
               >
-                <Text style={{ fontSize: 20 }}>{selectedContact.avatar}</Text>
+                <Text style={{ fontSize: 24 }}>{selectedContact.avatar}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
+                <Text style={{ color: C.text, fontSize: 17, fontFamily: Fonts.headline, letterSpacing: -0.5 }}>
                   {selectedContact.name}
                 </Text>
-                <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>
+                <Text style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.label, marginTop: 2 }}>
                   {selectedContact.phone}
                 </Text>
               </View>
-              <Ionicons name="checkmark-circle" size={20} color={C.green} />
+              <Ionicons name="checkmark-circle" size={24} color={C.primary} />
             </>
           ) : (
             <>
-              <Ionicons name="person-add" size={24} color={C.sub} />
-              <Text style={{ color: C.sub, fontSize: 16, fontFamily: Fonts.medium, flex: 1 }}>
+              <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: C.lift, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="person-add" size={24} color={C.sub} />
+              </View>
+              <Text style={{ color: C.sub, fontSize: 16, fontFamily: Fonts.label, flex: 1 }}>
                 Choose a contact
               </Text>
               <Ionicons name="chevron-forward" size={20} color={C.hint} />
@@ -289,11 +293,11 @@ export default function RequestMoneyScreen() {
                 key={request.id}
                 style={{
                   backgroundColor: C.surface,
-                  borderRadius: Radius.xl,
-                  padding: 16,
-                  marginBottom: 12,
-                  borderWidth: 1,
-                  borderColor: C.edge,
+                  borderRadius: Radius['2xl'],
+                  padding: 18,
+                  marginBottom: 16,
+                  borderWidth: 1.5,
+                  borderColor: C.edge2,
                   ...Shadow.md,
                 }}
               >
@@ -308,9 +312,10 @@ export default function RequestMoneyScreen() {
                     <Text
                       style={{
                         color: C.text,
-                        fontSize: 16,
-                        fontFamily: Fonts.black,
+                        fontSize: 17,
+                        fontFamily: Fonts.headline,
                         marginBottom: 4,
+                        letterSpacing: -0.3,
                       }}
                     >
                       {request.from}

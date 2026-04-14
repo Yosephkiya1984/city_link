@@ -54,6 +54,10 @@ export default function BecomeDeliveryAgentScreen() {
   const needsPlate = vehicleType !== 'foot';
 
   const handleSubmit = async () => {
+    if (!currentUser?.id) {
+      showToast('Please sign in to apply', 'error');
+      return;
+    }
     if (!vehicleType) {
       showToast('Select a vehicle type', 'error');
       return;
@@ -88,7 +92,7 @@ export default function BecomeDeliveryAgentScreen() {
         // 3. Register new agent record
         const { error } = await registerDeliveryAgent({
           agentId: currentUser.id,
-          vehicleType,
+          vehicleType: vehicleType as any, // Cast to any or specifically to VehicleType
           plateNumber: plateNumber.trim(),
           licenseNumber: licenseNumber.trim(),
         });

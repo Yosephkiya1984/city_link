@@ -7,7 +7,7 @@ import * as Crypto from 'expo-crypto';
  * createEkub — Organiser creates a new circle.
  */
 export async function createEkub(data: Partial<EkubCircle>) {
-  const newEkub = {
+  const newEkub: Partial<EkubCircle> = {
     id: uid(),
     current_round: 1,
     status: 'FORMING',
@@ -17,14 +17,14 @@ export async function createEkub(data: Partial<EkubCircle>) {
     visibility: 'public',
     ...data,
   };
-  return supaQuery((c) => c.from('ekubs').insert(newEkub).select().single());
+  return supaQuery<EkubCircle>((c) => c.from('ekubs').insert(newEkub).select().single());
 }
 
 /**
  * fetchEkubs — fetches all active Ekub circles.
  */
 export async function fetchEkubs() {
-  return supaQuery((c) => 
+  return supaQuery<EkubCircle[]>((c) => 
     c.from('ekubs')
      .select('*')
      .neq('status', 'COMPLETE')
@@ -36,7 +36,7 @@ export async function fetchEkubs() {
  * submitEkubApplication — Citizen applies to join an Ekub circle.
  */
 export async function submitEkubApplication(ekubId: string, userId: string, reason: string) {
-  const application = {
+  const application: Partial<EkubMember> = {
     ekub_id: ekubId,
     user_id: userId,
     status: 'PENDING',
@@ -47,14 +47,14 @@ export async function submitEkubApplication(ekubId: string, userId: string, reas
     application_reason: reason,
     joined_at: new Date().toISOString(),
   };
-  return supaQuery((c) => c.from('ekub_members').insert(application));
+  return supaQuery<EkubMember>((c) => c.from('ekub_members').insert(application).select().single());
 }
 
 /**
  * handleEkubApplication — Organiser approves/rejects application.
  */
 export async function handleEkubApplication(ekubId: string, userId: string, status: 'ACTIVE' | 'REJECTED') {
-  return supaQuery((c) => 
+  return supaQuery<EkubMember>((c) => 
     c.from('ekub_members')
      .update({ status })
      .eq('ekub_id', ekubId)
@@ -76,7 +76,7 @@ export async function joinEkub(ekubId: string, userId: string) {
  * contributeToEkub — records a contribution atomically.
  */
 export async function contributeToEkub(userId: string, ekubId: string, roundNumber: number) {
-  return supaQuery((c) =>
+  return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('process_ekub_contribution_atomic', {
       p_user_id: userId,
       p_ekub_id: ekubId,
@@ -93,14 +93,15 @@ export async function performEkubDraw(ekubId: string, roundNumber: number, eligi
   const sortedIds = [...eligibleMemberIds].sort();
   const rawSeed = `${ekubId}-${ts}-${sortedIds.join(',')}`;
   
-  let seedHash = 'sha256-mock-hash';
+  let seedHash: string;
   try {
     seedHash = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
       rawSeed
     );
   } catch (e) {
-    console.warn('Crypto digest failed, using mock hash');
+    console.error('CRITICAL: Crypto digest failed for draw audit trail', e);
+    throw new Error('Audit Integrity Violation: Could not generate auditable draw seed.');
   }
   
   // Selection logic (Deterministic index based on hash)
@@ -109,9 +110,9 @@ export async function performEkubDraw(ekubId: string, roundNumber: number, eligi
   const winnerId = eligibleMemberIds[winnerIndex];
 
   // Fetch real winner name
-  const { data: user } = await supaQuery((c) => c.from('profiles').select('full_name').eq('id', winnerId).single());
+  const { data: user } = await supaQuery<{ full_name: string }>((c) => c.from('profiles').select('full_name').eq('id', winnerId).single());
 
-  const drawData = {
+  const drawData: Partial<EkubDraw> = {
     id: uid(),
     ekub_id: ekubId,
     round_number: roundNumber,
@@ -124,7 +125,7 @@ export async function performEkubDraw(ekubId: string, roundNumber: number, eligi
     created_at: new Date().toISOString(),
   };
 
-  return supaQuery((c) => c.from('ekub_draws').insert(drawData).select().single());
+  return supaQuery<EkubDraw>((c) => c.from('ekub_draws').insert(drawData).select().single());
 }
 
 /**
@@ -139,7 +140,7 @@ export function calculatePenalty(baseAmount: number, missedRounds: number): numb
  * signWinnerConsent — Winner signs the payout consent.
  */
 export async function signWinnerConsent(drawId: string) {
-  return supaQuery((c) =>
+  return supaQuery<EkubDraw>((c) =>
     c.from('ekub_draws')
      .update({
        consent_signed: true,
@@ -147,6 +148,8 @@ export async function signWinnerConsent(drawId: string) {
        status: 'NEEDS_VOUCHING'
      })
      .eq('id', drawId)
+     .select()
+     .single()
   );
 }
 
@@ -154,24 +157,24 @@ export async function signWinnerConsent(drawId: string) {
  * submitVouch — Circle member vouches for a payout.
  */
 export async function submitVouch(drawId: string, ekubId: string, voucherId: string, voucherName: string, approved: boolean, reason?: string) {
-  const vouch = {
+  const vouch: Partial<EkubVouch> = {
     id: uid(),
     draw_id: drawId,
     ekub_id: ekubId,
     voucher_id: voucherId,
     voucher_name: voucherName,
     is_approved: approved,
-    reason: reason || null,
+    reason: reason || undefined,
     vouched_at: new Date().toISOString(),
   };
-  return supaQuery((c) => c.from('ekub_vouches').insert(vouch));
+  return supaQuery<EkubVouch>((c) => c.from('ekub_vouches').insert(vouch).select().single());
 }
 
 /**
  * releaseEkubPot — Organiser releases the pot to the winner (Atomic/Idempotent).
  */
 export async function releaseEkubPot(drawId: string) {
-  return supaQuery((c) =>
+  return supaQuery<{ ok: boolean; error?: string }>((c) =>
     c.rpc('execute_ekub_payout_atomic', {
       p_draw_id: drawId
     })
@@ -182,7 +185,7 @@ export async function releaseEkubPot(drawId: string) {
  * fetchMyEkubs — fetches Ekubs the user is member of.
  */
 export async function fetchMyEkubs(userId: string) {
-  return supaQuery((c) => 
+  return supaQuery<(EkubMember & { ekubs: EkubCircle })[]>((c) => 
     c.from('ekub_members')
      .select('*, ekubs(*)')
      .eq('user_id', userId)
@@ -194,9 +197,9 @@ export async function fetchMyEkubs(userId: string) {
  * fetchCircleMembers — fetches all members of a circle for drawing/vouching.
  */
 export async function fetchCircleMembers(ekubId: string) {
-  return supaQuery((c) => 
+  return supaQuery<(EkubMember & { profile: { full_name: string } })[]>((c) => 
     c.from('ekub_members')
-     .select('*, profile:profiles(*)')
+     .select('*, profile:profiles(full_name)')
      .eq('ekub_id', ekubId)
   );
 }
@@ -213,9 +216,9 @@ export function getReliabilityScore(missedRounds: number = 0): number {
  * fetchPendingApplications — Merchant fetches pending applications for managed circles.
  */
 export async function fetchPendingApplications(organiserId: string) {
-  return supaQuery((c) => 
+  return supaQuery<(EkubMember & { ekubs: EkubCircle; profile: { full_name: string } })[]>((c) => 
     c.from('ekub_members')
-     .select('*, ekubs!inner(*), profile:profiles(*)')
+     .select('*, ekubs!inner(*), profile:profiles(full_name)')
      .eq('status', 'PENDING')
      .eq('ekubs.organiser_id', organiserId)
   );
@@ -231,7 +234,7 @@ export async function fetchPendingVouches(userId: string) {
 
   if (circleIds.length === 0) return { data: [], error: null };
 
-  return supaQuery((c) => 
+  return supaQuery<(EkubDraw & { ekubs: EkubCircle })[]>((c) => 
     c.from('ekub_draws')
      .select('*, ekubs(*)')
      .eq('status', 'NEEDS_VOUCHING')
@@ -244,7 +247,7 @@ export async function fetchPendingVouches(userId: string) {
  * fetchActiveDraws — Merchant fetches all draws in awaiting/vouching status for managed circles.
  */
 export async function fetchActiveDraws(organiserId: string) {
-  return supaQuery((c) => 
+  return supaQuery<(EkubDraw & { ekubs: EkubCircle })[]>((c) => 
     c.from('ekub_draws')
      .select('*, ekubs!inner(*)')
      .eq('ekubs.organiser_id', organiserId)
@@ -256,7 +259,7 @@ export async function fetchActiveDraws(organiserId: string) {
  * fetchWinnerDraw — Finds the active draw where the user is a winner.
  */
 export async function fetchWinnerDraw(userId: string, ekubId: string) {
-  return supaQuery((c) => 
+  return supaQuery<EkubDraw>((c) => 
     c.from('ekub_draws')
      .select('*')
      .eq('ekub_id', ekubId)
@@ -270,7 +273,7 @@ export async function fetchWinnerDraw(userId: string, ekubId: string) {
  * getUserSavingsMetrics — Calculates total savings across all active circles.
  */
 export async function getUserSavingsMetrics(userId: string) {
-  return supaQuery((c) => 
+  return supaQuery<{ amount: number }[]>((c) => 
     c.from('ekub_contributions')
      .select('amount')
      .eq('user_id', userId)

@@ -1,9 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { uid } from '../utils';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const KEY = 'cl_pending_p2p_v1';
 
-async function readList() {
+export interface OfflineP2PTransfer {
+  id: string;
+  sender_id: string;
+  recipient_phone: string;
+  amount: number;
+  note: string | null;
+  status: 'pending' | 'claimed' | 'synced';
+  created_at: string;
+}
+
+async function readList(): Promise<OfflineP2PTransfer[]> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
     return raw ? JSON.parse(raw) : [];
@@ -12,12 +23,12 @@ async function readList() {
   }
 }
 
-async function writeList(list: any[]) {
+async function writeList(list: OfflineP2PTransfer[]): Promise<void> {
   await AsyncStorage.setItem(KEY, JSON.stringify(list));
 }
 
 /** Queue a send when Supabase is not configured (offline demo). */
-export async function queueLocalPendingSend({ senderId, recipientPhone, amount, note }: { senderId: string, recipientPhone: string, amount: number | string, note?: string }) {
+export async function queueLocalPendingSend({ senderId, recipientPhone, amount, note }: { senderId: string, recipientPhone: string, amount: number | string, note?: string }): Promise<void> {
   const list = await readList();
   list.push({
     id: uid(),
@@ -32,12 +43,12 @@ export async function queueLocalPendingSend({ senderId, recipientPhone, amount, 
 }
 
 /** Credit total for matching recipient phone and mark rows claimed. */
-export async function claimLocalPendingForPhone(phone: string) {
+export async function claimLocalPendingForPhone(phone: string): Promise<{ totalCredited: number, count: number }> {
   const list = await readList();
-  const pending = list.filter((r: any) => r.recipient_phone === phone && r.status === 'pending');
-  const total = pending.reduce((s: number, r: any) => s + Number(r.amount), 0);
-  const claimedIds = new Set(pending.map((p: any) => p.id));
-  const next = list.map((r: any) => (claimedIds.has(r.id) ? { ...r, status: 'claimed' } : r));
+  const pending = list.filter((r) => r.recipient_phone === phone && r.status === 'pending');
+  const total = pending.reduce((s, r) => s + Number(r.amount), 0);
+  const claimedIds = new Set(pending.map((p) => p.id));
+  const next = list.map((r) => (claimedIds.has(r.id) ? { ...r, status: 'claimed' as const } : r));
   await writeList(next);
   return { totalCredited: total, count: pending.length };
 }
@@ -46,9 +57,9 @@ export async function claimLocalPendingForPhone(phone: string) {
  * Attempts to push all locally queued 'pending' transfers to the live database.
  * This should be called when NetInfo detects an online connection.
  */
-export async function syncOfflineQueueToSupabase(supabaseClient: any) {
+export async function syncOfflineQueueToSupabase(supabaseClient: SupabaseClient): Promise<{ success: boolean; count: number }> {
   const list = await readList();
-  const pending = list.filter((r: any) => r.status === 'pending');
+  const pending = list.filter((r) => r.status === 'pending');
 
   if (pending.length === 0 || !supabaseClient) return { success: true, count: 0 };
 

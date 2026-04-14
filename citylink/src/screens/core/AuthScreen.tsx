@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAppStore } from '../../store/AppStore';
 import { Colors, DarkColors } from '../../theme';
 import * as AuthService from '../../services/auth.service';
 import * as ProfileService from '../../services/profile.service';
 import * as WalletService from '../../services/wallet.service';
+import { User } from '../../types';
 import { AuthWelcome } from './auth/AuthWelcome';
 import { AuthLogin } from './auth/AuthLogin';
 import { AuthRegister } from './auth/AuthRegister';
@@ -69,10 +70,8 @@ export default function AuthScreen() {
       setFlow(newFlow);
       setError(null);
       
-      // Reset slide for entry
       slideAnim.setValue(-20);
       
-      // Entry animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -122,17 +121,16 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     try {
-      const { user, error: verifyErr } = (await AuthService.verifyOtp(phone, otp)) as any;
+      const { user, error: verifyErr } = await AuthService.verifyOtp(phone, otp);
       if (verifyErr) {
         setError(verifyErr);
       } else if (user) {
         setTempUserId(user.id);
-        // If user is new (mock logic: no full_name means profile missing)
-        const profile = await ProfileService.fetchProfile(user.id);
-        if (!profile.data || !profile.data.full_name) {
+        const profileRes = await ProfileService.fetchProfile(user.id);
+        if (!profileRes.data || !profileRes.data.full_name) {
           transitionTo('register');
         } else {
-          setCurrentUser(profile.data as any);
+          setCurrentUser(profileRes.data);
         }
       }
     } catch (e: any) {
@@ -150,11 +148,11 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     try {
-      const { user, error: loginErr } = (await AuthService.govBadgeLogin(badgeId, secPin)) as any;
+      const { user, error: loginErr } = await AuthService.govBadgeLogin(badgeId, secPin);
       if (loginErr) {
         setError(loginErr);
       } else if (user) {
-        setCurrentUser(user as any);
+        setCurrentUser(user as User);
       }
     } catch (e: any) {
       setError(e.message || 'Government login failed');
@@ -173,7 +171,7 @@ export default function AuthScreen() {
     try {
       const targetId = tempUserId || phone;
       
-      const profileData = {
+      const profileData: Partial<User> & { id: string } = {
         id: targetId,
         phone,
         full_name: fullName,
@@ -186,25 +184,22 @@ export default function AuthScreen() {
           license_no: licenseNo,
           subcity,
           address: businessAddress
-        } : null,
+        } : undefined,
         business_name: businessName,
         tin: tin,
         subcity: subcity,
         license_no: licenseNo
       };
 
-      // 1. Persist to Database
       const { error: upsertErr } = await ProfileService.upsertProfile(profileData);
-      if (upsertErr) throw new Error(upsertErr);
+      if (upsertErr) throw new Error(upsertErr as any);
 
-      // 2. Initialize Financial Services
       await WalletService.ensureWallet(targetId);
       await WalletService.claimWelcomeBonus(targetId);
 
-      // 3. Final Fetch to ensure clean state
       const finalProfile = await ProfileService.fetchProfile(targetId);
       if (finalProfile.data) {
-        setCurrentUser(finalProfile.data as any);
+        setCurrentUser(finalProfile.data);
       } else {
         throw new Error('Profile persistence verification failed');
       }

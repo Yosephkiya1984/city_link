@@ -2,47 +2,46 @@
 // High-end Obsidian/Mint design language for super-app command centers.
 
 export const Colors = {
-  // ── High-End Light Elements (Ivory & Glass)
-  ink: '#FDFDFC', // Rich Ivory background
-  surface: '#FFFFFF', // Pure white surfaces
-  lift: '#F7F8F9', // Subtle off-white elevations
-  top: '#EAEDF0', // High-elevation / Top bar (light equivalent)
-  rim: '#EDF0F2', // Soft grey rims
-  overlay: '#E2E8F0', // Overlays
-  hint: '#C7C7CC', // Hint text
+  // ── Addis Noir Light Elements
+  ink: '#FDFDFC', 
+  surface: '#FFFFFF', 
+  lift: '#F7F8F9', 
+  top: '#EAEDF0', 
+  rim: '#EDF0F2', 
+  overlay: '#E2E8F0', 
+  hint: '#C7C7CC', 
 
-  // ── Primary Mint/Emerald Palette (Intelligent Design)
-  primary: '#59de9b', // Mint Emerald
+  // ── Addis Noir Palette (Ethiopian Modernism)
+  primary: '#00A86B', // Ethiopian Modern Green
   primaryL: '#E8F7F0',
-  primaryD: '#00A86B',
-  primaryGlow: 'rgba(89,222,155,0.08)',
-  primaryB: 'rgba(89,222,155,0.15)',
-  primaryGrad: ['#78fbb6', '#59de9b', '#00A86B'],
+  primaryD: '#008454',
+  primaryGlow: 'rgba(0,168,107,0.08)',
+  primaryB: 'rgba(0,168,107,0.15)',
+  primaryGrad: ['#00C980', '#00A86B', '#008454'],
 
-  // ── Gold (Secondary Accent for Luxury)
-  gold: '#D4AF37',
-  goldL: '#F9E79F',
-  goldD: '#B8860B',
+  // ── Ethiopian Gold (Secondary Accent)
+  gold: '#F5B800',
+  goldL: '#FFEFB2',
+  goldD: '#C49300',
 
-  // ── Secondaries (matched to DarkColors)
-  secondary: '#ffd887',
-  tertiary: '#ffb4aa',
-  success: '#59de9b',
-  warning: '#fabd0d',
-  error: '#ffb4ab',
+  secondary: '#F5B800', 
+  tertiary: '#ffb4aa', 
+  success: '#00A86B',
+  warning: '#F5B800',
+  error: '#E8312A',
   onSurface: '#1c1c1e',
   onVariant: '#3C3C43',
 
   // ── Status Palette
-  green: '#34C759',
-  greenL: '#34C75920',
-  greenB: '#34C75940',
-  red: '#FF3B30',
-  redL: '#FF3B3020',
-  redB: '#FF3B3040',
-  amber: '#FF9500',
-  amberL: '#FF950020',
-  amberB: '#FF950040',
+  green: '#00A86B',
+  greenL: 'rgba(0,168,107,0.15)',
+  greenB: 'rgba(0,168,107,0.3)',
+  red: '#E8312A',
+  redL: 'rgba(232,49,42,0.15)',
+  redB: 'rgba(232,49,42,0.3)',
+  amber: '#F5B800',
+  amberL: 'rgba(245,184,0,0.15)',
+  amberB: 'rgba(245,184,0,0.3)',
   blue: '#007AFF',
   blueL: '#007AFF20',
 
@@ -51,7 +50,7 @@ export const Colors = {
   purpleL: '#AF52DE20',
   teal: '#5AC8FA',
 
-  // ── Glass & Borders (Light Mode Optimization)
+  // ── Glass & Borders
   glass: 'rgba(0,0,0,0.012)',
   glass2: 'rgba(0,0,0,0.038)',
   edge: 'rgba(0,0,0,0.035)',
@@ -69,39 +68,38 @@ export const Colors = {
 
 // ── Obsidian Dark Mode (Premium Admin) ───────────────────────────────────────────
 export const DarkColors = {
-  ink: '#101319', // Obsidian background
-  surface: '#1d2025', // Modern charcoal card
-  lift: '#191c21', // Low-elevation containers
-  top: '#272a30', // High-elevation / Top bar
-  rim: '#32353b', // Surface variant / highest
-  overlay: 'rgba(16, 19, 25, 0.7)', // Backdrop blur glass
+  ink: '#080B10', // Addis Noir background
+  surface: '#11141B', // Noir surface
+  lift: '#161922', // Low-elevation noir
+  top: '#1C1F27', // High-elevation noir
+  rim: '#242730', // Noir border accent
+  overlay: 'rgba(8, 11, 16, 0.85)', // Noir glass
 
-  primary: '#59de9b', // Mint Emerald
-  primaryL: 'rgba(89,222,155,0.12)',
-  primaryD: '#00A86B',
-  primaryGlow: 'rgba(89,222,155,0.12)',
-  primaryB: 'rgba(89,222,155,0.25)',
-  primaryGrad: ['#59de9b', '#00A86B'],
+  primary: '#00A86B', // Ethiopian Modern Green
+  primaryL: 'rgba(0,168,107,0.15)',
+  primaryD: '#008454',
+  primaryGlow: 'rgba(0,168,107,0.2)',
+  primaryB: 'rgba(0,168,107,0.35)',
+  primaryGrad: ['#00A86B', '#007D4F'],
 
-  // ── Secondaries matched to ref designs
-  secondary: '#ffd887', // Gold Yellow
-  tertiary: '#ffb4aa', // Pink Error/Tertiary
-  success: '#59de9b',
-  warning: '#fabd0d',
-  error: '#ffb4ab',
-  onSurface: '#e1e2ea',
-  onVariant: '#bccabe',
+  secondary: '#F5B800', // Ethiopian Gold
+  tertiary: '#ffb4aa', 
+  success: '#00A86B',
+  warning: '#F5B800',
+  error: '#E8312A',
+  onSurface: '#E1E2EA',
+  onVariant: '#BCCABE',
 
   // ── Status Palette
-  green: '#34C759',
-  greenL: '#34C75920',
-  greenB: '#34C75940',
-  red: '#FF3B30',
-  redL: '#FF3B3020',
-  redB: '#FF3B3040',
-  amber: '#FF9500',
-  amberL: '#FF950020',
-  amberB: '#FF950040',
+  green: '#00A86B',
+  greenL: 'rgba(0,168,107,0.2)',
+  greenB: 'rgba(0,168,107,0.4)',
+  red: '#E8312A',
+  redL: 'rgba(232,49,42,0.2)',
+  redB: 'rgba(232,49,42,0.4)',
+  amber: '#F5B800',
+  amberL: 'rgba(245,184,0,0.2)',
+  amberB: 'rgba(245,184,0,0.4)',
   blue: '#007AFF',
   blueL: '#007AFF20',
   orange: '#FF9500',
@@ -109,16 +107,16 @@ export const DarkColors = {
   purpleL: '#AF52DE20',
   teal: '#5AC8FA',
 
-  glass: 'rgba(255,255,255,0.015)',
-  glass2: 'rgba(255,255,255,0.045)',
-  edge: 'rgba(255,255,255,0.042)',
-  edge2: 'rgba(255,255,255,0.08)',
-  edgeBright: 'rgba(255,255,255,0.15)',
+  glass: 'rgba(255,255,255,0.02)',
+  glass2: 'rgba(255,255,255,0.06)',
+  edge: 'rgba(255,255,255,0.05)',
+  edge2: 'rgba(255,255,255,0.1)',
+  edgeBright: 'rgba(255,255,255,0.2)',
 
   text: '#FFFFFF',
-  textSoft: '#D1D5DB',
-  sub: '#6B7280',
-  hint: '#4B5563',
+  textSoft: '#E1E2EA',
+  sub: '#9CA3AF',
+  hint: '#6B7280',
 
   white: '#FFFFFF',
   black: '#000000',

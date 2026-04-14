@@ -13,6 +13,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAppStore } from '../../store/AppStore';
 import { fetchPendingMerchants } from '../../services/admin.service';
 import { fetchProfile } from '../../services/profile.service';
+import { User } from '../../types';
 import { Radius, Spacing, Fonts, Colors, DarkColors } from '../../theme';
 import * as Haptics from 'expo-haptics';
 
@@ -41,7 +42,7 @@ export default function AdminScreen() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(!isTablet);
 
   // Data State
-  const [pendingMerchants, setPendingMerchants] = useState([]);
+  const [pendingMerchants, setPendingMerchants] = useState<User[]>([]);
   const [loadingMerchants, setLoadingMerchants] = useState(false);
 
   useEffect(() => {

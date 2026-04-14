@@ -86,7 +86,7 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
       {
         text: 'Reject',
         style: 'destructive',
-        onPress: async (reason: string) => {
+        onPress: async (reason?: string) => {
           const res = await rejectMerchant(id, reason || 'Incomplete documentation');
           if (res.error) Alert.alert('Error', res.error);
           else onRefresh();
@@ -171,7 +171,7 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
 
       <View style={[styles.actions, { gap: isMobile ? 8 : 12 }]}>
         <TouchableOpacity
-          onPress={() => handleReject(item.id, item.business_name)}
+          onPress={() => handleReject(item.id, item.business_name || 'Merchant')}
           style={[styles.rejectBtn, { borderColor: theme.red + '30', height: isMobile ? 40 : 44 }]}
         >
           <Text style={{ color: theme.red, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>
@@ -179,7 +179,7 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => handleApprove(item.id, item.business_name)}
+          onPress={() => handleApprove(item.id, item.business_name || 'Merchant')}
           style={[
             styles.approveBtn,
             { backgroundColor: theme.primary, height: isMobile ? 40 : 44 },

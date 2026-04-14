@@ -1,6 +1,13 @@
+export interface ServiceRequirement {
+  id: string;
+  met: boolean;
+  label: string;
+  actionRequired?: string;
+}
+
 export function useServiceAccess() {
   return {
-    guardServiceAccess: async (serviceName: string) => {
+    guardServiceAccess: async (serviceName: string): Promise<boolean> => {
       const bypassEnabled = process.env.CITYLINK_BYPASS_ACCESS === 'true';
       const isProduction = process.env.NODE_ENV === 'production';
 
@@ -23,7 +30,7 @@ export function useServiceAccess() {
 }
 
 export const ServiceAccessUtils = {
-  checkAccess: async () => {
+  checkAccess: async (): Promise<boolean> => {
     if (process.env.ENABLE_FAKE_ACCESS === 'true' && process.env.NODE_ENV === 'production') {
       throw new Error('ServiceAccessUtils.checkAccess: Fake access is not allowed in production');
     }
@@ -33,7 +40,7 @@ export const ServiceAccessUtils = {
     }
     throw new Error('ServiceAccessUtils.checkAccess: Not implemented - real access checks required');
   },
-  validateRequirements: async (): Promise<any[]> => {
+  validateRequirements: async (): Promise<ServiceRequirement[]> => {
     if (process.env.ENABLE_FAKE_ACCESS === 'true' && process.env.NODE_ENV === 'production') {
       throw new Error('ServiceAccessUtils.validateRequirements: Fake access is not allowed in production');
     }

@@ -120,7 +120,13 @@ export default function DisputeModule() {
         if (dispute.type === 'MARKETPLACE') {
           if (action === 'REFUND')
             res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
-          else res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
+          else {
+            if (!dispute.escrow_id) {
+              window.alert('No escrow lock found for this dispute. Manual intervention required.');
+              return;
+            }
+            res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
+          }
         } else {
           const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
           res = await supaQuery((c) =>
@@ -153,7 +159,13 @@ export default function DisputeModule() {
             if (dispute.type === 'MARKETPLACE') {
               if (action === 'REFUND')
                 res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
-              else res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
+              else {
+                if (!dispute.escrow_id) {
+                  Alert.alert('Error', 'No escrow lock found for this dispute. Manual intervention required.');
+                  return;
+                }
+                res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
+              }
             } else {
               // Restaurant resolving (standard status based for now)
               const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { User } from '../../types';
+import { User, DeliveryAgent } from '../../types';
 import {
   View,
   Text,
@@ -20,20 +20,7 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export interface DeliveryAgent {
-  id: string;
-  agent_status: 'PENDING' | 'APPROVED' | 'SUSPENDED';
-  vehicle_type: 'motorcycle' | 'car' | 'bicycle' | 'tuktuk' | 'foot';
-  plate_number?: string;
-  license_number: string;
-  total_deliveries: number;
-  rating: number;
-  profile?: {
-    full_name: string;
-    phone: string;
-    subcity: string;
-  };
-}
+
 
 export default function DeliveryAgentModule() {
   const theme = useTheme();
@@ -123,7 +110,7 @@ export default function DeliveryAgentModule() {
       {
         text: 'Reject',
         style: 'destructive',
-        onPress: async (reason: string) => {
+        onPress: async (reason?: string) => {
           setLoading(true);
           const res = await rejectAgent(agent.id, reason || 'Incomplete documentation');
           if (res.error) {

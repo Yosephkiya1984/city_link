@@ -1,12 +1,26 @@
 import { hasSupabase, supaQuery } from './supabase';
 import { uid } from '../utils';
+import { User, ChatMessage } from '../types';
+
+export interface ChatThread {
+  thread_id: string;
+  user_a_id: string;
+  user_b_id: string;
+  last_msg: string;
+  last_ts: string;
+  created_at: string;
+  unread_a: number;
+  unread_b: number;
+  user_a?: Partial<User> | Partial<User>[];
+  user_b?: Partial<User> | Partial<User>[];
+}
 
 /**
  * fetchChatThreads — fetches all chat threads for a specific user.
  */
 export const fetchChatThreads = async (userId: string) => {
-  if (!hasSupabase()) return { data: [], error: null };
-  return supaQuery((client) =>
+  if (!hasSupabase()) return { data: [] as ChatThread[], error: null };
+  return supaQuery<ChatThread[]>((client) =>
     client
       .from('message_threads')
       .select(
@@ -32,8 +46,8 @@ export const fetchChatThreads = async (userId: string) => {
  * fetchChatMessages — fetches messages within a thread.
  */
 export const fetchChatMessages = async (threadId: string) => {
-  if (!hasSupabase()) return { data: [], error: null };
-  return supaQuery((client) =>
+  if (!hasSupabase()) return { data: [] as ChatMessage[], error: null };
+  return supaQuery<ChatMessage[]>((client) =>
     client
       .from('chat_messages')
       .select('*')
@@ -45,26 +59,26 @@ export const fetchChatMessages = async (threadId: string) => {
 /**
  * createChatThread — initializes a new conversation thread.
  */
-export const createChatThread = async (thread: any) => {
+export const createChatThread = async (thread: Partial<ChatThread> & { user_a_id: string, user_b_id: string }) => {
   if (!hasSupabase())
-    return { data: { thread_id: thread.thread_id || 'mock-thread' }, error: null };
+    return { data: { thread_id: thread.thread_id || 'mock-thread' } as ChatThread, error: null };
 
   const threadData = {
-    thread_id: thread.thread_id,
+    thread_id: thread.thread_id || uid(),
     user_a_id: thread.user_a_id,
     user_b_id: thread.user_b_id,
     last_msg: thread.last_msg || 'Started a conversation',
     last_ts: new Date().toISOString(),
   };
 
-  return supaQuery((client) => client.from('message_threads').insert(threadData).select().single());
+  return supaQuery<ChatThread>((client) => client.from('message_threads').insert(threadData).select().single());
 };
 
 /**
  * createChatMessage — sends a message in a thread.
  */
-export const createChatMessage = async (message: any) => {
-  if (!hasSupabase()) return { data: message, error: null };
+export const createChatMessage = async (message: Partial<ChatMessage> & { thread_id: string, user_id: string, content: string }) => {
+  if (!hasSupabase()) return { data: message as ChatMessage, error: null };
   const cleanMsg = {
     id: message.id || uid(),
     thread_id: message.thread_id,
@@ -73,7 +87,7 @@ export const createChatMessage = async (message: any) => {
     role: message.role || 'user',
     created_at: new Date().toISOString(),
   };
-  return supaQuery((client) => client.from('chat_messages').insert(cleanMsg).select().single());
+  return supaQuery<ChatMessage>((client) => client.from('chat_messages').insert(cleanMsg).select().single());
 };
 
 /**
@@ -81,7 +95,7 @@ export const createChatMessage = async (message: any) => {
  */
 export const updateChatThreadLastMessage = async (threadId: string, message: string) => {
   if (!hasSupabase()) return { ok: true };
-  return supaQuery((client) =>
+  return supaQuery<void>((client) =>
     client
       .from('message_threads')
       .update({ last_msg: message, last_ts: new Date().toISOString() })

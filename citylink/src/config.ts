@@ -93,8 +93,8 @@ export const LRT_STATIONS = {
 export const LRT_FARE_PER_KM = 0.45;
 export const LRT_BASE_FARE = 2.0;
 
-// Fayda demo database
-export const FAYDA_DB = {
+// Fayda demo database — ONLY available in development builds
+export const FAYDA_DB: Record<string, { name: string; dob: string; gender: string; region: string; status: string }> = __DEV__ ? {
   '100000000001': {
     name: 'Abebe Bikila',
     dob: '1982-05-12',
@@ -130,7 +130,7 @@ export const FAYDA_DB = {
     region: 'Amhara',
     status: 'SUSPENDED',
   },
-};
+} : {};
 
 // Exchange rates (demo — replace with live API)
 export const EXCHANGE_RATES = [

@@ -13,14 +13,14 @@ export interface AuthWelcomeProps {
 }
 
 const normalizeHexWithAlpha = (color: string | undefined): string => {
-  if (typeof color !== 'string') return 'rgba(89, 222, 155, 0.1)';
+  if (typeof color !== 'string') return 'rgba(0, 168, 107, 0.1)';
   const val = color.trim();
   if (val.startsWith('#')) {
     if (val.length === 4) return `#${val[1]}${val[1]}${val[2]}${val[2]}${val[3]}${val[3]}1A`;
     if (val.length === 7) return `${val}1A`;
     if (val.length === 9) return `${val.slice(0, 7)}1A`;
   }
-  return 'rgba(89, 222, 155, 0.1)';
+  return 'rgba(0, 168, 107, 0.1)';
 };
 
 export const AuthWelcome = ({ C, fadeAnim, slideAnim, onLogin, onRegister, onGov }: AuthWelcomeProps) => {
@@ -81,84 +81,93 @@ export const AuthWelcome = ({ C, fadeAnim, slideAnim, onLogin, onRegister, onGov
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    padding: 24,
+    padding: 32,
     justifyContent: 'center',
   },
   heroContainer: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 60,
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   heroTitle: {
-    fontSize: 32,
-    fontFamily: Fonts.bold,
-    marginBottom: 8,
+    fontSize: 42,
+    fontFamily: Fonts.headline,
+    letterSpacing: -1,
+    marginBottom: 12,
   },
   heroSubtitle: {
-    fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontSize: 17,
+    fontFamily: Fonts.body,
     textAlign: 'center',
+    maxWidth: '80%',
+    lineHeight: 24,
   },
   welcomeButtons: {
     gap: 16,
   },
   primaryBtn: {
-    height: 56,
-    borderRadius: 16,
+    height: 60,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   primaryBtnText: {
     fontSize: 18,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.label,
+    letterSpacing: 0.5,
   },
   secondaryBtn: {
-    height: 56,
-    borderRadius: 16,
+    height: 60,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   secondaryBtnText: {
     fontSize: 18,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.label,
+    letterSpacing: 0.5,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 12,
   },
   line: {
     flex: 1,
     height: 1,
+    opacity: 0.3,
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 12,
-    fontFamily: Fonts.bold,
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    textTransform: 'uppercase',
   },
   govBtn: {
     flexDirection: 'row',
-    height: 56,
-    borderRadius: 16,
+    height: 60,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
   },
   govBtnText: {
     fontSize: 16,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.label,
+    letterSpacing: 0.5,
   },
 });

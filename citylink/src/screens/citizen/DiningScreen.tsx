@@ -17,9 +17,9 @@ export function DiningScreen() {
   const currentUser = useAppStore((s) => s.currentUser);
   const lang = useAppStore((s) => s.lang);
 
-  const [restaurants, setRestaurants] = useState([]);
+  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reserveModal, setReserveModal] = useState(null);
+  const [reserveModal, setReserveModal] = useState<any>(null);
 
   useEffect(() => {
     async function loadRests() {

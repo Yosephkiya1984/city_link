@@ -63,7 +63,7 @@ export default function WalletScreen() {
   // â”€â”€ Verification Effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const isVerified =
-      (currentUser as any)?.fayda_verified || (currentUser as any)?.kyc_status === 'VERIFIED';
+      currentUser?.fayda_verified || currentUser?.kyc_status === 'VERIFIED';
     setWalletLimit(isVerified ? 50000 : 100);
 
     // Auto-detect provider based on phone (only if not manually selected)
@@ -82,10 +82,10 @@ export default function WalletScreen() {
     }
   }, [topupModal]);
 
-  // â”€â”€ Data Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchWallet = useCallback(async () => {
+    if (!currentUser?.id) return;
     try {
-      const data = await WalletService.fetchWalletData((currentUser as any)?.id);
+      const data = await WalletService.fetchWalletData(currentUser.id);
       if (data) {
         setBalance(data.balance);
         setTransactions(data.transactions || []);
@@ -93,7 +93,7 @@ export default function WalletScreen() {
     } catch (e) {
       console.error('Wallet sync error:', e);
     }
-  }, [(currentUser as any)?.id]);
+  }, [currentUser?.id, setBalance, setTransactions]);
 
   useEffect(() => {
     fetchWallet();
@@ -113,7 +113,7 @@ export default function WalletScreen() {
       showToast('User ID is missing', 'error');
       return;
     }
-    if ((balance as any) + amt > walletLimit) {
+    if ((balance + amt) > walletLimit) {
       showToast(`Wallet limit reached. Please verify your ID for higher limits.`, 'error');
       return;
     }
@@ -127,10 +127,10 @@ export default function WalletScreen() {
         selectedProvider
       );
       if (success) {
-        setBalance((balance as any) + amt);
+        setBalance(balance + amt);
         addTransaction({
           id: uid(),
-          wallet_id: `${currentUser.id}-wallet`, // Fallback local representation
+          wallet_id: `${currentUser.id}-wallet`,
           user_id: currentUser.id,
           amount: amt,
           type: 'credit',
@@ -139,7 +139,7 @@ export default function WalletScreen() {
           status: 'completed',
           created_at: new Date().toISOString(),
         });
-        showToast(`Successfully added ${fmtETB(amt, 0)} âœ¨`, 'success');
+        showToast(`Successfully added ${fmtETB(amt, 0)} ✨`, 'success');
         setTopupModal(false);
         setAmount('');
       }
@@ -152,8 +152,8 @@ export default function WalletScreen() {
 
   const qrData = JSON.stringify({
     type: 'p2p',
-    id: (currentUser as any)?.id,
-    phone: (currentUser as any)?.phone,
+    id: currentUser?.id,
+    phone: currentUser?.phone,
   });
 
   return (
@@ -238,7 +238,7 @@ export default function WalletScreen() {
           <View style={styles.qrContainer}>
             <QRCode value={qrData} size={200} />
           </View>
-          <Text style={[styles.qrUser, { color: C.text }]}>{(currentUser as any)?.full_name}</Text>
+          <Text style={[styles.qrUser, { color: C.text }]}>{currentUser?.full_name}</Text>
           <CButton
             title="Close"
             variant="secondary"
@@ -259,7 +259,7 @@ export default function WalletScreen() {
               Available Space
             </Text>
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
-              {fmtETB(walletLimit - (balance as any), 0)}
+              {fmtETB(walletLimit - balance, 0)}
             </Text>
           </View>
 

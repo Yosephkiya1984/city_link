@@ -1,7 +1,8 @@
-import { supabase, supaQuery } from './supabase';
+import { getClient, supaQuery } from './supabase';
+import { ParkingLot, ParkingSpot, ParkingSession } from '../types';
 
 export async function fetchParkingLots(merchantId?: string) {
-  return supaQuery((c) => {
+  return supaQuery<ParkingLot[]>((c) => {
     let query = c.from('parking_lots').select('*, parking_spots(*)');
     if (merchantId) {
       query = query.eq('merchant_id', merchantId);
@@ -10,8 +11,23 @@ export async function fetchParkingLots(merchantId?: string) {
   });
 }
 
-export async function startParkingSession(session: any) {
-  return supaQuery((c) => c.from('parking_sessions').insert([session]).select().single());
+export async function startParkingSession(session: Partial<ParkingSession>) {
+  return supaQuery<ParkingSession>((c) => 
+    c.from('parking_sessions').insert([session]).select().single()
+  );
+}
+
+interface ParkingEndResult {
+  data: ParkingSession | null;
+  error: {
+    message: string;
+    code?: string;
+    type?: string;
+    sessionId?: string;
+    recovery_failed?: boolean;
+    refund_key?: string;
+    details?: string;
+  } | null;
 }
 
 export async function endParkingSession(
@@ -20,9 +36,12 @@ export async function endParkingSession(
   lotName: string,
   spotNumber: string,
   fare: number
-): Promise<{ data: any; error: any }> {
+): Promise<ParkingEndResult> {
+  const client = getClient();
+  if (!client) return { data: null, error: { message: 'Supabase client not initialized' } };
+
   // 1. Initial State Check (Full Row Fetch)
-  const { data: currentSession, error: fetchError } = await supaQuery((c) =>
+  const { data: currentSession, error: fetchError } = await supaQuery<ParkingSession>((c) =>
     c.from('parking_sessions').select('*').eq('id', sessionId).single()
   );
 
@@ -44,7 +63,7 @@ export async function endParkingSession(
     const paymentId = `PRK-END-${sessionId}`;
     
     // Attempt debit
-    const balanceRes = await supabase.rpc('debit_wallet_atomic', {
+    const balanceRes = await client.rpc('debit_wallet_atomic', {
       p_user_id: userId,
       p_amount: fare,
       p_description: `Parking: ${lotName} (#${spotNumber})`,
@@ -66,7 +85,7 @@ export async function endParkingSession(
     // 3. Attempt Session Update (The "Commit" phase)
     try {
       const now = new Date().toISOString();
-      const { data: updateData, error: updateError } = await supaQuery((c) =>
+      const { data: updateData, error: updateError } = await supaQuery<ParkingSession>((c) =>
         c
           .from('parking_sessions')
           .update({
@@ -82,14 +101,17 @@ export async function endParkingSession(
       if (updateError || !updateData) throw new Error('Session update failed');
 
       // Success Path
-      updateData.new_balance = balanceRes.data.new_balance;
-      return { data: updateData, error: null };
-    } catch (err) {
+      const resultData: ParkingSession = {
+        ...updateData,
+        new_balance: balanceRes.data.new_balance
+      };
+      return { data: resultData, error: null };
+    } catch (err: any) {
       console.error(`[Parking] Finalization failed | Session: ${sessionId} | Error:`, err);
       
       // 4. COMPENSATING REFUND
-      const correlationId = sessionId; // Using sessionId as correlationId
-      const refundRes = await supabase.rpc('credit_wallet_atomic', {
+      const correlationId = sessionId; 
+      const refundRes = await client.rpc('credit_wallet_atomic', {
         p_user_id: userId,
         p_amount: fare,
         p_description: `REFUND: Parking finalization failed for ${sessionId.substring(0, 8)}`,
@@ -102,7 +124,7 @@ export async function endParkingSession(
         console.error(`CRITICAL: ${errorMsg}. Manual intervention required.`);
         
         // Persist refund_failed state with raw error for reconciliation
-        const { error: dbError } = await supaQuery((c) =>
+        await supaQuery<void>((c) =>
           c.from('parking_sessions').update({ 
             status: 'refund_failed',
             refund_failed: true,
@@ -110,45 +132,31 @@ export async function endParkingSession(
           }).eq('id', correlationId)
         );
 
-        if (dbError) {
-          console.error(`[Parking] DOUBLE_FAULT | Failed to persist refund_failed state | Session: ${correlationId} | DB Error: ${JSON.stringify(dbError)}`);
-        }
-
         return { 
           data: null,
           error: { 
             type: 'REFUND_FAILED',
             message: 'Session finalization failed and recovery attempt also failed.',
             sessionId: correlationId,
-            recovery_failed: true // Boolean flag instead of raw details
+            recovery_failed: true 
           } 
         };
       }
 
       // Revert status to payment_failed in the DB (Refund was successful)
       const refundKey = `REFUND-${paymentId}`;
-      const { data: revertData, error: revertError } = await supaQuery((c) =>
+      await supaQuery<ParkingSession>((c) =>
         c
           .from('parking_sessions')
           .update({ status: 'payment_failed' })
           .eq('id', sessionId)
-          .select()
-          .single()
       );
-
-      if (revertError || !revertData) {
-        console.error(
-          `[Parking] Revert status mismatch | Session: ${sessionId} | ` +
-          `Refund Key: ${refundKey} | Refund was successful but status update failed:`,
-          revertError || 'No row matched'
-        );
-      }
 
       return { 
         data: null,
         error: { 
           message: 'Session finalization failed. Payment was successfully refunded to your wallet.', 
-          details: 'Internal reconciliation error', // Sanitized text
+          details: 'Internal reconciliation error', 
           refund_key: refundKey 
         } 
       };
@@ -156,7 +164,7 @@ export async function endParkingSession(
   }
 
   // Handle case with no payment (fare = 0)
-  return supaQuery((c) =>
+  const finalRes = await supaQuery<ParkingSession>((c) =>
     c
       .from('parking_sessions')
       .update({
@@ -168,22 +176,24 @@ export async function endParkingSession(
       .select()
       .single()
   );
+
+  return { data: finalRes.data, error: finalRes.error ? { message: finalRes.error } : null };
 }
 
 export async function fetchParkingSessions(merchantId: string) {
-  return supaQuery((c) =>
+  return supaQuery<ParkingSession[]>((c) =>
     c.from('parking_sessions').select('*').eq('merchant_id', merchantId)
   );
 }
 
 export async function updateSessionStatus(sessionId: string, newStatus: string) {
-  return supaQuery((c) =>
+  return supaQuery<void>((c) =>
     c.from('parking_sessions').update({ status: newStatus }).eq('id', sessionId)
   );
 }
 
-export async function updateParkingLot(lotId: string, updates: any) {
-  return supaQuery((c) =>
-    c.from('parking_lots').update(updates).eq('id', lotId)
+export async function updateParkingLot(lotId: string, updates: Partial<ParkingLot>) {
+  return supaQuery<ParkingLot>((c) =>
+    c.from('parking_lots').update(updates).eq('id', lotId).select().single()
   );
 }

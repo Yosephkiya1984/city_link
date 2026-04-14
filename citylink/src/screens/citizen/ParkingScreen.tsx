@@ -168,7 +168,7 @@ export default function ParkingScreen() {
     const sessionId = uid();
     const session = {
       id: sessionId,
-      user_id: currentUser?.id,
+      user_id: currentUser?.id || '',
       lot_id: selectedLot.id,
       lot_name: selectedLot.name,
       spot_id: selectedSpot.id,
@@ -177,6 +177,8 @@ export default function ParkingScreen() {
       rate_per_hour: selectedLot.rate_per_hour,
       qr_token: genQrToken('PRK'),
       status: 'active',
+      merchant_id: selectedLot.id, // Assuming lot ID for now as fallback
+      created_at: new Date().toISOString(),
     };
 
     const { error } = await startParkingSession(session);
@@ -219,14 +221,15 @@ export default function ParkingScreen() {
     try {
       const res = await endParkingSession(
         activeParking.id,
-        currentUser?.id,
+        currentUser?.id || '',
         (activeParking as any).lot_name || '',
         activeParking.spot_number || '',
         fare
       );
 
       if (res.error) {
-        showToast(res.error || 'Could not finalize parking session', 'error');
+        showToast(typeof res.error === 'string' ? res.error : (res.error as any)?.message || 'Could not finalize parking session', 'error');
+        setLoading(false);
         return;
       }
 

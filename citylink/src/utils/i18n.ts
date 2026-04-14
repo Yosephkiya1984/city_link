@@ -164,14 +164,16 @@ export function t(text: string, lang?: string): string {
   // Always try to return a meaningful translation, even in English
   const entry = translations[text];
 
-  if (activeLang === 'en') {
+  if (activeLang && activeLang === 'en') {
     // For English, return the key if no translation exists
     if (entry && entry.en) return entry.en;
     // If no English translation exists, return a human-readable version
     return text.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
   }
 
-  if (entry && (entry as any)[activeLang]) return (entry as any)[activeLang];
+  if (entry && activeLang && (entry as any)[activeLang]) {
+    return (entry as any)[activeLang];
+  }
 
   // Heuristics for currency
   if (typeof text === 'string' && text.includes(' ETB')) {

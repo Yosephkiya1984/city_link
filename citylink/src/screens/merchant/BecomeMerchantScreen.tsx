@@ -19,6 +19,7 @@ import { useAppStore } from '../../store/AppStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput, CSelect } from '../../components';
 import { fmtETB, uid } from '../../utils';
+import { useTheme } from '../../hooks/useTheme';
 
 const MERCHANT_TYPES = [
   { value: 'retail', label: '🛍️ Retail / Shop' },
@@ -30,9 +31,8 @@ const MERCHANT_TYPES = [
 ];
 
 export default function BecomeMerchantScreen() {
+  const C = useTheme();
   const navigation = useNavigation();
-  const isDark = useAppStore((s) => s.isDark);
-  const C = isDark ? DarkColors : Colors;
   const currentUser = useAppStore((s) => s.currentUser);
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);
   const showToast = useAppStore((s) => s.showToast);
@@ -56,14 +56,26 @@ export default function BecomeMerchantScreen() {
     setLoading(true);
     setTimeout(async () => {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      if (!currentUser) {
+        showToast('Session expired, please login again', 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Hardened User Object with proper typing
       const updatedUser = {
         ...currentUser,
-        role: 'merchant' as any,
-        merchant_name: businessName,
-        merchant_type: type,
-        tin: tin,
-        merchant_status: 'VERIFIED', // Instant approval for demo/MVP
+        role: 'merchant' as any, // Cast to any if strict union is problematic, but ideally matches AppState 'User'
+        merchant_details: {
+          business_name: businessName,
+          merchant_type: type,
+          tin: tin,
+          status: 'PENDING',
+          joined_at: new Date().toISOString(),
+        }
       };
+      
       setCurrentUser(updatedUser);
       setLoading(false);
       setStep(3);
@@ -77,37 +89,40 @@ export default function BecomeMerchantScreen() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 }}>
           <View
             style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: C.primaryL,
+              width: 140,
+              height: 140,
+              borderRadius: 70,
+              backgroundColor: C.primary + '15',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: 24,
+              marginBottom: 32,
+              borderWidth: 2,
+              borderColor: C.primary + '30',
             }}
           >
-            <Ionicons name="rocket" size={64} color={C.primary} />
+            <Ionicons name="rocket" size={72} color={C.primary} />
           </View>
           <Text
-            style={{ color: C.text, fontSize: 28, fontFamily: Fonts.black, textAlign: 'center' }}
+            style={{ color: C.text, fontSize: 32, fontFamily: Fonts.headline, textAlign: 'center', letterSpacing: -1 }}
           >
-            You are a Merchant!
+            You're a Merchant!
           </Text>
           <Text
             style={{
               color: C.sub,
-              fontSize: 15,
-              fontFamily: Fonts.medium,
+              fontSize: 16,
+              fontFamily: Fonts.body,
               textAlign: 'center',
-              marginTop: 12,
+              marginTop: 16,
+              lineHeight: 24,
             }}
           >
-            Welcome to the CityLink economic network. Your portal is now active.
+            Welcome to the CityLink economic network. Your merchant portal is now active and ready for business.
           </Text>
           <CButton
             title="Enter Merchant Portal"
             onPress={() => (navigation as any).reset({ index: 0, routes: [{ name: 'Main' }] })}
-            style={{ marginTop: 40, width: '100%' }}
+            style={{ marginTop: 48, width: '100%', borderRadius: Radius['2xl'] }}
           />
         </View>
       </View>
@@ -117,59 +132,59 @@ export default function BecomeMerchantScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar title="Join Merchant Network" />
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
-        <View style={{ marginBottom: 32 }}>
-          <Text style={{ color: C.text, fontSize: 32, fontFamily: Fonts.black }}>
-            Grow with CityLink
+      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60 }}>
+        <View style={{ marginBottom: 40 }}>
+          <Text style={{ color: C.text, fontSize: 36, fontFamily: Fonts.headline, letterSpacing: -1.5 }}>
+            Grow with{"\n"}CityLink
           </Text>
-          <Text style={{ color: C.sub, fontSize: 15, fontFamily: Fonts.medium, marginTop: 8 }}>
-            Register your business, start receiving digital payments, and reach 1 million users.
+          <Text style={{ color: C.sub, fontSize: 16, fontFamily: Fonts.body, marginTop: 12, lineHeight: 24 }}>
+            Register your business, start receiving digital payments, and reach the entire city instantly.
           </Text>
         </View>
 
         {step === 1 ? (
           <>
-            <View style={{ gap: 16, marginBottom: 32 }}>
+            <View style={{ gap: 16, marginBottom: 40 }}>
               <View
                 style={{
                   backgroundColor: C.surface,
-                  borderRadius: Radius.xl,
-                  padding: 20,
+                  borderRadius: Radius['2xl'],
+                  padding: 24,
                   borderWidth: 1.5,
                   borderColor: C.edge2,
-                  ...Shadow.sm,
+                  ...Shadow.md,
                 }}
               >
-                <Text style={{ color: C.primary, fontSize: 18, fontFamily: Fonts.black }}>
+                <Text style={{ color: C.primary, fontSize: 20, fontFamily: Fonts.headline }}>
                   0% Processing Fees
                 </Text>
                 <Text
-                  style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.medium, marginTop: 4 }}
+                  style={{ color: C.sub, fontSize: 14, fontFamily: Fonts.body, marginTop: 6, opacity: 0.8 }}
                 >
-                  Pay nothing on your first 10,000 ETB in sales.
+                  Pay nothing on your first 10,000 ETB in sales. We grow when you grow.
                 </Text>
               </View>
               <View
                 style={{
                   backgroundColor: C.surface,
-                  borderRadius: Radius.xl,
-                  padding: 20,
+                  borderRadius: Radius['2xl'],
+                  padding: 24,
                   borderWidth: 1.5,
                   borderColor: C.edge2,
-                  ...Shadow.sm,
+                  ...Shadow.md,
                 }}
               >
-                <Text style={{ color: C.primary, fontSize: 18, fontFamily: Fonts.black }}>
+                <Text style={{ color: C.primary, fontSize: 20, fontFamily: Fonts.headline }}>
                   Instant Settlements
                 </Text>
                 <Text
-                  style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.medium, marginTop: 4 }}
+                  style={{ color: C.sub, fontSize: 14, fontFamily: Fonts.body, marginTop: 6, opacity: 0.8 }}
                 >
-                  Funds move directly from user to your wallet instantly.
+                  Funds move directly from user to your wallet instantly. No waiting periods.
                 </Text>
               </View>
             </View>
-            <CButton title="Start Application" onPress={() => setStep(2)} />
+            <CButton title="Start Application" onPress={() => setStep(2)} style={{ borderRadius: Radius['2xl'] }} />
           </>
         ) : (
           <Card style={{ padding: 24 }}>

@@ -90,7 +90,7 @@ export default function UserModule() {
                   fontWeight: '700',
                 }}
               >
-                {item.role.toUpperCase()}
+                {item.role?.toUpperCase() || 'USER'}
               </Text>
             </View>
           </View>
@@ -165,7 +165,7 @@ export default function UserModule() {
                 fontWeight: '700',
               }}
             >
-              {item.role.toUpperCase()}
+              {item.role?.toUpperCase() || 'USER'}
             </Text>
           </View>
         </View>

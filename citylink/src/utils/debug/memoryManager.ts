@@ -130,22 +130,12 @@ class MemoryManager {
     // Clear all cleanup tasks
     this.cleanupTasks = [];
 
-    // Force garbage collection
-    if ((window as any).gc) {
-      (window as any).gc();
-    }
-
-    // Report performance issue
-    const { reportError } = useErrorReporting() as any;
-    if (reportError) {
-      reportError({
-        type: 'performance',
-        severity: 'high',
-        message: 'Emergency memory cleanup triggered',
-        memoryUsage: this.memoryStats,
-        context: 'memory_management',
-      });
-    }
+    // Log performance issue (hooks cannot be used inside class methods)
+    console.error('[MemoryManager] Emergency memory cleanup triggered', {
+      type: 'performance',
+      severity: 'high',
+      memoryUsage: this.memoryStats,
+    });
   }
 
   // Detect memory leaks
@@ -155,19 +145,12 @@ class MemoryManager {
     if (currentObjects > MEMORY_CONFIG.MAX_UNUSED_OBJECTS) {
       this.memoryStats.leaksDetected++;
 
-      console.warn(`🔍 Potential memory leak detected: ${currentObjects} objects registered`);
-
-      // Report leak
-      const { reportError } = useErrorReporting();
-      if (reportError) {
-        reportError({
-          type: 'performance',
-          severity: 'medium',
-          message: 'Memory leak detected',
-          objectCount: currentObjects,
-          context: 'memory_leak_detection',
-        });
-      }
+      // Log leak (hooks cannot be used inside class methods)
+      console.warn(`🔍 Potential memory leak detected: ${currentObjects} objects registered`, {
+        type: 'performance',
+        severity: 'medium',
+        objectCount: currentObjects,
+      });
     }
   }
 
@@ -398,7 +381,7 @@ export function useMemoryManager() {
     }, 5000);
 
     return () => {
-      cleanup();
+      if (cleanup) cleanup();
       clearInterval(statsInterval);
     };
   }, []);
@@ -415,7 +398,7 @@ export function useMemoryManager() {
 // Hook for performance profiling
 export function usePerformanceProfiler(componentName: string) {
   const renderCount = useRef(0);
-  const renderTimes = useRef([]);
+  const renderTimes = useRef<number[]>([]);
   const lastRenderTime = useRef(Date.now());
 
   useEffect(() => {

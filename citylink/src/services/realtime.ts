@@ -4,28 +4,46 @@
  */
 
 import React from 'react';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { getClient } from './supabase';
 import { useAppStore } from '../store/AppStore';
 import { uid, fmtETB } from '../utils';
+import * as Haptics from 'expo-haptics';
+import { P2PTransfer, Wallet, Notification } from '../types';
 
-const subscriptions = new Map();
+const subscriptions = new Map<string, RealtimeChannel>();
+
+export interface RealtimePayload<T = any> {
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+  new: T;
+  old: T;
+}
 
 // ── Real-time Hook for React Components ────────────────────────────────────────
-export function useRealtimeSubscription(channelName: string, table: string, filter: string, onPayload: any, enabled = true) {
+export function useRealtimeSubscription<T extends Record<string, any> = any>(
+  channelName: string, 
+  table: string, 
+  filter: string, 
+  onPayload: (payload: RealtimePayload<T>) => void, 
+  enabled = true
+) {
   const currentUser = useAppStore((s) => s.currentUser);
 
   React.useEffect(() => {
     if (!enabled || !currentUser?.id || !getClient()) return;
 
-    const client = getClient();
+    const client = getClient()!;
     const channel = client
       .channel(channelName)
-      .on(
+      .on<T>(
         'postgres_changes',
         { event: '*', schema: 'public', table, filter },
-        (payload) => {
+        (payload: any) => {
           console.log(`[Realtime] ${table} update:`, payload);
-          onPayload?.(payload);
+          onPayload?.(payload as unknown as RealtimePayload<T>);
         }
       )
       .subscribe((status) => {
@@ -47,23 +65,24 @@ export function useRealtimeSubscription(channelName: string, table: string, filt
 
 // ── Setup Real-time Subscriptions for Current User ───────────────────────────────
 export function setupUserRealtime() {
-  const currentUser = useAppStore.getState().currentUser;
+  const store = useAppStore.getState();
+  const currentUser = store.currentUser;
   if (!currentUser?.id || !getClient()) return;
 
-  const client = getClient();
+  const client = getClient()!;
   const userId = currentUser.id;
 
   // 1. Wallet balance updates
   const walletChannel = client
     .channel(`wallet-${userId}`)
-    .on(
+    .on<Wallet>(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'wallets', filter: `user_id=eq.${userId}` },
       (payload) => {
         const newBalance = payload.new?.balance;
         if (newBalance !== undefined) {
-          useAppStore.getState().setBalance(newBalance);
-          useAppStore.getState().showToast('Wallet updated', 'success');
+          store.setBalance(newBalance);
+          store.showToast('Wallet updated', 'success');
         }
       }
     )
@@ -72,24 +91,25 @@ export function setupUserRealtime() {
   // 2. In-app Notifications
   const notifChannel = client
     .channel(`notifications-${userId}`)
-    .on(
+    .on<Notification>(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
       (payload) => {
-        const notif = payload.new as any;
-        const store = useAppStore.getState();
+        const notif = payload.new;
+        if (!notif) return;
+        
         // Persist notification to store and show transient toast
         store.addNotification({
           id: notif.id || uid(),
           user_id: notif.user_id || userId,
           title: notif.title || 'Notification',
-          message: notif.message || notif.body || '',
+          message: notif.message || '',
           type: notif.type || 'info',
-          read: notif.read ?? notif.is_read ?? false,
-          is_read: notif.read ?? notif.is_read ?? false,
+          read: notif.read || false,
+          is_read: notif.is_read || notif.read || false,
           created_at: notif.created_at || new Date().toISOString(),
-          data: notif.data || notif.metadata,
-          metadata: notif.data || notif.metadata
+          data: notif.data,
+          metadata: notif.metadata || notif.data,
         });
         store.showToast(`${notif.title || 'Notification'}`, 'info');
       }
@@ -99,13 +119,13 @@ export function setupUserRealtime() {
   // 3. P2P transfers received
   const p2pChannel = client
     .channel(`p2p-${userId}`)
-    .on(
+    .on<P2PTransfer>(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'p2p_transfers', filter: `recipient_id=eq.${userId}` },
       (payload) => {
         const transfer = payload.new;
-        if (transfer.status === 'PENDING') {
-          useAppStore.getState().showToast(`Received ${fmtETB(transfer.amount)} ETB!`, 'success');
+        if (transfer && transfer.status === 'PENDING') {
+          store.showToast(`Received ${fmtETB(transfer.amount)} ETB!`, 'success');
           if (transfer.amount <= 1000) {
             claimP2PTransfer(transfer.id);
           }
@@ -117,12 +137,13 @@ export function setupUserRealtime() {
   // 4. Ekub circle updates
   const ekubChannel = client
     .channel(`ekub-${userId}`)
-    .on(
+    .on<{ ekub_id: string }>(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'ekub_members', filter: `user_id=eq.${userId}` },
       (payload) => {
-        if ((payload.new as any)?.ekub_id || (payload.old as any)?.ekub_id) {
-          useAppStore.getState().showToast('Ekub circle updated', 'info');
+        const ekubId = (payload.new as any)?.ekub_id || (payload.old as any)?.ekub_id;
+        if (ekubId) {
+          store.showToast('Ekub circle updated', 'info');
         }
       }
     )
@@ -137,10 +158,11 @@ export function setupUserRealtime() {
 
 // ── Merchant Real-time Subscriptions ───────────────────────────────────────────────
 export function setupMerchantRealtime() {
-  const currentUser = useAppStore.getState().currentUser;
+  const store = useAppStore.getState();
+  const currentUser = store.currentUser;
   if (!currentUser?.id || currentUser.role !== 'merchant' || !getClient()) return;
 
-  const client = getClient();
+  const client = getClient()!;
   const merchantId = currentUser.id;
 
   // 1. New marketplace orders
@@ -150,10 +172,8 @@ export function setupMerchantRealtime() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'marketplace_orders', filter: `merchant_id=eq.${merchantId}` },
       () => {
-        useAppStore.getState().showToast('New order received!', 'success');
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([200, 100, 200]);
-        }
+        store.showToast('New order received!', 'success');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     )
     .subscribe();
@@ -165,10 +185,8 @@ export function setupMerchantRealtime() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'food_orders', filter: `merchant_id=eq.${merchantId}` },
       () => {
-        useAppStore.getState().showToast('New food order!', 'success');
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([200, 100, 200]);
-        }
+        store.showToast('New food order!', 'success');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     )
     .subscribe();
@@ -180,36 +198,28 @@ export function setupMerchantRealtime() {
 // ── Claim P2P Transfer ───────────────────────────────────────────────────────────
 async function claimP2PTransfer(transferId: string) {
   const client = getClient();
+  const store = useAppStore.getState();
   if (!client) return;
 
   try {
-    const { data, error } = await client
-      .from('p2p_transfers')
-      .update({ status: 'CLAIMED', claimed_at: new Date().toISOString() })
-      .eq('id', transferId)
-      .select()
-      .single();
+    const { data: result, error } = await client.rpc('process_p2p_claim', {
+      p_transfer_id: transferId,
+    });
 
-    if (error) throw error;
-
-    const userId = useAppStore.getState().currentUser?.id;
-    if (userId) {
-      const { data: wallet } = await client
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
-      if (wallet) {
-        useAppStore.getState().setBalance(wallet.balance);
-      }
+    if (error || !result.ok) {
+      throw new Error(result?.error || error?.message || 'Failed to claim transfer');
     }
 
-    if (data) {
-      useAppStore.getState().showToast(`Claimed ${fmtETB(data.amount)} ETB!`, 'success');
+    // Update local balance from result
+    if (result.amount) {
+      const currentBalance = store.balance;
+      store.setBalance(currentBalance + result.amount);
+      store.showToast(`Claimed ${fmtETB(result.amount)} ETB!`, 'success');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   } catch (error) {
     console.error('Error claiming P2P transfer:', error);
-    useAppStore.getState().showToast('Failed to claim transfer', 'error');
+    store.showToast('Failed to claim transfer', 'error');
   }
 }
 
@@ -222,7 +232,7 @@ export function cleanupRealtime() {
 }
 
 // ── Push Notification Helper ───────────────────────────────────────────────────────
-export function sendPushNotification(userId: string, title: string, body: string, data = {}) {
+export function sendPushNotification(userId: string, title: string, body: string, data: Record<string, any> = {}) {
   const client = getClient();
   if (!client) return;
 

@@ -1,10 +1,11 @@
 import { getClient, supaQuery } from './supabase';
+import { User, DeliveryAgent, MarketplaceOrder, FoodOrder, ParkingSession, DeliveryDispatch, PropertyListing } from '../types';
 
 /**
  * fetchPendingMerchants — fetches merchants awaiting KYC approval.
  */
 export async function fetchPendingMerchants() {
-  return supaQuery((c) =>
+  return supaQuery<User[]>((c) =>
     c
       .from('profiles')
       .select('*')
@@ -20,7 +21,7 @@ export async function fetchPendingMerchants() {
 export async function approveMerchant(merchantId: string) {
   if (!merchantId) return { data: null, error: 'No merchant ID provided' };
 
-  const res = await supaQuery((c: any) =>
+  return supaQuery<User>((c) =>
     c
       .from('profiles')
       .update({
@@ -29,20 +30,15 @@ export async function approveMerchant(merchantId: string) {
       })
       .eq('id', merchantId)
       .select()
+      .single()
   );
-
-  const data = res.data as any[] | null;
-  if (!res.error && (!data || data.length === 0)) {
-    return { data: null, error: 'Database access denied (RLS). You cannot update this merchant.' };
-  }
-  return res;
 }
 
 /**
  * rejectMerchant — rejects a merchant's application with a reason.
  */
 export async function rejectMerchant(merchantId: string, reason: string) {
-  return supaQuery((c: any) =>
+  return supaQuery<User>((c) =>
     c
       .from('profiles')
       .update({
@@ -52,6 +48,8 @@ export async function rejectMerchant(merchantId: string, reason: string) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', merchantId)
+      .select()
+      .single()
   );
 }
 
@@ -59,57 +57,53 @@ export async function rejectMerchant(merchantId: string, reason: string) {
  * approveAgent — approves a delivery agent in both profiles and delivery_agents tables.
  * Uses upsert for delivery_agents to handle missing records.
  */
-export async function approveAgent(agentOrId: any) {
+export async function approveAgent(agentOrId: string | DeliveryAgent) {
   const agentId = typeof agentOrId === 'object' ? agentOrId.id : agentOrId;
   const agentData = typeof agentOrId === 'object' ? agentOrId : null;
 
   if (!agentId) return { error: 'No agent ID provided' };
 
   // 1. Update or Create delivery_agents record
-  const agentUpdate: any = {
+  const agentUpdate: Partial<DeliveryAgent> = {
     id: agentId,
     agent_status: 'APPROVED',
   };
 
-  // If we have full data, include it to ensure a valid record if we're upserting
   if (agentData) {
     if (agentData.vehicle_type) agentUpdate.vehicle_type = agentData.vehicle_type;
     if (agentData.license_number) agentUpdate.license_number = agentData.license_number;
     if (agentData.plate_number) agentUpdate.plate_number = agentData.plate_number;
   }
 
-  const res1 = await supaQuery((c: any) =>
-    c.from('delivery_agents').upsert(agentUpdate, { onConflict: 'id' }).select()
+  const res1 = await supaQuery<DeliveryAgent>((c) =>
+    c.from('delivery_agents').upsert(agentUpdate, { onConflict: 'id' }).select().single()
   );
 
   if (res1.error) {
     const errorMsg = String(res1.error);
-    const isRLS =
-      errorMsg.includes('RLS') || errorMsg.includes('row-level security policy');
+    const isRLS = errorMsg.includes('RLS') || errorMsg.includes('row-level security policy');
     if (isRLS) {
       return {
-        error:
-          'Database access denied (RLS) on delivery_agents. Please run the admin SQL policy fix.',
+        error: 'Database access denied (RLS) on delivery_agents. Please run the admin SQL policy fix.',
       };
     }
     return { error: `Delivery Agent update failed: ${res1.error}` };
   }
 
-  const rows1 = (res1.data as any[])?.length || 0;
+  const rows1 = res1.data && Array.isArray(res1.data) ? res1.data.length : (res1.data ? 1 : 0);
   if (rows1 === 0) {
     return {
-      error:
-        'Failed to update delivery_agents table. Ensure the record exists or RLS allows upsert.',
+      error: 'Failed to update delivery_agents table. Ensure the record exists or RLS allows upsert.',
     };
   }
 
   // 2. Verify the profile
-  const res2 = await supaQuery((c: any) =>
-    c.from('profiles').update({ kyc_status: 'VERIFIED' }).eq('id', agentId).select()
+  const res2 = await supaQuery<User>((c) =>
+    c.from('profiles').update({ kyc_status: 'VERIFIED' }).eq('id', agentId).select().single()
   );
 
   if (res2.error) return { error: `Profile update failed: ${res2.error}` };
-  const rows2 = (res2.data as any[])?.length || 0;
+  const rows2 = res2.data && Array.isArray(res2.data) ? res2.data.length : (res2.data ? 1 : 0);
 
   console.log(`[CityLink] approveAgent rows affected: delivery_agents=${rows1}, profiles=${rows2}`);
 
@@ -127,19 +121,19 @@ export async function rejectAgent(agentId: string, reason: string) {
   if (!agentId) return { error: 'No agent ID provided' };
 
   // 1. Update delivery_agents first
-  const res1 = await supaQuery((c: any) =>
-    c.from('delivery_agents').update({ agent_status: 'REJECTED' }).eq('id', agentId).select()
+  const res1 = await supaQuery<DeliveryAgent>((c) =>
+    c.from('delivery_agents').update({ agent_status: 'REJECTED' }).eq('id', agentId).select().single()
   );
 
   if (res1.error) return { error: res1.error };
-  const rows1 = (res1.data as any[])?.length || 0;
+  const rows1 = res1.data && Array.isArray(res1.data) ? res1.data.length : (res1.data ? 1 : 0);
 
   if (rows1 === 0) {
     return { error: 'Agent record not found or access denied (RLS).' };
   }
 
   // 2. Update profile
-  const res2 = await supaQuery((c: any) =>
+  const res2 = await supaQuery<User>((c) =>
     c
       .from('profiles')
       .update({
@@ -148,10 +142,11 @@ export async function rejectAgent(agentId: string, reason: string) {
       })
       .eq('id', agentId)
       .select()
+      .single()
   );
 
   if (res2.error) return { error: res2.error };
-  const rows2 = (res2.data as any[])?.length || 0;
+  const rows2 = res2.data && Array.isArray(res2.data) ? res2.data.length : (res2.data ? 1 : 0);
 
   console.log(`[CityLink] rejectAgent rows affected: delivery_agents=${rows1}, profiles=${rows2}`);
 
@@ -162,7 +157,16 @@ export async function rejectAgent(agentId: string, reason: string) {
   return { error: null };
 }
 
-export const fetchAdminLiveStats = async () => {
+export interface AdminStats {
+  identities: number;
+  revenue: number;
+  deliveries: number;
+  realEstate: number;
+  parking: number;
+  openDisputes: number;
+}
+
+export const fetchAdminLiveStats = async (): Promise<{ data: AdminStats; error?: string }> => {
   try {
     const [
       profilesRes,
@@ -174,41 +178,36 @@ export const fetchAdminLiveStats = async () => {
       disputeMktRes,
       disputeFoodRes,
     ] = await Promise.all([
-      supaQuery((c: any) => c.from('profiles').select('id', { count: 'exact', head: true })),
-      supaQuery((c: any) => c.from('marketplace_orders').select('total')),
-      supaQuery((c: any) => c.from('food_orders').select('total')),
-      supaQuery((c: any) => c.from('delivery_dispatches').select('id', { count: 'exact', head: true })),
-      supaQuery((c: any) => c.from('property_listings').select('id', { count: 'exact', head: true })),
-      supaQuery((c: any) => c.from('parking_sessions').select('id', { count: 'exact', head: true })),
-      supaQuery((c: any) =>
+      supaQuery<{id: string}[]>((c) => c.from('profiles').select('id', { count: 'exact', head: true })),
+      supaQuery<{ total: number }[]>((c) => c.from('marketplace_orders').select('total')),
+      supaQuery<{ total: number }[]>((c) => c.from('food_orders').select('total')),
+      supaQuery<{id: string}[]>((c) => c.from('delivery_dispatches').select('id', { count: 'exact', head: true })),
+      supaQuery<{id: string}[]>((c) => c.from('property_listings').select('id', { count: 'exact', head: true })),
+      supaQuery<{id: string}[]>((c) => c.from('parking_sessions').select('id', { count: 'exact', head: true })),
+      supaQuery<{id: string}[]>((c) =>
         c
           .from('marketplace_orders')
           .select('id', { count: 'exact', head: true })
           .eq('status', 'DISPUTED')
       ),
-      supaQuery((c: any) =>
+      supaQuery<{id: string}[]>((c) =>
         c.from('food_orders').select('id', { count: 'exact', head: true }).eq('status', 'DISPUTED')
       ),
     ]);
 
-    // Log errors for debugging
-    if (profilesRes.error) console.error('🔧 AdminStats Profiles Error:', profilesRes.error);
-    if (mktOrdersRes.error) console.error('🔧 AdminStats MktOrders Error:', mktOrdersRes.error);
-
-    const mktRevenue = ((mktOrdersRes.data as any[]) || []).reduce(
-      (acc, o) => acc + (parseFloat(o.total) || 0),
+    const mktRevenue = (mktOrdersRes.data || []).reduce(
+      (acc, o) => acc + (Number(o.total) || 0),
       0
     );
-    const foodRevenue = ((foodOrdersRes.data as any[]) || []).reduce(
-      (acc, o) => acc + (parseFloat(o.total) || 0),
+    const foodRevenue = (foodOrdersRes.data || []).reduce(
+      (acc, o) => acc + (Number(o.total) || 0),
       0
     );
-    const totalRevenue = mktRevenue + foodRevenue;
-
+    
     return {
       data: {
         identities: profilesRes.count || 0,
-        revenue: totalRevenue,
+        revenue: mktRevenue + foodRevenue,
         deliveries: deliveryRes.count || 0,
         realEstate: listingsRes.count || 0,
         parking: parkingRes.count || 0,
@@ -227,7 +226,7 @@ export const fetchAdminLiveStats = async () => {
 /**
  * subscribeToGlobalEvents — establishes realtime subscription for critical events.
  */
-export const subscribeToGlobalEvents = (callback: (data: any) => void) => {
+export const subscribeToGlobalEvents = (callback: (data: { type: string; payload: any }) => void) => {
   const client = getClient();
   if (!client) return null;
 

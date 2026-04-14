@@ -17,7 +17,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
 import { useAppStore } from '../../store/AppStore';
-import { useSystemStore } from '../../store/SystemStore';
 import { ChatMessage } from '../../types';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { sendMessage } from '../../services/ai.service';
@@ -103,8 +102,8 @@ export default function AIScreen() {
     setLoading(true);
 
     const apiMessages = [
-      ...chatHistory.map((m: ChatMessage) => ({ role: m.role, content: m.content })),
-      { role: 'user', content: msg },
+      ...chatHistory.map((m: ChatMessage) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      { role: 'user' as const, content: msg },
     ];
 
     const reply = await sendMessage(apiMessages);

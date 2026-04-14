@@ -42,13 +42,13 @@ export default function ProfileScreen() {
 
   const [pinSet, setPinSet] = useState(false);
   const [kycStatus, setKycStatus] = useState<string>(FAYDA_STATUS.NOT_STARTED);
-  const [kycData, setKycData] = useState(null);
+  const [kycData, setKycData] = useState<any>(null);
   const [isAgent, setIsAgent] = useState(false);
   const [loadingAgent, setLoadingAgent] = useState(false);
 
   useEffect(() => {
     (async () => {
-      setPinSet(await hasWalletPin(currentUser?.id));
+      setPinSet(await hasWalletPin(currentUser?.id || ''));
       // Load KYC status
       const statusData = await FaydaKYCService.getKYCStatus();
       setKycStatus(statusData.status);
