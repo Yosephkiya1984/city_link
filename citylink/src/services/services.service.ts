@@ -3,7 +3,7 @@ import { PropertyListing } from '../types';
 
 export async function fetchPropertyListings(agentId: string) {
   return supaQuery((c) =>
-    c.from('property_listings').select('*').eq('agent_id', agentId)
+    c.from('property_listings').select('*').eq('poster_id', agentId)
   );
 }
 

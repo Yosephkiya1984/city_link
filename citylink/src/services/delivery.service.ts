@@ -11,7 +11,7 @@ import { decode } from 'base64-arraybuffer';
 import { uid } from '../utils';
 
 // ── Haversine distance (km) ───────────────────────────────────────────────────
-function haversine(lat1, lng1, lat2, lng2) {
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
@@ -25,7 +25,7 @@ function haversine(lat1, lng1, lat2, lng2) {
  * calculateETA
  * Simple ETA based on distance and average speed (25km/h in Addis traffic)
  */
-export function calculateETA(lat1, lng1, lat2, lng2) {
+export function calculateETA(lat1: number, lng1: number, lat2: number, lng2: number) {
   const dist = haversine(lat1, lng1, lat2, lng2);
   const avgSpeedKmh = 20; // Conservative Addis traffic speed
   const hours = dist / avgSpeedKmh;
@@ -33,7 +33,7 @@ export function calculateETA(lat1, lng1, lat2, lng2) {
   return Math.max(2, minutes); // Min 2 mins
 }
 
-export async function registerDeliveryAgent({ agentId, vehicleType, plateNumber, licenseNumber }) {
+export async function registerDeliveryAgent({ agentId, vehicleType, plateNumber, licenseNumber }: any) {
   if (!agentId) return { error: 'Missing authenticated agent ID' };
   return supaQuery((c) =>
     c.from('delivery_agents').upsert(
@@ -68,7 +68,7 @@ export async function getCurrentLocation() {
   }
 }
 
-export async function updateAgentLocation(agentId, lat, lng) {
+export async function updateAgentLocation(agentId: string, lat: number, lng: number) {
   if (!hasSupabase()) return;
   return supaQuery((c) =>
     c
@@ -79,7 +79,7 @@ export async function updateAgentLocation(agentId, lat, lng) {
 }
 
 // ── Online/Offline Toggle ─────────────────────────────────────────────────────
-export async function setAgentOnlineStatus(agentId, isOnline, lat, lng) {
+export async function setAgentOnlineStatus(agentId: string, isOnline: boolean, lat: number, lng: number) {
   if (!hasSupabase()) return { ok: true };
   return supaQuery((c) =>
     c
@@ -95,13 +95,13 @@ export async function setAgentOnlineStatus(agentId, isOnline, lat, lng) {
 }
 
 // ── Fetch Agent Profile ───────────────────────────────────────────────────────
-export async function fetchAgentProfile(agentId) {
+export async function fetchAgentProfile(agentId: string) {
   if (!hasSupabase()) return { data: null, error: null };
   return supaQuery((c) => c.from('delivery_agents').select('*').eq('id', agentId).single());
 }
 
 // ── Find Nearby Agents ────────────────────────────────────────────────────────
-export async function findNearbyAgents(merchantLat, merchantLng, radiusKm = 10) {
+export async function findNearbyAgents(merchantLat: number, merchantLng: number, radiusKm = 10) {
   if (!hasSupabase()) return [];
   
   // 5-minute heartbeat window
@@ -131,7 +131,7 @@ export async function findNearbyAgents(merchantLat, merchantLng, radiusKm = 10) 
 }
 
 // ── Dispatch Job ──────────────────────────────────────────────────────────────
-export async function dispatchOrderToAgents(orderId, agentIds) {
+export async function dispatchOrderToAgents(orderId: string, agentIds: string[]) {
   if (!hasSupabase() || !agentIds.length) return { ok: false, error: 'no_agents' };
 
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 min
@@ -147,7 +147,7 @@ export async function dispatchOrderToAgents(orderId, agentIds) {
       })
       .eq('id', orderId)
   );
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: (error as any).message };
 
   // Write dispatch records for each candidate agent
   const records = agentIds.map((agentId) => ({
@@ -165,7 +165,7 @@ export async function dispatchOrderToAgents(orderId, agentIds) {
 }
 
 // ── Accept Delivery Job ───────────────────────────────────────────────────────
-export async function acceptDeliveryJob(orderId, agentId) {
+export async function acceptDeliveryJob(orderId: string, agentId: string) {
   if (!hasSupabase()) return { ok: true };
 
   let attempts = 0;
@@ -185,7 +185,7 @@ export async function acceptDeliveryJob(orderId, agentId) {
       }
 
       if (error || !data?.ok) {
-        const msg = error?.message || data?.error || 'failed_to_accept_job';
+        const msg = (error as any)?.message || data?.error || 'failed_to_accept_job';
         // If it's a conflict or "already accepted", don't retry
         if (msg.includes('already_accepted') || msg.includes('not_available')) {
           return { ok: false, error: msg };
@@ -206,7 +206,7 @@ export async function acceptDeliveryJob(orderId, agentId) {
 }
 
 // ── Decline Delivery Job ──────────────────────────────────────────────────────
-export async function declineDeliveryJob(orderId, agentId) {
+export async function declineDeliveryJob(orderId: string, agentId: string) {
   if (!hasSupabase()) return { ok: true };
   return supaQuery((c) =>
     c
@@ -218,7 +218,7 @@ export async function declineDeliveryJob(orderId, agentId) {
 }
 
 // ── Mark Picked Up (Merchant + Agent dual confirmation) ──────────────────────
-export async function markOrderPickedUp(orderId, agentId) {
+export async function markOrderPickedUp(orderId: string, agentId: string) {
   if (!hasSupabase()) return { ok: true };
   const { data, error } = await supaQuery((c) =>
     c.rpc('confirm_order_pickup', {
@@ -227,12 +227,12 @@ export async function markOrderPickedUp(orderId, agentId) {
     })
   );
   if (error || !data?.ok)
-    return { ok: false, error: error?.message || data?.error || 'pickup_failed' };
+    return { ok: false, error: (error as any)?.message || data?.error || 'pickup_failed' };
   return { ok: true, status: data.status, pin: data.delivery_pin };
 }
 
 // ── Mark Delivered (triggers PIN flow) ────────────────────────────────────────
-export async function markOrderDeliveredByAgent(orderId, agentId) {
+export async function markOrderDeliveredByAgent(orderId: string, agentId: string) {
   if (!hasSupabase()) return { ok: true };
   return supaQuery((c) =>
     c
@@ -244,7 +244,7 @@ export async function markOrderDeliveredByAgent(orderId, agentId) {
 }
 
 // ── Confirm Delivery with PIN (completes order) ───────────────────────────────
-export async function confirmDeliveryWithPin(orderId, pin, agentId = null, merchantId = null) {
+export async function confirmDeliveryWithPin(orderId: string, pin: string, agentId: string | null = null, merchantId: string | null = null) {
   if (!hasSupabase()) return { ok: true };
 
   const { data, error } = await supaQuery((c) =>
@@ -256,14 +256,14 @@ export async function confirmDeliveryWithPin(orderId, pin, agentId = null, merch
   );
 
   if (error || !data?.ok) {
-    return { ok: false, error: error?.message || data?.error || 'failed_to_confirm' };
+    return { ok: false, error: (error as any)?.message || data?.error || 'failed_to_confirm' };
   }
 
   return data;
 }
 
 // ── Proof of Delivery (POD) ───────────────────────────────────────────────────
-export async function uploadDeliveryProof(orderId, base64Image) {
+export async function uploadDeliveryProof(orderId: string, base64Image: string) {
   const client = getClient();
   if (!client) return { error: 'no-client' };
 
@@ -295,13 +295,13 @@ export async function uploadDeliveryProof(orderId, base64Image) {
 }
 
 // ── Agent Telemetry (Breadcrumbs) ─────────────────────────────────────────────
-const _telemetryCache = {};
+const _telemetryCache: Record<string, any> = {};
 
 /**
  * recordTelemetry
  * Records agent GPS coordinates with client-side throttling to save database resources.
  */
-export async function recordTelemetry(agentId, orderId, lat, lng, speed = null, heading = null) {
+export async function recordTelemetry(agentId: string, orderId: string, lat: number, lng: number, speed: number | null = null, heading: number | null = null) {
   if (!hasSupabase()) return;
 
   const now = Date.now();
@@ -333,7 +333,7 @@ export async function recordTelemetry(agentId, orderId, lat, lng, speed = null, 
 }
 
 // ── Fetch Pending Dispatches for Agent ────────────────────────────────────────
-export async function fetchPendingDispatches(agentId) {
+export async function fetchPendingDispatches(agentId: string) {
   if (!hasSupabase()) return [];
   const { data } = await supaQuery((c) =>
     c
@@ -348,7 +348,7 @@ export async function fetchPendingDispatches(agentId) {
 }
 
 // ── Fetch Active Job for Agent ────────────────────────────────────────────────
-export async function fetchActiveJobs(agentId) {
+export async function fetchActiveJobs(agentId: string) {
   if (!hasSupabase()) return [];
   const { data } = await supaQuery((c) =>
     c
@@ -364,7 +364,7 @@ export async function fetchActiveJobs(agentId) {
 }
 
 // ── Fetch Agent Delivery History ──────────────────────────────────────────────
-export async function fetchAgentHistory(agentId, limit = 20) {
+export async function fetchAgentHistory(agentId: string, limit = 20) {
   if (!hasSupabase()) return [];
   const { data } = await supaQuery((c) =>
     c
@@ -379,7 +379,7 @@ export async function fetchAgentHistory(agentId, limit = 20) {
 }
 
 // ── Subscribe to Dispatches (Agent Dashboard) ─────────────────────────────────
-export function subscribeToAgentDispatches(agentId, onDispatch) {
+export function subscribeToAgentDispatches(agentId: string, onDispatch: any) {
   return subscribeToTable(
     `agent-dispatches-${agentId}`,
     'delivery_dispatches',
@@ -389,7 +389,7 @@ export function subscribeToAgentDispatches(agentId, onDispatch) {
 }
 
 // ── Subscribe to Order Status (Active Job) ────────────────────────────────────
-export function subscribeToOrderStatus(orderId, onUpdate) {
+export function subscribeToOrderStatus(orderId: string, onUpdate: any) {
   return subscribeToTable(
     `order-status-${orderId}`,
     'marketplace_orders',

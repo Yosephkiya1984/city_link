@@ -67,7 +67,7 @@ export const CREDIT_EVENTS = {
 };
 
 // Calculate credit score based on user behavior
-export async function calculateCreditScore(userId) {
+export async function calculateCreditScore(userId: string) {
   try {
     // Check if supabase is available
     if (!getClient() || !getClient()?.from) {
@@ -168,10 +168,10 @@ export async function calculateCreditScore(userId) {
 }
 
 // Helper functions
-function calculateTransactionVolume(transactions) {
+function calculateTransactionVolume(transactions: any[]) {
   if (!transactions || transactions.length === 0) return 0;
 
-  const totalVolume = transactions.reduce((sum, tx) => {
+  const totalVolume = transactions.reduce((sum: number, tx: any) => {
     return sum + Math.abs(tx.amount || 0);
   }, 0);
 
@@ -179,7 +179,7 @@ function calculateTransactionVolume(transactions) {
   return Math.min((totalVolume / 100000) * 30, 30);
 }
 
-function calculateAccountAge(createdAt) {
+function calculateAccountAge(createdAt: string) {
   if (!createdAt) return 0;
 
   const now = new Date();
@@ -190,7 +190,7 @@ function calculateAccountAge(createdAt) {
   return Math.max(0, monthsDiff);
 }
 
-function getCreditTier(score) {
+function getCreditTier(score: number) {
   if (score >= CREDIT_SCORE_TIERS.EXCELLENT.min) return CREDIT_SCORE_TIERS.EXCELLENT;
   if (score >= CREDIT_SCORE_TIERS.GOOD.min) return CREDIT_SCORE_TIERS.GOOD;
   if (score >= CREDIT_SCORE_TIERS.FAIR.min) return CREDIT_SCORE_TIERS.FAIR;
@@ -198,7 +198,7 @@ function getCreditTier(score) {
 }
 
 // Log credit events for score calculation
-export async function logCreditEvent(userId, eventType, data = {}) {
+export async function logCreditEvent(userId: string, eventType: string, data: any = {}) {
   try {
     const client = getClient();
     if (!client) return;
@@ -219,7 +219,7 @@ export async function logCreditEvent(userId, eventType, data = {}) {
 }
 
 // Update user's credit score in profile
-export async function updateCreditScore(userId, score, tier) {
+export async function updateCreditScore(userId: string, score: number, tier: any) {
   try {
     const client = getClient();
     if (!client) return;
@@ -237,7 +237,7 @@ export async function updateCreditScore(userId, score, tier) {
 }
 
 // Get credit score recommendations
-export function getCreditRecommendations(score, tier) {
+export function getCreditRecommendations(score: number, tier: any) {
   const recommendations = [];
 
   if (score < 550) {
@@ -274,7 +274,7 @@ export function getCreditRecommendations(score, tier) {
 }
 
 // Simulate credit score impact
-export function simulateCreditScoreChange(currentScore, action) {
+export function simulateCreditScoreChange(currentScore: number, action: any) {
   let newScore = currentScore;
   let impact = '';
 

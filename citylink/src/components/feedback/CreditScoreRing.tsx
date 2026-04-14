@@ -4,7 +4,13 @@ import { Svg, Path, Circle } from 'react-native-svg';
 import { useTheme } from '../../hooks/useTheme';
 import { Fonts, FontSize } from '../../theme';
 
-export function CreditScoreRing({ score = 742, maxScore = 850, animValue }) {
+interface CreditScoreRingProps {
+  score?: number;
+  maxScore?: number;
+  animValue: Animated.Value;
+}
+
+export function CreditScoreRing({ score = 742, maxScore = 850, animValue }: CreditScoreRingProps) {
   const C = useTheme();
   const percentage = (score / maxScore) * 100;
   const radius = 35;
@@ -12,7 +18,14 @@ export function CreditScoreRing({ score = 742, maxScore = 850, animValue }) {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  const getScoreTier = (s) => ({ tier: 'Superior', color: '#59de9b' });
+  const getScoreTier = (s: number) => {
+    const clamped = Math.max(300, Math.min(s, maxScore));
+    if (clamped >= 800) return { tier: 'Superior', color: '#59de9b' };
+    if (clamped >= 740) return { tier: 'Very Good', color: '#4ade80' };
+    if (clamped >= 670) return { tier: 'Good', color: C.primary };
+    if (clamped >= 580) return { tier: 'Fair', color: C.amber || '#fbbf24' };
+    return { tier: 'Poor', color: C.red || '#f87171' };
+  };
   const tier = getScoreTier(score);
 
   return (

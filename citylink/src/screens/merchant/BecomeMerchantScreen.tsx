@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
-import { useAppStore, saveSession } from '../../store/AppStore';
+import { useAppStore } from '../../store/AppStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput, CSelect } from '../../components';
 import { fmtETB, uid } from '../../utils';
@@ -65,7 +65,6 @@ export default function BecomeMerchantScreen() {
         merchant_status: 'VERIFIED', // Instant approval for demo/MVP
       };
       setCurrentUser(updatedUser);
-      await saveSession(updatedUser);
       setLoading(false);
       setStep(3);
     }, 2000);

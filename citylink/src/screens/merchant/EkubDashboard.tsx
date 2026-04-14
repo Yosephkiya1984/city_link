@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '../../store/AppStore';
@@ -61,8 +61,8 @@ export default function EkubDashboard() {
     setRefreshing(false);
   };
 
-  const onApproveApp = async (appId: string) => {
-    const res = await handleEkubApplication(appId, 'ACTIVE');
+  const onApproveApp = async (ekubId: string, userId: string) => {
+    const res = await handleEkubApplication(ekubId, userId, 'ACTIVE');
     if (!res.error) {
       showToast('Member approved! 🤝', 'success');
       loadData();
@@ -110,10 +110,10 @@ export default function EkubDashboard() {
       </View>
 
       <View style={{ flexDirection: 'row', backgroundColor: C.surface, paddingHorizontal: 16 }}>
-        {['circles', 'apps', 'draws'].map((t) => (
+        {(['circles', 'apps', 'draws'] as const).map((t) => (
           <TouchableOpacity
             key={t}
-            onPress={() => setActiveTab(t as any)}
+            onPress={() => setActiveTab(t)}
             style={{
               paddingVertical: 12,
               paddingHorizontal: 16,
@@ -156,7 +156,7 @@ export default function EkubDashboard() {
               <>
                 <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.bold }}>Member Applications</Text>
                 {pendingApps.map(app => (
-                  <AppReviewCard key={app.id} app={app} onReview={(s) => onApproveApp(app.id)} C={C} />
+                  <AppReviewCard key={`${app.ekub_id}-${app.user_id}`} app={app} onReview={(s) => onApproveApp(app.ekub_id, app.user_id)} C={C} />
                 ))}
                 {pendingApps.length === 0 && <EmptyState text="No pending applications" C={C} />}
               </>

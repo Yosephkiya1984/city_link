@@ -7,7 +7,7 @@ import { hasSupabase } from '../services/supabase';
  * @param channelName unique stable id (e.g. `cl-rt-jobs-${userId}`)
  * @param filter optional, e.g. `applicant_id=eq.${uuid}`
  */
-export function useRealtimePostgres({ channelName, table, filter, onPayload, enabled = true }) {
+export function useRealtimePostgres({ channelName, table, filter, onPayload, enabled = true }: any) {
   const ref = useRef(onPayload);
   ref.current = onPayload;
 
@@ -61,7 +61,7 @@ export function useRealtimePostgres({ channelName, table, filter, onPayload, ena
       // Try to dynamically import realtime functions
       const { subscribeToTable, unsubscribe } = require('../services/realtime');
 
-      const ch = subscribeToTable(channelName, table, filter, (payload) => {
+      const ch = subscribeToTable(channelName, table, filter, (payload: any) => {
         console.log(`📡 Realtime update: ${channelName}`, payload);
         ref.current?.(payload);
       });

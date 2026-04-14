@@ -10,7 +10,7 @@ export default function OfflineBanner() {
   if (!visible) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: C.amber, borderColor: C.amberD }]}>
+    <View style={[styles.container, { backgroundColor: C.amber, borderColor: C.amber }]}>
       <Ionicons name="alert-circle" size={16} color={C.white} />
       <Text style={[styles.text, { color: C.white }]}>
         No internet connection - Some features may be limited

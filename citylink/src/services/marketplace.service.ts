@@ -115,7 +115,7 @@ export async function deleteProduct(productId: string) {
   );
 }
 
-export async function uploadProductImage(imageData: any) {
+export async function uploadProductImage(imageData: any): Promise<{ data: string | null; error: string | null }> {
   const client = getClient();
   if (!client) return { data: null, error: 'no-credentials' };
   try {
@@ -177,7 +177,7 @@ export async function executeMarketplacePurchase({
     })
   );
 
-  if (res.error) return { ok: false, error: res.error.message || 'purchase_failed' };
+  if (res.error) return { ok: false, error: res.error || 'purchase_failed' };
   const data = res.data as any;
   if (!data?.ok) return { ok: false, error: data?.error || 'purchase_failed' };
 

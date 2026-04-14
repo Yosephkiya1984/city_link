@@ -46,7 +46,7 @@ export default function SystemModule() {
     checkHealth();
   }, []);
 
-  const toggleConfig = (key) => {
+  const toggleConfig = (key: keyof typeof config) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (e) {}
@@ -159,7 +159,7 @@ export default function SystemModule() {
   );
 }
 
-function NodeCard({ name, status, latency, color }) {
+function NodeCard({ name, status, latency, color }: { name: string; status: string; latency: string; color: string }) {
   const theme = useTheme();
   return (
     <View style={[styles.nodeCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
@@ -173,7 +173,7 @@ function NodeCard({ name, status, latency, color }) {
   );
 }
 
-function ConfigItem({ label, sub, value, onToggle, isDanger }) {
+function ConfigItem({ label, sub, value, onToggle, isDanger = false }: { label: string; sub: string; value: boolean; onToggle: () => void; isDanger?: boolean }) {
   const theme = useTheme();
   return (
     <View style={styles.configItem}>
@@ -198,7 +198,7 @@ function ConfigItem({ label, sub, value, onToggle, isDanger }) {
   );
 }
 
-function TariffCard({ label, value, icon }) {
+function TariffCard({ label, value, icon }: { label: string; value: string; icon: any }) {
   const theme = useTheme();
   const handleEdit = () => {
     if (Platform.OS === 'web') {

@@ -17,7 +17,7 @@ export function ToastContainer() {
   );
 }
 
-function ToastItem({ toast }) {
+function ToastItem({ toast }: any) {
   const C = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -29,7 +29,7 @@ function ToastItem({ toast }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const colorMap = { success: C.green, error: C.red, warning: C.amber, info: C.primary };
+  const colorMap: any = { success: C.green, error: C.red, warning: C.amber, info: C.primary };
   const color = colorMap[toast.type] || C.primary;
 
   return (

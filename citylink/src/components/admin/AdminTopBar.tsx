@@ -17,7 +17,14 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function AdminTopBar({ title, user }) {
+import { User } from '../../types';
+
+interface AdminTopBarProps {
+  title: string;
+  user: User | null;
+}
+
+export default function AdminTopBar({ title, user }: AdminTopBarProps) {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
   const resetStore = useAppStore((s) => s.reset);

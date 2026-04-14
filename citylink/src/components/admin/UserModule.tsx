@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { User } from '../../types';
 import {
   View,
   Text,
@@ -19,7 +20,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function UserModule() {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -58,7 +59,7 @@ export default function UserModule() {
       (u.id || '').includes(search)
   );
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = ({ item, index }: { item: User; index: number }) => {
     if (isMobile) {
       return (
         <View
@@ -356,5 +357,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  phoneText: {
+    fontSize: 12,
   },
 });

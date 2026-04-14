@@ -267,7 +267,7 @@ export default function RestaurantDashboard() {
           </Text>
 
           <Text style={{ color: C.text, fontSize: 12, marginBottom: 8 }}>
-            {order.items?.map((item) => `${item.name} x${item.quantity || 1}`).join(', ') ||
+            {order.items?.map((item: any) => `${item.name} x${item.quantity || 1}`).join(', ') ||
               'Order items'}
           </Text>
 

@@ -5,9 +5,18 @@ import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
 import { supaQuery } from '../../services/supabase';
 
+export interface AuditLog {
+  id: string;
+  event: string;
+  user: string;
+  details: string;
+  time: string;
+  severity: 'low' | 'med' | 'high';
+}
+
 export default function AuditModule() {
   const theme = useTheme();
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ sensitive: 0, integrity: 'VERIFIED' });
 
@@ -45,7 +54,7 @@ export default function AuditModule() {
         user: p.full_name || 'Anonymous',
         details: `Role updated to ${p.role}`,
         time: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: 'low',
+        severity: 'low' as 'low' | 'med' | 'high',
       })),
       ...(orders.data || []).map((o) => ({
         id: o.id,
@@ -53,7 +62,7 @@ export default function AuditModule() {
         user: 'System_Gate',
         details: `${o.product_name} (${o.status})`,
         time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: o.status === 'DISPUTED' ? 'high' : 'low',
+        severity: (o.status === 'DISPUTED' ? 'high' : 'low') as 'low' | 'med' | 'high',
       })),
       ...(food.data || []).map((o) => ({
         id: o.id,
@@ -61,7 +70,7 @@ export default function AuditModule() {
         user: 'Resto_Relay',
         details: `${o.restaurant_name} (${o.status})`,
         time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: 'low',
+        severity: 'low' as 'low' | 'med' | 'high',
       })),
     ]
       .sort((a, b) => b.time.localeCompare(a.time))
@@ -188,11 +197,19 @@ export default function AuditModule() {
   );
 }
 
-function SummaryCard({ label, value, sub, icon, color }) {
+interface SummaryCardProps {
+  label: string;
+  value: string;
+  sub: string;
+  icon: string;
+  color: string;
+}
+
+function SummaryCard({ label, value, sub, icon, color }: SummaryCardProps) {
   const theme = useTheme();
   return (
     <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
-      <MaterialCommunityIcons name={icon} size={24} color={color} />
+      <MaterialCommunityIcons name={icon as any} size={24} color={color} />
       <View style={{ marginTop: 12 }}>
         <Text style={[styles.sumLabel, { color: theme.sub }]}>{label.toUpperCase()}</Text>
         <Text style={[styles.sumValue, { color: theme.text, fontFamily: Fonts.headline }]}>

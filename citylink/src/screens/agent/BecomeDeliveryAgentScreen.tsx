@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BecomeDeliveryAgentScreen â€” KYC Registration for Delivery Agents
  * Must be a VERIFIED citizen (Fayda KYC complete) first.
  */
@@ -92,7 +92,7 @@ export default function BecomeDeliveryAgentScreen() {
           plateNumber: plateNumber.trim(),
           licenseNumber: licenseNumber.trim(),
         });
-        if (error) throw new Error(error.message || error || 'Registration failed');
+        if (error) throw new Error(typeof error === 'string' ? error : 'Registration failed');
       }
 
       // 4. Update local state to route to delivery dashboard
@@ -106,8 +106,8 @@ export default function BecomeDeliveryAgentScreen() {
         'success'
       );
       navigation.goBack();
-    } catch (e) {
-      showToast(e.message || 'Registration failed', 'error');
+    } catch (e: any) {
+      showToast(e?.message || 'Registration failed', 'error');
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export default function BecomeDeliveryAgentScreen() {
             { icon: 'location-outline', text: 'Location access (GPS)', ok: null },
           ].map((r, i) => (
             <View key={i} style={s.reqRow}>
-              <Ionicons name={r.icon} size={18} color={r.ok ? T.green : T.textSub} />
+              <Ionicons name={r.icon as any} size={18} color={r.ok ? T.green : T.textSub} />
               <Text style={[s.reqText, r.ok && { color: T.green }]}>{r.text}</Text>
               {r.ok && <Ionicons name="checkmark-circle" size={18} color={T.green} />}
             </View>

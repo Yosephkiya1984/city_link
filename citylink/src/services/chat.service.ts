@@ -4,7 +4,7 @@ import { uid } from '../utils';
 /**
  * fetchChatThreads — fetches all chat threads for a specific user.
  */
-export const fetchChatThreads = async (userId) => {
+export const fetchChatThreads = async (userId: string) => {
   if (!hasSupabase()) return { data: [], error: null };
   return supaQuery((client) =>
     client
@@ -31,7 +31,7 @@ export const fetchChatThreads = async (userId) => {
 /**
  * fetchChatMessages — fetches messages within a thread.
  */
-export const fetchChatMessages = async (threadId) => {
+export const fetchChatMessages = async (threadId: string) => {
   if (!hasSupabase()) return { data: [], error: null };
   return supaQuery((client) =>
     client
@@ -45,7 +45,7 @@ export const fetchChatMessages = async (threadId) => {
 /**
  * createChatThread — initializes a new conversation thread.
  */
-export const createChatThread = async (thread) => {
+export const createChatThread = async (thread: any) => {
   if (!hasSupabase())
     return { data: { thread_id: thread.thread_id || 'mock-thread' }, error: null };
 
@@ -63,7 +63,7 @@ export const createChatThread = async (thread) => {
 /**
  * createChatMessage — sends a message in a thread.
  */
-export const createChatMessage = async (message) => {
+export const createChatMessage = async (message: any) => {
   if (!hasSupabase()) return { data: message, error: null };
   const cleanMsg = {
     id: message.id || uid(),
@@ -79,7 +79,7 @@ export const createChatMessage = async (message) => {
 /**
  * updateChatThreadLastMessage — updates the preview text of a thread.
  */
-export const updateChatThreadLastMessage = async (threadId, message) => {
+export const updateChatThreadLastMessage = async (threadId: string, message: string) => {
   if (!hasSupabase()) return { ok: true };
   return supaQuery((client) =>
     client

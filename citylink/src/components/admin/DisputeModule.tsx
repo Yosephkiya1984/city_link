@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { User } from '../../types';
 import {
   View,
   Text,
@@ -21,12 +22,29 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+export interface Dispute {
+  id: string;
+  type: 'MARKETPLACE' | 'RESTAURANT';
+  name: string;
+  amount: number;
+  total: number;
+  status: string;
+  dispute_reason?: string;
+  reason?: string;
+  created_at: string;
+  profiles?: {
+    full_name: string;
+    phone: string;
+  };
+  escrow_id?: string;
+}
+
 export default function DisputeModule() {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
-  const [disputes, setDisputes] = useState([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDispute, setSelectedDispute] = useState(null);
+  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
 
   const fetchDisputes = async () => {
     setLoading(true);
@@ -60,7 +78,7 @@ export default function DisputeModule() {
     const foodRaw = foodRes.data || [];
     const citizenIds = [...new Set(foodRaw.map((o) => o.citizen_id).filter((id) => !!id))];
 
-    const profileMap = {};
+    const profileMap: Record<string, any> = {};
     if (citizenIds.length > 0) {
       const { data: profiles } = await supaQuery((c) =>
         c.from('profiles').select('id, full_name, phone').in('id', citizenIds)
@@ -78,8 +96,11 @@ export default function DisputeModule() {
       profiles: profileMap[d.citizen_id],
     }));
 
-    setDisputes([...mkt, ...food].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
-    setLoading(false);
+    setDisputes(
+      ([...mkt, ...food] as Dispute[]).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+    );
     setLoading(false);
   };
 
@@ -87,7 +108,7 @@ export default function DisputeModule() {
     fetchDisputes();
   }, []);
 
-  const handleResolve = async (dispute, action) => {
+  const handleResolve = async (dispute: Dispute, action: 'REFUND' | 'RELEASE') => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (e) {}
@@ -153,7 +174,7 @@ export default function DisputeModule() {
     );
   };
 
-  const renderDisputeCard = ({ item }) => {
+  const renderDisputeCard = ({ item }: { item: Dispute }) => {
     const isSelected = selectedDispute?.id === item.id;
     return (
       <TouchableOpacity
@@ -173,7 +194,7 @@ export default function DisputeModule() {
         <View style={styles.cardHeader}>
           <View style={styles.typeBox}>
             <MaterialCommunityIcons
-              name={item.type === 'MARKETPLACE' ? 'shopping-outline' : 'food-outline'}
+              name={(item.type === 'MARKETPLACE' ? 'shopping-outline' : 'food-outline') as any}
               size={12}
               color={item.type === 'MARKETPLACE' ? theme.primary : theme.secondary}
             />
@@ -387,7 +408,7 @@ export default function DisputeModule() {
   );
 }
 
-function LogItem({ time, user, text, isMobile }) {
+function LogItem({ time, user, text, isMobile }: { time: string; user: string; text: string; isMobile: boolean }) {
   const theme = useTheme();
   return (
     <View
@@ -531,5 +552,26 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  historySection: {
+    marginBottom: 32,
+  },
+  logItem: {
+    alignItems: 'flex-start',
+  },
+  logTime: {
+    fontSize: 10,
+    fontWeight: '600',
+    minWidth: 60,
+  },
+  logUser: {
+    fontSize: 10,
+    fontWeight: '800',
+    minWidth: 50,
+  },
+  logText: {
+    fontSize: 12,
+    flex: 1,
+    lineHeight: 18,
   },
 });

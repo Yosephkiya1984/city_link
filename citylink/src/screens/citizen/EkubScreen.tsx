@@ -1080,6 +1080,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  circularProgress: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  progressText: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressNumber: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.headline,
+  },
 });
 
 // â”€â”€ Live Draw Banner Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

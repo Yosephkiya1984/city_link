@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
-import { useAppStore, saveSession } from '../../store/AppStore';
+import { useAppStore } from '../../store/AppStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, CInput, SectionTitle, Card } from '../../components';
 import { signOut } from '../../services/auth.service';
@@ -67,7 +67,6 @@ export default function ProfileScreen() {
 
   async function handleLogout() {
     await signOut();
-    await saveSession(null);
     reset();
   }
 

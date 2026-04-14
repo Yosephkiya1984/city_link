@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -39,19 +39,19 @@ function useTheme() {
 }
 
 // â”€â”€ Expiry Countdown (uses real expires_at from DB, falls back to estimate) â”€â”€
-function useCountdown(order) {
+function useCountdown(order: any) {
   const getTarget = () => {
     if (order.expires_at) return new Date(order.expires_at);
     // Fallback: estimate 72h from creation
     return new Date(new Date(order.created_at).getTime() + 72 * 3600 * 1000);
   };
 
-  const [msLeft, setMsLeft] = useState(() => Math.max(0, getTarget() - Date.now()));
+  const [msLeft, setMsLeft] = useState(() => Math.max(0, getTarget().getTime() - Date.now()));
 
   useEffect(() => {
     if (order.status !== 'PAID') return;
     const interval = setInterval(() => {
-      const remaining = Math.max(0, getTarget() - Date.now());
+      const remaining = Math.max(0, getTarget().getTime() - Date.now());
       setMsLeft(remaining);
     }, 30000); // Update every 30s
     return () => clearInterval(interval);
@@ -77,7 +77,7 @@ const STATUS_CONFIG = {
   CANCELLED: { icon: 'close-circle-outline', label: 'CANCELLED' },
 };
 
-const getStatusStyle = (status, C) => {
+const getStatusStyle = (status: string, C: any) => {
   switch (status) {
     case 'PAID':
     case 'ORDER_PLACED':
@@ -104,8 +104,8 @@ const getStatusStyle = (status, C) => {
 };
 
 // â”€â”€ Escrow Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const EscrowStatus = ({ order, C }) => {
-  const config = {
+const EscrowStatus = ({ order, C }: { order: any, C: any }) => {
+  const config: Record<string, any> = {
     PAID: {
       icon: 'lock-closed',
       text: 'Funds locked in escrow â€” safe until delivery',
@@ -152,11 +152,11 @@ const EscrowStatus = ({ order, C }) => {
 };
 
 // â”€â”€ Order Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const AnimatedOrderCard = ({ order, C, onDispute, onCancel, navigation }) => {
+const AnimatedOrderCard = ({ order, C, onDispute, onCancel, navigation }: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const countdownText = useCountdown(order);
   const statusStyle = getStatusStyle(order.status, C);
-  const statusConf = STATUS_CONFIG[order.status] || STATUS_CONFIG['PAID'];
+  const statusConf = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG['PAID'];
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -203,7 +203,7 @@ const AnimatedOrderCard = ({ order, C, onDispute, onCancel, navigation }) => {
               { backgroundColor: statusStyle.bg, borderColor: statusStyle.border },
             ]}
           >
-            <Ionicons name={statusConf.icon} size={11} color={statusStyle.text} />
+            <Ionicons name={statusConf.icon as any} size={11} color={statusStyle.text} />
             <Text style={[styles.statusText, { color: statusStyle.text }]}>{statusConf.label}</Text>
           </View>
         </View>
@@ -370,7 +370,7 @@ const AnimatedOrderCard = ({ order, C, onDispute, onCancel, navigation }) => {
                 { backgroundColor: statusStyle.bg, borderColor: statusStyle.border },
               ]}
             >
-              <Ionicons name={statusConf.icon} size={14} color={statusStyle.text} />
+              <Ionicons name={statusConf.icon as any} size={14} color={statusStyle.text} />
               <Text style={[styles.statusPillText, { color: statusStyle.text }]}>
                 {order.status === 'COMPLETED' ? 'Done' : order.status}
               </Text>
@@ -414,8 +414,8 @@ export default function MyOrdersScreen() {
       if (mktRes.error) console.error('🔧 Mkt orders error:', mktRes.error);
       if (foodRes.error) console.error('🔧 Food orders error:', foodRes.error);
 
-      setMktOrders((mktRes.data || []).map((o) => ({ ...o, type: 'marketplace' })));
-      setFoodOrders((foodRes.data || []).map((o) => ({ ...o, type: 'food' })));
+      setMktOrders((mktRes.data || []).map((o: any) => ({ ...o, type: 'marketplace' })));
+      setFoodOrders((foodRes.data || []).map((o: any) => ({ ...o, type: 'food' })));
     } catch (e) {
       console.error('🔧 loadOrders crash:', e);
       setError('Connection failed');
@@ -464,7 +464,7 @@ export default function MyOrdersScreen() {
     };
   }, [loadOrders, user?.id]);
 
-  const switchTab = (newTab) => {
+  const switchTab = (newTab: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.spring(tabAnim, {
       toValue: newTab === 'active' ? 0 : 1,
@@ -479,13 +479,13 @@ export default function MyOrdersScreen() {
     setRefreshing(false);
   };
 
-  const handleDispute = (order) => {
+  const handleDispute = (order: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPromptInput('');
     setPromptConfig({ type: 'dispute', order });
   };
 
-  const handleCancelOrder = (order) => {
+  const handleCancelOrder = (order: any) => {
     Alert.alert(
       'Cancel Order',
       'Are you sure you want to cancel this order? Your funds will be fully returned to your wallet.',
@@ -536,7 +536,7 @@ export default function MyOrdersScreen() {
   };
 
   const combined = [...mktOrders, ...foodOrders].sort(
-    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
   const activeOrders = combined.filter(
     (o) => !['COMPLETED', 'CANCELLED', 'DELIVERED'].includes(o.status)
@@ -580,7 +580,7 @@ export default function MyOrdersScreen() {
       <View
         style={[styles.tabContainer, { backgroundColor: C.surface, borderBottomColor: C.edge }]}
       >
-        <View style={[styles.segmentedControl, { backgroundColor: C.inkL }]}>
+        <View style={[styles.segmentedControl, { backgroundColor: C.lift }]}>
           <Animated.View
             style={[styles.tabIndicator, { left: tabIndicatorLeft, backgroundColor: C.surface }]}
           />
@@ -680,7 +680,7 @@ export default function MyOrdersScreen() {
             </Text>
 
             <TextInput
-              style={[styles.modalInput, { backgroundColor: C.inkL, color: C.text }]}
+              style={[styles.modalInput, { backgroundColor: C.lift, color: C.text }]}
               placeholder="e.g. Item not delivered, wrong item..."
               placeholderTextColor={C.sub}
               value={promptInput}

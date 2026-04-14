@@ -12,6 +12,7 @@ export const Config = {
   devMode: process.env.EXPO_PUBLIC_DEV_MODE === 'true' || false,
   otpBypass: process.env.EXPO_PUBLIC_OTP_BYPASS === 'true', // Explicit opt-in only
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null, // Optional: Error tracking
+  govAuthBaseUrl: process.env.EXPO_PUBLIC_GOV_AUTH_BASE_URL || 'https://api.citylink.gov.et',
 };
 
 /** One-time ETB credited on first successful citizen session (Goal §2). */

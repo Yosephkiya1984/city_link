@@ -4,7 +4,7 @@ import { CButton } from '../ui/CButton';
 import { Fonts } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export function ErrorState({ icon = '⚠️', title, subtitle, action, onAction, style }) {
+export function ErrorState({ icon = '⚠️', title, subtitle, action, onAction, style }: any) {
   const C = useTheme();
   const shakeAnim = useRef(new Animated.Value(0)).current;
 

@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { Fonts } from '../../theme';
 
-export function ServiceTile({ service, onPress, index }) {
+export function ServiceTile({ service, onPress, index }: any) {
   const C = useTheme();
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;

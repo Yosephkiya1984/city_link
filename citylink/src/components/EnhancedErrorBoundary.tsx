@@ -11,6 +11,12 @@ import * as Updates from 'expo-updates';
 import { useAppStore } from '../store/AppStore';
 import { Colors, DarkColors, Radius, Shadow, Fonts } from '../theme';
 import { CButton } from './ui/CButton';
+ 
+export const NetworkSuppressionContext = React.createContext<{
+  suppressNetworkRetries: boolean;
+}>({
+  suppressNetworkRetries: false,
+});
 
 // ── Error Classification ───────────────────────────────────────────────────────────
 const ERROR_TYPES = {
@@ -21,10 +27,13 @@ const ERROR_TYPES = {
   NAVIGATION: 'navigation',
   RENDER: 'render',
   UNKNOWN: 'unknown',
-};
+} as const;
 
-function classifyError(error) {
-  const message = error?.message || error?.toString() || '';
+type ErrorType = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES];
+
+function classifyError(error: unknown): ErrorType {
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : String(error);
 
   if (message.includes('Network') || message.includes('fetch') || message.includes('timeout')) {
     return ERROR_TYPES.NETWORK;
@@ -53,7 +62,7 @@ const RECOVERY_ACTIONS = {
   [ERROR_TYPES.NETWORK]: [
     { label: 'Check Connection', action: 'check_connection' },
     { label: 'Retry', action: 'retry' },
-    { label: 'Offline Mode', action: 'offline_mode' },
+    { label: 'Continue Anyway', action: 'dismiss_error' },
   ],
   [ERROR_TYPES.AUTHENTICATION]: [
     { label: 'Sign Out', action: 'sign_out' },
@@ -88,8 +97,23 @@ const RECOVERY_ACTIONS = {
 };
 
 // ── Enhanced Error Boundary Component ───────────────────────────────────────────────
-class ErrorBoundaryInner extends Component {
-  constructor(props) {
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+  isDark?: boolean;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
+  errorType: string | null;
+  recoveryAttempted: boolean;
+  suppressNetworkRetries: boolean;
+}
+
+class ErrorBoundaryInner extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
       hasError: false,
@@ -97,10 +121,13 @@ class ErrorBoundaryInner extends Component {
       errorInfo: null,
       errorType: null,
       recoveryAttempted: false,
+      suppressNetworkRetries: false,
     };
   }
+ 
+  private suppressionTimer: NodeJS.Timeout | null = null;
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error) {
     return {
       hasError: true,
       error,
@@ -108,7 +135,7 @@ class ErrorBoundaryInner extends Component {
     };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({
       errorInfo,
       errorType: classifyError(error),
@@ -123,13 +150,19 @@ class ErrorBoundaryInner extends Component {
     this.logErrorToAnalytics(error, errorInfo);
   }
 
+  componentWillUnmount() {
+    if (this.suppressionTimer) {
+      clearTimeout(this.suppressionTimer);
+    }
+  }
+
   getCurrentScreen() {
     // This would need to be implemented based on your navigation setup
     // For now, return a generic screen name
     return 'unknown_screen';
   }
 
-  logErrorToAnalytics(error, errorInfo) {
+  logErrorToAnalytics(error: Error, errorInfo: React.ErrorInfo) {
     try {
       const errorData = {
         message: error.message,
@@ -144,7 +177,7 @@ class ErrorBoundaryInner extends Component {
       // Store locally for later sync (using AsyncStorage for React Native)
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       AsyncStorage.getItem('error_logs')
-        .then((raw) => {
+        .then((raw: string | null) => {
           const storedErrors = JSON.parse(raw || '[]');
           storedErrors.push(errorData);
 
@@ -161,7 +194,7 @@ class ErrorBoundaryInner extends Component {
     }
   }
 
-  handleRecoveryAction = (action) => {
+  handleRecoveryAction = (action: string) => {
     this.setState({ recoveryAttempted: true });
 
     switch (action) {
@@ -175,8 +208,8 @@ class ErrorBoundaryInner extends Component {
         this.checkNetworkConnectivity();
         break;
 
-      case 'offline_mode':
-        this.enableOfflineMode();
+      case 'dismiss_error':
+        this.dismissError();
         break;
 
       case 'sign_out':
@@ -244,7 +277,6 @@ class ErrorBoundaryInner extends Component {
     try {
       const response = await fetch('https://api.supabase.io/rest/v1/', {
         method: 'HEAD',
-        timeout: 5000,
       });
 
       if (response.ok) {
@@ -260,12 +292,19 @@ class ErrorBoundaryInner extends Component {
     }
   };
 
-  enableOfflineMode = () => {
-    const { setOfflineMode } = useAppStore.getState();
-    if (setOfflineMode) {
-      setOfflineMode(true);
+  dismissError = () => {
+    // Dismiss the error state to allow the user to view cached/local content
+    // Also suppress network retries for a short period to prevent immediate re-erroring
+    if (this.suppressionTimer) {
+      clearTimeout(this.suppressionTimer);
     }
-    this.setState({ hasError: false });
+
+    this.setState({ hasError: false, suppressNetworkRetries: true });
+
+    this.suppressionTimer = setTimeout(() => {
+      this.setState({ suppressNetworkRetries: false });
+      this.suppressionTimer = null;
+    }, 30000); // 30-second cooldown
   };
 
   signOut = () => {
@@ -306,8 +345,8 @@ class ErrorBoundaryInner extends Component {
   };
 
   restartApp = () => {
-    if (typeof Updates !== 'undefined' && Updates.reload) {
-      Updates.reload();
+    if (typeof Updates !== 'undefined' && typeof (Updates as any).reloadAsync === 'function') {
+      (Updates as any).reloadAsync();
     } else {
       this.setState({ hasError: false });
     }
@@ -332,8 +371,8 @@ Timestamp: ${new Date().toISOString()}
   };
 
   reloadApp = () => {
-    if (typeof Updates !== 'undefined' && Updates.reload) {
-      Updates.reload();
+    if (typeof Updates !== 'undefined' && typeof (Updates as any).reloadAsync === 'function') {
+      (Updates as any).reloadAsync();
     } else {
       this.setState({ hasError: false });
     }
@@ -368,14 +407,18 @@ Timestamp: ${new Date().toISOString()}
     const C = isDark ? DarkColors : Colors;
 
     if (!hasError) {
-      return this.props.children;
+      return (
+        <NetworkSuppressionContext.Provider value={{ suppressNetworkRetries: this.state.suppressNetworkRetries }}>
+          {this.props.children}
+        </NetworkSuppressionContext.Provider>
+      );
     }
 
     if (fallback) {
       return fallback;
     }
 
-    const recoveryActions = RECOVERY_ACTIONS[errorType] || RECOVERY_ACTIONS[ERROR_TYPES.UNKNOWN];
+    const recoveryActions = RECOVERY_ACTIONS[errorType as ErrorType] || RECOVERY_ACTIONS[ERROR_TYPES.UNKNOWN];
     const errorMessage = error?.message || 'An unexpected error occurred';
 
     return (
@@ -455,7 +498,7 @@ Timestamp: ${new Date().toISOString()}
           </View>
 
           <View style={{ gap: 12 }}>
-            {recoveryActions.map((action, index) => (
+            {recoveryActions.map((action: { label: string; action: string }, index: number) => (
               <CButton
                 key={index}
                 title={action.label}
@@ -498,7 +541,7 @@ Timestamp: ${new Date().toISOString()}
   }
 }
 
-export default function EnhancedErrorBoundary(props) {
+export default function EnhancedErrorBoundary(props: Omit<ErrorBoundaryProps, 'isDark'>) {
   const isDark = useAppStore((s) => s.isDark);
   return <ErrorBoundaryInner {...props} isDark={isDark} />;
 }

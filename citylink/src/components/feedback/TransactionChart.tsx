@@ -4,7 +4,7 @@ import { Svg, Circle, Path } from 'react-native-svg';
 import { useTheme } from '../../hooks/useTheme';
 import { Spacing, FontSize, Fonts } from '../../theme';
 
-export function TransactionChart({ transactions }) {
+export function TransactionChart({ transactions }: any) {
   const C = useTheme();
   const [animValue] = useState(new Animated.Value(0));
 
@@ -18,7 +18,7 @@ export function TransactionChart({ transactions }) {
 
   const chartData = useMemo(() => {
     const last7Days = (transactions || []).slice(-7);
-    return last7Days.map((tx, index) => ({
+    return last7Days.map((tx: any, index: number) => ({
       id: tx.id || index,
       amount: tx.amount,
       type: tx.type,
@@ -51,7 +51,7 @@ export function TransactionChart({ transactions }) {
           paddingHorizontal: Spacing.sm,
         }}
       >
-        {chartData.map((item, index) => (
+        {chartData.map((item: any, index: number) => (
           <Animated.View
             key={item.id}
             style={{

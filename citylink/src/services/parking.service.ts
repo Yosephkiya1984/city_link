@@ -1,10 +1,10 @@
 import { supabase, supaQuery } from './supabase';
 
-export async function fetchParkingLots(operatorId?: string) {
+export async function fetchParkingLots(merchantId?: string) {
   return supaQuery((c) => {
     let query = c.from('parking_lots').select('*, parking_spots(*)');
-    if (operatorId) {
-      query = query.eq('operator_id', operatorId);
+    if (merchantId) {
+      query = query.eq('merchant_id', merchantId);
     }
     return query;
   });
@@ -20,7 +20,7 @@ export async function endParkingSession(
   lotName: string,
   spotNumber: string,
   fare: number
-) {
+): Promise<{ data: any; error: any }> {
   // 1. Initial State Check (Full Row Fetch)
   const { data: currentSession, error: fetchError } = await supaQuery((c) =>
     c.from('parking_sessions').select('*').eq('id', sessionId).single()
@@ -55,6 +55,7 @@ export async function endParkingSession(
     if (balanceRes.error || !balanceRes.data?.ok) {
       console.error(`[Parking] Payment failed | Session: ${paymentId} | Error:`, balanceRes.error || balanceRes.data?.error);
       return { 
+        data: null,
         error: { 
           message: 'Wallet transaction failed', 
           code: 'PAYMENT_ERROR'
@@ -114,6 +115,7 @@ export async function endParkingSession(
         }
 
         return { 
+          data: null,
           error: { 
             type: 'REFUND_FAILED',
             message: 'Session finalization failed and recovery attempt also failed.',
@@ -143,6 +145,7 @@ export async function endParkingSession(
       }
 
       return { 
+        data: null,
         error: { 
           message: 'Session finalization failed. Payment was successfully refunded to your wallet.', 
           details: 'Internal reconciliation error', // Sanitized text
@@ -167,9 +170,9 @@ export async function endParkingSession(
   );
 }
 
-export async function fetchParkingSessions(operatorId: string) {
+export async function fetchParkingSessions(merchantId: string) {
   return supaQuery((c) =>
-    c.from('parking_sessions').select('*').eq('operator_id', operatorId)
+    c.from('parking_sessions').select('*').eq('merchant_id', merchantId)
   );
 }
 

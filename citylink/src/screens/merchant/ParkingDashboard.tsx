@@ -99,7 +99,7 @@ export default function ParkingDashboard() {
   useRealtimePostgres({
     channelName: `parking-sessions-${currentUser?.id}`,
     table: 'parking_sessions',
-    filter: `operator_id=eq.${currentUser?.id}`,
+    filter: `merchant_id=eq.${currentUser?.id}`,
     enabled: !!currentUser?.id,
     onPayload: (payload: any) => {
       if (payload.eventType === 'INSERT') {

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -62,7 +62,7 @@ const CATEGORIES = [
 ];
 
 // â”€â”€ Shimmer Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const Shimmer = ({ style }) => {
+const Shimmer = ({ style }: any) => {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -76,7 +76,7 @@ const Shimmer = ({ style }) => {
   return <Animated.View style={[{ backgroundColor: T.surfaceHigh, opacity }, style]} />;
 };
 
-const ProductSkeleton = () => (
+const ProductSkeleton = ({ style }: any) => (
   <View style={[styles.productCard, { backgroundColor: T.card }]}>
     <Shimmer style={{ height: 140, borderRadius: 10, marginBottom: 12 }} />
     <Shimmer style={{ height: 10, borderRadius: 5, width: '50%', marginBottom: 8 }} />
@@ -85,13 +85,13 @@ const ProductSkeleton = () => (
   </View>
 );
 
-// â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const Header = ({ balance, name }) => {
+// ——————————————————————————————————————————————————————————————————————————————————————————————
+const Header = ({ balance, name }: any) => {
   const navigation = useNavigation();
   return (
     <View style={styles.header}>
       <View>
-        <Text style={styles.headerGreeting}>Hello, {name?.split(' ')[0] || 'Shopper'} ðŸ‘‹</Text>
+        <Text style={styles.headerGreeting}>Hello, {name?.split(' ')[0] || 'Shopper'} 👋</Text>
         <Text style={styles.headerTitle}>
           CityLink <Text style={{ color: T.primary }}>Market</Text>
         </Text>
@@ -112,8 +112,8 @@ const Header = ({ balance, name }) => {
   );
 };
 
-// â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const SearchBar = ({ value, onChangeText, onClear }) => (
+// ——————————————————————————————————————————————————————————————————————————————————————————————
+const SearchBar = ({ value, onChangeText, onClear }: any) => (
   <View style={styles.searchWrap}>
     <Ionicons name="search" size={18} color={T.textSub} style={styles.searchIcon} />
     <TextInput
@@ -132,15 +132,15 @@ const SearchBar = ({ value, onChangeText, onClear }) => (
   </View>
 );
 
-// â”€â”€ Category Pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const CategoryPills = ({ selected, onSelect }) => (
+// ——————————————————————————————————————————————————————————————————————————————————————————————
+const CategoryPills = ({ selected, onSelect }: any) => (
   <ScrollView
     horizontal
     showsHorizontalScrollIndicator={false}
     style={styles.pillRow}
     contentContainerStyle={{ paddingRight: 20, gap: 8 }}
   >
-    {CATEGORIES.map((cat) => {
+    {CATEGORIES.map((cat: any) => {
       const active = selected === cat.id;
       return (
         <TouchableOpacity
@@ -165,8 +165,8 @@ const CategoryPills = ({ selected, onSelect }) => (
   </ScrollView>
 );
 
-// â”€â”€ Featured Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const FeaturedCard = ({ item, onPress }) => {
+// ——————————————————————————————————————————————————————————————————————————————————————————————
+const FeaturedCard = ({ item, onPress }: any) => {
   const scale = useRef(new Animated.Value(1)).current;
   const img = item.image_url || item.images_json?.[0] || null;
   return (
@@ -195,7 +195,7 @@ const FeaturedCard = ({ item, onPress }) => {
         />
         <View style={styles.featuredOverlay}>
           <View style={styles.featuredBadge}>
-            <Text style={styles.featuredBadgeText}>âœ¦ FEATURED</Text>
+            <Text style={styles.featuredBadgeText}>✦ FEATURED</Text>
           </View>
           <Text style={styles.featuredName} numberOfLines={2}>
             {item.name || item.title}
@@ -212,8 +212,8 @@ const FeaturedCard = ({ item, onPress }) => {
   );
 };
 
-// â”€â”€ Product Grid Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const ProductCard = ({ item, onPress }) => {
+// ——————————————————————————————————————————————————————————————————————————————————————————————
+const ProductCard = ({ item, onPress }: any) => {
   const scale = useRef(new Animated.Value(1)).current;
   const img = item.image_url || item.images_json?.[0] || null;
   const soldOut = (item.stock || 0) <= 0;
@@ -284,18 +284,18 @@ const ProductCard = ({ item, onPress }) => {
   );
 };
 
-// â”€â”€ Trust Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ——————————————————————————————————————————————————————————————————————————————————————————————
 const EscrowBadge = () => (
   <View style={styles.escrowBadge}>
     <Ionicons name="shield-checkmark" size={14} color={T.primary} />
-    <Text style={styles.escrowBadgeText}>Escrow Protected Â· Funds only release on delivery</Text>
+    <Text style={styles.escrowBadgeText}>Escrow Protected · Funds only release on delivery</Text>
   </View>
 );
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ——————————————————————————————————————————————————————————————————————————————————————————————
 // MAIN SCREEN
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export default function MarketplaceScreen({ navigation: nav }) {
+// ——————————————————————————————————————————————————————————————————————————————————————————————
+export default function MarketplaceScreen({ navigation: nav }: any) {
   const navigation = useNavigation();
   const balance = useAppStore((s) => s.balance);
   const showToast = useAppStore((s) => s.showToast);
@@ -312,7 +312,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const searchTimer = useRef(null);
 
-  // â”€â”€ Data Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ——————————————————————————————————————————————————————————————————————————————————————————————
   const loadProducts = useCallback(
     async (q = '', cat = 'All') => {
       try {
@@ -366,7 +366,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
     setRefreshing(false);
   };
 
-  // â”€â”€ Purchase Flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ——————————————————————————————————————————————————————————————————————————————————————————————
   const handleBuy = async () => {
     if (buying) return;
     const user = useAppStore.getState().currentUser;
@@ -406,7 +406,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSelectedProduct(null);
         setDeliveryInstructions('');
-        showToast('Purchase placed! Funds locked in escrow ðŸ”’', 'success');
+        showToast('Purchase placed! Funds locked in escrow 🔒', 'success');
         setTimeout(() => (navigation as any).navigate('MyOrders'), 800);
       }
     } catch (e) {
@@ -416,7 +416,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
     }
   };
 
-  // â”€â”€ Chat with Seller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ——————————————————————————————————————————————————————————————————————————————————————————————
   const handleMessageSeller = async () => {
     if (!currentUser) {
       showToast('Please login to message sellers', 'info');
@@ -453,7 +453,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
           user_b_id: ids[1],
           last_msg: initMsg,
         });
-        if (error && error.code !== '23505') throw error;
+        if (error && (error as any).code !== '23505') throw error;
 
         await createChatMessage({
           thread_id: threadId,
@@ -469,20 +469,20 @@ export default function MarketplaceScreen({ navigation: nav }) {
         recipientName: sellerName,
         recipientId: merchantId,
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error('Chat thread error:', e);
       showToast('Failed to start conversation', 'error');
     }
   };
 
-  // â”€â”€ Computed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ——————————————————————————————————————————————————————————————————————————————————————————————
   const featured = useMemo(() => products.slice(0, 4), [products]);
 
   const renderProductItem = useCallback(
-    ({ item }) => (
+    ({ item }: any) => (
       <ProductCard
         item={item}
-        onPress={(p) => {
+        onPress={(p: any) => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setQty(1);
           setSelectedProduct(p);
@@ -511,7 +511,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={T.bg} />
 
-      {/* â”€â”€ Floating Header â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————————————————————————————— */}
       <Header balance={balance} name={(currentUser as any)?.full_name} />
 
       <ScrollView
@@ -531,7 +531,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
         <View style={{ paddingLeft: 20, marginBottom: 24 }}>
           <CategoryPills
             selected={category}
-            onSelect={(cat) => {
+            onSelect={(cat: string) => {
               setCategory(cat);
               setLoading(true);
             }}
@@ -552,11 +552,11 @@ export default function MarketplaceScreen({ navigation: nav }) {
               decelerationRate="fast"
               contentContainerStyle={{ paddingLeft: 20, paddingRight: 4, gap: 16 }}
             >
-              {featured.map((item) => (
+              {featured.map((item: any) => (
                 <FeaturedCard
                   key={item.id}
                   item={item}
-                  onPress={(p) => {
+                  onPress={(p: any) => {
                     setQty(1);
                     setSelectedProduct(p);
                   }}
@@ -584,11 +584,11 @@ export default function MarketplaceScreen({ navigation: nav }) {
             </View>
           ) : (
             <View style={styles.grid}>
-              {products.map((item) => (
+              {products.map((item: any) => (
                 <ProductCard
                   key={item.id}
                   item={item}
-                  onPress={(p) => {
+                  onPress={(p: any) => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setQty(1);
                     setSelectedProduct(p);
@@ -600,7 +600,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
         </View>
       </ScrollView>
 
-      {/* â•â• Product Detail Modal â•â• */}
+      {/* —————————————————————————————————————————————————————————————————————————————————————————————— */}
       <Modal visible={!!selectedProduct} animationType="slide" transparent statusBarTranslucent>
         <View style={styles.modalBg}>
           <TouchableOpacity
@@ -766,10 +766,12 @@ export default function MarketplaceScreen({ navigation: nav }) {
                         {soldOut ? 'Out of stock' : `${selectedProduct.stock} units available`}
                       </Text>
 
-                      <Text style={{ color: T.red, fontSize: 12, marginBottom: 12, marginTop: -4 }}>
-                        Insufficient balance â€” need ETB{' '}
-                        {fmtETB(totalCost - ((balance as any) || 0), 0)} more
-                      </Text>
+                      {!canAfford && (
+                        <Text style={{ color: T.red, fontSize: 12, marginBottom: 12, marginTop: -4 }}>
+                          Insufficient balance — need ETB{' '}
+                          {fmtETB(totalCost - ((balance as any) || 0), 0)} more
+                        </Text>
+                      )}
 
                       <TouchableOpacity
                         style={[
@@ -794,7 +796,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
                                 ? 'Out of Stock'
                                 : !canAfford
                                   ? 'Insufficient Balance'
-                                  : `Buy Now Â· ETB ${fmtETB(totalCost, 0)}`}
+                                  : `Buy Now · ETB ${fmtETB(totalCost, 0)}`}
                             </Text>
                           </>
                         )}
@@ -810,7 +812,7 @@ export default function MarketplaceScreen({ navigation: nav }) {
   );
 }
 
-// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ——————————————————————————————————————————————————————————————————————————————————————————————
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
 
@@ -1070,7 +1072,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: T.primary + '50',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,

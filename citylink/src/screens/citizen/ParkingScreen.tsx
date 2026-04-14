@@ -109,7 +109,7 @@ export default function ParkingScreen() {
     if (activeParking) {
       interval = setInterval(() => {
         const secs = Math.floor(
-          (Date.now() - new Date(activeParking.start_time || activeParking.startTime).getTime()) /
+          (Date.now() - new Date(activeParking.start_time).getTime()) /
             1000
         );
         setElapsed(secs);
@@ -155,7 +155,7 @@ export default function ParkingScreen() {
   function getCurrentFare() {
     if (!activeParking) return 0;
     const hours = elapsed / 3600;
-    return Math.ceil(hours * activeParking.ratePerHour * 10) / 10;
+    return Math.ceil(hours * (activeParking as any).rate_per_hour * 10) / 10;
   }
 
   async function handleStartParking() {
@@ -193,7 +193,7 @@ export default function ParkingScreen() {
         l.id === selectedLot.id
           ? {
               ...l,
-              spots: l.spots.map((s) =>
+              spots: l.spots.map((s: any) =>
                 s.id === selectedSpot.id ? { ...s, status: 'occupied' } : s
               ),
             }
@@ -220,8 +220,8 @@ export default function ParkingScreen() {
       const res = await endParkingSession(
         activeParking.id,
         currentUser?.id,
-        activeParking.lot_name || activeParking.lotName,
-        activeParking.spot_number || activeParking.spotNumber,
+        (activeParking as any).lot_name || '',
+        activeParking.spot_number || '',
         fare
       );
 
@@ -237,11 +237,11 @@ export default function ParkingScreen() {
       // Free the spot in the local lot grid so it shows as available again
       setLots((prev) =>
         prev.map((l) =>
-          l.id === activeParking.lotId || l.id === activeParking.lot_id
+          l.id === activeParking.lot_id
             ? {
                 ...l,
-                spots: l.spots.map((s) =>
-                  s.id === activeParking.spotId || s.id === activeParking.spot_id
+                spots: l.spots.map((s: any) =>
+                  s.id === (activeParking as any).spot_id
                     ? { ...s, status: 'available' }
                     : s
                 ),
@@ -805,12 +805,12 @@ export default function ParkingScreen() {
                     <View style={styles.statusDot} />
                     <Text style={styles.statusText}>Active Session</Text>
                   </View>
-                  <Text style={styles.sessionTitle}>Spot {activeParking.spotNumber}</Text>
-                  <Text style={styles.sessionSubtitle}>{activeParking.lotName}</Text>
+                  <Text style={styles.sessionTitle}>Spot {activeParking.spot_number}</Text>
+                  <Text style={styles.sessionSubtitle}>{(activeParking as any).lot_name}</Text>
                 </View>
                 <View style={styles.sessionTimer}>
                   <Text style={styles.timerText}>{formatElapsed(elapsed)}</Text>
-                  <Text style={styles.rateText}>{activeParking.ratePerHour} ETB/hr</Text>
+                  <Text style={styles.rateText}>{(activeParking as any).rate_per_hour} ETB/hr</Text>
                 </View>
               </View>
               <View style={styles.sessionActions}>
@@ -833,7 +833,7 @@ export default function ParkingScreen() {
 
             <View style={styles.lotsList}>
               {lots.map((lot) => {
-                const available = lot.spots.filter((s) => s.status === 'available').length;
+                const available = lot.spots.filter((s: any) => s.status === 'available').length;
                 const pct = Math.round((available / lot.total_spots) * 100);
                 const progressColor = pct > 50 ? '#59de9b' : pct > 20 ? '#ffd887' : '#ff5a4c';
 
@@ -876,7 +876,7 @@ export default function ParkingScreen() {
                       <View style={styles.spotSelection}>
                         <Text style={styles.spotSelectionTitle}>Select a spot</Text>
                         <View style={styles.spotGrid}>
-                          {lot.spots.slice(0, 40).map((spot) => {
+                          {lot.spots.slice(0, 40).map((spot: any) => {
                             const isSelected = selectedSpot?.id === spot.id;
                             const spotStyle =
                               spot.status === 'occupied'
@@ -990,7 +990,7 @@ export default function ParkingScreen() {
         <View style={styles.qrModalContent}>
           <View style={styles.qrCard}>
             <Text style={styles.qrTitle}>Parking QR Code</Text>
-            <Text style={styles.qrCode}>{activeParking?.qrToken}</Text>
+            <Text style={styles.qrCode}>{(activeParking as any)?.qr_token}</Text>
           </View>
           <Text style={styles.qrDescription}>Show this to the parking attendant</Text>
           <TouchableOpacity style={styles.cancelButton} onPress={() => setQrModal(false)}>

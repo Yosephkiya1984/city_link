@@ -6,7 +6,7 @@ import * as Linking from 'expo-linking';
 /**
  * initialize — Starts a real Chapa payment flow.
  */
-export async function initialize({ amount, description, channel = 'telebirr', phone, name }) {
+export async function initialize({ amount, description, channel = 'telebirr', phone, name }: { amount: number, description: string, channel?: string, phone: string, name: string }) {
   if (!amount || amount <= 0) return { status: 'error', message: 'Invalid amount.' };
   
   const supaUrl = Config.supaUrl;
@@ -59,7 +59,7 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
 /**
  * verify — Verifies a payment via the backend proxy.
  */
-export async function verify(txRef) {
+export async function verify(txRef: string) {
   const supaUrl = Config.supaUrl;
   const anonKey = Config.supaKey;
   
@@ -76,8 +76,8 @@ export async function verify(txRef) {
 }
 
 // ── Calculate fee ─────────────────────────────────────────────────────────────
-export function calcFee(amount, channel = 'telebirr') {
-  const ch = CHAPA_CHANNELS[channel];
+export function calcFee(amount: number, channel: string = 'telebirr') {
+  const ch = CHAPA_CHANNELS[channel as keyof typeof CHAPA_CHANNELS];
   if (!ch) return 0;
   return Math.ceil(amount * ch.fee_pct * 100) / 100;
 }
@@ -85,7 +85,7 @@ export function calcFee(amount, channel = 'telebirr') {
 /**
  * payUtilityBill — pays a utility bill atomically.
  */
-export async function payUtilityBill(billId, citizenId) {
+export async function payUtilityBill(billId: string, citizenId: string) {
   return supaQuery((c) =>
     c.rpc('process_utility_payment_atomic', {
       p_bill_id: billId,
@@ -97,7 +97,7 @@ export async function payUtilityBill(billId, citizenId) {
 /**
  * payTrafficFine — pays a traffic fine atomically.
  */
-export async function payTrafficFine(userId, fineId) {
+export async function payTrafficFine(userId: string, fineId: string) {
   return supaQuery((c) =>
     c.rpc('process_traffic_fine_atomic', {
       p_user_id: userId,
@@ -107,7 +107,7 @@ export async function payTrafficFine(userId, fineId) {
 }
 
 // ── Format ETB ────────────────────────────────────────────────────────────────
-export function fmtETB(amount, decimals = 2) {
+export function fmtETB(amount: number | string, decimals = 2) {
   if (amount === undefined || amount === null) return '0.00';
   return Number(amount)
     .toFixed(decimals)

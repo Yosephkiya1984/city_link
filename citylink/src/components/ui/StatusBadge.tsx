@@ -1,12 +1,18 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ViewStyle } from 'react-native';
 import { Radius, FontSize, Fonts } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export function StatusBadge({ status, variant = 'default', size = 'sm', style }) {
+export interface StatusBadgeProps {
+  status: string;
+  size?: 'sm' | 'md' | 'lg';
+  style?: ViewStyle;
+}
+
+export function StatusBadge({ status, size = 'sm', style }: StatusBadgeProps) {
   const C = useTheme();
 
-  const statusConfig = {
+  const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
     active: { color: C.green, bg: C.green + '20', label: 'Active' },
     inactive: { color: C.sub, bg: C.edge2, label: 'Inactive' },
     pending: { color: C.amber, bg: C.amber + '20', label: 'Pending' },
@@ -16,7 +22,7 @@ export function StatusBadge({ status, variant = 'default', size = 'sm', style })
   };
 
   const config = statusConfig[status?.toLowerCase()] || statusConfig.default;
-  const sizeConfig = {
+  const sizeConfig: Record<'sm' | 'md' | 'lg', { padding: number; fontSize: number; borderRadius: number }> = {
     sm: { padding: 4, fontSize: FontSize.xs, borderRadius: Radius.sm },
     md: { padding: 6, fontSize: FontSize.sm, borderRadius: Radius.md },
     lg: { padding: 8, fontSize: FontSize.md, borderRadius: Radius.lg },

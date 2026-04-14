@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+
+type BillPayRouteProp = RouteProp<{ params: { type?: 'Electric' | 'Water' | 'WiFi' | 'Telecom' | 'Traffic' } }, 'params'>;
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,7 +24,7 @@ import { payUtilityBill, payTrafficFine } from '../../services/payment.service';
 
 export default function BillPayScreen() {
   const navigation = useNavigation();
-  const route = useRoute();
+  const route = useRoute<BillPayRouteProp>();
   const isDark = useAppStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
   const currentUser = useAppStore((s) => s.currentUser);
@@ -169,7 +171,7 @@ export default function BillPayScreen() {
             }}
           >
             <Ionicons
-              name={billIcons[type] || 'receipt'}
+              name={(billIcons[type] || 'receipt') as any}
               size={40}
               color={billColors[type] || C.primary}
             />

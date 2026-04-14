@@ -109,6 +109,10 @@ export default function WalletScreen() {
       showToast('Minimum top-up is 5 ETB', 'error');
       return;
     }
+    if (!currentUser || !currentUser.id) {
+      showToast('User ID is missing', 'error');
+      return;
+    }
     if ((balance as any) + amt > walletLimit) {
       showToast(`Wallet limit reached. Please verify your ID for higher limits.`, 'error');
       return;
@@ -118,7 +122,7 @@ export default function WalletScreen() {
     try {
       // Logic for top-up through WalletService
       const success = await WalletService.processTopup(
-        (currentUser as any)?.id,
+        currentUser.id,
         amt,
         selectedProvider
       );
@@ -126,10 +130,13 @@ export default function WalletScreen() {
         setBalance((balance as any) + amt);
         addTransaction({
           id: uid(),
+          wallet_id: `${currentUser.id}-wallet`, // Fallback local representation
+          user_id: currentUser.id,
           amount: amt,
           type: 'credit',
           category: 'topup',
           description: `Top-up via ${selectedProvider.toUpperCase()}`,
+          status: 'completed',
           created_at: new Date().toISOString(),
         });
         showToast(`Successfully added ${fmtETB(amt, 0)} âœ¨`, 'success');

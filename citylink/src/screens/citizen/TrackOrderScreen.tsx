@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+
+type TrackOrderRouteProp = RouteProp<{ params: { orderId: string; order?: any } }, 'params'>;
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -31,7 +33,7 @@ const ADDIS_LNG = 38.75;
 
 export default function TrackOrderScreen() {
   const navigation = useNavigation();
-  const route = useRoute();
+  const route = useRoute<TrackOrderRouteProp>();
   const { orderId } = route.params || {};
   const isDark = useAppStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
@@ -48,9 +50,9 @@ export default function TrackOrderScreen() {
   useEffect(() => {
     if (!orderId) return;
 
-    const sub = subscribeToOrderStatus(orderId, (payload) => {
+    const sub = subscribeToOrderStatus(orderId, (payload: any) => {
       const newOrder = payload.new;
-      setOrder((prev) => ({ ...prev, ...newOrder }));
+      setOrder((prev: any) => ({ ...prev, ...newOrder }));
 
       // Update agent location if available
       if (newOrder.agent_id) {
@@ -64,7 +66,7 @@ export default function TrackOrderScreen() {
 
   // Periodically fetch agent location (Simulated or Real)
   useEffect(() => {
-    let interval;
+    let interval: NodeJS.Timeout;
     if (order?.agent_id && (order.status === 'IN_TRANSIT' || order.status === 'AGENT_ASSIGNED')) {
       const fetchLoc = async () => {
         const { supabase } = require('../../services/supabase');
@@ -98,7 +100,7 @@ export default function TrackOrderScreen() {
   }, [order?.agent_id, order?.status]);
 
   // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const getStatusLabel = (status) => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
       case 'PAID':
         return 'Ready for Dispatch';
@@ -119,7 +121,7 @@ export default function TrackOrderScreen() {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'PAID':
         return 'time-outline';

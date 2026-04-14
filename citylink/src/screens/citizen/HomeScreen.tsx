@@ -109,9 +109,9 @@ export default function HomeScreen() {
 
   const handleQuickAction = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (id === 'history') navigation.navigate('Wallet');
-    else if (id === 'orders') navigation.navigate('MyOrders');
-    else navigation.navigate('Wallet', { action: id });
+    if (id === 'history') (navigation as any).navigate('Wallet');
+    else if (id === 'orders') (navigation as any).navigate('MyOrders');
+    else (navigation as any).navigate('Wallet', { action: id });
   };
 
   if (loading && !refreshing) {
@@ -175,14 +175,14 @@ export default function HomeScreen() {
             description="Organic produce delivered in under 30 mins."
             imageSource="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600"
             icon="restaurant"
-            onPress={() => navigation.navigate('Food')}
+            onPress={() => (navigation as any).navigate('Food')}
           />
         </View>
 
         <View style={styles.sectionContainer}>
           <View style={styles.headerRow}>
             <Text style={[styles.sectionLabel, { color: C.sub }]}>RECENT ACTIVITY</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
+            <TouchableOpacity onPress={() => (navigation as any).navigate('Wallet')}>
               <Text style={{ color: C.primary, fontSize: 12, fontFamily: Fonts.bold }}>
                 VIEW ALL
               </Text>

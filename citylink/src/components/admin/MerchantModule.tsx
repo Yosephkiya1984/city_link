@@ -19,11 +19,19 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function MerchantModule({ merchants, onRefresh, loading }) {
+import { User } from '../../types';
+
+interface MerchantModuleProps {
+  merchants: User[];
+  onRefresh: () => void;
+  loading: boolean;
+}
+
+export default function MerchantModule({ merchants, onRefresh, loading }: MerchantModuleProps) {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
 
-  const handleApprove = async (id, name) => {
+  const handleApprove = async (id: string, name: string) => {
     if (Platform.OS === 'web') {
       try {
         if (window.confirm(`Approve ${name} as a verified CityLink merchant?`)) {
@@ -54,7 +62,7 @@ export default function MerchantModule({ merchants, onRefresh, loading }) {
     ]);
   };
 
-  const handleReject = async (id, name) => {
+  const handleReject = async (id: string, name: string) => {
     if (Platform.OS === 'web') {
       try {
         const reason = window.prompt(`Explain why ${name} is being rejected:`, '');
@@ -78,7 +86,7 @@ export default function MerchantModule({ merchants, onRefresh, loading }) {
       {
         text: 'Reject',
         style: 'destructive',
-        onPress: async (reason) => {
+        onPress: async (reason: string) => {
           const res = await rejectMerchant(id, reason || 'Incomplete documentation');
           if (res.error) Alert.alert('Error', res.error);
           else onRefresh();
@@ -87,7 +95,7 @@ export default function MerchantModule({ merchants, onRefresh, loading }) {
     ]);
   };
 
-  const renderMerchant = ({ item }) => (
+  const renderMerchant = ({ item }: { item: User }) => (
     <View
       style={[
         styles.card,
@@ -210,11 +218,18 @@ export default function MerchantModule({ merchants, onRefresh, loading }) {
   );
 }
 
-function DetailItem({ label, value, icon, isMobile }) {
+interface DetailItemProps {
+  label: string;
+  value?: string;
+  icon: string;
+  isMobile: boolean;
+}
+
+function DetailItem({ label, value, icon, isMobile }: DetailItemProps) {
   const theme = useTheme();
   return (
     <View style={[styles.detailItem, isMobile && { width: '100%', marginBottom: 6 }]}>
-      <Ionicons name={icon} size={14} color={theme.sub} style={{ marginRight: 6 }} />
+      <Ionicons name={icon as any} size={14} color={theme.sub} style={{ marginRight: 6 }} />
       <View style={{ flex: 1 }}>
         <Text style={[styles.detailLabel, { color: theme.hint }]}>{label.toUpperCase()}</Text>
         <Text

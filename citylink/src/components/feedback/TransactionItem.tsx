@@ -5,6 +5,12 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { Fonts, Radius, Shadow, FontSize } from '../../theme';
 import { fmtDateTime, fmtETB, t } from '../../utils';
+import { Transaction } from '../../types/domain_types';
+
+interface TransactionItemProps {
+  tx: Transaction;
+  index: number;
+}
 
 const TX_ICONS = {
   topup: 'arrow-up',
@@ -20,7 +26,7 @@ const TX_ICONS = {
   default: 'cash',
 };
 
-export function TransactionItem({ tx, index }) {
+export function TransactionItem({ tx, index }: TransactionItemProps) {
   const C = useTheme();
   const [animValue] = useState(new Animated.Value(0));
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -28,13 +34,13 @@ export function TransactionItem({ tx, index }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(animValue, { toValue: 1, duration: 600, useNativeDriver: true }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           useNativeDriver: true,
           tension: 100,
           friction: 8,
         }),
+        Animated.timing(animValue, { toValue: 1, duration: 600, useNativeDriver: true }),
       ]).start();
     }, index * 100);
     return () => clearTimeout(timer);
@@ -103,7 +109,7 @@ export function TransactionItem({ tx, index }) {
             }}
           >
             <Ionicons
-              name={TX_ICONS[tx.category] || TX_ICONS.default}
+              name={(TX_ICONS as Record<string, any>)[tx.category] || TX_ICONS.default}
               size={24}
               color={iconColor}
             />

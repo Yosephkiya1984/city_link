@@ -4,14 +4,14 @@ import { fetchWallet, ensureWallet } from './wallet.service';
 /**
  * fetchProfile — fetches a user's profile by their ID.
  */
-export async function fetchProfile(userId) {
+export async function fetchProfile(userId: string) {
   return supaQuery((c) => c.from('profiles').select('*').eq('id', userId).maybeSingle());
 }
 
 /**
  * upsertProfile — creates or updates a user's profile.
  */
-export async function upsertProfile(profile) {
+export async function upsertProfile(profile: any) {
   // Only use fields that exist in database schema
   const data = {
     id: profile.id,
@@ -28,6 +28,7 @@ export async function upsertProfile(profile) {
     trade_license: profile.trade_license,
     credit_score: profile.credit_score,
     welcome_bonus_paid: profile.welcome_bonus_paid || false,
+    merchant_details: profile.merchant_details,
     updated_at: new Date().toISOString(),
   };
   return supaQuery((c) => c.from('profiles').upsert(data, { onConflict: 'id' }));
@@ -36,7 +37,7 @@ export async function upsertProfile(profile) {
 /**
  * checkPhoneExists — checks if a phone number is already registered.
  */
-export async function checkPhoneExists(phone) {
+export async function checkPhoneExists(phone: string) {
   if (!hasSupabase()) {
     // In dev mode without Supabase, return null (no existing user)
     return null;
@@ -51,7 +52,7 @@ export async function checkPhoneExists(phone) {
  * loadSessionProfile — load profile + balance for a session.
  * Resolves OTP-bypass IDs via phone lookup if necessary.
  */
-export async function loadSessionProfile(authUser, normalizedPhone) {
+export async function loadSessionProfile(authUser: any, normalizedPhone: string) {
   if (!getClient()) return null;
   let row = null;
   const authId = authUser?.id;
@@ -90,6 +91,6 @@ export async function loadSessionProfile(authUser, normalizedPhone) {
 /**
  * updateUserRole — persists a role change for the user.
  */
-export async function updateUserRole(userId, newRole) {
+export async function updateUserRole(userId: string, newRole: string) {
   return supaQuery((c) => c.from('profiles').update({ role: newRole }).eq('id', userId));
 }

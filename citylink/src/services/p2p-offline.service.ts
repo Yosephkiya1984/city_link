@@ -12,12 +12,12 @@ async function readList() {
   }
 }
 
-async function writeList(list) {
+async function writeList(list: any[]) {
   await AsyncStorage.setItem(KEY, JSON.stringify(list));
 }
 
 /** Queue a send when Supabase is not configured (offline demo). */
-export async function queueLocalPendingSend({ senderId, recipientPhone, amount, note }) {
+export async function queueLocalPendingSend({ senderId, recipientPhone, amount, note }: { senderId: string, recipientPhone: string, amount: number | string, note?: string }) {
   const list = await readList();
   list.push({
     id: uid(),
@@ -32,12 +32,12 @@ export async function queueLocalPendingSend({ senderId, recipientPhone, amount, 
 }
 
 /** Credit total for matching recipient phone and mark rows claimed. */
-export async function claimLocalPendingForPhone(phone) {
+export async function claimLocalPendingForPhone(phone: string) {
   const list = await readList();
-  const pending = list.filter((r) => r.recipient_phone === phone && r.status === 'pending');
-  const total = pending.reduce((s, r) => s + Number(r.amount), 0);
-  const claimedIds = new Set(pending.map((p) => p.id));
-  const next = list.map((r) => (claimedIds.has(r.id) ? { ...r, status: 'claimed' } : r));
+  const pending = list.filter((r: any) => r.recipient_phone === phone && r.status === 'pending');
+  const total = pending.reduce((s: number, r: any) => s + Number(r.amount), 0);
+  const claimedIds = new Set(pending.map((p: any) => p.id));
+  const next = list.map((r: any) => (claimedIds.has(r.id) ? { ...r, status: 'claimed' } : r));
   await writeList(next);
   return { totalCredited: total, count: pending.length };
 }
@@ -46,9 +46,9 @@ export async function claimLocalPendingForPhone(phone) {
  * Attempts to push all locally queued 'pending' transfers to the live database.
  * This should be called when NetInfo detects an online connection.
  */
-export async function syncOfflineQueueToSupabase(supabaseClient) {
+export async function syncOfflineQueueToSupabase(supabaseClient: any) {
   const list = await readList();
-  const pending = list.filter((r) => r.status === 'pending');
+  const pending = list.filter((r: any) => r.status === 'pending');
 
   if (pending.length === 0 || !supabaseClient) return { success: true, count: 0 };
 

@@ -1,20 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-interface Toast {
-  id: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-}
-
-interface Notification {
-  id: string;
-  title: string;
-  body: string;
-  read: boolean;
-  created_at: string;
-}
+import { Notification, Toast, ChatMessage } from '../types';
 
 interface SystemState {
   isDark: boolean;
@@ -22,6 +9,7 @@ interface SystemState {
   toasts: Toast[];
   notifications: Notification[];
   unreadCount: number;
+  chatHistory: ChatMessage[];
   
   // Actions
   toggleTheme: () => void;
@@ -29,7 +17,11 @@ interface SystemState {
   setLang: (lang: string) => void;
   showToast: (message: string, type?: Toast['type']) => void;
   addNotification: (notif: Notification) => void;
+  setNotifications: (notifs: Notification[]) => void;
   markNotifRead: (id: string) => void;
+  addChatMessage: (msg: ChatMessage) => void;
+  clearChat: () => void;
+  clearNotifications: () => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -42,6 +34,7 @@ export const useSystemStore = create<SystemState>()(
       toasts: [] as Toast[],
       notifications: [] as Notification[],
       unreadCount: 0,
+      chatHistory: [] as ChatMessage[],
 
       toggleTheme: () => set((s) => ({ isDark: !s.isDark })),
       setIsDark: (isDark) => set({ isDark }),
@@ -59,14 +52,22 @@ export const useSystemStore = create<SystemState>()(
         notifications: [notif, ...s.notifications],
         unreadCount: s.unreadCount + 1
       })),
+      
+      setNotifications: (notifs) => set((s) => ({
+        notifications: notifs,
+        unreadCount: notifs.filter((n) => !n.read && !n.is_read).length
+      })),
 
       markNotifRead: (id) => set((s) => {
-        const notifs = s.notifications.map((n) => n.id === id ? { ...n, read: true } : n);
+        const notifs = s.notifications.map((n) => n.id === id ? { ...n, read: true, is_read: true } : n);
         return { 
           notifications: notifs,
           unreadCount: Math.max(0, s.unreadCount - 1)
         };
       }),
+      addChatMessage: (msg) => set((s) => ({ chatHistory: [...s.chatHistory, msg] })),
+      clearChat: () => set({ chatHistory: [] }),
+      clearNotifications: () => set({ notifications: [], unreadCount: 0 }),
     }),
     {
       name: 'cl-system-storage',
@@ -75,7 +76,8 @@ export const useSystemStore = create<SystemState>()(
         isDark: state.isDark,
         lang: state.lang,
         notifications: state.notifications,
-        unreadCount: state.unreadCount
+        unreadCount: state.unreadCount,
+        chatHistory: state.chatHistory
       }),
     }
   )

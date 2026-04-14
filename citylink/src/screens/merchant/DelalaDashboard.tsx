@@ -161,7 +161,7 @@ export default function DelalaDashboard() {
     try {
       const listingData = {
         id: uid(),
-        agent_id: currentUser.id,
+        poster_id: currentUser.id,
         title: newListing.title,
         category: newListing.category,
         price: parseFloat(newListing.price),

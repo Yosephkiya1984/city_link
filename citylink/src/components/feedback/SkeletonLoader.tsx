@@ -3,7 +3,7 @@ import { View, Animated } from 'react-native';
 import { Radius } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export function SkeletonLoader({ style, lines = 3 }) {
+export function SkeletonLoader({ style, lines = 3 }: any) {
   const C = useTheme();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 

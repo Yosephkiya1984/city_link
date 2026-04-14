@@ -49,7 +49,7 @@ export const DataEngine = {
   marketplace: {
     getListings: (category?: string) => {
       return supaQuery((c: any) => {
-        let q = c.from('marketplace_listings').select('*, profiles(full_name)');
+        let q = c.from('products').select('*, profiles(id, full_name, business_name, merchant_name)');
         if (category && category !== 'All') {
           return q.eq('category', category);
         }
@@ -70,13 +70,13 @@ export const DataEngine = {
 
   ekub: {
     getGroups: () =>
-      supaQuery((c) => c.from('ekub_groups').select('*').eq('is_active', true)),
+      supaQuery((c) => c.from('ekubs').select('*').neq('status', 'COMPLETE')),
     
     getMemberStatus: (groupId: string, userId: string) =>
       supaQuery((c) => 
         c.from('ekub_members')
          .select('*')
-         .eq('group_id', groupId)
+         .eq('ekub_id', groupId)
          .eq('user_id', userId)
          .maybeSingle()
       ),

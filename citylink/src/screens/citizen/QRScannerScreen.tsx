@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
@@ -11,7 +11,7 @@ import { t } from '../../utils';
 export function QRScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
-  const navigation = useNavigation();
+  const navigation: any = useNavigation();
   const isDark = useAppStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
   const lang = useAppStore((s) => s.lang);
@@ -51,7 +51,7 @@ export function QRScannerScreen() {
     );
   }
 
-  const handleBarcodeScanned = ({ type, data }) => {
+  const handleBarcodeScanned = ({ type, data }: any) => {
     if (scanned) return;
     setScanned(true);
 

@@ -1,3 +1,7 @@
+import { Transaction } from './domain_types';
+
+export type { Transaction };
+
 export interface User {
   id: string;
   full_name?: string;
@@ -17,6 +21,8 @@ export interface User {
   credit_score?: number;
   credit_tier?: string;
   credit_updated_at?: string;
+  license_no?: string;
+  merchant_details?: any;
 }
 
 export interface Product {
@@ -51,73 +57,107 @@ export interface FoodItem {
 
 export interface PropertyListing {
   id: string;
-  agent_id: string;
+  poster_id: string;
   title: string;
   description?: string;
   category: string;
   price: number;
   location: string;
-  status: 'ACTIVE' | 'NEGOTIATING' | 'AGREED' | 'COMPLETED' | 'REMOVED';
-  images_json?: string[];
+  status: 'ACTIVE' | 'NEGOTIATING' | 'AGREED' | 'FAILED';
+  deal_status?: string;
+  broker?: string;
+  images: string[];  // jsonb[] in DB
+  images_json?: string[];  // @deprecated — use `images`
+  video_url?: string;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface ParkingSession {
   id: string;
-  citizen_id: string;
+  user_id: string;
   lot_id: string;
-  lot_name?: string;
-  plate_number: string;
-  started_at: string;
-  ended_at?: string;
-  amount_charged?: number;
-  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  merchant_id?: string;
+  spot_number: string;
+  plate?: string;
+  pin?: string;
+  reservation_id?: string;
+  start_time: string;
+  end_time?: string;
+  calculated_cost?: number;
+  hold_amount?: number;
+  status: string;  // DB allows: RESERVED, completed, payment_failed, refund_failed, etc.
+  citizen_confirmed_exit?: boolean;
+  merchant_confirmed_exit?: boolean;
+  refund_failed?: boolean;
+  refund_error?: any;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;  // DB is unconstrained text; common values: 'info', 'success', 'warning', 'error', 'push'
+  read: boolean;  // DB column name
+  is_read?: boolean;  // @deprecated — frontend alias, mapped in DataEngine/realtime
+  data?: Record<string, unknown>;  // DB column name (jsonb)
+  metadata?: Record<string, unknown>;  // @deprecated — frontend alias
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  duration?: number;
 }
 
 export interface AppState {
   isDark: boolean;
-  notifications: any[];
-  transactions: any[];
+  notifications: Notification[];
+  transactions: Transaction[];
   currentUser: User | null;
   balance: number;
-  toasts: any[];
+  toasts: Toast[];
   products: Product[];
   selProdCat: string;
   unreadCount: number;
-  activeParking: any;
+  activeParking: ParkingSession | null;
+  setActiveParking: (session: ParkingSession | null) => void;
   setIsDark: (val: boolean) => void;
   toggleTheme: () => void;
-  setCurrentUser: (user: User | null) => Promise<void>;
-  setBalance: (val: number) => Promise<void>;
-  setTransactions: (txs: any[]) => void;
-  addTransaction: (tx: any) => void;
-  setNotifications: (notifs: any[]) => void;
-  showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
-  addNotification: (notif: any) => void;
+  setCurrentUser: (user: User | null) => void;
+  setBalance: (val: number) => void;
+  setTransactions: (txs: Transaction[]) => void;
+  addTransaction: (tx: Transaction) => void;
+  setNotifications: (notifs: Notification[]) => void;
+  showToast: (message: string, type?: Toast['type']) => void;
+  addNotification: (notif: Notification) => void;
   markNotifRead: (id: string) => void;
   clearNotifications: () => void;
   setProducts: (items: Product[]) => void;
   setSelProdCat: (cat: string) => void;
   favorites: string[];
-  settings: any;
+  settings: Record<string, unknown>;
   lang: string;
   setFavorites: (favs: string[]) => void;
-  setSettings: (settings: any) => void;
+  setSettings: (settings: Record<string, unknown>) => void;
   setLang: (lang: string) => void;
-  setTheme: (theme: 'light' | 'dark') => void;
-  chatHistory: any[];
-  foodOrders: any[];
-  marketplaceListings: any[];
-  ekubGroups: any[];
   theme: 'light' | 'dark';
-  setChatHistory: (history: any[]) => void;
-  setFoodOrders: (orders: any[]) => void;
-  setMarketplaceListings: (listings: any[]) => void;
-  setEkubGroups: (groups: any[]) => void;
-  setActiveParking: (session: any) => void;
-  setUnreadCount: (count: number) => void;
-  reset: () => Promise<void>;
+  chatHistory: ChatMessage[];
+  addChatMessage: (msg: ChatMessage) => void;
+  clearChat: () => void;
   hydrateSession: () => Promise<void>;
+  reset: () => Promise<void>;
 }
 
 export interface EkubCircle {

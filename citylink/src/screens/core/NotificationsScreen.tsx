@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TopBar from '../../components/TopBar';
@@ -30,25 +30,25 @@ export default function NotificationsScreen() {
   const FILTERS = ['all', 'unread', 'transport', 'payments', 'social', 'promotions', 'system'];
   const filtered = notifications.filter((n) => {
     if (filter === 'all') return true;
-    if (filter === 'unread') return !n.read;
-    return n.category === filter;
+    if (filter === 'unread') return !n.read && !n.is_read;
+    return ((n.data as any)?.category || (n.metadata as any)?.category || 'system') === filter;
   });
 
   // Real-time notifications are now handled globally in HomeScreen.js
 
-  const getNotificationIcon = (type, category) => {
-    const iconMap = {
+  const getNotificationIcon = (type: string, category: string) => {
+    const iconMap: Record<string, string> = {
       transport: 'bus',
       payments: 'bag-handle',
       social: 'people',
       promotions: 'gift',
       system: 'settings',
     };
-    return iconMap[category] || 'information-circle';
+    return (iconMap[category] || 'information-circle') as any;
   };
 
-  const getNotificationColor = (type, category) => {
-    const colorMap = {
+  const getNotificationColor = (type: string, category: string) => {
+    const colorMap: Record<string, string> = {
       transport: C.blue,
       payments: C.green,
       social: C.primary,
@@ -244,7 +244,9 @@ export default function NotificationsScreen() {
               </Text>
             </View>
 
-            {filtered.map((n) => (
+            {filtered.map((n) => {
+              const cat = String((n.data as any)?.category || (n.metadata as any)?.category || 'system');
+              return (
               <TouchableOpacity
                 key={n.id}
                 onPress={() => markNotifRead(n.id)}
@@ -252,11 +254,11 @@ export default function NotificationsScreen() {
                   padding: 20,
                   borderBottomWidth: 1,
                   borderBottomColor: C.edge,
-                  backgroundColor: n.read ? 'transparent' : C.primaryL,
+                  backgroundColor: (n.read || n.is_read) ? 'transparent' : C.primaryL,
                   flexDirection: 'row',
                   gap: 16,
-                  borderLeftWidth: n.read ? 0 : 4,
-                  borderLeftColor: getNotificationColor(n.type, n.category),
+                  borderLeftWidth: (n.read || n.is_read) ? 0 : 4,
+                  borderLeftColor: getNotificationColor(n.type, cat),
                 }}
               >
                 <View
@@ -264,15 +266,15 @@ export default function NotificationsScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 12,
-                    backgroundColor: getNotificationColor(n.type, n.category) + '20',
+                    backgroundColor: getNotificationColor(n.type, cat) + '20',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
                   <Ionicons
-                    name={getNotificationIcon(n.type, n.category)}
+                    name={getNotificationIcon(n.type, cat)}
                     size={24}
-                    color={getNotificationColor(n.type, n.category)}
+                    color={getNotificationColor(n.type, cat)}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -291,18 +293,18 @@ export default function NotificationsScreen() {
                         paddingHorizontal: 6,
                         paddingVertical: 2,
                         borderRadius: 4,
-                        backgroundColor: getNotificationColor(n.type, n.category) + '20',
+                        backgroundColor: getNotificationColor(n.type, cat) + '20',
                         marginLeft: 8,
                       }}
                     >
                       <Text
                         style={{
-                          color: getNotificationColor(n.type, n.category),
+                          color: getNotificationColor(n.type, cat),
                           fontSize: 10,
                           fontFamily: Fonts.bold,
                         }}
                       >
-                        {n.category}
+                        {cat}
                       </Text>
                     </View>
                   </View>
@@ -323,13 +325,13 @@ export default function NotificationsScreen() {
                     {timeAgo(n.created_at)}
                   </Text>
                 </View>
-                {!n.read && (
+                {!(n.read || n.is_read) && (
                   <View
                     style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary }}
                   />
                 )}
               </TouchableOpacity>
-            ))}
+            )})}
           </>
         )}
       </ScrollView>

@@ -50,7 +50,7 @@ Always be friendly, concise, and culturally aware. Mention Ethiopian context whe
  * @param {Array<{role:'user'|'assistant', content:string}>} messages
  * @returns {Promise<string>} assistant reply text
  */
-export async function sendMessage(messages) {
+export async function sendMessage(messages: any[]) {
   const supaUrl = Config.supaUrl;
   const anonKey = Config.supaKey;
   

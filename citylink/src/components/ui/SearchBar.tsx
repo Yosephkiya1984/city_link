@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Radius, Shadow, Fonts } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export function SearchBar({ value, onChangeText, placeholder = 'Search…', style }) {
+export function SearchBar({ value, onChangeText, placeholder = 'Search…', style }: any) {
   const C = useTheme();
   return (
     <View style={[{ paddingHorizontal: 16, marginBottom: 12 }, style]}>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -95,12 +95,11 @@ export default function RequestMoneyScreen() {
       const transaction = {
         id: uid(),
         amount: amt,
-        type: 'debit',
+        type: 'debit' as const,
         category: 'request',
         description: `Request from ${selectedContact.name}: ${description}`,
-        from: selectedContact.name,
-        to: currentUser?.full_name || 'You',
-        status: 'pending',
+        wallet_id: currentUser?.id + '-wallet', // Fallback value
+        status: 'pending' as const,
         created_at: new Date().toISOString(),
       };
 
@@ -156,7 +155,7 @@ export default function RequestMoneyScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.background }}>
+    <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar title="Request Money" />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 20 }}>
@@ -170,7 +169,7 @@ export default function RequestMoneyScreen() {
             padding: 16,
             marginBottom: 20,
             borderWidth: 1,
-            borderColor: C.border,
+            borderColor: C.edge,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 12,
@@ -294,7 +293,7 @@ export default function RequestMoneyScreen() {
                   padding: 16,
                   marginBottom: 12,
                   borderWidth: 1,
-                  borderColor: C.border,
+                  borderColor: C.edge,
                   ...Shadow.md,
                 }}
               >

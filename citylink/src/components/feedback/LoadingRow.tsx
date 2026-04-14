@@ -3,7 +3,7 @@ import { View, Animated } from 'react-native';
 import { FontSize, Fonts } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export function LoadingRow({ text = 'Loading…', size = 'medium' }) {
+export function LoadingRow({ text = 'Loading…', size = 'medium' }: any) {
   const C = useTheme();
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -29,7 +29,7 @@ export function LoadingRow({ text = 'Loading…', size = 'medium' }) {
     };
   }, []);
 
-  const sizeConfig = {
+  const sizeConfig: any = {
     small: { indicator: 24, text: FontSize.sm, padding: 20 },
     medium: { indicator: 32, text: FontSize.md, padding: 40 },
     large: { indicator: 48, text: FontSize.lg, padding: 60 },

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -71,8 +71,12 @@ export default function SendMoneyScreen() {
     processTransfer(amt);
   }
 
-  async function processTransfer(amt) {
+  async function processTransfer(amt: number) {
     if (!currentUser) return;
+    if (!currentUser.id) {
+      showToast('User ID missing', 'error');
+      return;
+    }
     setLoading(true);
     try {
       const normalizedPhone = normalizePhone(phone);
@@ -100,15 +104,17 @@ export default function SendMoneyScreen() {
 
       addTransaction({
         id: uid(),
+        wallet_id: `${currentUser.id}-wallet`,
         amount: amt,
         type: 'debit',
         category: 'transfer',
         description: `Sent to ${phone}`,
-        recipient_phone: phone,
+        status: (res.status as any) || 'pending',
         created_at: new Date().toISOString(),
       });
 
-      showToast(`Successfully sent ${fmtETB(amt, 0)} to ${phone}! ðŸ’¸`, 'success');
+      const successStatus = res.status === 'completed' ? 'Completed' : 'Pending';
+      showToast(`Transfer ${successStatus}: ${fmtETB(amt, 0)} to ${phone}`, 'success');
       navigation.goBack();
     } catch (error) {
       console.error('P2P Transfer Error:', error);

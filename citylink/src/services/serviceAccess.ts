@@ -33,7 +33,7 @@ export const ServiceAccessUtils = {
     }
     throw new Error('ServiceAccessUtils.checkAccess: Not implemented - real access checks required');
   },
-  validateRequirements: async () => {
+  validateRequirements: async (): Promise<any[]> => {
     if (process.env.ENABLE_FAKE_ACCESS === 'true' && process.env.NODE_ENV === 'production') {
       throw new Error('ServiceAccessUtils.validateRequirements: Fake access is not allowed in production');
     }

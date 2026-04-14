@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { SecurePersist } from './SecurePersist';
-import { Transaction } from '../types/domain_types';
+import { Transaction, ParkingSession } from '../types';
 
 interface WalletState {
   balance: number;
@@ -11,6 +11,8 @@ interface WalletState {
   setBalance: (val: number) => Promise<void>;
   setTransactions: (txs: Transaction[]) => void;
   addTransaction: (tx: Transaction) => void;
+  activeParking: ParkingSession | null;
+  setActiveParking: (session: ParkingSession | null) => void;
   hydrate: (userId: string) => Promise<void>;
 }
 
@@ -30,6 +32,9 @@ export const useWalletStore = create<WalletState>((set) => ({
   
   addTransaction: (tx) => 
     set((s) => ({ transactions: [tx, ...s.transactions].slice(0, 50) })),
+
+  activeParking: null,
+  setActiveParking: (session) => set({ activeParking: session }),
 
   hydrate: async (userId: string) => {
     if (!userId) return;

@@ -11,14 +11,24 @@ import { AgentStack } from './AgentStack';
 
 // Auth & Onboarding
 import AuthScreen from '../screens/core/AuthScreen';
-import FaydaKYCScreen from '../screens/citizen/FaydaKYCScreen';
+import PendingVerificationScreen from '../screens/core/PendingVerificationScreen';
+import ChatInboxScreen from '../screens/core/ChatInboxScreen';
+import NotificationsScreen from '../screens/core/NotificationsScreen';
+import ChatScreen from '../screens/core/ChatScreen';
+import ProfileScreen from '../screens/core/ProfileScreen';
+import { AdminStack } from './AdminStack';
 
 export type AppStackParamList = {
   Auth: undefined;
-  FaydaKYC: undefined;
+  PendingVerification: undefined;
   CitizenRoot: undefined;
   MerchantRoot: undefined;
   AgentRoot: undefined;
+  ChatInbox: undefined;
+  Notifications: undefined;
+  Chat: { threadId: string; recipientName: string; recipientId: string; propertyTitle?: string };
+  Profile: undefined;
+  AdminRoot: undefined;
 };
 
 export type RootStackParamList = AppStackParamList;
@@ -50,14 +60,26 @@ export default function AppNavigator() {
       <RootStack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
         {!currentUser ? (
           <RootStack.Screen name="Auth" component={AuthScreen} />
-        ) : !isVerified && currentUser.role === 'citizen' ? (
-          <RootStack.Screen name="FaydaKYC" component={FaydaKYCScreen} />
-        ) : currentUser.role === 'delivery_agent' ? (
-          <RootStack.Screen name="AgentRoot" component={AgentStack} />
-        ) : currentUser.role === 'merchant' ? (
-          <RootStack.Screen name="MerchantRoot" component={MerchantStack} />
+        ) : !isVerified && currentUser.role !== 'admin' ? (
+          <RootStack.Screen name="PendingVerification" component={PendingVerificationScreen} />
         ) : (
-          <RootStack.Screen name="CitizenRoot" component={CitizenStack} />
+          <>
+            {currentUser.role === 'delivery_agent' ? (
+              <RootStack.Screen name="AgentRoot" component={AgentStack} />
+            ) : currentUser.role === 'merchant' ? (
+              <RootStack.Screen name="MerchantRoot" component={MerchantStack} />
+            ) : currentUser.role === 'admin' ? (
+              <RootStack.Screen name="AdminRoot" component={AdminStack} />
+            ) : (
+              <RootStack.Screen name="CitizenRoot" component={CitizenStack} />
+            )}
+            
+            {/* Shared Core Screens (Authenticated only) */}
+            <RootStack.Screen name="ChatInbox" component={ChatInboxScreen} />
+            <RootStack.Screen name="Notifications" component={NotificationsScreen} />
+            <RootStack.Screen name="Chat" component={ChatScreen} />
+            <RootStack.Screen name="Profile" component={ProfileScreen} />
+          </>
         )}
       </RootStack.Navigator>
     </NavigationContainer>

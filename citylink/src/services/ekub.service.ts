@@ -37,7 +37,6 @@ export async function fetchEkubs() {
  */
 export async function submitEkubApplication(ekubId: string, userId: string, reason: string) {
   const application = {
-    id: uid(),
     ekub_id: ekubId,
     user_id: userId,
     status: 'PENDING',
@@ -54,8 +53,16 @@ export async function submitEkubApplication(ekubId: string, userId: string, reas
 /**
  * handleEkubApplication — Organiser approves/rejects application.
  */
-export async function handleEkubApplication(memberId: string, status: 'ACTIVE' | 'REJECTED') {
-  return supaQuery((c) => c.from('ekub_members').update({ status }).eq('id', memberId));
+export async function handleEkubApplication(ekubId: string, userId: string, status: 'ACTIVE' | 'REJECTED') {
+  return supaQuery((c) => 
+    c.from('ekub_members')
+     .update({ status })
+     .eq('ekub_id', ekubId)
+     .eq('user_id', userId)
+     .eq('status', 'PENDING')
+     .select()
+     .single()
+  );
 }
 
 /**
@@ -189,7 +196,7 @@ export async function fetchMyEkubs(userId: string) {
 export async function fetchCircleMembers(ekubId: string) {
   return supaQuery((c) => 
     c.from('ekub_members')
-     .select('*, user:users(*)')
+     .select('*, profile:profiles(*)')
      .eq('ekub_id', ekubId)
   );
 }
@@ -208,7 +215,7 @@ export function getReliabilityScore(missedRounds: number = 0): number {
 export async function fetchPendingApplications(organiserId: string) {
   return supaQuery((c) => 
     c.from('ekub_members')
-     .select('*, ekubs!inner(*), user:users(*)')
+     .select('*, ekubs!inner(*), profile:profiles(*)')
      .eq('status', 'PENDING')
      .eq('ekubs.organiser_id', organiserId)
   );

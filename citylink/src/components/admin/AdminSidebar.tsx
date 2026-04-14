@@ -18,7 +18,28 @@ import * as Haptics from 'expo-haptics';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IS_TABLET = SCREEN_WIDTH > 768;
 
-export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, toggleCollapse }) {
+export type AdminTab =
+  | 'overview'
+  | 'merchants'
+  | 'drivers'
+  | 'disputes'
+  | 'users'
+  | 'logs'
+  | 'systems';
+
+interface AdminSidebarProps {
+  activeTab: AdminTab | string;
+  onTabChange: (tabId: string) => void;
+  isCollapsed: boolean;
+  toggleCollapse: () => void;
+}
+
+export default function AdminSidebar({
+  activeTab,
+  onTabChange,
+  isCollapsed,
+  toggleCollapse,
+}: AdminSidebarProps) {
   const theme = useTheme();
   const resetStore = useAppStore((s) => s.reset);
 
@@ -124,7 +145,7 @@ export default function AdminSidebar({ activeTab, onTabChange, isCollapsed, togg
                 ]}
               >
                 <MaterialCommunityIcons
-                  name={item.mIcon}
+                  name={item.mIcon as any}
                   size={isActive ? 20 : 22}
                   color={isActive ? theme.ink : theme.sub}
                 />

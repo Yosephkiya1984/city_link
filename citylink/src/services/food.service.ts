@@ -10,7 +10,7 @@ export async function fetchRestaurants() {
 /**
  * fetchFoodItems — fetches food menu items for a specific merchant.
  */
-export async function fetchFoodItems(merchantId) {
+export async function fetchFoodItems(merchantId: string) {
   return supaQuery((c) =>
     c.from('food_items').select('*').eq('merchant_id', merchantId).eq('available', true)
   );
@@ -19,7 +19,7 @@ export async function fetchFoodItems(merchantId) {
 /**
  * placeOrder — places a new food order using atomic purchase RPC.
  */
-export async function placeOrder(orderData) {
+export async function placeOrder(orderData: any) {
   const res = await supaQuery((c) =>
     c.rpc('process_food_purchase', {
       p_order_id: orderData.id,
@@ -40,7 +40,7 @@ export async function placeOrder(orderData) {
 /**
  * fetchMyFoodOrders — fetches food orders placed by a specific citizen.
  */
-export async function fetchMyFoodOrders(userId) {
+export async function fetchMyFoodOrders(userId: string) {
   return supaQuery((c) =>
     c
       .from('food_orders')
@@ -53,7 +53,7 @@ export async function fetchMyFoodOrders(userId) {
 /**
  * completeFoodOrder — processes payout for a completed food order.
  */
-export async function completeFoodOrder(orderId, merchantId) {
+export async function completeFoodOrder(orderId: string, merchantId: string) {
   const res = await supaQuery((c) =>
     c.rpc('complete_food_order_payout', {
       p_order_id: orderId,
@@ -68,7 +68,7 @@ export async function completeFoodOrder(orderId, merchantId) {
 /**
  * fetchFoodOrdersByMerchant — fetches all food orders for a merchant.
  */
-export async function fetchFoodOrdersByMerchant(merchantId) {
+export async function fetchFoodOrdersByMerchant(merchantId: string) {
   return supaQuery((c) =>
     c
       .from('food_orders')
@@ -81,7 +81,7 @@ export async function fetchFoodOrdersByMerchant(merchantId) {
 
 // ── Merchant Dashboard Functions ───────────────────────────────────────
 
-export const fetchRestaurantOrders = async (merchantId) => {
+export const fetchRestaurantOrders = async (merchantId: string) => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -116,7 +116,7 @@ export const fetchRestaurantOrders = async (merchantId) => {
   );
 };
 
-export const fetchRestaurantMenu = async (merchantId) => {
+export const fetchRestaurantMenu = async (merchantId: string) => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -149,16 +149,18 @@ export const fetchRestaurantMenu = async (merchantId) => {
   );
 };
 
-export const updateOrderStatus = async (orderId, status) => {
+export const updateOrderStatus = async (orderId: string, status: string): Promise<{ok: boolean, error: any}> => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
-  return supaQuery((client) => client.from('food_orders').update({ status }).eq('id', orderId));
+  const res = await supaQuery((client) => client.from('food_orders').update({ status }).eq('id', orderId));
+  return { ok: !res.error, error: res.error };
 };
 
-export const updateMenuItem = async (menuItem) => {
+export const updateMenuItem = async (menuItem: any): Promise<{ok: boolean, error: any}> => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
-  return supaQuery((client) => client.from('menu_items').upsert(menuItem));
+  const res = await supaQuery((client) => client.from('menu_items').upsert(menuItem));
+  return { ok: !res.error, error: res.error };
 };

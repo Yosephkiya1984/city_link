@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { User } from '../../types';
 import {
   View,
   Text,
@@ -19,11 +20,26 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+export interface DeliveryAgent {
+  id: string;
+  agent_status: 'PENDING' | 'APPROVED' | 'SUSPENDED';
+  vehicle_type: 'motorcycle' | 'car' | 'bicycle' | 'tuktuk' | 'foot';
+  plate_number?: string;
+  license_number: string;
+  total_deliveries: number;
+  rating: number;
+  profile?: {
+    full_name: string;
+    phone: string;
+    subcity: string;
+  };
+}
+
 export default function DeliveryAgentModule() {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
-  const [agents, setAgents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [agents, setAgents] = useState<DeliveryAgent[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const loadAgents = useCallback(async () => {
     setLoading(true);
@@ -41,7 +57,7 @@ export default function DeliveryAgentModule() {
     loadAgents();
   }, [loadAgents]);
 
-  const handleApprove = (agent) => {
+  const handleApprove = (agent: DeliveryAgent) => {
     const name = agent.profile?.full_name || String(agent.id).slice(0, 8);
 
     if (Platform.OS === 'web') {
@@ -80,7 +96,7 @@ export default function DeliveryAgentModule() {
     ]);
   };
 
-  const handleReject = (agent) => {
+  const handleReject = (agent: DeliveryAgent) => {
     const name = agent.profile?.full_name || String(agent.id).slice(0, 8);
 
     if (Platform.OS === 'web') {
@@ -107,7 +123,7 @@ export default function DeliveryAgentModule() {
       {
         text: 'Reject',
         style: 'destructive',
-        onPress: async (reason) => {
+        onPress: async (reason: string) => {
           setLoading(true);
           const res = await rejectAgent(agent.id, reason || 'Incomplete documentation');
           if (res.error) {
@@ -121,7 +137,7 @@ export default function DeliveryAgentModule() {
     ]);
   };
 
-  const handleSuspend = (agent) => {
+  const handleSuspend = (agent: DeliveryAgent) => {
     const name = agent.profile?.full_name || String(agent.id).slice(0, 8);
     const action = agent.agent_status === 'SUSPENDED' ? 'Reactivate' : 'Suspend';
     const newStatus = agent.agent_status === 'SUSPENDED' ? 'APPROVED' : 'SUSPENDED';
@@ -162,13 +178,13 @@ export default function DeliveryAgentModule() {
     ]);
   };
 
-  const statusColor = (status) => {
+  const statusColor = (status: DeliveryAgent['agent_status']) => {
     if (status === 'APPROVED') return theme.green || '#68d391';
     if (status === 'SUSPENDED') return theme.red || '#fc8181';
     return theme.amber || '#f6e05e';
   };
 
-  const vehicleIcon = (v) => {
+  const vehicleIcon = (v: DeliveryAgent['vehicle_type']) => {
     switch (v) {
       case 'motorcycle':
         return 'bicycle';
@@ -185,13 +201,13 @@ export default function DeliveryAgentModule() {
     }
   };
 
-  const renderAgent = ({ item }) => (
+  const renderAgent = ({ item }: { item: DeliveryAgent }) => (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
       <View style={styles.cardHeader}>
         <View style={styles.agentInfo}>
           <View style={[styles.avatar, { backgroundColor: statusColor(item.agent_status) + '20' }]}>
             <Ionicons
-              name={vehicleIcon(item.vehicle_type)}
+              name={vehicleIcon(item.vehicle_type) as any}
               size={20}
               color={statusColor(item.agent_status)}
             />

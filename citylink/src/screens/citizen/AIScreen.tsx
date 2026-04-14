@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
 import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
+import { ChatMessage } from '../../types';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { sendMessage } from '../../services/ai.service';
 import { fmtTime, uid, timeAgo } from '../../utils';
@@ -72,7 +74,7 @@ const AI_INSIGHTS = [
 export default function AIScreen() {
   const isDark = useAppStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const chatHistory = useAppStore((s) => s.chatHistory);
+  const chatHistory = useAppStore((s) => s.chatHistory) as ChatMessage[];
   const addChatMessage = useAppStore((s) => s.addChatMessage);
   const clearChat = useAppStore((s) => s.clearChat);
 
@@ -90,23 +92,23 @@ export default function AIScreen() {
   }, [selectedCategory]);
 
   // Smart message handling with context awareness
-  async function handleSend(text) {
+  async function handleSend(text?: string) {
     const msg = (text || input).trim();
     if (!msg || loading) return;
     setInput('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const userMsg = { id: uid(), role: 'user', content: msg, ts: new Date().toISOString() };
+    const userMsg: ChatMessage = { id: uid(), role: 'user', content: msg, timestamp: new Date().toISOString() };
     addChatMessage(userMsg);
     setLoading(true);
 
     const apiMessages = [
-      ...chatHistory.map((m) => ({ role: m.role, content: m.content })),
+      ...chatHistory.map((m: ChatMessage) => ({ role: m.role, content: m.content })),
       { role: 'user', content: msg },
     ];
 
     const reply = await sendMessage(apiMessages);
-    addChatMessage({ id: uid(), role: 'assistant', content: reply, ts: new Date().toISOString() });
+    addChatMessage({ id: uid(), role: 'assistant', content: reply, timestamp: new Date().toISOString() });
     setLoading(false);
   }
 
@@ -164,7 +166,7 @@ export default function AIScreen() {
             style={{
               backgroundColor: C.surface,
               borderBottomWidth: 1,
-              borderBottomColor: C.border,
+              borderBottomColor: C.edge,
             }}
           >
             <ScrollView
@@ -198,7 +200,7 @@ export default function AIScreen() {
                         justifyContent: 'center',
                       }}
                     >
-                      <Ionicons name={insight.icon} size={16} color={insight.color} />
+                      <Ionicons name={insight.icon as any} size={16} color={insight.color} />
                     </View>
                     <Text style={{ color: C.text, fontSize: FontSize.sm, fontFamily: Fonts.black }}>
                       {insight.title}
@@ -246,7 +248,7 @@ export default function AIScreen() {
               }}
             >
               <Ionicons
-                name={cat.icon}
+                name={cat.icon as any}
                 size={14}
                 color={selectedCategory === cat.id ? C.white : C.sub}
               />
@@ -270,7 +272,7 @@ export default function AIScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {chatHistory.map((msg) => (
+          {chatHistory.map((msg: ChatMessage) => (
             <View
               key={msg.id}
               style={{
@@ -327,7 +329,7 @@ export default function AIScreen() {
                     textAlign: msg.role === 'user' ? 'right' : 'left',
                   }}
                 >
-                  {fmtTime(msg.ts)}
+                  {fmtTime(msg.timestamp)}
                 </Text>
               </View>
             </View>

@@ -13,9 +13,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /**
  * SparklineChart — small visual indicator for wallet activity.
  */
-export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }) => {
+export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }: any) => {
   const points = data
-    .map((value, index) => {
+    .map((value: any, index: number) => {
       const x = (index / (data.length - 1)) * 100;
       const y = value;
       return `${x},${y}`;
@@ -38,7 +38,7 @@ export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }) => {
   );
 };
 
-export function WalletHero({ balance, name, greetingKey, onQuickAction, animValue }) {
+export function WalletHero({ balance, name, greetingKey, onQuickAction, animValue }: any) {
   const C = useTheme();
   const [showBalance, setShowBalance] = useState(true);
 
@@ -145,7 +145,7 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
                     marginBottom: 8,
                   }}
                 >
-                  <Ionicons name={action.icon} size={22} color={action.color} />
+                  <Ionicons name={action.icon as any} size={22} color={action.color} />
                 </View>
                 <Text
                   style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: Fonts.bold }}

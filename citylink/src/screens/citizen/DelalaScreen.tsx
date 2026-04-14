@@ -1,4 +1,4 @@
-﻿// â”€â”€ DelalaScreen â€” Three-Screen Real Estate Ecosystem â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ DelalaScreen â€” Three-Screen Real Estate Ecosystem â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -202,7 +202,15 @@ const PRIVATE_INVENTORY = [
 const CATEGORIES = ['All', 'House Rent', 'House Sale', 'Car Sale', 'Office Space'];
 
 // â”€â”€ Enhanced Top Bar Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const EnhancedTopBar = ({ activeScreen, onScreenChange, userImage, userProfile }) => {
+const EnhancedTopBar = ({
+  activeScreen,
+  onScreenChange,
+  userImage,
+}: {
+  activeScreen: string;
+  onScreenChange: (screen: string) => void;
+  userImage: string;
+}) => {
   return (
     <View style={styles.topBar}>
       <View style={styles.topBarLeft}>
@@ -234,8 +242,8 @@ const EnhancedTopBar = ({ activeScreen, onScreenChange, userImage, userProfile }
   );
 };
 
-// â”€â”€ Search Bar Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const SearchBar = ({ value, onChangeText }) => {
+// ——————————————————————————————————————————————————————————————————————————————————————————————————
+const SearchBar = ({ value, onChangeText }: any) => {
   return (
     <View style={styles.searchContainer}>
       <Ionicons name="search" size={20} color={COLORS.outline} style={styles.searchIcon} />
@@ -250,8 +258,8 @@ const SearchBar = ({ value, onChangeText }) => {
   );
 };
 
-// â”€â”€ Category Filter Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const CategoryFilter = ({ categories, selected, onSelect }) => {
+// ——————————————————————————————————————————————————————————————————————————————————————————————————
+const CategoryFilter = ({ categories, selected, onSelect }: any) => {
   return (
     <ScrollView
       horizontal
@@ -259,7 +267,7 @@ const CategoryFilter = ({ categories, selected, onSelect }) => {
       style={styles.categoryFilter}
       contentContainerStyle={styles.categoryFilterContent}
     >
-      {categories.map((category) => (
+      {categories.map((category: any) => (
         <TouchableOpacity
           key={category}
           onPress={() => onSelect(category)}
@@ -279,8 +287,8 @@ const CategoryFilter = ({ categories, selected, onSelect }) => {
   );
 };
 
-// â”€â”€ Public Property Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const PublicPropertyCard = ({ property, onPress }) => {
+// ——————————————————————————————————————————————————————————————————————————————————————————————————
+const PublicPropertyCard = ({ property, onPress }: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = useCallback(() => {
@@ -314,13 +322,13 @@ const PublicPropertyCard = ({ property, onPress }) => {
         <View style={styles.propertyCardImageContainer}>
           <Image source={{ uri: property.image }} style={styles.propertyCardImage} />
           <View style={styles.propertyCardFeatures}>
-            {property.features.map((feature, index) => (
+            {property.features.slice(0, 2).map((feature: any, index: number) => (
               <View
                 key={index}
                 style={[
                   styles.featureBadge,
                   feature === 'Video' && styles.videoBadge,
-                  feature === 'Verified' && styles.verifiedBadge,
+                  feature === 'Verified' && styles.verifiedBadgePrimary,
                 ]}
               >
                 {feature === 'Video' && (
@@ -373,8 +381,8 @@ const PublicPropertyCard = ({ property, onPress }) => {
   );
 };
 
-// â”€â”€ Inventory Property Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const InventoryPropertyCard = ({ property, onPress, onNegotiate }) => {
+// ——————————————————————————————————————————————————————————————————————————————————————————————————
+const InventoryPropertyCard = ({ property, onPress, onNegotiate }: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = useCallback(() => {
@@ -396,7 +404,7 @@ const InventoryPropertyCard = ({ property, onPress, onNegotiate }) => {
     }).start();
   }, []);
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: any) => {
     switch (status) {
       case 'NEGOTIATING':
         return COLORS.secondary;
@@ -439,7 +447,7 @@ const InventoryPropertyCard = ({ property, onPress, onNegotiate }) => {
           {property.negotiations && property.negotiations.length > 0 && (
             <View style={styles.negotiationSection}>
               <Text style={styles.negotiationTitle}>Active Negotiations</Text>
-              {property.negotiations.map((negotiation, index) => (
+              {property.negotiations?.map((negotiation: any, index: number) => (
                 <View key={index} style={styles.negotiationItem}>
                   <Text style={styles.negotiationMerchant}>{negotiation.merchant}</Text>
                   <Text style={styles.negotiationOffer}>ETB {fmtETB(negotiation.offer, 0)}</Text>
@@ -475,8 +483,7 @@ const InventoryPropertyCard = ({ property, onPress, onNegotiate }) => {
   );
 };
 
-// â”€â”€ Message Thread Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const MessageThread = ({ thread, onPress, currentUser }) => {
+const MessageThread = ({ thread, onPress, currentUser }: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = useCallback(() => {
@@ -558,10 +565,10 @@ const MessageThread = ({ thread, onPress, currentUser }) => {
   );
 };
 
-// â”€â”€ Chat Modal Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const ChatModal = ({ visible, thread, onClose, onSendMessage }) => {
-  const [message, setMessage] = useState('');
+// ——————————————————————————————————————————————————————————————————————————————————————————————————
+const ChatModal = ({ visible, thread, onClose, onSendMessage }: any) => {
   const scrollViewRef = useRef(null);
+  const [message, setMessage] = useState('');
 
   const handleSend = useCallback(() => {
     if (message.trim()) {
@@ -603,7 +610,7 @@ const ChatModal = ({ visible, thread, onClose, onSendMessage }) => {
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
         >
-          {thread.messages.map((msg) => (
+            {thread?.messages?.map((msg: any) => (
             <View
               key={msg.id}
               style={[
@@ -665,7 +672,7 @@ const ChatModal = ({ visible, thread, onClose, onSendMessage }) => {
 };
 
 // â”€â”€ FAB Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const FAB = ({ activeScreen, onPress }) => {
+const FAB = ({ activeScreen, onPress }: any) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = useCallback(() => {
@@ -719,7 +726,7 @@ const FAB = ({ activeScreen, onPress }) => {
 };
 
 export default function DelalaScreen() {
-  const navigation = useNavigation();
+  const navigation: any = useNavigation();
   const [activeScreen, setActiveScreen] = useState('Listings');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -778,7 +785,7 @@ export default function DelalaScreen() {
 
   const filteredData = getFilteredData();
 
-  const handlePropertyPress = useCallback((property) => {
+  const handlePropertyPress = useCallback((property: any) => {
     setSelectedProperty(property);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, []);
@@ -798,13 +805,13 @@ export default function DelalaScreen() {
   }, [activeScreen, loadLiveThreads]);
 
   const handleNegotiate = useCallback(
-    async (property) => {
+    async (property: any) => {
       if (!currentUser?.id) {
         showToast('Please login to chat', 'error');
         return;
       }
 
-      const agentId = property.agent_id || property.seller_id || 'mock-agent-id';
+      const agentId = property.poster_id || property.agent_id || property.seller_id || 'mock-agent-id';
 
       // Sort IDs to ensure consistent thread_id
       const participants = [currentUser.id, agentId].sort();
@@ -823,7 +830,7 @@ export default function DelalaScreen() {
   );
 
   const handleMessageThreadPress = useCallback(
-    (thread) => {
+    (thread: any) => {
       const isUserA = thread.user_a_id === currentUser.id;
       const other = isUserA ? thread.user_b : thread.user_a;
 
@@ -837,7 +844,7 @@ export default function DelalaScreen() {
     [currentUser?.id, navigation]
   );
 
-  const handleSendMessage = useCallback((messageText) => {
+  const handleSendMessage = useCallback((messageText: any) => {
     // This is now handled by the ChatScreen
   }, []);
 
@@ -922,7 +929,7 @@ export default function DelalaScreen() {
               contentContainerStyle={styles.propertiesList}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Ionicons name="inventory" size={48} color={COLORS.outline} />
+                  <Ionicons name="list" size={48} color={COLORS.outline} />
                   <Text style={styles.emptyStateTitle}>No Properties in Inventory</Text>
                   <Text style={styles.emptyStateSubtitle}>
                     Post your first property to start working with delala merchants
@@ -1084,6 +1091,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
   },
+  activeNavLink: {
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.primary,
+  },
   profileContainer: {
     width: 32,
     height: 32,
@@ -1208,7 +1219,7 @@ const styles = StyleSheet.create({
   videoBadge: {
     backgroundColor: 'rgba(89, 222, 155, 0.9)',
   },
-  verifiedBadge: {
+  verifiedBadgePrimary: {
     backgroundColor: 'rgba(255, 216, 135, 0.9)',
   },
   featureBadgeText: {
@@ -1221,9 +1232,7 @@ const styles = StyleSheet.create({
   },
 
   // Property Card Content
-  propertyCardContent: {
-    padding: 24,
-  },
+
   propertyCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1324,9 +1333,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Shadow.xl,
   },
-  inventoryCardContent: {
-    // Content container
-  },
+
   inventoryCardImageContainer: {
     position: 'relative',
     aspectRatio: 4 / 3,
@@ -1389,6 +1396,8 @@ const styles = StyleSheet.create({
     color: COLORS.outline,
     fontFamily: Fonts.body,
   },
+
+
   negotiationSection: {
     marginBottom: 16,
   },
@@ -1773,6 +1782,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS['on-surface'],
     fontFamily: Fonts.label,
-    whiteSpace: 'nowrap',
   },
 });

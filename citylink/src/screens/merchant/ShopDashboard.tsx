@@ -58,13 +58,8 @@ const T = {
 
 // â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-type ShopDashboardNavigationProp = NativeStackNavigationProp<
-  AppStackParamList,
-  'MerchantDashboard'
->;
-
 export default function ShopDashboard() {
-  const navigation = useNavigation<ShopDashboardNavigationProp>();
+  const navigation: any = useNavigation();
   const currentUser = useAppStore((s) => s.currentUser);
   const balance = useAppStore((s) => s.balance); // reactive â€” not getState()
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);
@@ -251,7 +246,7 @@ export default function ShopDashboard() {
         status: 'active',
         condition: newProduct.condition,
         image_url: finalImageUrl,
-        images_json: [],
+        images_json: [] as string[],
       };
       const res = await insertProduct(productData);
       if (res.error) showToast('Failed to list product', 'error');
@@ -272,7 +267,7 @@ export default function ShopDashboard() {
     setSelectedImage(null);
   };
 
-  const handleEditProduct = (product) => {
+  const handleEditProduct = (product: any) => {
     setEditingProduct(product);
     setNewProduct({
       name: product.name,
@@ -286,7 +281,7 @@ export default function ShopDashboard() {
     setShowProductModal(true);
   };
 
-  const handleDeleteProduct = async (productId) => {
+  const handleDeleteProduct = async (productId: string) => {
     Alert.alert('Delete Product', 'Remove this product from your store? This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -305,7 +300,7 @@ export default function ShopDashboard() {
     ]);
   };
 
-  const handleMarkShipped = async (orderId) => {
+  const handleMarkShipped = async (orderId: string) => {
     if (shipping) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -342,7 +337,7 @@ export default function ShopDashboard() {
     }
   };
 
-  const handleConfirmPickup = async (orderId) => {
+  const handleConfirmPickup = async (orderId: string) => {
     if (loading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
@@ -369,7 +364,7 @@ export default function ShopDashboard() {
     }
   };
 
-  const handleDispatchRetry = async (orderId) => {
+  const handleDispatchRetry = async (orderId: string) => {
     if (shipping) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShipping(true);
@@ -393,7 +388,7 @@ export default function ShopDashboard() {
     }
   };
 
-  const handleCancelOrder = async (orderId) => {
+  const handleCancelOrder = async (orderId: string) => {
     Alert.alert(
       'Cancel Order',
       'Are you sure you want to cancel and refund this order? This cannot be undone.',
@@ -422,7 +417,7 @@ export default function ShopDashboard() {
     );
   };
 
-  const handleSwitchSelfDelivery = async (order) => {
+  const handleSwitchSelfDelivery = async (order: any) => {
     Alert.alert('Self-Delivery', 'Cancel the agent search and deliver this yourself?', [
       { text: 'No', style: 'cancel' },
       {
@@ -479,7 +474,7 @@ export default function ShopDashboard() {
     loadData();
   };
 
-  const handleMessageBuyer = async (order) => {
+  const handleMessageBuyer = async (order: any) => {
     if (!order.buyer_id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 

@@ -3,49 +3,9 @@ import { useAuthStore } from './AuthStore';
 import { useWalletStore } from './WalletStore';
 import { useSystemStore } from './SystemStore';
 import { useMarketplaceStore } from './MarketplaceStore';
-import { User, Product } from '../types';
+import { User, Product, Transaction, Notification, Toast, AppState } from '../types';
 
-/**
- * AppState (Legacy / Bridge)
- * This store now acts as a coordinator between specialized stores to avoid
- * breaking existing imports across the codebase.
- */
-export interface AppState {
-  // Bridge to AuthStore
-  currentUser: User | null;
-  setCurrentUser: (user: User | null) => void;
-  
-  // Bridge to WalletStore
-  balance: number;
-  setBalance: (val: number) => void;
-  transactions: any[];
-  setTransactions: (txs: any[]) => void;
-  addTransaction: (tx: any) => void;
-
-  // Bridge to SystemStore
-  isDark: boolean;
-  setIsDark: (val: boolean) => void;
-  toggleTheme: () => void;
-  theme: 'light' | 'dark';
-  toasts: any[];
-  showToast: (msg: string, type?: any) => void;
-  notifications: any[];
-  unreadCount: number;
-
-  // Bridge to MarketplaceStore
-  products: Product[];
-  setProducts: (items: Product[]) => void;
-  selProdCat: string;
-  setSelProdCat: (cat: string) => void;
-  favorites: string[];
-  setFavorites: (favs: string[]) => void;
-  
-  // Helpers
-  hydrateSession: () => Promise<void>;
-  reset: () => Promise<void>;
-}
-
-// We use a "Derived Store" pattern for the bridge
+// The AppStore now acts as a coordinator between specialized stores.
 export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T => {
   const auth = useAuthStore();
   const wallet = useWalletStore();
@@ -60,6 +20,8 @@ export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T 
     transactions: wallet.transactions,
     setTransactions: wallet.setTransactions,
     addTransaction: wallet.addTransaction,
+    activeParking: wallet.activeParking,
+    setActiveParking: (session) => wallet.setActiveParking(session),
     isDark: system.isDark,
     setIsDark: (val) => system.setIsDark(val),
     toggleTheme: system.toggleTheme,
@@ -67,14 +29,24 @@ export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T 
     toasts: system.toasts,
     showToast: system.showToast,
     notifications: system.notifications,
+    setNotifications: system.setNotifications,
     unreadCount: system.unreadCount,
-    
+    addChatMessage: system.addChatMessage,
+    clearChat: system.clearChat,
+    lang: system.lang,
+    setLang: system.setLang,
+    markNotifRead: system.markNotifRead,
+    addNotification: system.addNotification,
+    clearNotifications: system.clearNotifications,
+
     products: market.products,
     setProducts: market.setProducts,
     selProdCat: market.selProdCat,
     setSelProdCat: market.setSelProdCat,
     favorites: market.favorites,
     setFavorites: market.setFavorites,
+    settings: {}, // Initial empty settings
+    setSettings: (settings) => { console.warn('[AppStore] setSettings is not yet implemented.'); },
 
     hydrateSession: async () => {
       await auth.hydrate();
@@ -88,7 +60,8 @@ export const useAppStore = <T = AppState>(selector?: (state: AppState) => T): T 
       wallet.setBalance(0);
       wallet.setTransactions([]);
       market.reset();
-    }
+    },
+    chatHistory: system.chatHistory,
   };
 
   return selector ? selector(bridgeState) : (bridgeState as unknown as T);
@@ -109,6 +82,8 @@ useAppStore.getState = (): AppState => {
     transactions: wallet.transactions,
     setTransactions: wallet.setTransactions,
     addTransaction: wallet.addTransaction,
+    activeParking: wallet.activeParking,
+    setActiveParking: (session) => wallet.setActiveParking(session),
     isDark: system.isDark,
     setIsDark: (val) => system.setIsDark(val),
     toggleTheme: system.toggleTheme,
@@ -116,14 +91,24 @@ useAppStore.getState = (): AppState => {
     toasts: system.toasts,
     showToast: system.showToast,
     notifications: system.notifications,
+    setNotifications: system.setNotifications,
     unreadCount: system.unreadCount,
-    
+    addChatMessage: system.addChatMessage,
+    clearChat: system.clearChat,
+    lang: system.lang,
+    setLang: system.setLang,
+    markNotifRead: system.markNotifRead,
+    addNotification: system.addNotification,
+    clearNotifications: system.clearNotifications,
+
     products: market.products,
     setProducts: market.setProducts,
     selProdCat: market.selProdCat,
     setSelProdCat: market.setSelProdCat,
     favorites: market.favorites,
     setFavorites: market.setFavorites,
+    settings: {},
+    setSettings: (settings) => { console.warn('[AppStore] setSettings is not yet implemented.'); },
 
     hydrateSession: async () => {
       await auth.hydrate();
@@ -137,7 +122,8 @@ useAppStore.getState = (): AppState => {
       wallet.setBalance(0);
       wallet.setTransactions([]);
       market.reset();
-    }
+    },
+    chatHistory: system.chatHistory,
   };
 };
 

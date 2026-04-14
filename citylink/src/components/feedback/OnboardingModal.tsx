@@ -75,7 +75,7 @@ export function OnboardingModal() {
               marginBottom: 24,
             }}
           >
-            <Ionicons name={step.icon} size={40} color={step.color} />
+            <Ionicons name={step.icon as any} size={40} color={step.color} />
           </View>
 
           <Text

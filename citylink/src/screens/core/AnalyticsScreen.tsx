@@ -229,7 +229,7 @@ export default function AnalyticsScreen() {
       return acc;
     }, {});
 
-    const totalSpending = Object.values(spendingByCategory).reduce(
+    const totalSpending = (Object.values(spendingByCategory) as number[]).reduce(
       (sum: number, amount: number) => sum + amount,
       0
     );

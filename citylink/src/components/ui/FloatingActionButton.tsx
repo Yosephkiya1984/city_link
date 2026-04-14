@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { Shadow } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export function FloatingActionButton({ icon, onPress, color, size = 'md', style }) {
+export function FloatingActionButton({ icon, onPress, color, size = 'md', style }: any) {
   const C = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const rotate = useRef(new Animated.Value(0)).current;
@@ -27,7 +27,7 @@ export function FloatingActionButton({ icon, onPress, color, size = 'md', style 
     ]).start();
   };
 
-  const sizeConfig = {
+  const sizeConfig: any = {
     sm: { size: 48, iconSize: 20 },
     md: { size: 56, iconSize: 24 },
     lg: { size: 64, iconSize: 28 },

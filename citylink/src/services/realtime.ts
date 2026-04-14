@@ -11,7 +11,7 @@ import { uid, fmtETB } from '../utils';
 const subscriptions = new Map();
 
 // ── Real-time Hook for React Components ────────────────────────────────────────
-export function useRealtimeSubscription(channelName, table, filter, onPayload, enabled = true) {
+export function useRealtimeSubscription(channelName: string, table: string, filter: string, onPayload: any, enabled = true) {
   const currentUser = useAppStore((s) => s.currentUser);
 
   React.useEffect(() => {
@@ -76,11 +76,22 @@ export function setupUserRealtime() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
       (payload) => {
-        const notif = payload.new;
-        useAppStore
-          .getState()
-          .setNotifications([...useAppStore.getState().notifications, { ...notif, read: false }]);
-        useAppStore.getState().showToast(`${notif.icon} ${notif.title}`, 'info');
+        const notif = payload.new as any;
+        const store = useAppStore.getState();
+        // Persist notification to store and show transient toast
+        store.addNotification({
+          id: notif.id || uid(),
+          user_id: notif.user_id || userId,
+          title: notif.title || 'Notification',
+          message: notif.message || notif.body || '',
+          type: notif.type || 'info',
+          read: notif.read ?? notif.is_read ?? false,
+          is_read: notif.read ?? notif.is_read ?? false,
+          created_at: notif.created_at || new Date().toISOString(),
+          data: notif.data || notif.metadata,
+          metadata: notif.data || notif.metadata
+        });
+        store.showToast(`${notif.title || 'Notification'}`, 'info');
       }
     )
     .subscribe();
@@ -110,7 +121,7 @@ export function setupUserRealtime() {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'ekub_members', filter: `user_id=eq.${userId}` },
       (payload) => {
-        if (payload.new?.ekub_id || payload.old?.ekub_id) {
+        if ((payload.new as any)?.ekub_id || (payload.old as any)?.ekub_id) {
           useAppStore.getState().showToast('Ekub circle updated', 'info');
         }
       }
@@ -211,7 +222,7 @@ export function cleanupRealtime() {
 }
 
 // ── Push Notification Helper ───────────────────────────────────────────────────────
-export function sendPushNotification(userId, title, body, data = {}) {
+export function sendPushNotification(userId: string, title: string, body: string, data = {}) {
   const client = getClient();
   if (!client) return;
 

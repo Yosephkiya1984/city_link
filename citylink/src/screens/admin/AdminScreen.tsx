@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,7 +17,7 @@ import { Radius, Spacing, Fonts, Colors, DarkColors } from '../../theme';
 import * as Haptics from 'expo-haptics';
 
 // Admin Components
-import AdminSidebar from '../../components/admin/AdminSidebar';
+import AdminSidebar, { AdminTab } from '../../components/admin/AdminSidebar';
 import AdminTopBar from '../../components/admin/AdminTopBar';
 import AdminBottomNav from '../../components/admin/AdminBottomNav';
 import OverviewModule from '../../components/admin/OverviewModule';
@@ -37,7 +37,7 @@ export default function AdminScreen() {
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
   const isTablet = useMemo(() => dimensions.width > 768, [dimensions.width]);
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState<AdminTab | string>('overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(!isTablet);
 
   // Data State
@@ -64,7 +64,7 @@ export default function AdminScreen() {
     loadData();
   }, [loadData]);
 
-  const handleTabChange = async (tabId) => {
+  const handleTabChange = async (tabId: AdminTab | string) => {
     if (tabId === 'logout') {
       // Sign out handled by the Nav components' alerts,
       // but if we get here, trigger the actual store reset.

@@ -16,7 +16,14 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function AdminBottomNav({ activeTab, onTabChange }) {
+import { AdminTab } from './AdminSidebar';
+
+interface AdminBottomNavProps {
+  activeTab: AdminTab | string;
+  onTabChange: (tabId: AdminTab | string) => void;
+}
+
+export default function AdminBottomNav({ activeTab, onTabChange }: AdminBottomNavProps) {
   const theme = useTheme();
 
   const navItems = [
@@ -28,7 +35,7 @@ export default function AdminBottomNav({ activeTab, onTabChange }) {
     { id: 'logout', label: 'Logout', mIcon: 'logout' },
   ];
 
-  const handlePress = (id) => {
+  const handlePress = (id: AdminTab | string) => {
     if (id === 'logout') {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -84,7 +91,7 @@ export default function AdminBottomNav({ activeTab, onTabChange }) {
               ]}
             >
               <MaterialCommunityIcons
-                name={item.mIcon}
+                name={item.mIcon as any}
                 size={22}
                 color={item.id === 'logout' ? theme.red : isActive ? theme.primary : theme.sub}
               />

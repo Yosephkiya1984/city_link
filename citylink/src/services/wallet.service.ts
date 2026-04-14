@@ -2,7 +2,7 @@ import { supaQuery } from './supabase';
 import { WELCOME_BONUS_ETB } from '../config';
 import { SecurePersist } from '../store/SecurePersist';
 import { uid } from '../utils';
-import { Wallet, Transaction } from '../types/domain_types';
+import { Wallet, Transaction as DomainTransaction } from '../types/domain_types';
 import { DataEngine } from './data.engine';
 
 /**
@@ -30,7 +30,7 @@ export async function fetchWalletData(userId: string) {
       console.log('🔧 Wallet missing for user, attempting creation/recovery...');
       const { data: newWallet, error: ensureErr } = await ensureWallet(userId);
       if (ensureErr) throw new Error(ensureErr);
-      wallet = newWallet as any;
+      wallet = newWallet ? { id: newWallet.id, balance: newWallet.balance, user_id: userId, created_at: new Date().toISOString() } : null;
     }
 
     if (!wallet) return null;
@@ -116,11 +116,16 @@ export async function rpcCreditWallet(
   );
 }
 
+interface EnsureWalletResult {
+  id: string;
+  balance: number;
+}
+
 /**
  * ensureWallet — ensures a wallet row exists for the user.
  * Uses atomic server-side RPC to avoid RLS insert conflicts.
  */
-export async function ensureWallet(userId) {
+export async function ensureWallet(userId: string): Promise<{ data: EnsureWalletResult | null; error?: string | null }> {
   const { data, error } = await supaQuery((c) =>
     c.rpc('get_or_create_wallet', { p_user_id: userId })
   );
@@ -134,7 +139,7 @@ export async function ensureWallet(userId) {
 /**
  * claimWelcomeBonus — triggers the one-time welcome bonus logic.
  */
-export async function claimWelcomeBonus(userId) {
+export async function claimWelcomeBonus(userId: string) {
   const res = await supaQuery((c) =>
     c.rpc('process_welcome_bonus', {
       p_user_id: userId,
@@ -150,15 +155,27 @@ export async function claimWelcomeBonus(userId) {
 /**
  * queueP2PTransfer — starts a P2P transfer (immediate if registered, queued otherwise).
  */
-export async function queueP2PTransfer({ senderId, recipientPhone, amount, note }) {
-  const idempotencyKey = `p2p-${senderId.slice(0, 8)}-${recipientPhone}-${Date.now()}`;
+export async function queueP2PTransfer({ 
+  senderId, 
+  recipientPhone, 
+  amount, 
+  note, 
+  idempotencyKey 
+}: { 
+  senderId: string, 
+  recipientPhone: string, 
+  amount: number, 
+  note?: string,
+  idempotencyKey?: string
+}) {
+  const finalKey = idempotencyKey || `p2p-v1-${senderId}-${recipientPhone}-${amount}-${note || ''}`;
   const res = await supaQuery((c) =>
     c.rpc('process_p2p_transfer', {
       p_sender_id: senderId,
       p_recipient_phone: recipientPhone,
       p_amount: amount,
       p_note: note || '',
-      p_idempotency_key: idempotencyKey,
+      p_idempotency_key: finalKey,
     })
   );
 

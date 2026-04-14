@@ -20,8 +20,7 @@ import FoodScreen from '../screens/citizen/FoodScreen';
 import DelalaScreen from '../screens/citizen/DelalaScreen';
 import MyOrdersScreen from '../screens/citizen/MyOrdersScreen';
 import SendMoneyScreen from '../screens/citizen/SendMoneyScreen';
-import FaydaKYCScreen from '../screens/citizen/FaydaKYCScreen';
-import ChatScreen from '../screens/core/ChatScreen';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -61,8 +60,6 @@ export function CitizenStack() {
       <Stack.Screen name="Delala" component={DelalaScreen} />
       <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
       <Stack.Screen name="SendMoney" component={SendMoneyScreen} />
-      <Stack.Screen name="FaydaKYC" component={FaydaKYCScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }

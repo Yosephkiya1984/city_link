@@ -15,12 +15,30 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { fetchAdminLiveStats, subscribeToGlobalEvents } from '../../services/admin.service';
 import * as Haptics from 'expo-haptics';
 
+export interface LiveStats {
+  identities: number;
+  revenue: number;
+  jobs: number;
+  realEstate: number;
+  parking: number;
+  openDisputes: number;
+}
+
+export interface LiveEvent {
+  id: string;
+  title: string;
+  subtitle: string;
+  time: string;
+  icon: string;
+  color: string;
+}
+
 export default function OverviewModule() {
   const theme = useTheme();
   const { width } = Dimensions.get('window');
   const isMobile = width < 768;
 
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<LiveStats>({
     identities: 0,
     revenue: 0,
     jobs: 0,
@@ -29,7 +47,7 @@ export default function OverviewModule() {
     openDisputes: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [recentEvents, setRecentEvents] = useState([
+  const [recentEvents, setRecentEvents] = useState<LiveEvent[]>([
     {
       id: '1',
       title: 'System Initialized',
@@ -41,11 +59,23 @@ export default function OverviewModule() {
   ]);
 
   const loadStats = async () => {
-    const { data } = await fetchAdminLiveStats();
-    if (data) {
-      setStats(data);
+    try {
+      const { data } = (await fetchAdminLiveStats()) as { data: any };
+      if (data) {
+        setStats({
+          identities: data.identities ?? 0,
+          revenue: data.revenue ?? 0,
+          jobs: data.jobs ?? data.deliveries ?? 0,
+          realEstate: data.realEstate ?? 0,
+          parking: data.parking ?? 0,
+          openDisputes: data.openDisputes ?? 0,
+        });
+      }
+    } catch (err) {
+      console.error('[OverviewModule] Failed to load stats:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -141,7 +171,7 @@ export default function OverviewModule() {
           >
             <View style={styles.statHeader}>
               <View style={[styles.iconBox, { backgroundColor: stat.color + '20' }]}>
-                <Ionicons name={stat.icon} size={isMobile ? 18 : 20} color={stat.color} />
+                <Ionicons name={stat.icon as any} size={isMobile ? 18 : 20} color={stat.color} />
               </View>
               {loading && <ActivityIndicator size="small" color={theme.primary} />}
             </View>
@@ -284,7 +314,7 @@ export default function OverviewModule() {
   );
 }
 
-function HealthNode({ label, metric }) {
+function HealthNode({ label, metric }: { label: string; metric: string | number }) {
   const theme = useTheme();
   const labelColor = typeof metric === 'number' && metric > 0 ? theme.green : theme.primary;
   return (
@@ -298,12 +328,24 @@ function HealthNode({ label, metric }) {
   );
 }
 
-function OperationItem({ title, subtitle, time, icon, color }) {
+function OperationItem({
+  title,
+  subtitle,
+  time,
+  icon,
+  color,
+}: {
+  title: string;
+  subtitle: string;
+  time: string;
+  icon: string;
+  color: string;
+}) {
   const theme = useTheme();
   return (
     <View style={styles.opItem}>
       <View style={[styles.opIcon, { backgroundColor: color + '15' }]}>
-        <MaterialCommunityIcons name={icon} size={18} color={color} />
+        <MaterialCommunityIcons name={icon as any} size={18} color={color} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.opTitle, { color: theme.text, fontFamily: Fonts.label }]}>
