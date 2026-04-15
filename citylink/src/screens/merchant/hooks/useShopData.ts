@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAppStore } from '../../../store/AppStore';
+import { useAuthStore } from '../../../store/AuthStore';
+import { useSystemStore } from '../../../store/SystemStore';
+import { useWalletStore } from '../../../store/WalletStore';
 import { supabase, subscribeToTable, unsubscribe } from '../../../services/supabase';
 import {
   marketplaceService,
@@ -31,8 +33,8 @@ export interface ShopData {
 }
 
 export function useShopData(): ShopData {
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [orders, setOrders] = useState<any[]>([]);
   const [inventory, setInventory] = useState<Product[]>([]);
@@ -70,7 +72,7 @@ export function useShopData(): ShopData {
     if (txRes?.data) setWalletTransactions(txRes.data);
     if (salesRes) setSalesHistory(salesRes as any);
     if (disputes) setOpenDisputes(disputes);
-    if (wallet) useAppStore.getState().setBalance(wallet.balance);
+    if (wallet) useWalletStore.getState().setBalance(wallet.balance);
 
     setLoading(false);
     setRefreshing(false);

@@ -43,8 +43,8 @@ export async function rejectMerchant(merchantId: string, reason: string) {
       .from('profiles')
       .update({
         kyc_status: 'REJECTED',
-        is_verified: false,
-        rejection_reason: reason,
+        fayda_verified: false,
+        reject_reason: reason,
         updated_at: new Date().toISOString(),
       })
       .eq('id', merchantId)
@@ -138,7 +138,7 @@ export async function rejectAgent(agentId: string, reason: string) {
       .from('profiles')
       .update({
         kyc_status: 'REJECTED',
-        rejection_reason: reason,
+        reject_reason: reason,
       })
       .eq('id', agentId)
       .select()
@@ -214,11 +214,12 @@ export const fetchAdminLiveStats = async (): Promise<{ data: AdminStats; error?:
         openDisputes: (disputeMktRes.count || 0) + (disputeFoodRes.count || 0),
       },
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e.message : String(e);
     console.error('🔧 fetchAdminLiveStats crash:', e);
     return {
       data: { identities: 0, revenue: 0, deliveries: 0, realEstate: 0, parking: 0, openDisputes: 0 },
-      error: e.message,
+      error: error,
     };
   }
 };
@@ -226,7 +227,7 @@ export const fetchAdminLiveStats = async (): Promise<{ data: AdminStats; error?:
 /**
  * subscribeToGlobalEvents — establishes realtime subscription for critical events.
  */
-export const subscribeToGlobalEvents = (callback: (data: { type: string; payload: any }) => void) => {
+export const subscribeToGlobalEvents = (callback: (data: { type: string; payload: unknown }) => void) => {
   const client = getClient();
   if (!client) return null;
 

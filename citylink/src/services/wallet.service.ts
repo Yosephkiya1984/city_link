@@ -61,8 +61,9 @@ export async function fetchWalletData(userId: string): Promise<WalletStats | nul
     await SecurePersist.setItem(`wallet_cache_${userId}`, JSON.stringify(result));
 
     return result;
-  } catch (error) {
-    console.error('Wallet fetch failed, checking cache:', error);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Wallet fetch failed, checking cache:', msg);
     // FALLBACK TO CACHE (Strike 3 Resilience)
     const cached = await SecurePersist.getItem(`wallet_cache_${userId}`);
     return cached ? JSON.parse(cached) : null;
@@ -97,7 +98,7 @@ export async function rpcDebitWallet(
   description: string,
   category = 'general',
   idempotencyKey: string | null = null
-) {
+): Promise<{ data: { ok: boolean; new_balance: number; error?: string } | null; error: string | null }> {
   return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('debit_wallet_atomic', {
       p_user_id: userId,
@@ -118,7 +119,7 @@ export async function rpcCreditWallet(
   description: string,
   category = 'general',
   idempotencyKey: string | null = null
-) {
+): Promise<{ data: { ok: boolean; new_balance: number; error?: string } | null; error: string | null }> {
   return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('credit_wallet_atomic', {
       p_user_id: userId,
@@ -146,7 +147,7 @@ export async function ensureWallet(userId: string): Promise<{ data: EnsureWallet
   if (error) return { data: null, error };
 
   // RPC returns a list since it's a TABLE return
-  const wallet = Array.isArray(data) ? data[0] : data;
+  const wallet = Array.isArray(data) ? data[0] : (data as unknown as { wallet_id: string; current_balance: number });
   if (!wallet) return { data: null, error: 'Failed to find/create wallet' };
   
   return { data: { id: wallet.wallet_id, balance: wallet.current_balance } };
@@ -212,7 +213,7 @@ export async function queueP2PTransfer({
  * fetchSpendingInsights — Optimized query for Analytics.
  * Groups spending by category and calculates daily totals.
  */
-export async function fetchSpendingInsights(userId: string, days: number = 30) {
+export async function fetchSpendingInsights(userId: string, days: number = 30): Promise<{ data: Pick<DomainTransaction, 'category' | 'amount' | 'created_at' | 'type'>[] | null; error: string | null }> {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 

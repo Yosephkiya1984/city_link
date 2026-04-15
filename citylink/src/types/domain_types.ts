@@ -5,7 +5,7 @@
 
 export type UserRole = 'citizen' | 'merchant' | 'delivery_agent' | 'station' | 'inspector' | 'admin' | 'minister';
 
-export type VehicleType = 'bicycle' | 'motorcycle' | 'car' | 'van' | 'truck';
+export type VehicleType = 'bicycle' | 'motorcycle' | 'car' | 'van' | 'truck' | 'tuktuk' | 'foot';
 
 export type AgentStatus = 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED';
 
@@ -314,6 +314,8 @@ export interface MarketplaceOrder {
   status: 'PAID' | 'DISPATCHING' | 'AGENT_ASSIGNED' | 'SHIPPED' | 'IN_TRANSIT' | 'AWAITING_PIN' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
   delivery_pin?: string;
   shipping_address?: string;
+  merchant_confirmed_pickup?: boolean;
+  agent_confirmed_pickup?: boolean;
   created_at: string;
   updated_at: string;
   buyer?: { full_name?: string; phone?: string } | { full_name?: string; phone?: string }[];

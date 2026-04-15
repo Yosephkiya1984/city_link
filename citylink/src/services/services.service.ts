@@ -7,10 +7,16 @@ export async function fetchPropertyListings(agentId: string) {
   );
 }
 
+/**
+ * fetchPropertyEnquiries — fetches enquiries for an agent.
+ * WARNING: The 'property_enquiries' table does not exist in the current schema.
+ * This function returns a stub to prevent runtime crashes.
+ */
 export async function fetchPropertyEnquiries(agentId: string) {
-  return supaQuery<PropertyEnquiry[]>((c) =>
-    c.from('property_enquiries').select('*').eq('agent_id', agentId)
-  );
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[CityLink] fetchPropertyEnquiries called for ${agentId} but table 'property_enquiries' is missing.`);
+  }
+  return { data: [] as PropertyEnquiry[], error: 'table-not-found' };
 }
 
 export async function updateListingStatus(listingId: string, newStatus: string) {

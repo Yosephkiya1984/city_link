@@ -2,15 +2,15 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Radius, FontSize, Fonts, Shadow } from '../../theme';
-import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { useTheme } from '../../hooks/useTheme';
 
 export function ToastContainer() {
-  const toasts = useAppStore((s) => s.toasts);
+  const toasts = useSystemStore((s) => s.toasts);
   if (!toasts.length) return null;
   return (
     <View style={{ position: 'absolute', top: 60, left: 16, right: 16, zIndex: 9999, gap: 10 }}>
-      {toasts.map((t) => (
+      {toasts.map((t: any) => (
         <ToastItem key={t.id} toast={t} />
       ))}
     </View>

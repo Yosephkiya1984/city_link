@@ -33,6 +33,15 @@ export interface LiveEvent {
   color: string;
 }
 
+interface RealtimePayload {
+  new?: {
+    product_name?: string;
+    full_name?: string;
+    restaurant_name?: string;
+    [key: string]: any;
+  };
+}
+
 export default function OverviewModule() {
   const theme = useTheme();
   const { width } = Dimensions.get('window');
@@ -84,6 +93,8 @@ export default function OverviewModule() {
       loadStats();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+      const payload = event.payload as RealtimePayload;
+
       const newEvent = {
         id: Math.random().toString(),
         title:
@@ -95,9 +106,9 @@ export default function OverviewModule() {
                 ? 'Conflict Reported'
                 : 'System Registry',
         subtitle:
-          event.payload.new?.product_name ||
-          event.payload.new?.full_name ||
-          event.payload.new?.restaurant_name ||
+          payload.new?.product_name ||
+          payload.new?.full_name ||
+          payload.new?.restaurant_name ||
           'Ecosystem update',
         time: 'Just now',
         icon:

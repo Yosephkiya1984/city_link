@@ -15,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput, CSelect } from '../../components';
 import { fmtETB, uid } from '../../utils';
@@ -33,9 +34,9 @@ const MERCHANT_TYPES = [
 export default function BecomeMerchantScreen() {
   const C = useTheme();
   const navigation = useNavigation();
-  const currentUser = useAppStore((s) => s.currentUser);
-  const setCurrentUser = useAppStore((s) => s.setCurrentUser);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [step, setStep] = useState(1);
   const [businessName, setBusinessName] = useState('');
@@ -57,7 +58,8 @@ export default function BecomeMerchantScreen() {
     setTimeout(async () => {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
-      if (!currentUser) {
+      const sessionUser = useAuthStore.getState().currentUser;
+      if (!sessionUser) {
         showToast('Session expired, please login again', 'error');
         setLoading(false);
         return;
@@ -65,8 +67,8 @@ export default function BecomeMerchantScreen() {
 
       // Hardened User Object with proper typing
       const updatedUser = {
-        ...currentUser,
-        role: 'merchant' as any, // Cast to any if strict union is problematic, but ideally matches AppState 'User'
+        ...sessionUser,
+        role: 'merchant' as const,
         merchant_details: {
           business_name: businessName,
           merchant_type: type,

@@ -66,22 +66,21 @@ export async function syncOfflineQueueToSupabase(supabaseClient: SupabaseClient)
   let successCount = 0;
 
   for (const item of pending) {
-    // Attempt remote insertion
-    const { error } = await supabaseClient.from('pending_p2p_transfers').insert([
-      {
-        id: item.id,
-        sender_id: item.sender_id,
-        recipient_phone: item.recipient_phone,
-        amount: item.amount,
-        note: item.note,
-        status: 'pending', // Let the server handle status resolution over time
-      },
-    ]);
+    // Attempt remote processing via RPC
+    const { error } = await supabaseClient.rpc('process_p2p_transfer', {
+      p_sender_id: item.sender_id,
+      p_recipient_phone: item.recipient_phone,
+      p_amount: item.amount,
+      p_note: item.note,
+      p_idempotency_key: item.id, // Use local ID as idempotency key
+    });
 
     // If successful, mark local as synced
     if (!error) {
       item.status = 'synced';
       successCount++;
+    } else {
+      if (__DEV__) console.warn('[P2P-Sync] Transfer failed:', error);
     }
   }
 

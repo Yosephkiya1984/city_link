@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAppStore } from '../store/AppStore';
+import { useAuthStore } from '../store/AuthStore';
+import { useWalletStore } from '../store/WalletStore';
+import { useSystemStore } from '../store/SystemStore';
+import { useMarketStore } from '../store/MarketStore';
 import { uid } from '../utils';
 import { User, Transaction, MarketplaceOrder, FoodOrder } from '../types';
 
@@ -160,24 +163,27 @@ export function BackupProvider({ children }: BackupProviderProps) {
 
   // Collect backup data
   const collectBackupData = async (): Promise<BackupData> => {
-    const store = useAppStore.getState();
+    const auth = useAuthStore.getState();
+    const wallet = useWalletStore.getState();
+    const system = useSystemStore.getState();
+    const market = useMarketStore.getState();
 
     try {
       const backupData: BackupData = {
         version: BACKUP_CONFIG.BACKUP_VERSION,
         timestamp: Date.now(),
         userData: {
-          currentUser: store.currentUser,
-          balance: store.balance,
-          transactions: store.transactions,
-          notifications: store.notifications,
-          chatHistory: store.chatHistory,
-          favorites: store.favorites,
+          currentUser: auth.currentUser,
+          balance: wallet.balance,
+          transactions: wallet.transactions,
+          notifications: system.notifications,
+          chatHistory: system.chatHistory,
+          favorites: market.favorites,
         },
         appData: {
-          language: store.lang,
-          isDark: store.isDark,
-          theme: store.theme,
+          language: system.lang,
+          isDark: system.isDark,
+          theme: system.theme,
         },
         metadata: {
           platform: Platform.OS,
@@ -187,7 +193,7 @@ export function BackupProvider({ children }: BackupProviderProps) {
       };
 
       return backupData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Backup data collection error:', error);
       throw error;
     }
@@ -394,23 +400,26 @@ export function BackupProvider({ children }: BackupProviderProps) {
 
   // Restore backup data
   const restoreBackupData = async (backup: BackupData) => {
-    const store = useAppStore.getState();
+    const auth = useAuthStore.getState();
+    const wallet = useWalletStore.getState();
+    const system = useSystemStore.getState();
+    const market = useMarketStore.getState();
 
     try {
       if (backup.userData) {
-        if (backup.userData.currentUser) store.setCurrentUser(backup.userData.currentUser);
-        if (backup.userData.balance !== undefined) store.setBalance(backup.userData.balance);
-        if (backup.userData.transactions) store.setTransactions(backup.userData.transactions);
-        if (backup.userData.favorites) store.setFavorites(backup.userData.favorites);
+        if (backup.userData.currentUser) auth.setCurrentUser(backup.userData.currentUser);
+        if (backup.userData.balance !== undefined) wallet.setBalance(backup.userData.balance);
+        if (backup.userData.transactions) wallet.setTransactions(backup.userData.transactions);
+        if (backup.userData.favorites) market.setFavorites(backup.userData.favorites);
       }
 
       if (backup.appData) {
-        if (backup.appData.language) store.setLang(backup.appData.language);
-        if (backup.appData.isDark !== undefined) store.setIsDark(backup.appData.isDark);
+        if (backup.appData.language) system.setLang(backup.appData.language);
+        if (backup.appData.isDark !== undefined) system.setIsDark(backup.appData.isDark);
       }
 
       console.log('✅ Backup data restored successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Backup data restore error:', error);
       throw error;
     }

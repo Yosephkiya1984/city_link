@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAppStore } from '../store/AppStore';
+import { useAuthStore } from '../store/AuthStore';
+import { useSystemStore } from '../store/SystemStore';
 import { Colors, DarkColors } from '../theme';
 
 // Navigators
@@ -36,8 +37,8 @@ export type RootStackParamList = AppStackParamList;
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const currentUser = useAppStore((s) => s.currentUser);
-  const isDark = useAppStore((s) => s.isDark);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
 
   // Security Logic: Check if user has completed KYC

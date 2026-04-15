@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, Animated, ActivityIndicator, Pressable, Platform, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, Animated, ActivityIndicator, Pressable, Platform, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +15,7 @@ interface CButtonProps {
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  icon?: any;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
 }
 
 export function CButton({
@@ -137,12 +137,12 @@ export function CButton({
           borderWidth: isPrimary ? 0 : 1.5,
           borderColor: isPrimary ? 'transparent' : C.edge2,
           opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
-          ...Platform.select({ ios: Shadow.md as any, android: {} }),
+          ...Platform.select({ ios: Shadow.md as ViewStyle, android: {} }),
         })}
       >
         {isPrimary ? (
           <LinearGradient
-            colors={C.primaryGrad as any}
+            colors={C.primaryGrad as [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >

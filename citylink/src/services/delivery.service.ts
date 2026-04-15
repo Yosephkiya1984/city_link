@@ -206,10 +206,11 @@ export async function acceptDeliveryJob(orderId: string, agentId: string): Promi
         }
         throw new Error(msg);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       attempts++;
+      const error = e instanceof Error ? e.message : String(e);
       if (attempts >= maxAttempts) {
-        return { ok: false, error: e.message };
+        return { ok: false, error: error };
       }
       await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempts - 1)));
     }
@@ -300,9 +301,10 @@ export async function uploadDeliveryProof(orderId: string, base64Image: string):
 
     if (updateError) throw updateError;
     return { ok: true, url: publicUrl };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err.message : String(err);
     console.error('POD Upload Error:', err);
-    return { ok: false, error: err.message };
+    return { ok: false, error: error };
   }
 }
 

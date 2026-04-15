@@ -13,11 +13,27 @@ const MEMORY_CONFIG = {
   LEAK_DETECTION_INTERVAL: 60000, // 1 minute
 };
 
+interface MemoryStats {
+  used: number;
+  total: number;
+  limit: number;
+  percentage: number;
+  lastCleanup: number;
+  cleanupCount: number;
+  leaksDetected: number;
+}
+
+interface ObjectRegistryEntry {
+  object: unknown;
+  createdAt: number;
+  size: number;
+}
+
 // Memory manager class
 class MemoryManager {
-  memoryStats: any;
-  objectRegistry: any;
-  cleanupTasks: any[];
+  memoryStats: MemoryStats;
+  objectRegistry: Map<string, ObjectRegistryEntry>;
+  cleanupTasks: (() => void)[];
   isMonitoring: boolean;
 
   constructor() {
@@ -37,7 +53,7 @@ class MemoryManager {
 
   // Start memory monitoring
   startMonitoring() {
-    if (this.isMonitoring) return;
+    if (this.isMonitoring) return () => {};
 
     this.isMonitoring = true;
 
@@ -61,8 +77,9 @@ class MemoryManager {
 
   // Check memory usage
   checkMemoryUsage() {
-    if (Platform.OS === 'web' && (performance as any).memory) {
-      const memory = (performance as any).memory;
+    const perf = global.performance as any;
+    if (Platform.OS === 'web' && perf?.memory) {
+      const memory = perf.memory;
       this.memoryStats = {
         used: memory.usedJSHeapSize,
         total: memory.totalJSHeapSize,
@@ -89,7 +106,7 @@ class MemoryManager {
 
   // Perform routine cleanup
   performRoutineCleanup() {
-    const cleanupStart = performance.now();
+    const cleanupStart = Date.now();
 
     // Clear cache
     cacheManager.cleanup();
@@ -107,12 +124,13 @@ class MemoryManager {
     this.objectRegistry.clear();
 
     // Force garbage collection if available
-    if ((window as any).gc) {
-      (window as any).gc();
+    const win = global as any;
+    if (win.gc) {
+      win.gc();
     }
 
     this.memoryStats.cleanupCount++;
-    const cleanupDuration = performance.now() - cleanupStart;
+    const cleanupDuration = Date.now() - cleanupStart;
 
     console.log(`🧹 Routine cleanup completed in ${cleanupDuration.toFixed(2)}ms`);
   }
@@ -130,7 +148,7 @@ class MemoryManager {
     // Clear all cleanup tasks
     this.cleanupTasks = [];
 
-    // Log performance issue (hooks cannot be used inside class methods)
+    // Log performance issue
     console.error('[MemoryManager] Emergency memory cleanup triggered', {
       type: 'performance',
       severity: 'high',
@@ -145,7 +163,7 @@ class MemoryManager {
     if (currentObjects > MEMORY_CONFIG.MAX_UNUSED_OBJECTS) {
       this.memoryStats.leaksDetected++;
 
-      // Log leak (hooks cannot be used inside class methods)
+      // Log leak
       console.warn(`🔍 Potential memory leak detected: ${currentObjects} objects registered`, {
         type: 'performance',
         severity: 'medium',
@@ -155,7 +173,7 @@ class MemoryManager {
   }
 
   // Register object for tracking
-  registerObject(id: string, object: any) {
+  registerObject(id: string, object: unknown) {
     this.objectRegistry.set(id, {
       object,
       createdAt: Date.now(),
@@ -169,7 +187,7 @@ class MemoryManager {
   }
 
   // Estimate object size
-  estimateObjectSize(obj: any) {
+  estimateObjectSize(obj: unknown): number {
     try {
       return JSON.stringify(obj).length * 2; // Rough estimate in bytes
     } catch (error) {
@@ -196,21 +214,21 @@ class MemoryManager {
 // Bundle optimization utilities
 export const BundleOptimizer = {
   // Lazy load component
-  lazyLoad: (importFunc: () => Promise<any>) => {
+  lazyLoad: (importFunc: () => Promise<{ default: React.ComponentType<any> }>) => {
     return React.lazy(importFunc);
   },
 
   // Preload component
-  preloadComponent: (importFunc: () => Promise<any> | any) => {
+  preloadComponent: (importFunc: () => Promise<unknown> | unknown) => {
     return importFunc();
   },
 
   // Dynamic import with error handling
-  dynamicImport: async (importFunc: () => Promise<any>, componentName: string) => {
+  dynamicImport: async <T>(importFunc: () => Promise<T>, componentName: string): Promise<T> => {
     try {
-      const start = performance.now();
+      const start = Date.now();
       const module = await importFunc();
-      const duration = performance.now() - start;
+      const duration = Date.now() - start;
 
       console.log(`📦 Component ${componentName} loaded in ${duration.toFixed(2)}ms`);
       return module;
@@ -221,8 +239,8 @@ export const BundleOptimizer = {
   },
 
   // Code splitting for routes
-  splitRoutes: (routes: any[]) => {
-    return routes.map((route: any) => ({
+  splitRoutes: (routes: { component: string }[]) => {
+    return routes.map((route) => ({
       ...route,
       component: React.lazy(() => {
         // Import the component directly instead of using template literals
@@ -260,11 +278,15 @@ export const BundleOptimizer = {
 // Performance profiling tools
 export const PerformanceProfiler = {
   // Profile component render
-  profileComponent: (Component: any, componentName: string) => {
+  profileComponent: <P extends object>(Component: React.ComponentType<P>, componentName: string) => {
     return React.memo(Component, (prevProps, nextProps) => {
-      const start = performance.now();
-      const areEqual = JSON.stringify(prevProps) === JSON.stringify(nextProps);
-      const duration = performance.now() - start;
+      const start = Date.now();
+      // Use shallow comparison instead of heavy JSON.stringify
+      const keys1 = Object.keys(prevProps) as (keyof P)[];
+      const keys2 = Object.keys(nextProps) as (keyof P)[];
+      const areEqual = keys1.length === keys2.length && keys1.every(key => prevProps[key] === nextProps[key]);
+      
+      const duration = Date.now() - start;
 
       if (duration > 1) {
         console.log(`⏱️ ${componentName} props comparison took ${duration.toFixed(2)}ms`);
@@ -296,33 +318,24 @@ export const PerformanceProfiler = {
   },
 
   // Profile API call
-  profileApiCall: (apiCall: any, endpoint: string) => {
+  profileApiCall: (apiCall: (...args: any[]) => Promise<any>, endpoint: string) => {
     return async (...args: any[]) => {
-      const start = performance.now();
+      const start = Date.now();
       try {
         const result = await apiCall(...args);
-        const duration = performance.now() - start;
+        const duration = Date.now() - start;
 
         console.log(`🌐 API call to ${endpoint} completed in ${duration.toFixed(2)}ms`);
 
         // Report slow API calls
         if (duration > 2000) {
-          const { reportError } = useErrorReporting() as any;
-          if (reportError) {
-            reportError({
-              type: 'performance',
-              severity: 'medium',
-              message: `Slow API call: ${endpoint}`,
-              duration,
-              endpoint,
-              context: 'api_performance',
-            });
-          }
+          console.warn(`🐌 Slow API call detected: ${endpoint} took ${duration}ms`);
+          // Note: useErrorReporting hook cannot be used here safely as this is a non-hook context
         }
 
         return result;
       } catch (error) {
-        const duration = performance.now() - start;
+        const duration = Date.now() - start;
         console.error(`❌ API call to ${endpoint} failed after ${duration.toFixed(2)}ms:`, error);
         throw error;
       }

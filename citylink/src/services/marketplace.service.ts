@@ -116,11 +116,11 @@ export async function insertProduct(product: Partial<Product>) {
   };
   
   // Clean up any legacy fields that might be passed from UI
-  const { image, images, ...payload } = officialProduct as any;
-  if (image && !payload.image_url) payload.image_url = image;
-  if (images && !payload.images_json) payload.images_json = images;
+  const { image, images, ...payload } = officialProduct as (Partial<Product> & { image?: string; images?: any });
+  if (image && !payload.image_url) (payload as any).image_url = image;
+  if (images && !payload.images_json) (payload as any).images_json = images;
 
-  return supaQuery<Product>((c) => c.from('products').insert(payload).select().single());
+  return supaQuery<Product>((c) => (c.from('products') as any).insert(payload).select().single());
 }
 
 export async function updateProduct(productId: string, updates: Partial<Product>) {
@@ -156,8 +156,9 @@ export async function uploadProductImage(imageData: { uri: string; base64: strin
     if (uploadError) throw uploadError;
     const { data } = client.storage.from('products').getPublicUrl(fileName);
     return { data: data.publicUrl, error: null };
-  } catch (error: any) {
-    return { data: null, error: error.message };
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    return { data: null, error: errorMsg };
   }
 }
 

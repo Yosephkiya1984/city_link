@@ -20,26 +20,22 @@ interface VerifyResponse {
 
 /**
  * sendOtp — sends a 6-digit code to the user's phone.
- * Supports OTP bypass in development mode.
+ * Dev builds use a simulated OTP flow gated by __DEV__ (compile-time constant).
+ * Production builds ALWAYS use Supabase Auth. No config-based bypass exists.
  */
 export async function sendOtp(phone: string, metadata: Record<string, string | number | boolean> | null = null): Promise<AuthResponse> {
   const client = getClient();
   if (!client) return { error: 'no-credentials', success: false };
 
-  // SECURITY: Hard-block OTP bypass in production builds regardless of config
-  if (Config.otpBypass && !__DEV__) {
-    console.error('[SECURITY] OTP bypass attempted in production — blocked.');
-    return { error: 'otp-bypass-blocked', success: false };
-  }
-
-  // FAIL-CLOSED: Bypass only if explicitly enabled AND we are in dev
-  if (Config.otpBypass && __DEV__) {
+  // DEV-ONLY: Simulated OTP for development/emulator testing.
+  // __DEV__ is a compile-time constant stripped from production bundles.
+  if (__DEV__) {
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    console.log(`[CityLink Dev] OTP Bypass active for ${phone}. Simulated OTP: ${otp}`);
+    console.log(`[CityLink Dev] Simulated OTP for ${phone}: ${otp}`);
     return { error: null, success: true, devOtp: otp };
   }
 
-  const payload: { phone: string; channel: 'sms'; options?: { data: any } } = { phone, channel: 'sms' };
+  const payload: { phone: string; channel: 'sms'; options?: { data: Record<string, string | number | boolean> } } = { phone, channel: 'sms' };
   if (metadata) {
     payload.options = { data: metadata };
   }
@@ -56,8 +52,9 @@ export async function verifyOtp(phone: string, token: string): Promise<VerifyRes
   const client = getClient();
   if (!client) return { user: null, error: 'no-credentials' };
 
-  if (Config.otpBypass && (Config.devMode || __DEV__)) {
-    console.log(`[CityLink Dev] OTP Verification Bypass active for ${phone}`);
+  // DEV-ONLY: Simulated verification for emulator testing.
+  if (__DEV__) {
+    console.log(`[CityLink Dev] Simulated OTP verification for ${phone}`);
     return {
       user: { id: uid(), phone },
       error: null,
@@ -86,12 +83,14 @@ export async function signOut(): Promise<void> {
 }
 
 interface GovAuthResponse {
-  user: Partial<AppUser> | null;
+  user: AppUser | null;
   error: string | null;
 }
 
 /**
  * govBadgeLogin — authenticates a government staff member via Badge ID and PIN.
+ * Production: Authenticates against the government auth gateway.
+ * Dev: Falls back to DB lookup if the gateway is unavailable (no hardcoded credentials).
  */
 export async function govBadgeLogin(badgeId: string, secPin: string): Promise<GovAuthResponse> {
   const BASE_URL = Config.govAuthBaseUrl;
@@ -105,16 +104,10 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
     });
 
     if (!response.ok) {
-      if ((Config.devMode || __DEV__) && response.status === 404 && client) {
-        console.warn('[CityLink Auth] Gov auth endpoint unavailable — using DB fallback');
-        
-        // SECURITY: Verify the PIN even in fallback mode.
-        const isDevBypass = process.env.EXPO_PUBLIC_OTP_BYPASS === 'true';
-        const isValidMockPin = secPin === '8888';
-        
-        if (!isDevBypass && !isValidMockPin) {
-          return { user: null, error: 'Unauthorized: Invalid PIN provided for administrative access.' };
-        }
+      // DEV-ONLY: If the gov gateway is not running locally, fall back to DB lookup.
+      // In production, we fail closed — no fallback.
+      if (__DEV__ && response.status === 404 && client) {
+        console.warn('[CityLink Auth] Gov auth endpoint unavailable — DEV DB fallback');
 
         const { data, error } = await client
           .from('profiles')
@@ -123,21 +116,22 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
           .eq('badge_id', badgeId)
           .maybeSingle();
 
-          if (error) {
-            console.error('[CityLink Auth] Error querying admin profile:', error);
-            return { user: null, error: error.message };
-          }
+        if (error) {
+          console.error('[CityLink Auth] Error querying admin profile:', error);
+          return { user: null, error: error.message };
+        }
 
-          if (data) return { user: data as AppUser, error: null };
+        if (data) return { user: data as AppUser, error: null };
       }
       return { user: null, error: 'Invalid government credentials.' };
     }
 
     const data = await response.json();
-    return { user: data.user, error: data.error || null };
+    return { user: data.user as AppUser, error: data.error || null };
 
-  } catch (err: any) {
-    console.error('[CityLink Auth] Gov login network error:', err);
-    return { user: null, error: err?.message || 'Network error. Please ensure you are on a restricted gateway.' };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[CityLink Auth] Gov login network error:', msg);
+    return { user: null, error: msg || 'Network error. Please ensure you are on a restricted gateway.' };
   }
 }

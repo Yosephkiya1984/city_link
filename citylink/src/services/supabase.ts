@@ -34,8 +34,9 @@ export function getClient(): SupabaseClient | null {
 
     _client = createClient(url, key, options);
     return _client;
-  } catch (e: any) {
-    console.warn('[CityLink] Supabase init failed:', e.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[CityLink] Supabase init failed:', msg);
     return null;
   }
 }
@@ -47,8 +48,9 @@ interface SupaQueryOptions {
 
 /**
  * supaQuery — Centralized wrapper for error handling and logging.
+ * Returns a typed object with data and error.
  */
-export async function supaQuery<T = any>(
+export async function supaQuery<T>(
   queryFn: (client: SupabaseClient) => PromiseLike<{ data: T | null; error: any; count?: number | null }>,
   options: SupaQueryOptions = {}
 ): Promise<{ data: T | null; count?: number | null; error: string | null }> {
@@ -60,34 +62,50 @@ export async function supaQuery<T = any>(
   try {
     const result = await queryFn(client);
     if (result.error) {
+      const msg = result.error.message || String(result.error);
       if (Config.devMode && !options.isSilent) {
-        console.error(`[CityLink] Supabase Error:`, result.error.message);
+        console.error(`[CityLink] Supabase Error:`, msg);
       }
-      return { data: null, error: result.error.message };
+      return { data: null, error: msg };
     }
     return { data: result.data, count: result.count, error: null };
-  } catch (e: any) {
-    return { data: null, error: String(e?.message || e) };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (Config.devMode) console.error(`[CityLink] unexpected query error:`, msg);
+    return { data: null, error: msg };
   }
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────
-export function subscribeToTable(
+
+export type RealtimeChannel = ReturnType<SupabaseClient['channel']>;
+
+export function subscribeToTable<T extends { [key: string]: any } = any>(
   channelName: string,
   table: string,
   filter: string | null,
   callback: (payload: any) => void
-) {
+): RealtimeChannel | null {
   const client = getClient();
   if (!client || !table) return null;
-  const opts: { event: string; schema: string; table: string; filter?: string } = { event: '*', schema: 'public', table };
+  const opts: { event: string; schema: string; table: string; filter?: string } = { 
+    event: '*', 
+    schema: 'public', 
+    table 
+  };
   if (filter) opts.filter = filter;
-  return client.channel(channelName).on('postgres_changes' as any, opts, callback).subscribe();
+  
+  return client
+    .channel(channelName)
+    .on('postgres_changes' as any, opts, callback as any)
+    .subscribe();
 }
 
-export function unsubscribe(channel: any) {
+export function unsubscribe(channel: RealtimeChannel | null) {
   const client = getClient();
-  if (client && channel) client.removeChannel(channel);
+  if (client && channel) {
+    client.removeChannel(channel);
+  }
 }
 
 // ── Backward Compatibility ─────────────────────────────────────────────────────

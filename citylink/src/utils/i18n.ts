@@ -154,8 +154,8 @@ export function t(text: string, lang?: string): string {
   let activeLang = lang;
   if (!activeLang) {
     try {
-      const { useAppStore } = require('../store/AppStore');
-      activeLang = useAppStore.getState().lang || 'en';
+      const { useSystemStore } = require('../store/SystemStore');
+      activeLang = useSystemStore.getState().lang || 'en';
     } catch {
       activeLang = 'en';
     }

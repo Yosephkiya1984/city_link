@@ -5,7 +5,24 @@ import { DarkColors as T } from '../../../theme';
 
 const { width } = Dimensions.get('window');
 
-// any types used temporarily during decomposition phase
+import { MarketplaceOrder, Dispute } from '../../../types';
+
+export interface DashboardOrdersTabProps {
+  orders: MarketplaceOrder[];
+  openDisputes: Dispute[];
+  loading: boolean;
+  shipping: boolean;
+  handleMarkShipped: (id: string) => void;
+  handleConfirmPickup: (id: string) => void;
+  handleDispatchRetry: (id: string) => void;
+  handleCancelOrder: (id: string) => void;
+  handleSwitchSelfDelivery: (order: MarketplaceOrder) => void;
+  handleMessageBuyer: (order: MarketplaceOrder) => void;
+  setPinInput: (val: string) => void;
+  setPinPromptOrder: (order: MarketplaceOrder | null) => void;
+  styles: any;
+}
+
 export function DashboardOrdersTab({
   orders,
   openDisputes,
@@ -20,7 +37,7 @@ export function DashboardOrdersTab({
   setPinInput,
   setPinPromptOrder,
   styles,
-}: any) {
+}: DashboardOrdersTabProps) {
   return (
     <View style={styles.tabContent}>
       <View style={styles.headerTitleRow}>
@@ -28,7 +45,7 @@ export function DashboardOrdersTab({
           <Text style={styles.pageTitle}>Orders</Text>
           <Text style={styles.pageSubtitle}>
             {
-              orders.filter((o: any) =>
+              orders.filter((o) =>
                 [
                   'PAID',
                   'SHIPPED',
@@ -36,7 +53,7 @@ export function DashboardOrdersTab({
                   'AGENT_ASSIGNED',
                   'IN_TRANSIT',
                   'AWAITING_PIN',
-                ].includes(o.status)
+                ].includes(o.status as any)
               ).length
             }{' '}
             active shipments
@@ -67,7 +84,7 @@ export function DashboardOrdersTab({
             <Text style={{ color: T.onVariant, marginTop: 12 }}>No orders yet</Text>
           </View>
         )}
-        {orders.map((o: any) => (
+        {orders.map((o) => (
           <View key={o.id} style={styles.orderMobileCard}>
             <View
               style={{

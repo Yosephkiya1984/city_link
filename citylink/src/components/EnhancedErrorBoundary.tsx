@@ -8,7 +8,8 @@ import { View, Text, ScrollView, TouchableOpacity, Linking, Alert } from 'react-
 import { Ionicons } from '@expo/vector-icons';
 import * as Updates from 'expo-updates';
 
-import { useAppStore } from '../store/AppStore';
+import { useSystemStore } from '../store/SystemStore';
+import { clearAllStores } from '../store/StoreUtils';
 import { Colors, DarkColors, Radius, Shadow, Fonts } from '../theme';
 import { CButton } from './ui/CButton';
  
@@ -308,8 +309,7 @@ class ErrorBoundaryInner extends Component<ErrorBoundaryProps, ErrorBoundaryStat
   };
 
   signOut = () => {
-    const { reset } = useAppStore.getState();
-    reset();
+    clearAllStores();
     this.setState({ hasError: false });
   };
 
@@ -319,8 +319,7 @@ class ErrorBoundaryInner extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 
   clearCache = async () => {
     try {
-      const { reset } = useAppStore.getState();
-      reset();
+      await clearAllStores();
       Alert.alert('Cache Cleared', 'App cache has been cleared. Please restart the app.');
       this.setState({ hasError: false });
     } catch (error) {
@@ -393,8 +392,7 @@ Timestamp: ${new Date().toISOString()}
         text: 'Reset',
         style: 'destructive',
         onPress: () => {
-          const { reset } = useAppStore.getState();
-          reset();
+          clearAllStores();
           this.setState({ hasError: false });
         },
       },
@@ -542,6 +540,6 @@ Timestamp: ${new Date().toISOString()}
 }
 
 export default function EnhancedErrorBoundary(props: Omit<ErrorBoundaryProps, 'isDark'>) {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   return <ErrorBoundaryInner {...props} isDark={isDark} />;
 }

@@ -82,7 +82,7 @@ export async function fetchFoodOrdersByMerchant(merchantId: string) {
 
 // ── Merchant Dashboard Functions ───────────────────────────────────────
 
-export const fetchRestaurantOrders = async (merchantId: string): Promise<{ data: FoodOrder[]; error: any }> => {
+export const fetchRestaurantOrders = async (merchantId: string): Promise<{ data: FoodOrder[]; error: string | null }> => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -122,7 +122,7 @@ export const fetchRestaurantOrders = async (merchantId: string): Promise<{ data:
   return { data: res.data || [], error: res.error };
 };
 
-export const fetchRestaurantMenu = async (merchantId: string): Promise<{ data: MenuItem[]; error: any }> => {
+export const fetchRestaurantMenu = async (merchantId: string): Promise<{ data: MenuItem[]; error: string | null }> => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -158,7 +158,7 @@ export const fetchRestaurantMenu = async (merchantId: string): Promise<{ data: M
   return { data: res.data || [], error: res.error };
 };
 
-export const updateOrderStatus = async (orderId: string, status: string): Promise<{ok: boolean, error: any}> => {
+export const updateOrderStatus = async (orderId: string, status: string): Promise<{ok: boolean, error: string | null}> => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
@@ -166,7 +166,7 @@ export const updateOrderStatus = async (orderId: string, status: string): Promis
   return { ok: !res.error, error: res.error };
 };
 
-export const updateMenuItem = async (menuItem: Partial<MenuItem>): Promise<{ok: boolean, error: any}> => {
+export const updateMenuItem = async (menuItem: Partial<MenuItem>): Promise<{ok: boolean, error: string | null}> => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }

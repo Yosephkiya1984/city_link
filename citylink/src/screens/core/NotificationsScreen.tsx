@@ -2,21 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, FontSize, Fonts } from '../../theme';
 import { uid, timeAgo } from '../../utils';
 
 function useTheme() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   return isDark ? DarkColors : Colors;
 }
 
 export default function NotificationsScreen() {
   const C = useTheme();
-  const notifications = useAppStore((s) => s.notifications);
-  const markNotifRead = useAppStore((s) => s.markNotifRead);
-  const addNotification = useAppStore((s) => s.addNotification);
-  const clearNotifications = useAppStore((s) => s.clearNotifications);
+  const notifications = useSystemStore((s) => s.notifications);
+  const markNotifRead = useSystemStore((s) => s.markNotifRead);
+  const addNotification = useSystemStore((s) => s.addNotification);
+  const clearNotifications = useSystemStore((s) => s.clearNotifications);
   const [filter, setFilter] = useState('all');
   const [showSettings, setShowSettings] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState({
@@ -28,7 +28,7 @@ export default function NotificationsScreen() {
   });
 
   const FILTERS = ['all', 'unread', 'transport', 'payments', 'social', 'promotions', 'system'];
-  const filtered = notifications.filter((n) => {
+  const filtered = notifications.filter((n: any) => {
     if (filter === 'all') return true;
     if (filter === 'unread') return !n.read && !n.is_read;
     return ((n.data as any)?.category || (n.metadata as any)?.category || 'system') === filter;
@@ -244,7 +244,7 @@ export default function NotificationsScreen() {
               </Text>
             </View>
 
-            {filtered.map((n) => {
+            {filtered.map((n: any) => {
               const cat = String((n.data as any)?.category || (n.metadata as any)?.category || 'system');
               return (
               <TouchableOpacity

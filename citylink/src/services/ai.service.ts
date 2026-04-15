@@ -54,9 +54,10 @@ export async function sendMessage(messages: AIMessage[]): Promise<string> {
     
     if (text) return text;
     throw new Error('Empty response from AI proxy');
-  } catch (e: any) {
-    console.warn('[CityLink AI] Proxy failed:', e.message);
-    return `[System] I'm having trouble connecting to my central brain right now. Please try again in a moment. (Error: ${e.message})`;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn('[CityLink AI] Proxy failed:', msg);
+    return `[System] I'm having trouble connecting to my central brain right now. Please try again in a moment. (Error: ${msg})`;
   }
 }
 

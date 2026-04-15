@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { signOut } from '../../services/auth.service';
 import { DarkColors as T } from '../../theme';
 
@@ -26,8 +27,8 @@ import { Modal, ActivityIndicator, Image, TextInput, Alert } from 'react-native'
 
 export default function ShopDashboard() {
   const navigation: any = useNavigation();
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showProductModal, setShowProductModal] = useState(false);
@@ -40,7 +41,7 @@ export default function ShopDashboard() {
   const [showShipSuccess, setShowShipSuccess] = useState<any>(null);
   const [withdrawing, setWithdrawing] = useState(false);
   const [inventorySearch, setInventorySearch] = useState('');
-  const [pinPromptOrder, setPinPromptOrder] = useState(null);
+  const [pinPromptOrder, setPinPromptOrder] = useState<any>(null);
   const [pinInput, setPinInput] = useState('');
   const [submittingPin, setSubmittingPin] = useState(false);
   const [shipping, setShipping] = useState(false);
@@ -91,7 +92,7 @@ export default function ShopDashboard() {
   const handleLogout = async () => {
     try {
       await signOut();
-      useAppStore.getState().setCurrentUser(null);
+      await useAuthStore.getState().setCurrentUser(null);
     } catch (error) {
       Alert.alert('Error', 'Failed to log out. Please try again.');
     }

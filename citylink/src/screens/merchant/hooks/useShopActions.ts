@@ -6,7 +6,9 @@ import { fetchProfile } from '../../../services/auth.service';
 import { createChatThread, createChatMessage } from '../../../services/chat.service';
 import { getCurrentLocation } from '../../../services/delivery.service';
 import { uid } from '../../../utils';
-import { useAppStore } from '../../../store/AppStore';
+import { useWalletStore } from '../../../store/WalletStore';
+
+import { useNavigation } from '@react-navigation/native';
 
 // any types used temporarily during decomposition phase
 export function useShopActions({
@@ -35,6 +37,8 @@ export function useShopActions({
   setWithdrawing,
   orders,
 }: any) {
+  const navigation = useNavigation<any>();
+
   const handleSaveProduct = async () => {
     const priceVal = parseFloat(newProduct.price);
     const stockVal = parseInt(newProduct.stock);
@@ -308,7 +312,7 @@ export function useShopActions({
     loadData();
   };
 
-  const handleMessageBuyer = async (order: any, navigation: any) => {
+  const handleMessageBuyer = async (order: any) => {
     if (!order.buyer_id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -351,7 +355,7 @@ export function useShopActions({
   };
 
   const handleWithdraw = async () => {
-    const currentBalance = useAppStore.getState().balance || 0;
+    const currentBalance = useWalletStore.getState().balance || 0;
     if (currentBalance < 100) {
       showToast('Minimum withdrawal is ETB 100', 'warning');
       return;
@@ -392,7 +396,7 @@ export function useShopActions({
 
                 if (balErr) throw balErr;
 
-                useAppStore.getState().setBalance(0);
+                useWalletStore.getState().setBalance(0);
                 showToast('Withdrawal successful! Funds will arrive in 24h.', 'success');
                 loadData(); 
               }

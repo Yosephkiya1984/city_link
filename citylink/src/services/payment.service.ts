@@ -9,7 +9,7 @@ export interface ChapaInitResponse {
   tx_ref?: string;
   data?: {
     checkout_url: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -21,7 +21,7 @@ export interface ChapaVerifyResponse {
     amount: number;
     currency: string;
     tx_ref: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -72,9 +72,10 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
     }
     
     throw new Error(data.message || 'Chapa initialization failed');
-  } catch (e: any) {
-    console.error('[Payment] Init Error:', e.message);
-    return { status: 'error', message: e.message };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[Payment] Init Error:', msg);
+    return { status: 'error', message: msg };
   }
 }
 
@@ -92,8 +93,9 @@ export async function verify(txRef: string): Promise<ChapaVerifyResponse> {
     });
 
     return await res.json();
-  } catch (e: any) {
-    return { status: 'error', message: e.message };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { status: 'error', message: msg };
   }
 }
 
@@ -107,7 +109,7 @@ export function calcFee(amount: number, channel: string = 'telebirr'): number {
 /**
  * payUtilityBill — pays a utility bill atomically.
  */
-export async function payUtilityBill(billId: string, citizenId: string) {
+export async function payUtilityBill(billId: string, citizenId: string): Promise<{ data: { ok: boolean; error?: string; new_balance: number } | null; error: string | null }> {
   return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_utility_payment_atomic', {
       p_bill_id: billId,
@@ -119,7 +121,7 @@ export async function payUtilityBill(billId: string, citizenId: string) {
 /**
  * payTrafficFine — pays a traffic fine atomically.
  */
-export async function payTrafficFine(userId: string, fineId: string) {
+export async function payTrafficFine(userId: string, fineId: string): Promise<{ data: { ok: boolean; error?: string; new_balance: number } | null; error: string | null }> {
   return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_traffic_fine_atomic', {
       p_user_id: userId,

@@ -14,7 +14,9 @@ import { Manrope_400Regular, Manrope_700Bold } from '@expo-google-fonts/manrope'
 
 import AppNavigator from './src/navigation';
 import { ToastContainer, ErrorBoundary } from './src/components';
-import { useAppStore } from './src/store/AppStore';
+import { useAuthStore } from './src/store/AuthStore';
+import { useSystemStore } from './src/store/SystemStore';
+import { migrateLegacyData } from './src/store/StoreUtils';
 
 import { useTheme } from './src/hooks/useTheme';
 import { memoryManager, PerformanceProfiler } from './src/utils/debug/memoryManager';
@@ -22,7 +24,7 @@ import { cacheManager } from './src/utils/debug/cacheManager';
 
 // ── Inner bootstrap component — runs INSIDE AppStoreProvider ─────────────────
 function AppBootstrap() {
-  const { isDark } = useAppStore();
+  const isDark = useSystemStore(s => s.isDark);
   const theme = useTheme();
   const [bootstrapped, setBootstrapped] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -40,6 +42,9 @@ function AppBootstrap() {
     async function prepare() {
       const bootStart = performance.now();
       try {
+        // 0. Migrate legacy data if exists
+        await migrateLegacyData();
+
         // 1. Load Fonts Manually
         const fontStart = performance.now();
         await Font.loadAsync({
@@ -57,11 +62,11 @@ function AppBootstrap() {
 
         // 3. Session Restore & State Hydration
         const authStart = performance.now();
-        const { hydrateSession } = useAppStore.getState();
+        const { hydrateSession } = useAuthStore.getState();
         await hydrateSession();
         console.log(`[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`);
 
-        const session = useAppStore.getState().currentUser;
+        const session = useAuthStore.getState().currentUser;
         if (session && __DEV__) {
           console.log(`[App] Welcome back, ${session.full_name || 'User'}`);
         }

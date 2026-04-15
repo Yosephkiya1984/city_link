@@ -17,7 +17,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { fmtETB } from '../../utils';
 import { subscribeToTable, unsubscribe, supabase } from '../../services/supabase';
 import { createChatThread, createChatMessage } from '../../services/chat.service';
@@ -48,9 +50,9 @@ const EscrowBadge = ({ C }: { C: any }) => (
 export default function MarketplaceScreen() {
   const C = useTheme();
   const navigation = useNavigation();
-  const balance = useAppStore((s) => s.balance);
-  const showToast = useAppStore((s) => s.showToast);
-  const currentUser = useAppStore((s) => s.currentUser);
+  const balance = useWalletStore((s) => s.balance);
+  const showToast = useSystemStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
 
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export default function MarketplaceScreen() {
   // ——————————————————————————————————————————————————————————————————————————————————————————————
   const handleBuy = async () => {
     if (buying) return;
-    const user = useAppStore.getState().currentUser;
+    const user = useAuthStore.getState().currentUser;
     if (!user) {
       showToast('Please login to purchase', 'error');
       return;
@@ -131,7 +133,7 @@ export default function MarketplaceScreen() {
       showToast("You can't buy your own listing", 'warning');
       return;
     }
-    const currentBalance = useAppStore.getState().balance || 0;
+    const currentBalance = useWalletStore.getState().balance || 0;
     const totalCost = (selectedProduct?.price || 0) * qty;
     if (currentBalance < totalCost) {
       showToast(`Insufficient balance (ETB ${fmtETB(totalCost, 0)} needed)`, 'error');
@@ -154,7 +156,7 @@ export default function MarketplaceScreen() {
       });
       if (res.success) {
         const finalTotal = res.total || totalCost;
-        useAppStore.getState().setBalance(currentBalance - finalTotal);
+        useWalletStore.getState().setBalance(currentBalance - finalTotal);
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSelectedProduct(null);

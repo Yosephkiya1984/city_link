@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, View, Text } from 'react-native';
 
-import { useAppStore } from '../store/AppStore';
+import { useSystemStore } from '../store/SystemStore';
 import { Colors, DarkColors, Fonts } from '../theme';
 
 // Screens
@@ -35,7 +35,7 @@ function TabIcon({ iconName, label, focused, C }: any) {
 }
 
 function CitizenTabs() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
 
   return (

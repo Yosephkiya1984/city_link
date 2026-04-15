@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
 import { uid } from '../../utils';
 
 // Cache configuration
@@ -260,7 +260,7 @@ class CacheManager {
   async preloadCommonData() {
     try {
       // Preload user data
-      const userProfile = useAppStore.getState().currentUser;
+      const userProfile = useAuthStore.getState().currentUser;
       if (userProfile) {
         await this.set(CACHE_KEYS.USER_PROFILE, userProfile, CACHE_CONFIG.USER_DATA_TTL);
       }

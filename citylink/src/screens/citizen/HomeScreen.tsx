@@ -196,7 +196,7 @@ export default function HomeScreen() {
           ) : (
             transactions
               .slice(0, 3)
-              .map((tx, i) => <TransactionItem key={tx.id || i} tx={tx} index={i} />)
+              .map((tx: any, i: number) => <TransactionItem key={tx.id || i} tx={tx} index={i} />)
           )}
         </View>
 

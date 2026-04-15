@@ -16,7 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, CInput, SectionTitle, Card } from '../../components';
 import { signOut } from '../../services/auth.service';
@@ -28,16 +30,15 @@ import { fmtETB } from '../../utils';
 import { t } from '../../utils/i18n';
 
 export default function ProfileScreen() {
-  const isDark = useAppStore((s) => s.isDark);
-  const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const isDark = useSystemStore((s) => s.isDark);
+  const toggleTheme = useSystemStore((s) => s.toggleTheme);
   const C = useTheme();
 
-  const currentUser = useAppStore((s) => s.currentUser);
-  const setCurrentUser = useAppStore((s) => s.setCurrentUser);
-  const balance = useAppStore((s) => s.balance);
-  const transactions = useAppStore((s) => s.transactions);
-  const reset = useAppStore((s) => s.reset);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
+  const balance = useWalletStore((s) => s.balance);
+  const transactions = useWalletStore((s) => s.transactions);
+  const showToast = useSystemStore((s) => s.showToast);
   const navigation = useNavigation();
 
   const [pinSet, setPinSet] = useState(false);
@@ -48,18 +49,24 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     (async () => {
-      setPinSet(await hasWalletPin(currentUser?.id || ''));
+      const userId = currentUser?.id;
+      setPinSet(await hasWalletPin(userId || ''));
+      
       // Load KYC status
       const statusData = await FaydaKYCService.getKYCStatus();
       setKycStatus(statusData.status);
       setKycData(statusData.kyc_data);
 
       // Check if they are a delivery agent
-      if (currentUser?.id) {
+      if (userId) {
         setLoadingAgent(true);
-        const { fetchAgentProfile } = require('../../services/delivery.service');
-        const res = await fetchAgentProfile(currentUser.id);
-        if (res.data) setIsAgent(true);
+        try {
+          const { fetchAgentProfile } = require('../../services/delivery.service');
+          const res = await fetchAgentProfile(userId);
+          if (res.data) setIsAgent(true);
+        } catch (e) {
+          console.error('[Profile] Failed to fetch agent profile:', e);
+        }
         setLoadingAgent(false);
       }
     })();
@@ -67,7 +74,9 @@ export default function ProfileScreen() {
 
   async function handleLogout() {
     await signOut();
-    reset();
+    await useAuthStore.getState().reset();
+    await useWalletStore.getState().reset();
+    useSystemStore.getState().reset();
   }
 
   const roleColor = currentUser?.role === 'merchant' ? '#FF9500' : '#007AFF';
@@ -204,7 +213,7 @@ export default function ProfileScreen() {
               {t('trust_score')}
             </Text>
             <Text style={{ color: C.primary, fontSize: 18, fontFamily: Fonts.black, marginTop: 4 }}>
-              {(currentUser as any)?.credit_score || 720}
+              {currentUser?.credit_score || 720}
             </Text>
           </View>
         </View>
@@ -244,9 +253,10 @@ export default function ProfileScreen() {
         {(currentUser?.role === 'citizen' || currentUser?.role === 'delivery_agent') && (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
-              onPress={async () => {
+               onPress={async () => {
+                if (!currentUser?.id) return;
                 const { updateUserRole } = require('../../services/profile.service');
-                if (currentUser?.role === 'delivery_agent') {
+                if (currentUser.role === 'delivery_agent') {
                   // Switch to Citizen app
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                   setCurrentUser({ ...currentUser, role: 'citizen' });

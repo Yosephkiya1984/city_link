@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors } from '../../theme';
 import * as AuthService from '../../services/auth.service';
 import * as ProfileService from '../../services/profile.service';
@@ -15,8 +16,8 @@ type AuthFlow = 'welcome' | 'login' | 'register' | 'otp' | 'success';
 type AuthMode = 'citizen' | 'merchant' | 'gov';
 
 export default function AuthScreen() {
-  const isDark = useAppStore((s) => s.isDark);
-  const setCurrentUser = useAppStore((s) => s.setCurrentUser);
+  const isDark = useSystemStore((s) => s.isDark);
+  const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
   const C = isDark ? DarkColors : Colors;
 
   // Flow State
@@ -166,13 +167,15 @@ export default function AuthScreen() {
       setError('Name and Phone are required');
       return;
     }
+    if (!tempUserId) {
+      setError('Authentication required before registration. Please verify your phone first.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const targetId = tempUserId || phone;
-      
       const profileData: Partial<User> & { id: string } = {
-        id: targetId,
+        id: tempUserId,
         phone,
         full_name: fullName,
         role: userType,
@@ -194,10 +197,10 @@ export default function AuthScreen() {
       const { error: upsertErr } = await ProfileService.upsertProfile(profileData);
       if (upsertErr) throw new Error(upsertErr as any);
 
-      await WalletService.ensureWallet(targetId);
-      await WalletService.claimWelcomeBonus(targetId);
+      await WalletService.ensureWallet(tempUserId);
+      await WalletService.claimWelcomeBonus(tempUserId);
 
-      const finalProfile = await ProfileService.fetchProfile(targetId);
+      const finalProfile = await ProfileService.fetchProfile(tempUserId);
       if (finalProfile.data) {
         setCurrentUser(finalProfile.data);
       } else {
