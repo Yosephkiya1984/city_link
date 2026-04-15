@@ -67,6 +67,18 @@ export function isValidPinFormat(plain: string): boolean {
   return typeof plain === 'string' && /^\d{4,6}$/.test(plain);
 }
 
+/**
+ * Constant-time comparison to prevent timing attacks on hashes.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 /** Check if user has a PIN in any supported storage version. */
 export async function hasWalletPin(userId: string): Promise<boolean> {
   if (!userId) return false;
@@ -96,7 +108,7 @@ async function migrateToV3(userId: string, plain: string): Promise<void> {
     await SecureStore.deleteItemAsync(getV1Key(userId));
     await SecureStore.deleteItemAsync(getV2Key(userId));
     
-    console.log(`[WalletPin] User ${userId} migrated to V3 PBKDF2 security.`);
+    console.log('[WalletPin] Security migration to V3 (PBKDF2) completed.');
   } catch (err) {
     console.error('[WalletPin] Migration to V3 failed:', err);
   }
@@ -110,7 +122,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
     if (storedV3 && storedV3.includes(':')) {
       const [hash, salt] = storedV3.split(':');
       const h = await hashWalletPin(plain, userId, salt);
-      return h === hash;
+      return timingSafeEqual(h, hash);
     }
 
     // 2. Try V2 (Intermediate: Custom Loop + Per-user Salt)
@@ -118,7 +130,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
     if (storedV2 && storedV2.includes(':')) {
       const [hash, salt] = storedV2.split(':');
       const h = await hashLegacy(plain, userId, salt);
-      if (h === hash) {
+      if (timingSafeEqual(h, hash)) {
         await migrateToV3(userId, plain);
         return true;
       }
@@ -128,7 +140,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
     const storedV1 = await SecureStore.getItemAsync(getV1Key(userId));
     if (storedV1) {
       const h = await hashLegacy(plain, userId, GLOBAL_SALT_V1);
-      if (h === storedV1) {
+      if (timingSafeEqual(h, storedV1)) {
         await migrateToV3(userId, plain);
         return true;
       }

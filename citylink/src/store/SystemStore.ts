@@ -40,7 +40,10 @@ export const useSystemStore = create<SystemState>()(
       toggleTheme: () => set((s) => ({ isDark: !s.isDark, theme: !s.isDark ? 'dark' : 'light' })),
       setIsDark: (isDark) => set({ isDark, theme: isDark ? 'dark' : 'light' }),
       setLang: (lang) => set({ lang }),
-      setNotifications: (notifications) => set({ notifications }),
+      setNotifications: (notifications) => {
+        const unreadCount = notifications.filter((n) => !n.read && !n.is_read).length;
+        set({ notifications, unreadCount });
+      },
       setChatHistory: (chatHistory) => set({ chatHistory }),
       setTheme: (theme) => set({ theme, isDark: theme === 'dark' }),
 

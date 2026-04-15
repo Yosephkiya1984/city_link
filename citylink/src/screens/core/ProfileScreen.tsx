@@ -88,12 +88,24 @@ export default function ProfileScreen() {
       console.error('[Profile] signOut failed:', error);
       showToast('Unable to sign out from server. Local session will still be cleared.', 'error');
     } finally {
+      // Harden: Ensure all stores are reset independently to avoid partial logout state
+      const resets = [
+        { name: 'Auth', call: useAuthStore.getState().reset() },
+        { name: 'Wallet', call: useWalletStore.getState().reset() },
+        { name: 'System', call: useSystemStore.getState().reset() },
+      ];
+
       try {
-        await useAuthStore.getState().reset();
-        await useWalletStore.getState().reset();
-        await useSystemStore.getState().reset();
-      } catch (resetError) {
-        console.error('[Profile] Failed to reset local stores during logout:', resetError);
+        const results = await Promise.allSettled(resets.map(r => r.call));
+        
+        results.forEach((res, idx) => {
+          if (res.status === 'rejected') {
+            console.error(`[Logout] Failed to reset ${resets[idx].name} store:`, res.reason);
+          }
+        });
+      } catch (err) {
+        // This catch is for Promise.allSettled itself failing, which is rare but good for safety
+        console.error('[Logout] Unexpected error during parallel store reset:', err);
       }
     }
   }

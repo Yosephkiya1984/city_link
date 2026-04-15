@@ -58,10 +58,10 @@ export async function verifyOtp(phone: string, token: string): Promise<VerifyRes
     const norm = normalizePhone(phone);
     const alt = norm.startsWith('+251') ? '0' + norm.slice(4) : norm;
 
-    const { data } = await getClient()
+    const { data } = await client
       .from('profiles')
       .select('id')
-      .or(`phone.eq."${norm}",phone.eq."${alt}",phone.eq."${phone}"`)
+      .in('phone', [norm, alt, phone])
       .maybeSingle();
 
     return {
@@ -145,7 +145,6 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
           return { user: null, error: 'Invalid credentials' };
         }
       }
-      return { user: null, error: 'Invalid credentials' };
     }
 
     const errData = await response.json().catch(() => ({}));
@@ -176,7 +175,6 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
           return { user: null, error: 'Invalid credentials' };
         }
       }
-      return { user: null, error: 'Invalid credentials' };
     }
     
     const msg = err.name === 'AbortError' ? 'Connection timed out' : 'Government gateway unavailable';

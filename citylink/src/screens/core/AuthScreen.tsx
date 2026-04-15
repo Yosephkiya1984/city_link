@@ -48,6 +48,7 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [tempUserId, setTempUserId] = useState<string | null>(null);
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
   const [registrationIntent, setRegistrationIntent] = useState(false);
 
   // Animations
@@ -135,6 +136,7 @@ export default function AuthScreen() {
         setError(verifyErr);
       } else if (user) {
         setTempUserId(user.id);
+        setVerifiedPhone(normalized);
         const profileRes = await ProfileService.fetchProfile(user.id);
         const needsRegistration = registrationIntent || !profileRes.data || !profileRes.data.full_name;
         if (needsRegistration) {
@@ -183,9 +185,13 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     try {
+      if (!verifiedPhone) {
+        throw new Error('Verification data missing. Please verify your phone again.');
+      }
+
       const profileData: Partial<User> & { id: string } = {
         id: tempUserId,
-        phone: normalizePhone(phone),
+        phone: verifiedPhone,
         full_name: fullName,
         role: userType,
         kyc_status: 'PENDING',
@@ -287,8 +293,7 @@ export default function AuthScreen() {
             setUserType={setUserType}
             fullName={fullName}
             setFullName={setFullName}
-            phone={phone}
-            setPhone={setPhone}
+            phone={verifiedPhone || phone}
             merchantType={merchantType}
             setMerchantType={setMerchantType}
             businessName={businessName}
