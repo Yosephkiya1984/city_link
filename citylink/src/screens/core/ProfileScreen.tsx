@@ -90,13 +90,13 @@ export default function ProfileScreen() {
     } finally {
       // Harden: Ensure all stores are reset independently to avoid partial logout state
       const resets = [
-        { name: 'Auth', call: useAuthStore.getState().reset() },
-        { name: 'Wallet', call: useWalletStore.getState().reset() },
-        { name: 'System', call: useSystemStore.getState().reset() },
+        { name: 'Auth', call: () => useAuthStore.getState().reset() },
+        { name: 'Wallet', call: () => useWalletStore.getState().reset() },
+        { name: 'System', call: () => useSystemStore.getState().reset() },
       ];
 
       try {
-        const results = await Promise.allSettled(resets.map(r => r.call));
+        const results = await Promise.allSettled(resets.map(r => Promise.resolve().then(r.call)));
         
         results.forEach((res, idx) => {
           if (res.status === 'rejected') {
