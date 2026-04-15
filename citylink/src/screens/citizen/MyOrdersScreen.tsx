@@ -14,7 +14,8 @@ import {
   Alert,
 } from 'react-native';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Fonts, Shadow } from '../../theme';
 import { fmtETB } from '../../utils';
 import { t } from '../../utils/i18n';
@@ -34,7 +35,7 @@ import { useNavigation } from '@react-navigation/native';
 const { width } = Dimensions.get('window');
 
 function useTheme() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   return isDark ? DarkColors : Colors;
 }
 
@@ -386,8 +387,8 @@ const AnimatedOrderCard = ({ order, C, onDispute, onCancel, navigation }: any) =
 export default function MyOrdersScreen() {
   const navigation = useNavigation();
   const C = useTheme();
-  const user = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
+  const user = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [tab, setTab] = useState('active');
   const tabAnim = useRef(new Animated.Value(0)).current;

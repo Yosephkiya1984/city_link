@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { CButton, Card, SectionTitle, LoadingRow } from '../../components';
 import { fmtETB, genQrToken, uid } from '../../utils';
@@ -86,15 +88,15 @@ function mapLotsFromDb(rows: any[]) {
 }
 
 export default function ParkingScreen() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const currentUser = useAppStore((s) => s.currentUser);
-  const activeParking = useAppStore((s) => s.activeParking);
-  const setActiveParking = useAppStore((s) => s.setActiveParking);
-  const balance = useAppStore((s) => s.balance);
-  const setBalance = useAppStore((s) => s.setBalance);
-  const addTransaction = useAppStore((s) => s.addTransaction);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const activeParking = useWalletStore((s) => s.activeParking);
+  const setActiveParking = useWalletStore((s) => s.setActiveParking);
+  const balance = useWalletStore((s) => s.balance);
+  const setBalance = useWalletStore((s) => s.setBalance);
+  const addTransaction = useWalletStore((s) => s.addTransaction);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [lots, setLots] = useState<any[]>(DEMO_LOTS);
   const [selectedLot, setSelectedLot] = useState<any>(null);

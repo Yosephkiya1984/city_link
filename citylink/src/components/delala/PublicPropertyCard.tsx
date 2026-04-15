@@ -8,9 +8,10 @@ import { fmtETB } from '../../utils';
 interface PublicPropertyCardProps {
   property: any;
   onPress: () => void;
+  onMessagePress?: (property: any) => void;
 }
 
-const PublicPropertyCard = memo(({ property, onPress }: PublicPropertyCardProps) => {
+const PublicPropertyCard = memo(({ property, onPress, onMessagePress }: PublicPropertyCardProps) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = useCallback(() => {
@@ -40,9 +41,15 @@ const PublicPropertyCard = memo(({ property, onPress }: PublicPropertyCardProps)
         onPressOut={handlePressOut}
         activeOpacity={0.9}
         style={styles.propertyCardContent}
+        accessibilityRole="button"
+        accessibilityLabel={`View details for ${property.title}`}
       >
         <View style={styles.propertyCardImageContainer}>
-          <Image source={{ uri: property.image }} style={styles.propertyCardImage} />
+          <Image 
+            source={{ uri: property.image || 'https://via.placeholder.com/300' }} 
+            style={styles.propertyCardImage}
+            defaultSource={require('../../assets/icon.png')}
+          />
           <View style={styles.propertyCardFeatures}>
             {property.features?.slice(0, 2).map((feature: any, index: number) => (
               <View
@@ -76,7 +83,11 @@ const PublicPropertyCard = memo(({ property, onPress }: PublicPropertyCardProps)
           <View style={styles.propertyCardFooter}>
             <View style={styles.propertyCardBroker}>
               {property.broker?.image ? (
-                <Image source={{ uri: property.broker.image }} style={styles.brokerImage} />
+                <Image 
+                  source={{ uri: property.broker.image }} 
+                  style={styles.brokerImage}
+                  defaultSource={require('../../assets/icon.png')}
+                />
               ) : (
                 <View style={styles.brokerPlaceholder}>
                   <Ionicons name="person" size={14} color={COLORS.outline} />
@@ -93,7 +104,12 @@ const PublicPropertyCard = memo(({ property, onPress }: PublicPropertyCardProps)
               </View>
             </View>
 
-            <TouchableOpacity style={styles.messageButton}>
+            <TouchableOpacity 
+              style={styles.messageButton}
+              onPress={() => onMessagePress?.(property)}
+              accessibilityLabel="Send a message about this property"
+              accessibilityRole="button"
+            >
               <Text style={styles.messageButtonText}>Message</Text>
             </TouchableOpacity>
           </View>

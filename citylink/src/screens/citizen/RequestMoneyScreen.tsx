@@ -4,7 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { CButton, CInput, SectionTitle } from '../../components';
 import { fmtETB, fmtDateTime, uid } from '../../utils';
@@ -12,11 +14,11 @@ import { t } from '../../utils/i18n';
 
 export default function RequestMoneyScreen() {
   const navigation = useNavigation();
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const currentUser = useAppStore((s) => s.currentUser);
-  const addTransaction = useAppStore((s) => s.addTransaction);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const addTransaction = useWalletStore((s) => s.addTransaction);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');

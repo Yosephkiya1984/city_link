@@ -12,7 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { hasSupabase } from '../../services/supabase';
 import { fetchChatThreads } from '../../services/chat.service';
 
@@ -73,8 +74,8 @@ const PRIVATE_INVENTORY = [
 // ——————————————————————————————————————————————————————————————————————————————————————————————————
 export default function DelalaScreen() {
   const navigation: any = useNavigation();
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [activeScreen, setActiveScreen] = useState('Listings');
   const [selectedCategory, setSelectedCategory] = useState('All');

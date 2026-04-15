@@ -3,21 +3,23 @@ import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable } from 'reac
 import { User, FoodItem, FoodOrderItem } from '../../types';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, FontSize, Radius } from '../../theme';
 import { CButton, SectionTitle, EmptyState } from '../../components';
 import { fmtETB, uid, t } from '../../utils';
 import { fetchRestaurants, fetchFoodItems, placeOrder } from '../../services/food.service';
 
 export function FoodScreen() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const balance = useAppStore((s) => s.balance);
-  const setBalance = useAppStore((s) => s.setBalance);
-  const currentUser = useAppStore((s) => s.currentUser);
-  const addTransaction = useAppStore((s) => s.addTransaction);
-  const showToast = useAppStore((s) => s.showToast);
-  const lang = useAppStore((s) => s.lang);
+  const balance = useWalletStore((s) => s.balance);
+  const setBalance = useWalletStore((s) => s.setBalance);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const addTransaction = useWalletStore((s) => s.addTransaction);
+  const showToast = useSystemStore((s) => s.showToast);
+  const lang = useSystemStore((s) => s.lang);
 
   const [restaurants, setRestaurants] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);

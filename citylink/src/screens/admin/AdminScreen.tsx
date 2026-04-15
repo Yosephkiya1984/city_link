@@ -10,7 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { fetchPendingMerchants } from '../../services/admin.service';
 import { fetchProfile } from '../../services/profile.service';
 import { User } from '../../types';
@@ -31,8 +32,8 @@ import DeliveryAgentModule from '../../components/admin/DeliveryAgentModule';
 
 export default function AdminScreen() {
   const theme = useTheme();
-  const currentUser = useAppStore((s) => s.currentUser);
-  const resetStore = useAppStore((s) => s.reset);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const resetStore = useAuthStore((s) => s.reset);
 
   // Responsive State
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));

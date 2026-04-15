@@ -25,11 +25,17 @@ export const ChatModal = memo(({ visible, thread, onClose, onSendMessage }: Chat
   }, [message, onSendMessage]);
 
   useEffect(() => {
+    let timerId: NodeJS.Timeout;
     if (visible && scrollViewRef.current) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
+      timerId = setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollToEnd({ animated: true });
+        }
       }, 100);
     }
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
   }, [visible, thread?.messages]);
 
   if (!thread) return null;

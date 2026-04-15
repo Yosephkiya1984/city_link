@@ -72,7 +72,11 @@ const MessageThread = memo(({ thread, onPress, currentUser }: MessageThreadProps
 
           <View style={styles.messageThreadMeta}>
             <Text style={styles.lastMessageTime}>
-              {thread.last_ts ? new Date(thread.last_ts).toLocaleDateString() : 'Active'}
+              {(() => {
+                if (!thread.last_ts) return 'Active';
+                const d = new Date(thread.last_ts);
+                return isNaN(d.getTime()) ? 'Active' : d.toLocaleDateString();
+              })()}
             </Text>
           </View>
         </View>

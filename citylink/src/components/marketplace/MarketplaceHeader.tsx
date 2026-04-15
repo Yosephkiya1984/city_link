@@ -26,10 +26,12 @@ const MarketplaceHeader = memo(({ balance, name }: HeaderProps) => {
         <TouchableOpacity
           style={styles.headerBtn}
           onPress={() => (navigation as any).navigate('MyOrders')}
+          accessibilityLabel="View my orders"
+          accessibilityRole="button"
         >
           <Ionicons name="receipt-outline" size={20} color={T.textSub} />
         </TouchableOpacity>
-        <View style={styles.balancePill}>
+        <View style={styles.balancePill} accessibilityLabel={`Your balance is ${balance} ETB`}>
           <Ionicons name="wallet-outline" size={13} color={T.primary} />
           <Text style={styles.balanceText}>{fmtETB(balance, 0)} ETB</Text>
         </View>
@@ -82,7 +84,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: T.primaryDim,
     borderWidth: 1,
-    borderColor: T.primary + '40',
+    borderColor: '#40d99140',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,

@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable } from 'react-native';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, FontSize, Radius } from '../../theme';
 import { CButton, SectionTitle, EmptyState } from '../../components';
 import { fmtETB, uid, t } from '../../utils';
 import { fetchRestaurants } from '../../services/food.service';
 
 export function DiningScreen() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const balance = useAppStore((s) => s.balance);
-  const setBalance = useAppStore((s) => s.setBalance);
-  const addTransaction = useAppStore((s) => s.addTransaction);
-  const showToast = useAppStore((s) => s.showToast);
-  const currentUser = useAppStore((s) => s.currentUser);
-  const lang = useAppStore((s) => s.lang);
+  const balance = useWalletStore((s) => s.balance);
+  const setBalance = useWalletStore((s) => s.setBalance);
+  const addTransaction = useWalletStore((s) => s.addTransaction);
+  const showToast = useSystemStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const lang = useSystemStore((s) => s.lang);
 
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

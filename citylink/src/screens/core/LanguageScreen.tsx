@@ -1,21 +1,21 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Fonts, Shadow } from '../../theme';
 import { t } from '../../utils/i18n';
 
 function useTheme() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   return isDark ? DarkColors : Colors;
 }
 
 export default function LanguageScreen() {
   const C = useTheme();
-  const lang = useAppStore((s) => s.lang);
-  const setLang = useAppStore((s) => s.setLang);
-  const showToast = useAppStore((s) => s.showToast);
+  const lang = useSystemStore((s) => s.lang);
+  const setLang = useSystemStore((s) => s.setLang);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const langs = [
     { code: 'en', label: 'English', sub: 'Universal' },

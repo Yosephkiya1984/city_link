@@ -21,17 +21,22 @@ export const VerifiedCircleCard = memo(({ circle, onJoin }: VerifiedCircleCardPr
       <View style={styles.verifiedCircleStat}>
         <Text style={styles.verifiedCircleStatLabel}>Monthly</Text>
         <Text style={styles.verifiedCircleStatValue}>
-          ETB {circle.contribution_amount?.toLocaleString()}
+          ETB {(circle.contribution_amount || 0).toLocaleString()}
         </Text>
       </View>
       <View style={styles.verifiedCircleStat}>
         <Text style={styles.verifiedCircleStatLabel}>Members</Text>
         <Text style={styles.verifiedCircleStatValue}>
-          {circle.total_members || 'Verified Only'}
+          {circle.total_members ?? 0}
         </Text>
       </View>
     </View>
-    <TouchableOpacity style={styles.verifiedCircleButton} onPress={() => onJoin(circle)}>
+    <TouchableOpacity 
+      style={styles.verifiedCircleButton} 
+      onPress={() => onJoin(circle)}
+      accessibilityLabel={`Join ${circle.name} circle`}
+      accessibilityRole="button"
+    >
       <Text style={styles.verifiedCircleButtonText}>Join Circle</Text>
       <Ionicons name="arrow-forward" size={14} color={COLORS['on-surface']} />
     </TouchableOpacity>
@@ -53,18 +58,22 @@ export const VouchCard = memo(({ draw, onVouch }: VouchCardProps) => (
       </View>
     </View>
     <Text style={styles.vouchDescription}>
-      Please verify that you witnessed the digital draw for this round and approve the disbursement of ETB {draw.pot_amount?.toLocaleString()} to the winner.
+      Please verify that you witnessed the digital draw for this round and approve the disbursement of ETB {(draw.pot_amount || 0).toLocaleString()} to the winner.
     </Text>
     <View style={styles.vouchActions}>
       <TouchableOpacity 
         style={[styles.vouchButton, styles.vouchRejectButton]} 
         onPress={() => onVouch(false)}
+        accessibilityLabel="Dispute this draw"
+        accessibilityRole="button"
       >
         <Text style={styles.vouchRejectText}>Dispute</Text>
       </TouchableOpacity>
       <TouchableOpacity 
         style={[styles.vouchButton, styles.vouchApproveButton]} 
         onPress={() => onVouch(true)}
+        accessibilityLabel="Approve this draw"
+        accessibilityRole="button"
       >
         <Text style={styles.vouchApproveText}>Approve Draw</Text>
       </TouchableOpacity>

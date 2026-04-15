@@ -48,8 +48,12 @@ export const CircularProgress = memo(({ percentage, color, size = 56 }: Circular
   );
 });
 
-export const ReliabilityScore = memo(({ score }: { score: number }) => (
-  <View style={styles.reliabilityCard}>
+export const ReliabilityScore = memo(({ score, change = 12 }: { score: number; change?: number }) => (
+  <View 
+    style={styles.reliabilityCard}
+    accessibilityRole="summary"
+    accessibilityLabel={`Your reliability score is ${score}, an increase of ${change} points.`}
+  >
     <View style={styles.reliabilityContent}>
       <View style={styles.reliabilityHeader}>
         <Text style={styles.reliabilityLabel}>Reliability</Text>
@@ -57,24 +61,28 @@ export const ReliabilityScore = memo(({ score }: { score: number }) => (
       </View>
       <View style={styles.reliabilityScoreRow}>
         <Text style={styles.reliabilityScoreNumber}>{score}</Text>
-        <Text style={styles.reliabilityScoreChange}>+12</Text>
+        <Text style={styles.reliabilityScoreChange}>+{change}</Text>
       </View>
       <View style={styles.reliabilityProgress}>
-        <View style={[styles.reliabilityProgressFill, { width: `${(score / 850) * 100}%` }]} />
+        <View style={[styles.reliabilityProgressFill, { width: `${Math.min(100, (score / 850) * 100)}%` }]} />
       </View>
     </View>
   </View>
 ));
 
-export const TotalSaved = memo(({ amount }: { amount: number }) => (
-  <View style={styles.totalSaved}>
+export const TotalSaved = memo(({ amount, circleCount = 0 }: { amount: number; circleCount?: number }) => (
+  <View 
+    style={styles.totalSaved}
+    accessibilityRole="text"
+    accessibilityLabel={`Total pot balance is ${amount} ETB across ${circleCount} active circles.`}
+  >
     <View style={styles.totalSavedContent}>
       <View style={styles.totalSavedHeader}>
         <Text style={styles.totalSavedLabel}>Total Pot</Text>
         <Ionicons name="wallet" size={16} color={COLORS.secondary} />
       </View>
       <Text style={styles.totalSavedNumber}>ETB {fmtETB(amount, 0)}</Text>
-      <Text style={styles.totalSavedSubtext}>Active across 3 circles</Text>
+      <Text style={styles.totalSavedSubtext}>Active across {circleCount} {circleCount === 1 ? 'circle' : 'circles'}</Text>
     </View>
   </View>
 ));

@@ -27,7 +27,9 @@ import {
 } from '../../components';
 
 // â”€â”€ State & Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Fonts, Spacing, Radius } from '../../theme';
 import { greeting, t } from '../../utils';
 
@@ -62,12 +64,12 @@ export default function HomeScreen() {
   const C = useTheme();
 
   // â”€â”€ Global State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const currentUser = useAppStore((s) => s.currentUser);
-  const balance = useAppStore((s) => s.balance);
-  const setBalance = useAppStore((s) => s.setBalance);
-  const transactions = useAppStore((s) => s.transactions);
-  const setTransactions = useAppStore((s) => s.setTransactions);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const balance = useWalletStore((s) => s.balance);
+  const setBalance = useWalletStore((s) => s.setBalance);
+  const transactions = useWalletStore((s) => s.transactions);
+  const setTransactions = useWalletStore((s) => s.setTransactions);
+  const showToast = useSystemStore((s) => s.showToast);
 
   // â”€â”€ UI State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [loading, setLoading] = useState(true);

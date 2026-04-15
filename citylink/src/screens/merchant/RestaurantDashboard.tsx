@@ -5,7 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
+import { useWalletStore } from '../../store/WalletStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
@@ -38,12 +40,14 @@ const RESTAURANT_COLORS = {
 
 export default function RestaurantDashboard() {
   const navigation = useNavigation();
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
-  const balance = useAppStore((s) => s.balance);
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
-  const reset = useAppStore((s) => s.reset);
+  const balance = useWalletStore((s) => s.balance);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
+  const resetAuth = useAuthStore((s) => s.reset);
+  const resetWallet = useWalletStore((s) => s.reset);
+  const resetSystem = useSystemStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState<any[]>([]);
@@ -207,7 +211,9 @@ export default function RestaurantDashboard() {
   const logout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast('Logged out successfully', 'success');
-    reset();
+    resetAuth();
+    resetWallet();
+    resetSystem();
 
     // Use navigation.replace instead of reset to avoid the error
     try {

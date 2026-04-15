@@ -15,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
@@ -34,16 +35,19 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MerchantPortalScreen() {
   const navigation = useNavigation();
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
-  const reset = useAppStore((s) => s.reset);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
+  const resetAuth = useAuthStore((s) => s.reset);
+  const resetSystem = useSystemStore((s) => s.reset);
+  // Wallet state not used here directly, but Dashboards may use it.
 
   const logout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast('Logged out successfully', 'success');
-    reset();
+    resetAuth();
+    resetSystem();
 
     try {
       (navigation as any).replace('Auth');

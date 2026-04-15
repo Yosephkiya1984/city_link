@@ -37,7 +37,11 @@ const DelalaTopBar = memo(({
         </View>
 
         <View style={styles.profileContainer}>
-          <Image source={{ uri: userImage }} style={styles.profileImage} />
+          <Image 
+            source={{ uri: userImage || 'https://via.placeholder.com/100' }} 
+            style={styles.profileImage}
+            defaultSource={require('../../assets/icon.png')}
+          />
         </View>
       </View>
     </View>

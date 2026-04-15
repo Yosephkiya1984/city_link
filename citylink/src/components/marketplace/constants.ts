@@ -1,6 +1,4 @@
-import { Dimensions, Platform, StatusBar } from 'react-native';
-
-const { width: SW, height: SH } = Dimensions.get('window');
+import { Dimensions } from 'react-native';
 
 export const T = {
   bg: '#0c0e12',
@@ -24,13 +22,15 @@ export const T = {
 };
 
 export const CATEGORIES = [
-  { id: 'All', name: 'All', icon: 'grid', color: T.primary },
+  { id: 'All', name: 'All', icon: 'grid', color: '#40d991' },
   { id: 'Electronics', name: 'Electronics', icon: 'phone-portrait', color: '#06b6d4' },
   { id: 'Fashion', name: 'Fashion', icon: 'shirt', color: '#ec4899' },
-  { id: 'Food', name: 'Food', icon: 'restaurant', color: T.secondary },
+  { id: 'Food', name: 'Food', icon: 'restaurant', color: '#f59e0b' },
   { id: 'Home', name: 'Home', icon: 'home', color: '#10b981' },
   { id: 'Beauty', name: 'Beauty', icon: 'color-palette', color: '#8b5cf6' },
   { id: 'Tech', name: 'Tech', icon: 'hardware-chip', color: '#3b82f6' },
 ];
 
-export { SW, SH };
+export const getDimensions = () => Dimensions.get('window');
+export const SW = Dimensions.get('window').width;
+export const SH = Dimensions.get('window').height;

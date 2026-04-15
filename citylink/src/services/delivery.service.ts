@@ -50,7 +50,10 @@ export async function registerDeliveryAgent({
   plateNumber?: string; 
   licenseNumber: string; 
 }) {
-  if (!agentId) return { error: 'Missing authenticated agent ID' };
+  if (!agentId) return { data: null, error: 'Missing authenticated agent ID' };
+  if (!vehicleType) return { data: null, error: 'Vehicle type is required' };
+  if (!licenseNumber || licenseNumber.length < 5) return { data: null, error: 'Valid license number is required' };
+
   return supaQuery<DeliveryAgent>((c) =>
     c.from('delivery_agents').upsert(
       {

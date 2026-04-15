@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useAppStore } from '../store/AppStore';
+import { useWalletStore } from '../store/WalletStore';
+import { useSystemStore } from '../store/SystemStore';
 import { Colors, DarkColors, FontSize, Spacing, Radius, Shadow, Fonts } from '../theme';
 import { AppStackParamList } from '../navigation';
 
@@ -32,12 +33,12 @@ export default function TopBar({
   showProfile,
 }: TopBarProps) {
   const navigation = useNavigation<NavigationProp<AppStackParamList>>();
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
   const insets = useSafeAreaInsets();
-  const unreadCount = useAppStore((s) => s.unreadCount);
-  const balance = useAppStore((s) => s.balance);
-  const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const unreadCount = useSystemStore((s) => s.unreadCount);
+  const balance = useWalletStore((s) => s.balance);
+  const toggleTheme = useSystemStore((s) => s.toggleTheme);
 
   const balScale = useRef(new Animated.Value(1)).current;
   useEffect(() => {

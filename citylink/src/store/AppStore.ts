@@ -4,53 +4,27 @@ import { useMarketStore } from './MarketStore';
 import { useSystemStore } from './SystemStore';
 
 /**
- * useAppStore (LEGACY BRIDGE)
+ * Global store utilities.
  * 
- * @deprecated THIS IS A PERFORMANCE HAZARD. 
- * High-traffic screens should be migrated to direct domain hooks ASAP.
- * (useAuthStore, useWalletStore, useMarketStore, or useSystemStore)
+ * Direct domain hooks are preferred for performance:
+ * - useAuthStore: User session, authentication, verification
+ * - useWalletStore: Balance, transactions, active parking
+ * - useMarketStore: Marketplace products and favorites
+ * - useSystemStore: Theme, language, notifications, toasts, chat
  */
-export const useAppStore = <T>(selector?: (state: any) => T): T => {
-  if (__DEV__) {
-    // We use a ref or a simple count to prevent console flooding
-    // but enough to let developers know they are using a legacy pattern.
-    console.warn('[CityLink] useAppStore used. Please migrate to domain-specific hooks.');
-  }
-
-  const auth = useAuthStore();
-  const wallet = useWalletStore();
-  const market = useMarketStore();
-  const system = useSystemStore();
-
-  // Combine for selector
-  const combinedState = {
-    ...auth,
-    ...wallet,
-    ...market,
-    ...system
-  };
-
-  return selector ? selector(combinedState) : (combinedState as unknown as T);
-};
 
 /**
- * getAppState (LEGACY BRIDGE)
- * Provides non-hook access for services.
+ * resetAllStores
+ * Clears all domain-specific stores. Useful for sign-out or session reset.
  */
-export const getAppState = () => {
-  return {
-    ...useAuthStore.getState(),
-    ...useWalletStore.getState(),
-    ...useMarketStore.getState(),
-    ...useSystemStore.getState(),
-  };
+export const resetAllStores = async () => {
+  await Promise.all([
+    useAuthStore.getState().reset(),
+    useWalletStore.getState().reset(),
+  ]);
+  useMarketStore.getState().reset();
+  useSystemStore.getState().reset();
 };
 
-/**
- * useAppStore.getState (LEGACY BRIDGE)
- * Mimics the Zustand store API for direct access.
- */
-(useAppStore as any).getState = getAppState;
-
-// Re-export domain stores for direct access (Recommended for new code)
+// Re-export domain stores for unified entry point
 export { useAuthStore, useWalletStore, useMarketStore, useSystemStore };

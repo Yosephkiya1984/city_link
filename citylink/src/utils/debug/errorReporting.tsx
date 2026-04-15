@@ -2,7 +2,6 @@
 import React, { createContext, useState, useCallback, useEffect, useContext } from 'react';
 import { Platform, View, Text, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAppStore } from '../../store/AppStore';
 import { uid } from '../../utils';
 
 // Error types

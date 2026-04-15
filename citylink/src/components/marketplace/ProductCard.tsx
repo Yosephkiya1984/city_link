@@ -37,11 +37,18 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityLabel={`View ${item.name || item.title}. Price: ${fmtETB(item.price, 0)} ETB.`}
+      accessibilityHint="Navigates to product details"
     >
       <Animated.View style={[styles.productCard, { transform: [{ scale }] }]}>
         <View style={styles.productImgWrap}>
           {img ? (
-            <Image source={{ uri: img }} style={styles.productImg} />
+            <Image 
+              source={{ uri: img }} 
+              style={styles.productImg}
+              defaultSource={require('../../assets/icon.png')}
+            />
           ) : (
             <View
               style={[
@@ -54,7 +61,7 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
           )}
           {soldOut && (
             <View
-              style={[styles.stockLabel, { backgroundColor: T.redDim, borderColor: T.red + '40' }]}
+              style={[styles.stockLabel, { backgroundColor: T.redDim, borderColor: '#ef444440' }]}
             >
               <Text style={[styles.stockLabelText, { color: T.red }]}>SOLD OUT</Text>
             </View>
@@ -63,7 +70,7 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
             <View
               style={[
                 styles.stockLabel,
-                { backgroundColor: T.secondaryDim, borderColor: T.secondary + '40' },
+                { backgroundColor: T.secondaryDim, borderColor: '#f59e0b40' },
               ]}
             >
               <Text style={[styles.stockLabelText, { color: T.secondary }]}>LOW STOCK</Text>
@@ -80,6 +87,8 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
             <Text style={styles.productPrice}>ETB {fmtETB(item.price, 0)}</Text>
             <View
               style={[styles.buyQuickBtn, soldOut && { opacity: 0.4 }]}
+              accessibilityLabel="Quick buy this product"
+              accessibilityRole="button"
             >
               <Ionicons name="flash" size={16} color={soldOut ? T.textSub : T.primary} />
             </View>

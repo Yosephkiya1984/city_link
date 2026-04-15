@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Dimensions, Animated } from '
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { CButton, SectionTitle } from '../../components';
 import { fmtETB, timeAgo, uid, fmtDateTime } from '../../utils';
@@ -17,9 +17,9 @@ import { PerformanceProfiler } from '../../utils/debug/memoryManager';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function PerformanceProfilerScreen() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const showToast = useAppStore((s) => s.showToast);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const { metrics, getPerformanceSummary, clearMetrics } = usePerformance();
   const { errors, errorStats, clearErrors } = useErrorReporting();

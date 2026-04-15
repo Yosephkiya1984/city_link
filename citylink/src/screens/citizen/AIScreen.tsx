@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { ChatMessage } from '../../types';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { sendMessage } from '../../services/ai.service';
@@ -71,11 +71,11 @@ const AI_INSIGHTS = [
 ];
 
 export default function AIScreen() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const chatHistory = useAppStore((s) => s.chatHistory) as ChatMessage[];
-  const addChatMessage = useAppStore((s) => s.addChatMessage);
-  const clearChat = useAppStore((s) => s.clearChat);
+  const chatHistory = useSystemStore((s) => s.chatHistory) as ChatMessage[];
+  const addChatMessage = useSystemStore((s) => s.addChatMessage);
+  const clearChat = useSystemStore((s) => s.clearChat);
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

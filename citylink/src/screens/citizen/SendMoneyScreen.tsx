@@ -13,7 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, CInput } from '../../components';
 import { fmtETB, uid, normalizePhone } from '../../utils';
@@ -23,7 +25,7 @@ import { queueP2PTransfer } from '../../services/wallet.service';
 import { hasWalletPin, verifyWalletPin } from '../../services/walletPin';
 
 function useTheme() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   return isDark ? DarkColors : Colors;
 }
 
@@ -32,11 +34,11 @@ function useTheme() {
 export default function SendMoneyScreen() {
   const C = useTheme();
   const navigation = useNavigation();
-  const balance = useAppStore((s) => s.balance);
-  const setBalance = useAppStore((s) => s.setBalance);
-  const addTransaction = useAppStore((s) => s.addTransaction);
-  const showToast = useAppStore((s) => s.showToast);
-  const currentUser = useAppStore((s) => s.currentUser);
+  const balance = useWalletStore((s) => s.balance);
+  const setBalance = useWalletStore((s) => s.setBalance);
+  const addTransaction = useWalletStore((s) => s.addTransaction);
+  const showToast = useSystemStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
 
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');

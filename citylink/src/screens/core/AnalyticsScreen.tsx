@@ -11,7 +11,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
 import { CButton, SectionTitle } from '../../components';
 import { fmtETB, timeAgo, uid, fmtDateTime } from '../../utils';
@@ -102,12 +104,12 @@ const INSIGHTS = [
 ];
 
 export default function AnalyticsScreen() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const balance = useAppStore((s) => s.balance);
-  const transactions = useAppStore((s) => s.transactions);
-  const showToast = useAppStore((s) => s.showToast);
-  const currentUser = useAppStore((s) => s.currentUser);
+  const balance = useWalletStore((s) => s.balance);
+  const transactions = useWalletStore((s) => s.transactions);
+  const showToast = useSystemStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
 
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedMetric, setSelectedMetric] = useState('overview');

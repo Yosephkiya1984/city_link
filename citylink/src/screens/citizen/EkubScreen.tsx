@@ -12,7 +12,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { 
   fetchEkubs, 
   fetchMyEkubs, 
@@ -60,7 +62,10 @@ export default function EkubScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const C = useTheme();
-  const { currentUser, balance, setBalance, showToast } = useAppStore((s) => s);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const balance = useWalletStore((s) => s.balance);
+  const setBalance = useWalletStore((s) => s.setBalance);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const loadData = useCallback(async () => {
     setLoading(true);

@@ -12,7 +12,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize } from '../../theme';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
 import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -41,7 +41,7 @@ export default function AdminSidebar({
   toggleCollapse,
 }: AdminSidebarProps) {
   const theme = useTheme();
-  const resetStore = useAppStore((s) => s.reset);
+  const resetStore = useAuthStore((s) => s.reset);
 
   const navItems = [
     { id: 'overview', label: 'Monitor', icon: 'grid-outline', mIcon: 'view-dashboard-outline' },

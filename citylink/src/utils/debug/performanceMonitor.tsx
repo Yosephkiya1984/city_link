@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAppStore } from '../../store/AppStore';
 
 // Performance monitoring context
 const PerformanceContext = createContext<any>(null);

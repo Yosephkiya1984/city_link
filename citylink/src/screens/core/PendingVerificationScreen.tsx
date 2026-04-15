@@ -1,14 +1,24 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
+import { useWalletStore } from '../../store/WalletStore';
 import { Colors, DarkColors, Fonts } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function PendingVerificationScreen() {
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
-  const reset = useAppStore((s) => s.reset);
-  const currentUser = useAppStore((s) => s.currentUser);
+  const resetAuth = useAuthStore((s) => s.reset);
+  const resetWallet = useWalletStore((s) => s.reset);
+  const resetSystem = useSystemStore((s) => s.reset);
+  const currentUser = useAuthStore((s) => s.currentUser);
+
+  const handleSignOut = () => {
+    resetAuth();
+    resetWallet();
+    resetSystem();
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: C.ink }]}>
@@ -20,7 +30,7 @@ export default function PendingVerificationScreen() {
       
       <TouchableOpacity 
         style={[styles.btn, { backgroundColor: C.surface, borderColor: C.edge }]} 
-        onPress={reset}
+        onPress={handleSignOut}
         accessible={true}
         accessibilityRole="button"
         accessibilityLabel="Sign out"

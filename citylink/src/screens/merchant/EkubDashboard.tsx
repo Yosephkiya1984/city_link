@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton } from '../../components';
@@ -19,7 +20,8 @@ import { EkubCircle, EkubMember, EkubDraw } from '../../types';
 
 export default function EkubDashboard() {
   const C = useTheme();
-  const { currentUser, showToast } = useAppStore((s) => s);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

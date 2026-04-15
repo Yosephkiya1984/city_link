@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import TopBar from '../../components/TopBar';
-import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, FontSize } from '../../theme';
 import { CButton } from '../../components';
 import { t } from '../../utils';
@@ -12,10 +12,10 @@ export function QRScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const navigation: any = useNavigation();
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const lang = useAppStore((s) => s.lang);
-  const showToast = useAppStore((s) => s.showToast);
+  const lang = useSystemStore((s) => s.lang);
+  const showToast = useSystemStore((s) => s.showToast);
 
   if (!permission) {
     return (

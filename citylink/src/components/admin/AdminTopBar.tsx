@@ -11,7 +11,8 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 
@@ -27,7 +28,7 @@ interface AdminTopBarProps {
 export default function AdminTopBar({ title, user }: AdminTopBarProps) {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
-  const resetStore = useAppStore((s) => s.reset);
+  const resetStore = useAuthStore((s) => s.reset);
   const [time, setTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {

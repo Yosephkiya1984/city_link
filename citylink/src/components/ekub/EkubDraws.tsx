@@ -44,7 +44,12 @@ export const LiveDrawBanner = memo(({ onEnterDraw }: LiveDrawBannerProps) => (
         </View>
       </View>
 
-      <TouchableOpacity style={styles.enterDrawButton} onPress={onEnterDraw}>
+      <TouchableOpacity 
+        style={styles.enterDrawButton} 
+        onPress={onEnterDraw}
+        accessibilityLabel="Enter the live weekend win free draw"
+        accessibilityRole="button"
+      >
         <View style={styles.enterDrawTouchable}>
           <Text style={styles.enterDrawText}>Enter Free Draw</Text>
         </View>

@@ -1,15 +1,22 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
-const storageKey = (userId: string): string => `cl_wallet_pin_v1_${userId}`;
+const storageKey = (userId: string): string => `cl_wallet_pin_v2_${userId}`;
+const SALT_ITERATIONS = 10000;
+const GLOBAL_SALT = 'citylink_secure_salt_2024';
 
 /**
- * SHA-256 hash of the PIN (hex). Never store the raw PIN.
+ * PBKDF2-style hardened hash.
+ * 4–6 digit PINs are vulnerable to brute-force; stretching makes it much harder.
  */
-export async function hashWalletPin(plain: string): Promise<string> {
-  return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, plain, {
-    encoding: Crypto.CryptoEncoding.HEX,
-  });
+export async function hashWalletPin(plain: string, userId: string): Promise<string> {
+  let hash = `${plain}:${userId}:${GLOBAL_SALT}`;
+  for (let i = 0; i < SALT_ITERATIONS; i++) {
+    hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, hash, {
+      encoding: Crypto.CryptoEncoding.HEX,
+    });
+  }
+  return hash;
 }
 
 /** 4–6 digit numeric PIN (Goal §2). */
@@ -32,7 +39,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
   try {
     const stored = await SecureStore.getItemAsync(storageKey(userId));
     if (!stored) return false;
-    const h = await hashWalletPin(plain);
+    const h = await hashWalletPin(plain, userId);
     return h === stored;
   } catch {
     return false;
@@ -43,7 +50,7 @@ export async function setWalletPin(userId: string, plain: string): Promise<{ ok:
   if (!userId) return { ok: false, error: 'missing_user' };
   if (!isValidPinFormat(plain)) return { ok: false, error: 'invalid_format' };
   try {
-    const h = await hashWalletPin(plain);
+    const h = await hashWalletPin(plain, userId);
     await SecureStore.setItemAsync(storageKey(userId), h);
     return { ok: true };
   } catch (e: any) {

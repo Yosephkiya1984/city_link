@@ -5,12 +5,14 @@ import { T, SW } from './constants';
 const Shimmer = ({ style }: any) => {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.loop(
+    const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
         Animated.timing(anim, { toValue: 0, duration: 900, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    animation.start();
+    return () => animation.stop();
   }, [anim]);
   const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
   return <Animated.View style={[{ backgroundColor: T.surfaceHigh, opacity }, style]} />;

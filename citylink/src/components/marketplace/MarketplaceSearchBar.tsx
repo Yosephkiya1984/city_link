@@ -7,9 +7,10 @@ interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   onClear: () => void;
+  onSubmit?: () => void;
 }
 
-const MarketplaceSearchBar = memo(({ value, onChangeText, onClear }: SearchBarProps) => (
+const MarketplaceSearchBar = memo(({ value, onChangeText, onClear, onSubmit }: SearchBarProps) => (
   <View style={styles.searchWrap}>
     <Ionicons name="search" size={18} color={T.textSub} style={styles.searchIcon} />
     <TextInput
@@ -19,9 +20,15 @@ const MarketplaceSearchBar = memo(({ value, onChangeText, onClear }: SearchBarPr
       value={value}
       onChangeText={onChangeText}
       returnKeyType="search"
+      onSubmitEditing={onSubmit}
     />
     {value.length > 0 && (
-      <TouchableOpacity onPress={onClear} style={styles.clearBtn}>
+      <TouchableOpacity 
+        onPress={onClear} 
+        style={styles.clearBtn}
+        accessibilityLabel="Clear search text"
+        accessibilityRole="button"
+      >
         <Ionicons name="close-circle" size={18} color={T.textSub} />
       </TouchableOpacity>
     )}

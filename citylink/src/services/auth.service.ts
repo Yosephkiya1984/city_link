@@ -96,42 +96,53 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
   const BASE_URL = Config.govAuthBaseUrl;
   const client = getClient();
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
   try {
     const response = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ badgeId, secPin })
+      body: JSON.stringify({ badgeId, pin: secPin }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      // DEV-ONLY: If the gov gateway is not running locally, fall back to DB lookup.
-      // In production, we fail closed — no fallback.
-      if (__DEV__ && response.status === 404 && client) {
-        console.warn('[CityLink Auth] Gov auth endpoint unavailable — DEV DB fallback');
-
-        const { data, error } = await client
-          .from('profiles')
-          .select('*')
-          .eq('role', 'admin')
-          .eq('badge_id', badgeId)
-          .maybeSingle();
-
-        if (error) {
-          console.error('[CityLink Auth] Error querying admin profile:', error);
-          return { user: null, error: error.message };
-        }
-
-        if (data) return { user: data as AppUser, error: null };
-      }
-      return { user: null, error: 'Invalid government credentials.' };
+    if (response.ok) {
+      const data = await response.json();
+      return { user: data.user as AppUser, error: null };
     }
 
-    const data = await response.json();
-    return { user: data.user as AppUser, error: data.error || null };
+    if (__DEV__ && (response.status === 404 || response.status >= 500) && client) {
+      console.warn('[CityLink Auth] Gov gateway unavailable — falling back to dev DB');
+      const { data, error } = await client
+        .from('profiles')
+        .select('*')
+        .eq('role', 'admin')
+        .eq('badge_id', badgeId)
+        .maybeSingle();
 
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[CityLink Auth] Gov login network error:', msg);
-    return { user: null, error: msg || 'Network error. Please ensure you are on a restricted gateway.' };
+      if (error) return { user: null, error: error.message };
+      if (data) return { user: data as AppUser, error: null };
+    }
+
+    const errData = await response.json().catch(() => ({}));
+    return { user: null, error: errData.message || 'Invalid government credentials' };
+
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (__DEV__ && client) {
+      console.warn('[CityLink Auth] Network error — falling back to dev DB');
+      const { data, error } = await client
+        .from('profiles')
+        .select('*')
+        .eq('role', 'admin')
+        .eq('badge_id', badgeId)
+        .maybeSingle();
+      if (!error && data) return { user: data as AppUser, error: null };
+    }
+    
+    const msg = err.name === 'AbortError' ? 'Connection timed out' : 'Government gateway unavailable';
+    return { user: null, error: msg };
   }
 }

@@ -16,7 +16,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { supabase, subscribeToTable, unsubscribe } from '../../services/supabase';
 import {
   fetchChatMessages,
@@ -39,8 +40,8 @@ const T = {
 
 export default function ChatScreen({ route, navigation }: { route: any; navigation: any }) {
   const { threadId, recipientName, recipientId } = route.params;
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

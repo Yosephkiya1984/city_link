@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { useAppStore } from '../../store/AppStore';
 import { cacheManager } from './cacheManager';
 import { useErrorReporting } from './errorReporting';
 

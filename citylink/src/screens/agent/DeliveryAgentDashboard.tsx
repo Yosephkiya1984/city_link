@@ -26,7 +26,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
+import { useSystemStore } from '../../store/SystemStore';
 import {
   fetchAgentProfile,
   setAgentOnlineStatus,
@@ -341,9 +343,9 @@ function ActiveJobCard({ job, onPickedUp, onArrived, onEnterPin }: { job: any; o
 // â”€â”€ Main Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function DeliveryAgentDashboard() {
   const navigation = useNavigation();
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
-  const balance = useAppStore((s) => s.balance);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
+  const balance = useWalletStore((s) => s.balance);
 
   const [tab, setTab] = useState('home'); // home | history
   const [agentProfile, setAgentProfile] = useState<any>(null);
@@ -622,9 +624,9 @@ export default function DeliveryAgentDashboard() {
           style={[s.actionBtn, { marginTop: 32 }]}
           onPress={async () => {
             await signOut();
-            const { saveSession, useAppStore } = require('../../store/AppStore');
-            await saveSession(null);
-            useAppStore.getState().reset();
+            await useAuthStore.getState().reset();
+            await useWalletStore.getState().reset();
+            useSystemStore.getState().reset();
           }}
         >
           <Text style={s.actionBtnText}>Sign Out</Text>
@@ -654,9 +656,8 @@ export default function DeliveryAgentDashboard() {
             style={s.switchBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              const { useAppStore } = require('../../store/AppStore');
-              const currentUser = useAppStore.getState().currentUser;
-              useAppStore.getState().setCurrentUser({ ...currentUser, role: 'citizen' });
+              const currentUser = useAuthStore.getState().currentUser;
+              useAuthStore.getState().setCurrentUser({ ...currentUser, role: 'citizen' } as any);
             }}
           >
             <Ionicons name="repeat-outline" size={20} color={T.primary} />
@@ -677,9 +678,9 @@ export default function DeliveryAgentDashboard() {
                   text: 'Sign Out',
                   onPress: async () => {
                     await signOut();
-                    const { saveSession, useAppStore } = require('../../store/AppStore');
-                    await saveSession(null);
-                    useAppStore.getState().reset();
+                    await useAuthStore.getState().reset();
+                    await useWalletStore.getState().reset();
+                    useSystemStore.getState().reset();
                   },
                 },
               ]);

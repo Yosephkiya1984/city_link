@@ -13,7 +13,8 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { subscribeToTable, unsubscribe } from '../../services/supabase';
 import { fetchChatThreads } from '../../services/chat.service';
 import * as Haptics from 'expo-haptics';
@@ -44,8 +45,8 @@ function fmtRelativeTime(date: any) {
 }
 
 export default function ChatInboxScreen({ navigation }: { navigation: any }) {
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
 
   const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

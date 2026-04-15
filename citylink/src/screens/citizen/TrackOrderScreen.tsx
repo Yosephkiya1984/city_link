@@ -20,7 +20,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
-import { useAppStore } from '../../store/AppStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Fonts, FontSize, Radius, Shadow } from '../../theme';
 import { subscribeToOrderStatus, calculateETA } from '../../services/delivery.service';
 import { unsubscribe } from '../../services/supabase';
@@ -35,7 +35,7 @@ export default function TrackOrderScreen() {
   const navigation = useNavigation();
   const route = useRoute<TrackOrderRouteProp>();
   const { orderId } = route.params || {};
-  const isDark = useAppStore((s) => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
 
   const [order, setOrder] = useState<any>(route.params?.order || null);

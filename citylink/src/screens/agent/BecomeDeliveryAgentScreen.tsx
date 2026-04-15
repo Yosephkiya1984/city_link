@@ -18,7 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useAppStore } from '../../store/AppStore';
+import { useAuthStore } from '../../store/AuthStore';
+import { useSystemStore } from '../../store/SystemStore';
 import { registerDeliveryAgent, requestLocationPermission } from '../../services/delivery.service';
 import { VEHICLE_TYPES, SUBCITIES } from '../../config';
 
@@ -41,9 +42,9 @@ const T = {
 
 export default function BecomeDeliveryAgentScreen() {
   const navigation = useNavigation();
-  const currentUser = useAppStore((s) => s.currentUser);
-  const showToast = useAppStore((s) => s.showToast);
-  const setCurrentUser = useAppStore((s) => s.setCurrentUser);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const showToast = useSystemStore((s) => s.showToast);
+  const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
 
   const [vehicleType, setVehicleType] = useState('');
   const [plateNumber, setPlateNumber] = useState('');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../../../store/AppStore';
+import { useWalletStore } from '../../../store/WalletStore';
 import { DarkColors as T } from '../../../theme';
 
 import { Transaction } from '../../../types/domain_types';
@@ -19,7 +19,7 @@ export function DashboardFinanceTab({
   handleWithdraw,
   styles,
 }: FinanceTabProps) {
-  const balance = useAppStore((s) => s.balance);
+  const balance = useWalletStore((s) => s.balance);
 
   return (
     <View style={styles.tabContent}>
