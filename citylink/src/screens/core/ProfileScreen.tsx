@@ -96,7 +96,7 @@ export default function ProfileScreen() {
 
       try {
         // 1. Reset data stores first (Auth & Wallet)
-        const results = await Promise.allSettled([authReset(), walletReset()]);
+        const results = await Promise.allSettled([Promise.resolve().then(authReset), Promise.resolve().then(walletReset)]);
         
         results.forEach((res, idx) => {
           if (res.status === 'rejected') {
@@ -109,7 +109,7 @@ export default function ProfileScreen() {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // 3. Reset system store last (clears toasts/UI state)
-        await systemReset().catch(err => 
+        await Promise.resolve().then(systemReset).catch((err: any) => 
           console.error('[Logout] Failed to reset System store:', err)
         );
       } catch (err) {
