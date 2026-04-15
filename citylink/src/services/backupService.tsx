@@ -407,15 +407,18 @@ export function BackupProvider({ children }: BackupProviderProps) {
 
     try {
       if (backup.userData) {
-        if (backup.userData.currentUser) auth.setCurrentUser(backup.userData.currentUser);
+        if (backup.userData.currentUser !== undefined) auth.setCurrentUser(backup.userData.currentUser);
         if (backup.userData.balance !== undefined) wallet.setBalance(backup.userData.balance);
         if (backup.userData.transactions) wallet.setTransactions(backup.userData.transactions);
+        if (backup.userData.notifications) system.setNotifications(backup.userData.notifications);
+        if (backup.userData.chatHistory) system.setChatHistory(backup.userData.chatHistory);
         if (backup.userData.favorites) market.setFavorites(backup.userData.favorites);
       }
 
       if (backup.appData) {
         if (backup.appData.language) system.setLang(backup.appData.language);
         if (backup.appData.isDark !== undefined) system.setIsDark(backup.appData.isDark);
+        if (backup.appData.theme) system.setTheme(backup.appData.theme);
       }
 
       console.log('✅ Backup data restored successfully');

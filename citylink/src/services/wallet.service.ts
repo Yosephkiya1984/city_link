@@ -66,7 +66,15 @@ export async function fetchWalletData(userId: string): Promise<WalletStats | nul
     console.error('Wallet fetch failed, checking cache:', msg);
     // FALLBACK TO CACHE (Strike 3 Resilience)
     const cached = await SecurePersist.getItem(`wallet_cache_${userId}`);
-    return cached ? JSON.parse(cached) : null;
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (parseErr) {
+        console.error('Failed to parse cached wallet data:', parseErr);
+        return null;
+      }
+    }
+    return null;
   }
 }
 

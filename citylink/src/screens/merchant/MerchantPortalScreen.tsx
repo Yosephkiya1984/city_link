@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
 import { useAuthStore } from '../../store/AuthStore';
+import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput } from '../../components';
@@ -40,6 +41,7 @@ export default function MerchantPortalScreen() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
   const resetAuth = useAuthStore((s) => s.reset);
+  const resetWallet = useWalletStore((s) => s.reset);
   const resetSystem = useSystemStore((s) => s.reset);
   // Wallet state not used here directly, but Dashboards may use it.
 
@@ -47,6 +49,7 @@ export default function MerchantPortalScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast('Logged out successfully', 'success');
     resetAuth();
+    resetWallet();
     resetSystem();
 
     try {

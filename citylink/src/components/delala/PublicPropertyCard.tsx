@@ -48,7 +48,7 @@ const PublicPropertyCard = memo(({ property, onPress, onMessagePress }: PublicPr
           <Image 
             source={{ uri: property.image || 'https://via.placeholder.com/300' }} 
             style={styles.propertyCardImage}
-            defaultSource={require('../../assets/icon.png')}
+            defaultSource={require('../../../assets/icon.png')}
           />
           <View style={styles.propertyCardFeatures}>
             {property.features?.slice(0, 2).map((feature: any, index: number) => (
@@ -86,7 +86,7 @@ const PublicPropertyCard = memo(({ property, onPress, onMessagePress }: PublicPr
                 <Image 
                   source={{ uri: property.broker.image }} 
                   style={styles.brokerImage}
-                  defaultSource={require('../../assets/icon.png')}
+                  defaultSource={require('../../../assets/icon.png')}
                 />
               ) : (
                 <View style={styles.brokerPlaceholder}>

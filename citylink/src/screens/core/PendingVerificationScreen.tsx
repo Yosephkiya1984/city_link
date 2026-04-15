@@ -6,7 +6,7 @@ import { useWalletStore } from '../../store/WalletStore';
 import { Colors, DarkColors, Fonts } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function PendingVerificationScreen() {
+export default function PendingVerificationScreen({ navigation }: any) {
   const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
   const resetAuth = useAuthStore((s) => s.reset);
@@ -18,6 +18,10 @@ export default function PendingVerificationScreen() {
     resetAuth();
     resetWallet();
     resetSystem();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Auth' }],
+    });
   };
 
   return (

@@ -74,7 +74,7 @@ export const TotalSaved = memo(({ amount, circleCount = 0 }: { amount: number; c
   <View 
     style={styles.totalSaved}
     accessibilityRole="text"
-    accessibilityLabel={`Total pot balance is ${amount} ETB across ${circleCount} active circles.`}
+    accessibilityLabel={`Total pot balance is ETB ${fmtETB(amount, 0)} across ${circleCount} active ${circleCount === 1 ? 'circle' : 'circles'}.`}
   >
     <View style={styles.totalSavedContent}>
       <View style={styles.totalSavedHeader}>

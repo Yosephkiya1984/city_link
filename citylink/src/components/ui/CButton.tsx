@@ -95,7 +95,9 @@ export function CButton({
           backgroundColor: 'rgba(255,255,255,0.3)',
           transform: [
             {
-              translateX: shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-100, 300] }),
+              translateX: (shimmerAnim?.interpolate 
+                ? shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-100, 300] })
+                : -100) as any,
             },
           ],
         }}

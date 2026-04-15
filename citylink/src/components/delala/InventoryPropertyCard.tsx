@@ -62,7 +62,7 @@ const InventoryPropertyCard = memo(({ property, onPress, onNegotiate, onEdit, on
           <Image 
             source={{ uri: property.images?.[0] || 'https://via.placeholder.com/300' }} 
             style={styles.inventoryCardImage}
-            defaultSource={require('../../assets/icon.png')}
+            defaultSource={require('../../../assets/icon.png')}
           />
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(property.status) }]}>
             <Text style={styles.statusBadgeText}>{property.status}</Text>
@@ -83,8 +83,11 @@ const InventoryPropertyCard = memo(({ property, onPress, onNegotiate, onEdit, on
           {property.negotiations && property.negotiations.length > 0 && (
             <View style={styles.negotiationSection}>
               <Text style={styles.negotiationTitle}>Active Negotiations</Text>
-              {property.negotiations.map((negotiation: any) => (
-                <View key={negotiation.merchant} style={styles.negotiationItem}>
+              {property.negotiations.map((negotiation: any, index: number) => (
+                <View
+                  key={negotiation.id ? negotiation.id : `${negotiation.merchant}-${index}`}
+                  style={styles.negotiationItem}
+                >
                   <Text style={styles.negotiationMerchant}>{negotiation.merchant}</Text>
                   <Text style={styles.negotiationOffer}>ETB {fmtETB(negotiation.offer, 0)}</Text>
                 </View>

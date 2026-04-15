@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: T.primaryDim,
     borderWidth: 1,
-    borderColor: '#40d99140',
+    borderColor: T.primary + '40',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,

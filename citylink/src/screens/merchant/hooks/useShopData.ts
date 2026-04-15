@@ -72,7 +72,11 @@ export function useShopData(): ShopData {
     if (txRes?.data) setWalletTransactions(txRes.data);
     if (salesRes) setSalesHistory(salesRes as any);
     if (disputes) setOpenDisputes(disputes);
-    if (wallet) useWalletStore.getState().setBalance(wallet.balance);
+    if (wallet && typeof wallet.balance === 'number' && isFinite(wallet.balance)) {
+      useWalletStore.getState().setBalance(wallet.balance);
+    } else {
+      useWalletStore.getState().setBalance(0);
+    }
 
     setLoading(false);
     setRefreshing(false);

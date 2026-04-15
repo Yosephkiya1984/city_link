@@ -50,7 +50,7 @@ interface SupaQueryOptions {
  * supaQuery — Centralized wrapper for error handling and logging.
  * Returns a typed object with data and error.
  */
-export async function supaQuery<T>(
+export async function supaQuery<T = unknown>(
   queryFn: (client: SupabaseClient) => PromiseLike<{ data: T | null; error: any; count?: number | null }>,
   options: SupaQueryOptions = {}
 ): Promise<{ data: T | null; count?: number | null; error: string | null }> {

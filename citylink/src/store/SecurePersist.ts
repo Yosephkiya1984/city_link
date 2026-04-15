@@ -16,8 +16,13 @@ export const SecurePersist = {
     await SecureStore.setItemAsync('cl_current_user', JSON.stringify(user));
   },
   loadUser: async (): Promise<User | null> => {
-    const res = await SecureStore.getItemAsync('cl_current_user');
-    return res ? JSON.parse(res) : null;
+    try {
+      const res = await SecureStore.getItemAsync('cl_current_user');
+      return res ? JSON.parse(res) : null;
+    } catch (err) {
+      console.error('[SecurePersist] Failed to parse stored user:', err);
+      return null;
+    }
   },
   saveBalance: async (balance: number): Promise<void> => {
     await SecureStore.setItemAsync('cl_wallet_balance', String(balance));
@@ -43,8 +48,13 @@ export const SecurePersist = {
     await SecureStore.setItemAsync('cl_kyc_data', JSON.stringify(data));
   },
   loadKYC: async (): Promise<Record<string, unknown> | null> => {
-    const res = await SecureStore.getItemAsync('cl_kyc_data');
-    return res ? JSON.parse(res) : null;
+    try {
+      const res = await SecureStore.getItemAsync('cl_kyc_data');
+      return res ? JSON.parse(res) : null;
+    } catch (err) {
+      console.error('[SecurePersist] Failed to parse stored KYC data:', err);
+      return null;
+    }
   },
   saveKYCStatus: async (status: string): Promise<void> => {
     await SecureStore.setItemAsync('cl_kyc_status', status);

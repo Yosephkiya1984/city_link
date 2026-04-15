@@ -14,6 +14,9 @@ export interface SystemState {
   toggleTheme: () => void;
   setIsDark: (val: boolean) => void;
   setLang: (lang: string) => void;
+  setNotifications: (notifs: Notification[]) => void;
+  setChatHistory: (msgs: ChatMessage[]) => void;
+  setTheme: (theme: 'light' | 'dark') => void;
   showToast: (message: string, type?: Toast['type']) => void;
   addNotification: (notif: Notification) => void;
   markNotifRead: (id: string) => void;
@@ -37,6 +40,9 @@ export const useSystemStore = create<SystemState>()(
       toggleTheme: () => set((s) => ({ isDark: !s.isDark, theme: !s.isDark ? 'dark' : 'light' })),
       setIsDark: (isDark) => set({ isDark, theme: isDark ? 'dark' : 'light' }),
       setLang: (lang) => set({ lang }),
+      setNotifications: (notifications) => set({ notifications }),
+      setChatHistory: (chatHistory) => set({ chatHistory }),
+      setTheme: (theme) => set({ theme, isDark: theme === 'dark' }),
 
       showToast: (message, type = 'info') => {
         const id = Math.random().toString(36).slice(2);

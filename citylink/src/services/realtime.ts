@@ -70,8 +70,6 @@ export function setupUserRealtime() {
   const currentUser = useAuthStore.getState().currentUser;
   if (!currentUser?.id || !getClient()) return;
 
-  const walletStore = useWalletStore.getState();
-  const systemStore = useSystemStore.getState();
   const client = getClient()!;
   const userId = currentUser.id;
 

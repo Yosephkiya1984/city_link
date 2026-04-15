@@ -47,7 +47,7 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
             <Image 
               source={{ uri: img }} 
               style={styles.productImg}
-              defaultSource={require('../../assets/icon.png')}
+              defaultSource={require('../../../assets/icon.png')}
             />
           ) : (
             <View
@@ -87,8 +87,6 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
             <Text style={styles.productPrice}>ETB {fmtETB(item.price, 0)}</Text>
             <View
               style={[styles.buyQuickBtn, soldOut && { opacity: 0.4 }]}
-              accessibilityLabel="Quick buy this product"
-              accessibilityRole="button"
             >
               <Ionicons name="flash" size={16} color={soldOut ? T.textSub : T.primary} />
             </View>

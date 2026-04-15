@@ -1,5 +1,6 @@
 import { supaQuery } from './supabase';
 import { PropertyListing, PropertyEnquiry } from '../types';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export async function fetchPropertyListings(agentId: string) {
   return supaQuery<PropertyListing[]>((c) =>
@@ -16,7 +17,7 @@ export async function fetchPropertyEnquiries(agentId: string) {
   if (process.env.NODE_ENV === 'development') {
     console.warn(`[CityLink] fetchPropertyEnquiries called for ${agentId} but table 'property_enquiries' is missing.`);
   }
-  return { data: [] as PropertyEnquiry[], error: 'table-not-found' };
+  return { data: null, error: { message: 'table-not-found', details: null, hint: null, code: 'table-not-found' } as PostgrestError };
 }
 
 export async function updateListingStatus(listingId: string, newStatus: string) {

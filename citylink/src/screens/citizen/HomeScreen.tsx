@@ -160,7 +160,13 @@ export default function HomeScreen() {
         </View>
 
         {/* Hero Section */}
-        <WalletHero balance={balance} onAction={(type: string) => (navigation as any).navigate(type)} />
+        <WalletHero 
+          balance={balance} 
+          name={currentUser?.full_name?.split(' ')[0] || 'User'}
+          greetingKey={greeting()}
+          onQuickAction={handleQuickAction}
+          animValue={fadeAnim}
+        />
 
         {/* Services Grid */}
         <View style={styles.sectionHeader}>

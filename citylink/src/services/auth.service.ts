@@ -1,6 +1,6 @@
 import { getClient } from './supabase';
 import { Config } from '../config';
-import { uid } from '../utils';
+import { uid, normalizePhone } from '../utils';
 import { User as AppUser } from '../types';
 import { Session } from '@supabase/supabase-js';
 
@@ -55,8 +55,17 @@ export async function verifyOtp(phone: string, token: string): Promise<VerifyRes
   // DEV-ONLY: Simulated verification for emulator testing.
   if (__DEV__) {
     console.log(`[CityLink Dev] Simulated OTP verification for ${phone}`);
+    const norm = normalizePhone(phone);
+    const alt = norm.startsWith('+251') ? '0' + norm.slice(4) : norm;
+
+    const { data } = await getClient()
+      .from('profiles')
+      .select('id')
+      .or(`phone.eq."${norm}",phone.eq."${alt}",phone.eq."${phone}"`)
+      .maybeSingle();
+
     return {
-      user: { id: uid(), phone },
+      user: { id: data?.id || uid(), phone },
       error: null,
     };
   }
@@ -115,15 +124,28 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
 
     if (__DEV__ && (response.status === 404 || response.status >= 500) && client) {
       console.warn('[CityLink Auth] Gov gateway unavailable — falling back to dev DB');
-      const { data, error } = await client
-        .from('profiles')
-        .select('*')
-        .eq('role', 'admin')
-        .eq('badge_id', badgeId)
-        .maybeSingle();
+      try {
+        const { data, error } = await client
+          .from('profiles')
+          .select('*')
+          .eq('role', 'admin')
+          .eq('badge_id', badgeId)
+          .eq('sec_pin', secPin)
+          .maybeSingle();
 
-      if (error) return { user: null, error: error.message };
-      if (data) return { user: data as AppUser, error: null };
+        if (error) {
+          console.warn('[CityLink Auth] Dev fallback query error:', error);
+          return { user: null, error: 'Invalid credentials' };
+        }
+
+        if (data) return { user: data as AppUser, error: null };
+      } catch (dbError) {
+        console.warn('[CityLink Auth] Dev fallback DB error:', dbError);
+        if (process.env.ALLOW_DEV_AUTH_FALLBACK !== 'true') {
+          return { user: null, error: 'Invalid credentials' };
+        }
+      }
+      return { user: null, error: 'Invalid credentials' };
     }
 
     const errData = await response.json().catch(() => ({}));
@@ -133,13 +155,28 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
     clearTimeout(timeoutId);
     if (__DEV__ && client) {
       console.warn('[CityLink Auth] Network error — falling back to dev DB');
-      const { data, error } = await client
-        .from('profiles')
-        .select('*')
-        .eq('role', 'admin')
-        .eq('badge_id', badgeId)
-        .maybeSingle();
-      if (!error && data) return { user: data as AppUser, error: null };
+      try {
+        const { data, error } = await client
+          .from('profiles')
+          .select('*')
+          .eq('role', 'admin')
+          .eq('badge_id', badgeId)
+          .eq('sec_pin', secPin)
+          .maybeSingle();
+
+        if (error) {
+          console.warn('[CityLink Auth] Dev fallback query error:', error);
+          return { user: null, error: 'Invalid credentials' };
+        }
+
+        if (data) return { user: data as AppUser, error: null };
+      } catch (dbError) {
+        console.warn('[CityLink Auth] Dev fallback DB error:', dbError);
+        if (process.env.ALLOW_DEV_AUTH_FALLBACK !== 'true') {
+          return { user: null, error: 'Invalid credentials' };
+        }
+      }
+      return { user: null, error: 'Invalid credentials' };
     }
     
     const msg = err.name === 'AbortError' ? 'Connection timed out' : 'Government gateway unavailable';

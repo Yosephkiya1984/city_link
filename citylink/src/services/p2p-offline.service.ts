@@ -57,13 +57,15 @@ export async function claimLocalPendingForPhone(phone: string): Promise<{ totalC
  * Attempts to push all locally queued 'pending' transfers to the live database.
  * This should be called when NetInfo detects an online connection.
  */
-export async function syncOfflineQueueToSupabase(supabaseClient: SupabaseClient): Promise<{ success: boolean; count: number }> {
+export async function syncOfflineQueueToSupabase(supabaseClient: SupabaseClient): Promise<{ success: boolean; count: number; errors?: { item: OfflineP2PTransfer; error: any }[] }> {
   const list = await readList();
   const pending = list.filter((r) => r.status === 'pending');
 
   if (pending.length === 0 || !supabaseClient) return { success: true, count: 0 };
 
+  let success = true;
   let successCount = 0;
+  const errors: { item: OfflineP2PTransfer; error: any }[] = [];
 
   for (const item of pending) {
     // Attempt remote processing via RPC
@@ -80,11 +82,13 @@ export async function syncOfflineQueueToSupabase(supabaseClient: SupabaseClient)
       item.status = 'synced';
       successCount++;
     } else {
-      if (__DEV__) console.warn('[P2P-Sync] Transfer failed:', error);
+      success = false;
+      errors.push({ item, error });
+      console.error('[P2P-Sync] Transfer failed:', error);
     }
   }
 
   // Save updated local list
   await writeList(list);
-  return { success: true, count: successCount };
+  return { success, count: successCount, errors: errors.length > 0 ? errors : undefined };
 }

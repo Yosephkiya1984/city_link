@@ -18,7 +18,8 @@ const ActiveCircleItem = memo(({
   if (!circle) return null;
 
   const totalPot = (circle.contribution_amount || 0) * (circle.max_members || 10);
-  const progress = totalPot > 0 ? Math.min(100, Math.round((circle.pot_balance / totalPot) * 100)) : 0;
+  const potBalance = Number(circle.pot_balance ?? 0) || 0;
+  const progress = totalPot > 0 ? Math.min(100, Math.round((potBalance / totalPot) * 100)) : 0;
 
   const isWinnerAwaitingConsent = circle.status === 'PAUSED' || circle.status === 'AWAITING_CONSENT';
 

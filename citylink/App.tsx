@@ -43,7 +43,12 @@ function AppBootstrap() {
       const bootStart = performance.now();
       try {
         // 0. Migrate legacy data if exists
-        await migrateLegacyData();
+        try {
+          await migrateLegacyData();
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          console.error('[App] migrateLegacyData failed:', message, e);
+        }
 
         // 1. Load Fonts Manually
         const fontStart = performance.now();

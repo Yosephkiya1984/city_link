@@ -59,7 +59,11 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
       style={{
         opacity: animValue,
         transform: [
-          { translateY: animValue.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) },
+          { 
+            translateY: (animValue?.interpolate 
+              ? animValue.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) 
+              : 0) as any 
+          },
         ],
         paddingHorizontal: 16,
         marginBottom: 20,

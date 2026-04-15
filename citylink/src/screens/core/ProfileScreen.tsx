@@ -24,6 +24,7 @@ import { CButton, CInput, SectionTitle, Card } from '../../components';
 import { signOut } from '../../services/auth.service';
 import { hasWalletPin, setWalletPin, changeWalletPin } from '../../services/walletPin';
 import { FaydaKYCService, FAYDA_STATUS } from '../../services/fayda-kyc.service';
+import { fetchAgentProfile } from '../../services/delivery.service';
 import { ServiceAccessUtils } from '../../services/serviceAccess';
 import { useTheme } from '../../hooks/useTheme';
 import { fmtETB } from '../../utils';
@@ -50,7 +51,11 @@ export default function ProfileScreen() {
   useEffect(() => {
     (async () => {
       const userId = currentUser?.id;
-      setPinSet(await hasWalletPin(userId || ''));
+      if (userId) {
+        setPinSet(await hasWalletPin(userId));
+      } else {
+        setPinSet(false);
+      }
       
       // Load KYC status
       const statusData = await FaydaKYCService.getKYCStatus();
@@ -61,11 +66,15 @@ export default function ProfileScreen() {
       if (userId) {
         setLoadingAgent(true);
         try {
-          const { fetchAgentProfile } = require('../../services/delivery.service');
           const res = await fetchAgentProfile(userId);
-          if (res.data) setIsAgent(true);
+          if (res.data) {
+            setIsAgent(true);
+          } else {
+            setIsAgent(false);
+          }
         } catch (e) {
           console.error('[Profile] Failed to fetch agent profile:', e);
+          setIsAgent(false);
         }
         setLoadingAgent(false);
       }
@@ -73,10 +82,20 @@ export default function ProfileScreen() {
   }, [currentUser?.id]);
 
   async function handleLogout() {
-    await signOut();
-    await useAuthStore.getState().reset();
-    await useWalletStore.getState().reset();
-    useSystemStore.getState().reset();
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('[Profile] signOut failed:', error);
+      showToast('Unable to sign out from server. Local session will still be cleared.', 'error');
+    } finally {
+      try {
+        await useAuthStore.getState().reset();
+        await useWalletStore.getState().reset();
+        await useSystemStore.getState().reset();
+      } catch (resetError) {
+        console.error('[Profile] Failed to reset local stores during logout:', resetError);
+      }
+    }
   }
 
   const roleColor = currentUser?.role === 'merchant' ? '#FF9500' : '#007AFF';

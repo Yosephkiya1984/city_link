@@ -308,8 +308,12 @@ class ErrorBoundaryInner extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     }, 30000); // 30-second cooldown
   };
 
-  signOut = () => {
-    clearAllStores();
+  signOut = async () => {
+    try {
+      await clearAllStores();
+    } catch (error) {
+      console.error('Failed to clear stores during sign out:', error);
+    }
     this.setState({ hasError: false });
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
+import { normalizePhone } from '../../utils';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors } from '../../theme';
@@ -47,6 +48,7 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [tempUserId, setTempUserId] = useState<string | null>(null);
+  const [registrationIntent, setRegistrationIntent] = useState(false);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -68,6 +70,10 @@ export default function AuthScreen() {
         easing: Easing.out(Easing.quad),
       }),
     ]).start(() => {
+      if (newFlow === 'welcome') {
+        setRegistrationIntent(false);
+      }
+
       setFlow(newFlow);
       setError(null);
       
@@ -100,7 +106,8 @@ export default function AuthScreen() {
     setError(null);
     setDevOtp(null);
     try {
-      const { error: otpErr, devOtp: simulatedOtp } = await AuthService.sendOtp(phone);
+      const normalized = normalizePhone(phone);
+      const { error: otpErr, devOtp: simulatedOtp } = await AuthService.sendOtp(normalized);
       if (otpErr) {
         setError(otpErr);
       } else {
@@ -122,13 +129,15 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     try {
-      const { user, error: verifyErr } = await AuthService.verifyOtp(phone, otp);
+      const normalized = normalizePhone(phone);
+      const { user, error: verifyErr } = await AuthService.verifyOtp(normalized, otp);
       if (verifyErr) {
         setError(verifyErr);
       } else if (user) {
         setTempUserId(user.id);
         const profileRes = await ProfileService.fetchProfile(user.id);
-        if (!profileRes.data || !profileRes.data.full_name) {
+        const needsRegistration = registrationIntent || !profileRes.data || !profileRes.data.full_name;
+        if (needsRegistration) {
           transitionTo('register');
         } else {
           setCurrentUser(profileRes.data);
@@ -176,7 +185,7 @@ export default function AuthScreen() {
     try {
       const profileData: Partial<User> & { id: string } = {
         id: tempUserId,
-        phone,
+        phone: normalizePhone(phone),
         full_name: fullName,
         role: userType,
         kyc_status: 'PENDING',
@@ -225,7 +234,11 @@ export default function AuthScreen() {
             fadeAnim={fadeAnim}
             slideAnim={slideAnim}
             onLogin={() => { setAuthMode('citizen'); transitionTo('login'); }}
-            onRegister={() => { transitionTo('register'); }}
+            onRegister={() => {
+              setRegistrationIntent(true);
+              setAuthMode('citizen');
+              transitionTo('login');
+            }}
             onGov={() => { setAuthMode('gov'); transitionTo('login'); }}
           />
         )}

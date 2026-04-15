@@ -74,11 +74,19 @@ export function CInput({
     ]).start();
   }, [isFocused]);
 
-  const borderColor = borderAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [C.edge2, C.primary],
-  });
-  const labelColor = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [C.sub, C.primary] });
+  const borderColor = borderAnim?.interpolate 
+    ? borderAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [C?.edge2 || '#ddd', C?.primary || '#000'],
+      })
+    : C?.edge2 || '#ddd';
+
+  const labelColor = labelAnim?.interpolate 
+    ? labelAnim.interpolate({ 
+        inputRange: [0, 1], 
+        outputRange: [C?.sub || '#666', C?.primary || '#000'] 
+      })
+    : C?.sub || '#666';
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -105,7 +113,11 @@ export function CInput({
             textTransform: 'uppercase',
             letterSpacing: 1.2,
             transform: [
-              { translateY: labelAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) },
+              { 
+                translateY: (labelAnim?.interpolate 
+                  ? labelAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) 
+                  : 0) as any
+              },
             ],
           }}
         >

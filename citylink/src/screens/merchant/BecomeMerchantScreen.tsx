@@ -34,7 +34,6 @@ const MERCHANT_TYPES = [
 export default function BecomeMerchantScreen() {
   const C = useTheme();
   const navigation = useNavigation();
-  const currentUser = useAuthStore((s) => s.currentUser);
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
