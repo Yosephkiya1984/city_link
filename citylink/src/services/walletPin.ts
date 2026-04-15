@@ -54,8 +54,10 @@ export async function hashWalletPin(plain: string, userId: string, salt: string)
       (err, derivedKey) => {
         if (err) {
           reject(err);
-        } else {
+        } else if (derivedKey) {
           resolve(derivedKey.toString('hex'));
+        } else {
+          reject(new Error('Derived key is undefined'));
         }
       }
     );

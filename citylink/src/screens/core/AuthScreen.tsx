@@ -294,6 +294,7 @@ export default function AuthScreen() {
             fullName={fullName}
             setFullName={setFullName}
             phone={verifiedPhone || phone}
+            setPhone={setPhone}
             merchantType={merchantType}
             setMerchantType={setMerchantType}
             businessName={businessName}

@@ -17,7 +17,7 @@ export async function fetchPropertyEnquiries(agentId: string) {
   if (process.env.NODE_ENV === 'development') {
     console.warn(`[CityLink] fetchPropertyEnquiries called for ${agentId} but table 'property_enquiries' is missing.`);
   }
-  return { data: null, error: { message: 'table-not-found', details: null, hint: null, code: 'table-not-found' } as PostgrestError };
+  return { data: null, error: { message: 'table-not-found', details: null, hint: null, code: 'table-not-found', name: 'PostgrestError' } as PostgrestError };
 }
 
 export async function updateListingStatus(listingId: string, newStatus: string) {

@@ -88,23 +88,31 @@ export default function ProfileScreen() {
       console.error('[Profile] signOut failed:', error);
       showToast('Unable to sign out from server. Local session will still be cleared.', 'error');
     } finally {
-      // Harden: Ensure all stores are reset independently to avoid partial logout state
-      const resets = [
-        { name: 'Auth', call: () => useAuthStore.getState().reset() },
-        { name: 'Wallet', call: () => useWalletStore.getState().reset() },
-        { name: 'System', call: () => useSystemStore.getState().reset() },
-      ];
+      // Harden: Ensure all stores are reset independently.
+      // We use callables to control the execution order and preserve toasts.
+      const authReset = () => useAuthStore.getState().reset();
+      const walletReset = () => useWalletStore.getState().reset();
+      const systemReset = () => useSystemStore.getState().reset();
 
       try {
-        const results = await Promise.allSettled(resets.map(r => Promise.resolve().then(r.call)));
+        // 1. Reset data stores first (Auth & Wallet)
+        const results = await Promise.allSettled([authReset(), walletReset()]);
         
         results.forEach((res, idx) => {
           if (res.status === 'rejected') {
-            console.error(`[Logout] Failed to reset ${resets[idx].name} store:`, res.reason);
+            const name = idx === 0 ? 'Auth' : 'Wallet';
+            console.error(`[Logout] Failed to reset ${name} store:`, res.reason);
           }
         });
+
+        // 2. Add a brief delay so any error messages remain visible during transition
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 3. Reset system store last (clears toasts/UI state)
+        await systemReset().catch(err => 
+          console.error('[Logout] Failed to reset System store:', err)
+        );
       } catch (err) {
-        // This catch is for Promise.allSettled itself failing, which is rare but good for safety
         console.error('[Logout] Unexpected error during parallel store reset:', err);
       }
     }
