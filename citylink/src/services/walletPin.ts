@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import QuickCrypto from 'react-native-quick-crypto';
+import CryptoJS from 'crypto-js';
 
 const V1_PREFIX = 'cl_wallet_pin_v1_'; // Legacy (Custom SHA-256 loop, Global Salt)
 const V2_PREFIX = 'cl_wallet_pin_v2_'; // Intermediate (Custom SHA-256 loop, Per-user Salt) -- Now deprecated
@@ -41,27 +42,41 @@ async function hashLegacy(plain: string, userId: string, salt: string): Promise<
  * Performed asynchronously to avoid UI blocking.
  */
 export async function hashWalletPin(plain: string, userId: string, salt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // Combine password and userId for the password input to PBKDF2
-    const password = `${plain}:${userId}`;
-    
-    QuickCrypto.pbkdf2(
-      password,
-      salt,
-      SALT_ITERATIONS_MODERN,
-      32, // keylen
-      'sha256',
-      (err, derivedKey) => {
-        if (err) {
-          reject(err);
-        } else if (derivedKey) {
-          resolve(derivedKey.toString('hex'));
-        } else {
-          reject(new Error('Derived key is undefined'));
-        }
-      }
-    );
+  const password = `${plain}:${userId}`;
+
+  // 1. Try Native QuickCrypto (High Performance / Production)
+  try {
+    // The check for NitroModules spec happens during call, so we wrap in try-catch
+    if (QuickCrypto && typeof QuickCrypto.pbkdf2 === 'function') {
+      return await new Promise((resolve, reject) => {
+        QuickCrypto.pbkdf2(
+          password,
+          salt,
+          SALT_ITERATIONS_MODERN,
+          32,
+          'sha256',
+          (err, derivedKey) => {
+            if (err) reject(err);
+            else if (derivedKey) resolve(derivedKey.toString('hex'));
+            else reject(new Error('Derived key missing'));
+          }
+        );
+      });
+    }
+  } catch (e) {
+    // This is expected in Expo Go environments
+    console.log('[WalletPin] Native PBKDF2 unavailable, using JS fallback');
+  }
+
+  // 2. Fallback to Pure JS (Expo Go / Emulator without custom client)
+  // CryptoJS keySize is in words (4 bytes)
+  const derived = CryptoJS.PBKDF2(password, salt, {
+    keySize: 32 / 4,
+    iterations: SALT_ITERATIONS_MODERN,
+    hasher: CryptoJS.algo.SHA256,
   });
+
+  return derived.toString(CryptoJS.enc.Hex);
 }
 
 /** 4–6 digit numeric PIN. */

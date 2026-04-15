@@ -26,10 +26,12 @@
     "@react-navigation/native-stack": "^6.11.0",
     "@react-navigation/stack": "^6.3.20",
     "@supabase/supabase-js": "^2.38.4",
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "~19.2.10",
     "@types/react-native": "^0.72.8",
     "@types/react-navigation": "^3.0.8",
     "base64-arraybuffer": "^1.0.2",
+    "crypto-js": "^4.2.0",
     "expo": "~55.0.13",
     "expo-av": "~13.10.0",
     "expo-blur": "~55.0.14",
@@ -72,7 +74,11 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.34.0",
-    "eslint-plugin-react-hooks": "^7.0.0"
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "jest-expo": "^55.0.16"
+  },
+  "jest": {
+    "preset": "jest-expo"
   },
   "private": true
 }

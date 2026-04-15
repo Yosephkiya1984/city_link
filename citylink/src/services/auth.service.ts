@@ -24,6 +24,12 @@ interface VerifyResponse {
  * Production builds ALWAYS use Supabase Auth. No config-based bypass exists.
  */
 export async function sendOtp(phone: string, metadata: Record<string, string | number | boolean> | null = null): Promise<AuthResponse> {
+  // Validate phone number format
+  const phoneRegex = /^\+251[79]\d{8}$/;
+  if (!phoneRegex.test(phone)) {
+    return { error: 'invalid-phone-format', success: false };
+  }
+
   const client = getClient();
   if (!client) return { error: 'no-credentials', success: false };
 
@@ -49,6 +55,16 @@ export async function sendOtp(phone: string, metadata: Record<string, string | n
  * Returns a session/user object.
  */
 export async function verifyOtp(phone: string, token: string): Promise<VerifyResponse> {
+  // Validate inputs
+  const phoneRegex = /^\+251[79]\d{8}$/;
+  if (!phoneRegex.test(phone)) {
+    return { user: null, error: 'invalid-phone-format' };
+  }
+  const tokenRegex = /^\d{6}$/;
+  if (!tokenRegex.test(token)) {
+    return { user: null, error: 'invalid-token-format' };
+  }
+
   const client = getClient();
   if (!client) return { user: null, error: 'no-credentials' };
 

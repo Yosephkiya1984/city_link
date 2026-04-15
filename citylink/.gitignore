@@ -48,6 +48,12 @@ yarn-error.log
 
 # Expo
 .expo/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
 dist/
 web-build/
 
