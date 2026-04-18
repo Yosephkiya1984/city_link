@@ -44,7 +44,7 @@ export default function TrackOrderScreen() {
   const [agentLocation, setAgentLocation] = useState<any>(null);
 
   const mapRef = useRef(null);
-  const markerAnim = useRef(new RNAnimated.Value(0)).current; 
+  const markerAnim = useRef(new RNAnimated.Value(0)).current;
 
   // -- Data Subscription -------------------------------------------------------------------
   useEffect(() => {
@@ -74,11 +74,9 @@ export default function TrackOrderScreen() {
           const newLoc = { latitude: data.current_lat, longitude: data.current_lng };
           setAgentLocation(newLoc);
 
-          const destLat = order?.destination_lat || (ADDIS_LAT + 0.01);
-          const destLng = order?.destination_lng || (ADDIS_LNG + 0.01);
-          setEta(
-            calculateETA(newLoc.latitude, newLoc.longitude, destLat, destLng)
-          );
+          const destLat = order?.destination_lat || ADDIS_LAT + 0.01;
+          const destLng = order?.destination_lng || ADDIS_LNG + 0.01;
+          setEta(calculateETA(newLoc.latitude, newLoc.longitude, destLat, destLng));
         }
       };
 
@@ -90,24 +88,43 @@ export default function TrackOrderScreen() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'PAID': return 'Ready for Dispatch';
-      case 'DISPATCHING': return 'Finding Agent';
-      case 'AGENT_ASSIGNED': return 'Agent en Route';
-      case 'SHIPPED': return 'Picked Up';
-      case 'IN_TRANSIT': return 'On the Way';
-      case 'AWAITING_PIN': return 'Arrived';
-      case 'COMPLETED': return 'Delivered';
-      default: return status ? status.toLowerCase().split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') : 'Unknown Status';
+      case 'PAID':
+        return 'Ready for Dispatch';
+      case 'DISPATCHING':
+        return 'Finding Agent';
+      case 'AGENT_ASSIGNED':
+        return 'Agent en Route';
+      case 'SHIPPED':
+        return 'Picked Up';
+      case 'IN_TRANSIT':
+        return 'On the Way';
+      case 'AWAITING_PIN':
+        return 'Arrived';
+      case 'COMPLETED':
+        return 'Delivered';
+      default:
+        return status
+          ? status
+              .toLowerCase()
+              .split('_')
+              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+              .join(' ')
+          : 'Unknown Status';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'PAID': return 'time-outline';
-      case 'AGENT_ASSIGNED': return 'bicycle-outline';
-      case 'IN_TRANSIT': return 'navigate-outline';
-      case 'AWAITING_PIN': return 'checkmark-circle-outline';
-      default: return 'cube-outline';
+      case 'PAID':
+        return 'time-outline';
+      case 'AGENT_ASSIGNED':
+        return 'bicycle-outline';
+      case 'IN_TRANSIT':
+        return 'navigate-outline';
+      case 'AWAITING_PIN':
+        return 'checkmark-circle-outline';
+      default:
+        return 'cube-outline';
     }
   };
 
@@ -154,10 +171,10 @@ export default function TrackOrderScreen() {
           </Marker>
         )}
 
-        <Marker 
-          coordinate={{ 
-            latitude: order?.destination_lat || (ADDIS_LAT + 0.01), 
-            longitude: order?.destination_lng || (ADDIS_LNG + 0.01) 
+        <Marker
+          coordinate={{
+            latitude: order?.destination_lat || ADDIS_LAT + 0.01,
+            longitude: order?.destination_lng || ADDIS_LNG + 0.01,
           }}
         >
           <View style={styles.destMarker}>
@@ -225,10 +242,15 @@ export default function TrackOrderScreen() {
                 { backgroundColor: C.primary },
                 {
                   width:
-                    order?.status === 'COMPLETED' ? '100%' :
-                    order?.status === 'AWAITING_PIN' ? '90%' :
-                    order?.status === 'IN_TRANSIT' ? '65%' :
-                    order?.status === 'AGENT_ASSIGNED' ? '35%' : '10%',
+                    order?.status === 'COMPLETED'
+                      ? '100%'
+                      : order?.status === 'AWAITING_PIN'
+                        ? '90%'
+                        : order?.status === 'IN_TRANSIT'
+                          ? '65%'
+                          : order?.status === 'AGENT_ASSIGNED'
+                            ? '35%'
+                            : '10%',
                 },
               ]}
             />

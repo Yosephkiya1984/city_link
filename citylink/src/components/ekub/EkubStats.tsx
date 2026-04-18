@@ -48,61 +48,140 @@ export const CircularProgress = memo(({ percentage, color, size = 56 }: Circular
   );
 });
 
-export const ReliabilityScore = memo(({ score, change = 12 }: { score: number; change?: number }) => (
-  <View 
-    style={styles.reliabilityCard}
-    accessibilityRole="summary"
-    accessibilityLabel={`Your reliability score is ${score}, an increase of ${change} points.`}
-  >
-    <View style={styles.reliabilityContent}>
-      <View style={styles.reliabilityHeader}>
-        <Text style={styles.reliabilityLabel}>Reliability</Text>
-        <Ionicons name="shield-checkmark" size={16} color={COLORS.primary} />
-      </View>
-      <View style={styles.reliabilityScoreRow}>
-        <Text style={styles.reliabilityScoreNumber}>{score}</Text>
-        <Text style={styles.reliabilityScoreChange}>+{change}</Text>
-      </View>
-      <View style={styles.reliabilityProgress}>
-        <View style={[styles.reliabilityProgressFill, { width: `${Math.min(100, (score / 850) * 100)}%` }]} />
+export const ReliabilityScore = memo(
+  ({ score, change = 12 }: { score: number; change?: number }) => (
+    <View
+      style={styles.reliabilityCard}
+      accessibilityRole="summary"
+      accessibilityLabel={`Your reliability score is ${score}, an increase of ${change} points.`}
+    >
+      <View style={styles.reliabilityContent}>
+        <View style={styles.reliabilityHeader}>
+          <Text style={styles.reliabilityLabel}>Reliability</Text>
+          <Ionicons name="shield-checkmark" size={16} color={COLORS.primary} />
+        </View>
+        <View style={styles.reliabilityScoreRow}>
+          <Text style={styles.reliabilityScoreNumber}>{score}</Text>
+          <Text style={styles.reliabilityScoreChange}>+{change}</Text>
+        </View>
+        <View style={styles.reliabilityProgress}>
+          <View
+            style={[
+              styles.reliabilityProgressFill,
+              { width: `${Math.min(100, (score / 850) * 100)}%` },
+            ]}
+          />
+        </View>
       </View>
     </View>
-  </View>
-));
+  )
+);
 
-export const TotalSaved = memo(({ amount, circleCount = 0 }: { amount: number; circleCount?: number }) => (
-  <View 
-    style={styles.totalSaved}
-    accessibilityRole="text"
-    accessibilityLabel={`Total pot balance is ETB ${fmtETB(amount, 0)} across ${circleCount} active ${circleCount === 1 ? 'circle' : 'circles'}.`}
-  >
-    <View style={styles.totalSavedContent}>
-      <View style={styles.totalSavedHeader}>
-        <Text style={styles.totalSavedLabel}>Total Pot</Text>
-        <Ionicons name="wallet" size={16} color={COLORS.secondary} />
+export const TotalSaved = memo(
+  ({ amount, circleCount = 0 }: { amount: number; circleCount?: number }) => (
+    <View
+      style={styles.totalSaved}
+      accessibilityRole="text"
+      accessibilityLabel={`Total pot balance is ETB ${fmtETB(amount, 0)} across ${circleCount} active ${circleCount === 1 ? 'circle' : 'circles'}.`}
+    >
+      <View style={styles.totalSavedContent}>
+        <View style={styles.totalSavedHeader}>
+          <Text style={styles.totalSavedLabel}>Total Pot</Text>
+          <Ionicons name="wallet" size={16} color={COLORS.secondary} />
+        </View>
+        <Text style={styles.totalSavedNumber}>ETB {fmtETB(amount, 0)}</Text>
+        <Text style={styles.totalSavedSubtext}>
+          Active across {circleCount} {circleCount === 1 ? 'circle' : 'circles'}
+        </Text>
       </View>
-      <Text style={styles.totalSavedNumber}>ETB {fmtETB(amount, 0)}</Text>
-      <Text style={styles.totalSavedSubtext}>Active across {circleCount} {circleCount === 1 ? 'circle' : 'circles'}</Text>
     </View>
-  </View>
-));
+  )
+);
 
 const styles = StyleSheet.create({
   circleProgressText: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  circleProgressNumber: { fontSize: 10, fontWeight: '700', color: COLORS['on-surface'], fontFamily: Fonts.headline },
-  reliabilityCard: { flex: 1, backgroundColor: COLORS['surface-container-low'], borderRadius: 12, padding: 20, borderWidth: 1, borderColor: 'rgba(134, 148, 137, 0.05)' },
+  circleProgressNumber: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.headline,
+  },
+  reliabilityCard: {
+    flex: 1,
+    backgroundColor: COLORS['surface-container-low'],
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(134, 148, 137, 0.05)',
+  },
   reliabilityContent: { zIndex: 10 },
-  reliabilityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  reliabilityLabel: { fontSize: 12, fontWeight: '700', color: COLORS.outline, fontFamily: Fonts.label, textTransform: 'uppercase' },
+  reliabilityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  reliabilityLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.outline,
+    fontFamily: Fonts.label,
+    textTransform: 'uppercase',
+  },
   reliabilityScoreRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginBottom: 16 },
-  reliabilityScoreNumber: { fontSize: 48, fontWeight: '700', color: COLORS['on-surface'], fontFamily: Fonts.headline },
-  reliabilityScoreChange: { fontSize: 12, fontWeight: '700', color: COLORS.primary, marginBottom: 8 },
-  reliabilityProgress: { width: '100%', height: 6, backgroundColor: COLORS['surface-container-highest'], borderRadius: 3, overflow: 'hidden' },
+  reliabilityScoreNumber: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.headline,
+  },
+  reliabilityScoreChange: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
+  reliabilityProgress: {
+    width: '100%',
+    height: 6,
+    backgroundColor: COLORS['surface-container-highest'],
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
   reliabilityProgressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 3 },
-  totalSaved: { flex: 1, backgroundColor: COLORS['surface-container-low'], borderRadius: 12, padding: 20, borderWidth: 1, borderColor: 'rgba(134, 148, 137, 0.05)', justifyContent: 'center' },
+  totalSaved: {
+    flex: 1,
+    backgroundColor: COLORS['surface-container-low'],
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(134, 148, 137, 0.05)',
+    justifyContent: 'center',
+  },
   totalSavedContent: { gap: 4 },
-  totalSavedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  totalSavedLabel: { fontSize: 12, fontWeight: '700', color: COLORS.outline, fontFamily: Fonts.label, textTransform: 'uppercase' },
-  totalSavedNumber: { fontSize: 24, fontWeight: '700', color: COLORS['on-surface'], fontFamily: Fonts.headline },
-  totalSavedSubtext: { fontSize: 10, color: COLORS.outline, fontFamily: Fonts.body, textTransform: 'uppercase' },
+  totalSavedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  totalSavedLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.outline,
+    fontFamily: Fonts.label,
+    textTransform: 'uppercase',
+  },
+  totalSavedNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.headline,
+  },
+  totalSavedSubtext: {
+    fontSize: 10,
+    color: COLORS.outline,
+    fontFamily: Fonts.body,
+    textTransform: 'uppercase',
+  },
 });

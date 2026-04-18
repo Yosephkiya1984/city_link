@@ -21,6 +21,7 @@ import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '..
 import { CButton, Card, SectionTitle, CInput, CSelect } from '../../components';
 import { fmtETB, uid } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
+import * as ProfileService from '../../services/profile.service';
 
 const MERCHANT_TYPES = [
   { value: 'retail', label: '🛍️ Retail / Shop' },
@@ -54,33 +55,41 @@ export default function BecomeMerchantScreen() {
     }
 
     setLoading(true);
-    setTimeout(async () => {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+    try {
       const sessionUser = useAuthStore.getState().currentUser;
-      if (!sessionUser) {
+      if (!sessionUser || !sessionUser.id) {
         showToast('Session expired, please login again', 'error');
         setLoading(false);
         return;
       }
 
-      // Hardened User Object with proper typing
-      const updatedUser = {
-        ...sessionUser,
-        role: 'merchant' as const,
-        merchant_details: {
-          business_name: businessName,
-          merchant_type: type,
-          tin: tin,
-          status: 'PENDING',
-          joined_at: new Date().toISOString(),
-        }
-      };
-      
-      setCurrentUser(updatedUser);
+      const { error: merchErr } = await ProfileService.registerMerchant(sessionUser.id, {
+        business_name: businessName,
+        merchant_type: type,
+        tin: tin,
+        details: { source: 'BecomeMerchantScreen' },
+      });
+
+      if (merchErr) {
+        showToast(merchErr as any, 'error');
+        setLoading(false);
+        return;
+      }
+
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Refresh the profile to get flattened merchant fields
+      const { data: updatedUser } = await ProfileService.fetchProfile(sessionUser.id);
+      if (updatedUser) {
+        setCurrentUser(updatedUser);
+      }
+
       setLoading(false);
       setStep(3);
-    }, 2000);
+    } catch (e: any) {
+      showToast(e.message || 'Registration failed', 'error');
+      setLoading(false);
+    }
   }
 
   if (step === 3) {
@@ -104,7 +113,13 @@ export default function BecomeMerchantScreen() {
             <Ionicons name="rocket" size={72} color={C.primary} />
           </View>
           <Text
-            style={{ color: C.text, fontSize: 32, fontFamily: Fonts.headline, textAlign: 'center', letterSpacing: -1 }}
+            style={{
+              color: C.text,
+              fontSize: 32,
+              fontFamily: Fonts.headline,
+              textAlign: 'center',
+              letterSpacing: -1,
+            }}
           >
             You're a Merchant!
           </Text>
@@ -118,7 +133,8 @@ export default function BecomeMerchantScreen() {
               lineHeight: 24,
             }}
           >
-            Welcome to the CityLink economic network. Your merchant portal is now active and ready for business.
+            Welcome to the CityLink economic network. Your merchant portal is now active and ready
+            for business.
           </Text>
           <CButton
             title="Enter Merchant Portal"
@@ -135,11 +151,22 @@ export default function BecomeMerchantScreen() {
       <TopBar title="Join Merchant Network" />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60 }}>
         <View style={{ marginBottom: 40 }}>
-          <Text style={{ color: C.text, fontSize: 36, fontFamily: Fonts.headline, letterSpacing: -1.5 }}>
-            Grow with{"\n"}CityLink
+          <Text
+            style={{ color: C.text, fontSize: 36, fontFamily: Fonts.headline, letterSpacing: -1.5 }}
+          >
+            Grow with{'\n'}CityLink
           </Text>
-          <Text style={{ color: C.sub, fontSize: 16, fontFamily: Fonts.body, marginTop: 12, lineHeight: 24 }}>
-            Register your business, start receiving digital payments, and reach the entire city instantly.
+          <Text
+            style={{
+              color: C.sub,
+              fontSize: 16,
+              fontFamily: Fonts.body,
+              marginTop: 12,
+              lineHeight: 24,
+            }}
+          >
+            Register your business, start receiving digital payments, and reach the entire city
+            instantly.
           </Text>
         </View>
 
@@ -160,7 +187,13 @@ export default function BecomeMerchantScreen() {
                   0% Processing Fees
                 </Text>
                 <Text
-                  style={{ color: C.sub, fontSize: 14, fontFamily: Fonts.body, marginTop: 6, opacity: 0.8 }}
+                  style={{
+                    color: C.sub,
+                    fontSize: 14,
+                    fontFamily: Fonts.body,
+                    marginTop: 6,
+                    opacity: 0.8,
+                  }}
                 >
                   Pay nothing on your first 10,000 ETB in sales. We grow when you grow.
                 </Text>
@@ -179,13 +212,23 @@ export default function BecomeMerchantScreen() {
                   Instant Settlements
                 </Text>
                 <Text
-                  style={{ color: C.sub, fontSize: 14, fontFamily: Fonts.body, marginTop: 6, opacity: 0.8 }}
+                  style={{
+                    color: C.sub,
+                    fontSize: 14,
+                    fontFamily: Fonts.body,
+                    marginTop: 6,
+                    opacity: 0.8,
+                  }}
                 >
                   Funds move directly from user to your wallet instantly. No waiting periods.
                 </Text>
               </View>
             </View>
-            <CButton title="Start Application" onPress={() => setStep(2)} style={{ borderRadius: Radius['2xl'] }} />
+            <CButton
+              title="Start Application"
+              onPress={() => setStep(2)}
+              style={{ borderRadius: Radius['2xl'] }}
+            />
           </>
         ) : (
           <Card style={{ padding: 24 }}>

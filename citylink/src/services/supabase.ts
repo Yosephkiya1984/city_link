@@ -51,7 +51,9 @@ interface SupaQueryOptions {
  * Returns a typed object with data and error.
  */
 export async function supaQuery<T = unknown>(
-  queryFn: (client: SupabaseClient) => PromiseLike<{ data: T | null; error: any; count?: number | null }>,
+  queryFn: (
+    client: SupabaseClient
+  ) => PromiseLike<{ data: T | null; error: any; count?: number | null }>,
   options: SupaQueryOptions = {}
 ): Promise<{ data: T | null; count?: number | null; error: string | null }> {
   const client = getClient();
@@ -88,13 +90,13 @@ export function subscribeToTable<T extends { [key: string]: any } = any>(
 ): RealtimeChannel | null {
   const client = getClient();
   if (!client || !table) return null;
-  const opts: { event: string; schema: string; table: string; filter?: string } = { 
-    event: '*', 
-    schema: 'public', 
-    table 
+  const opts: { event: string; schema: string; table: string; filter?: string } = {
+    event: '*',
+    schema: 'public',
+    table,
   };
   if (filter) opts.filter = filter;
-  
+
   return client
     .channel(channelName)
     .on('postgres_changes' as any, opts, callback as any)

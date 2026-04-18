@@ -17,8 +17,13 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
 import { supaQuery } from '../../services/supabase';
-import { rpcReleaseEscrow, rpcCancelAndRefundOrder } from '../../services/marketplace.service';
+import {
+  rpcReleaseEscrow,
+  rpcCancelAndRefundOrder,
+  resolveMarketplaceDispute,
+} from '../../services/marketplace.service';
 import * as Haptics from 'expo-haptics';
+import { marketplaceService } from '../../services/marketplace.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -108,82 +113,65 @@ export default function DisputeModule() {
     fetchDisputes();
   }, []);
 
-  const handleResolve = async (dispute: Dispute, action: 'REFUND' | 'RELEASE') => {
+  const handleResolve = async (
+    dispute: Dispute,
+    action: 'BUYER_FAULT' | 'MERCHANT_AT_FAULT' | 'ORDER_CANCELLED_REFUND' | 'RELEASE' | 'REFUND'
+  ) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (e) {}
-    const actionLabel = action === 'REFUND' ? 'Refund Buyer' : 'Release Funds';
 
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Confirm ${actionLabel.toLowerCase()} for this ${dispute.type} case?`)) {
-        let res;
-        if (dispute.type === 'MARKETPLACE') {
-          if (action === 'REFUND')
-            res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
-          else {
-            if (!dispute.escrow_id) {
-              window.alert('No escrow lock found for this dispute. Manual intervention required.');
-              return;
-            }
-            res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
-          }
-        } else {
-          const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
-          res = await supaQuery((c) =>
-            c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id)
-          );
-        }
-
-        if (res.error) window.alert(res.error);
-        else {
-          try {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } catch (e) {}
-          fetchDisputes();
-          setSelectedDispute(null);
-        }
+    const resolveMkt = async (
+      type: 'BUYER_FAULT' | 'MERCHANT_AT_FAULT' | 'ORDER_CANCELLED_REFUND'
+    ) => {
+      const res = await resolveMarketplaceDispute(dispute.id, type);
+      if (res.error) {
+        Alert.alert('Error', res.error);
+        return false;
       }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      fetchDisputes();
+      setSelectedDispute(null);
+      return true;
+    };
+
+    if (dispute.type === 'MARKETPLACE' && action !== 'RELEASE' && action !== 'REFUND') {
+      await resolveMkt(action);
       return;
     }
 
-    Alert.alert(
-      'Resolve Dispute',
-      `Confirm ${actionLabel.toLowerCase()} for this ${dispute.type} case?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: actionLabel,
-          style: action === 'REFUND' ? 'destructive' : 'default',
-          onPress: async () => {
-            let res;
-            if (dispute.type === 'MARKETPLACE') {
-              if (action === 'REFUND')
-                res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
-              else {
-                if (!dispute.escrow_id) {
-                  Alert.alert('Error', 'No escrow lock found for this dispute. Manual intervention required.');
-                  return;
-                }
-                res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
-              }
-            } else {
-              // Restaurant resolving (standard status based for now)
-              const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
-              res = await supaQuery((c) =>
-                c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id)
-              );
-            }
+    // Legacy/Fallback Logic
+    const actionLabel = action === 'REFUND' ? 'Refund Buyer' : 'Release Funds';
+    const confirmLabel =
+      Platform.OS === 'web' ? window.confirm(`Confirm resolution for this case?`) : true;
 
-            if (res.error) Alert.alert('Error', res.error);
-            else {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              fetchDisputes();
-              setSelectedDispute(null);
-            }
-          },
-        },
-      ]
-    );
+    if (!confirmLabel) return;
+
+    let res;
+    if (dispute.type === 'MARKETPLACE') {
+      if (action === 'REFUND') res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
+      else {
+        if (!dispute.escrow_id) {
+          Alert.alert('Error', 'No escrow lock found. Manual intervention required.');
+          return;
+        }
+        res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
+      }
+    } else {
+      const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
+      res = await supaQuery((c) =>
+        c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id)
+      );
+    }
+
+    if (res.error) Alert.alert('Error', res.error);
+    else {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (e) {}
+      fetchDisputes();
+      setSelectedDispute(null);
+    }
   };
 
   const renderDisputeCard = ({ item }: { item: Dispute }) => {
@@ -328,29 +316,76 @@ export default function DisputeModule() {
                     </Text>
                   </View>
                 </View>
-                <View style={styles.actionGroup}>
-                  <TouchableOpacity
-                    onPress={() => handleResolve(selectedDispute, 'REFUND')}
-                    style={[
-                      styles.actionBtn,
-                      { borderColor: theme.red, flex: 1, height: isMobile ? 44 : 48 },
-                    ]}
-                  >
-                    <Text style={{ color: theme.red, fontSize: 12, fontFamily: Fonts.label }}>
-                      REFUND
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleResolve(selectedDispute, 'RELEASE')}
-                    style={[
-                      styles.actionBtn,
-                      { backgroundColor: theme.primary, flex: 2, height: isMobile ? 44 : 48 },
-                    ]}
-                  >
-                    <Text style={{ color: theme.ink, fontSize: 12, fontFamily: Fonts.label }}>
-                      RELEASE FUNDS
-                    </Text>
-                  </TouchableOpacity>
+                <View style={[styles.actionGroup, { flexDirection: 'column' }]}>
+                  {selectedDispute.type === 'MARKETPLACE' ? (
+                    <>
+                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity
+                          onPress={() => handleResolve(selectedDispute, 'BUYER_FAULT')}
+                          style={[
+                            styles.actionBtn,
+                            { backgroundColor: theme.primary, flex: 1, height: isMobile ? 44 : 48 },
+                          ]}
+                        >
+                          <Text style={{ color: theme.ink, fontSize: 11, fontFamily: Fonts.label }}>
+                            BUYER FAULT (PAY ALL)
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleResolve(selectedDispute, 'MERCHANT_AT_FAULT')}
+                          style={[
+                            styles.actionBtn,
+                            { borderColor: theme.red, flex: 1, height: isMobile ? 44 : 48 },
+                          ]}
+                        >
+                          <Text style={{ color: theme.red, fontSize: 11, fontFamily: Fonts.label }}>
+                            MERCHANT FAULT (REFUND)
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleResolve(selectedDispute, 'ORDER_CANCELLED_REFUND')}
+                        style={[
+                          styles.actionBtn,
+                          {
+                            borderColor: theme.sub,
+                            marginTop: 10,
+                            height: isMobile ? 44 : 48,
+                            opacity: 0.8,
+                          },
+                        ]}
+                      >
+                        <Text style={{ color: theme.sub, fontSize: 11, fontFamily: Fonts.label }}>
+                          ABORT & REFUND (NO PAYOUTS)
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => handleResolve(selectedDispute, 'REFUND')}
+                        style={[
+                          styles.actionBtn,
+                          { borderColor: theme.red, flex: 1, height: isMobile ? 44 : 48 },
+                        ]}
+                      >
+                        <Text style={{ color: theme.red, fontSize: 12, fontFamily: Fonts.label }}>
+                          REFUND
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleResolve(selectedDispute, 'RELEASE')}
+                        style={[
+                          styles.actionBtn,
+                          { backgroundColor: theme.primary, flex: 2, height: isMobile ? 44 : 48 },
+                        ]}
+                      >
+                        <Text style={{ color: theme.ink, fontSize: 12, fontFamily: Fonts.label }}>
+                          RELEASE FUNDS
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -420,7 +455,17 @@ export default function DisputeModule() {
   );
 }
 
-function LogItem({ time, user, text, isMobile }: { time: string; user: string; text: string; isMobile: boolean }) {
+function LogItem({
+  time,
+  user,
+  text,
+  isMobile,
+}: {
+  time: string;
+  user: string;
+  text: string;
+  isMobile: boolean;
+}) {
   const theme = useTheme();
   return (
     <View

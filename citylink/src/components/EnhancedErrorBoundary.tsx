@@ -12,7 +12,7 @@ import { useSystemStore } from '../store/SystemStore';
 import { clearAllStores } from '../store/StoreUtils';
 import { Colors, DarkColors, Radius, Shadow, Fonts } from '../theme';
 import { CButton } from './ui/CButton';
- 
+
 export const NetworkSuppressionContext = React.createContext<{
   suppressNetworkRetries: boolean;
 }>({
@@ -125,7 +125,7 @@ class ErrorBoundaryInner extends Component<ErrorBoundaryProps, ErrorBoundaryStat
       suppressNetworkRetries: false,
     };
   }
- 
+
   private suppressionTimer: NodeJS.Timeout | null = null;
 
   static getDerivedStateFromError(error: Error) {
@@ -410,7 +410,9 @@ Timestamp: ${new Date().toISOString()}
 
     if (!hasError) {
       return (
-        <NetworkSuppressionContext.Provider value={{ suppressNetworkRetries: this.state.suppressNetworkRetries }}>
+        <NetworkSuppressionContext.Provider
+          value={{ suppressNetworkRetries: this.state.suppressNetworkRetries }}
+        >
           {this.props.children}
         </NetworkSuppressionContext.Provider>
       );
@@ -420,7 +422,8 @@ Timestamp: ${new Date().toISOString()}
       return fallback;
     }
 
-    const recoveryActions = RECOVERY_ACTIONS[errorType as ErrorType] || RECOVERY_ACTIONS[ERROR_TYPES.UNKNOWN];
+    const recoveryActions =
+      RECOVERY_ACTIONS[errorType as ErrorType] || RECOVERY_ACTIONS[ERROR_TYPES.UNKNOWN];
     const errorMessage = error?.message || 'An unexpected error occurred';
 
     return (

@@ -15,9 +15,20 @@ export async function fetchPropertyListings(agentId: string) {
  */
 export async function fetchPropertyEnquiries(agentId: string) {
   if (process.env.NODE_ENV === 'development') {
-    console.warn(`[CityLink] fetchPropertyEnquiries called for ${agentId} but table 'property_enquiries' is missing.`);
+    console.warn(
+      `[CityLink] fetchPropertyEnquiries called for ${agentId} but table 'property_enquiries' is missing.`
+    );
   }
-  return { data: null, error: { message: 'table-not-found', details: '', hint: '', code: 'table-not-found', name: 'PostgrestError' } as PostgrestError };
+  return {
+    data: null,
+    error: {
+      message: 'table-not-found',
+      details: '',
+      hint: '',
+      code: 'table-not-found',
+      name: 'PostgrestError',
+    } as PostgrestError,
+  };
 }
 
 export async function updateListingStatus(listingId: string, newStatus: string) {
@@ -27,7 +38,7 @@ export async function updateListingStatus(listingId: string, newStatus: string) 
 }
 
 export async function createListing(listingData: Partial<PropertyListing>) {
-  return supaQuery<PropertyListing>((c) => 
+  return supaQuery<PropertyListing>((c) =>
     c.from('property_listings').insert([listingData]).select().single()
   );
 }

@@ -1,778 +1,47 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  Pressable,
-  Dimensions,
-  Animated,
-  Image,
-  StyleSheet,
-} from 'react-native';
+/**
+ * ParkingScreen — Citizen parking module.
+ *
+ * Decomposed from a 1,022-line monolith into:
+ *  - useParking hook (business logic, state, data fetching)
+ *  - ParkingScreen.styles.ts (500+ lines of StyleSheet)
+ *  - This file (pure render, ~230 lines)
+ */
+import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useAuthStore } from '../../store/AuthStore';
-import { useWalletStore } from '../../store/WalletStore';
-import { useSystemStore } from '../../store/SystemStore';
-import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
-import { CButton, Card, SectionTitle, LoadingRow } from '../../components';
-import { fmtETB, genQrToken, uid } from '../../utils';
+import { Fonts } from '../../theme';
+import { fmtETB } from '../../utils';
 import {
-  fetchParkingLots,
-  startParkingSession,
-  endParkingSession,
-} from '../../services/parking.service';
-import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Demo parking lots
-const DEMO_LOTS = [
-  {
-    id: 'lot-1',
-    name: 'Bole Road Car Park',
-    subcity: 'Bole',
-    total_spots: 80,
-    rate_per_hour: 15,
-    spots: generateSpots(80, 'lot-1'),
-  },
-  {
-    id: 'lot-2',
-    name: 'Piassa Multi-Storey',
-    subcity: 'Arada',
-    total_spots: 120,
-    rate_per_hour: 12,
-    spots: generateSpots(120, 'lot-2'),
-  },
-  {
-    id: 'lot-3',
-    name: 'Mexico Square Parking',
-    subcity: 'Kirkos',
-    total_spots: 60,
-    rate_per_hour: 10,
-    spots: generateSpots(60, 'lot-3'),
-  },
-];
-
-function generateSpots(count: number, lotId: string) {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `${lotId}-spot-${i + 1}`,
-    number: `${String.fromCharCode(65 + Math.floor(i / 10))}${(i % 10) + 1}`,
-    status: Math.random() < 0.35 ? 'occupied' : 'available',
-  }));
-}
-
-/** Map Supabase parking_lots + parking_spots rows to local grid model. */
-function mapLotsFromDb(rows: any[]) {
-  return rows.map((lot: any) => {
-    const raw = lot.parking_spots || [];
-    const spots = raw.map((s: any, i: number) => ({
-      id: s.id || `${lot.id}-s-${i}`,
-      number: String(s.spot_number ?? s.label ?? s.number ?? i + 1),
-      status: /occupied|held|reserved|busy/i.test(String(s.status || ''))
-        ? 'occupied'
-        : 'available',
-    }));
-    const total = lot.total_spots || spots.length || 1;
-    return {
-      id: lot.id,
-      name: lot.name,
-      subcity: lot.subcity || 'Addis Ababa',
-      total_spots: total,
-      rate_per_hour: Number(lot.rate_per_hour ?? 15),
-      spots: spots.length ? spots : generateSpots(Math.min(total, 80), lot.id),
-    };
-  });
-}
+  useParking,
+  formatElapsed,
+  ParkingSpotLocal,
+  ParkingLotLocal,
+} from '../../hooks/useParking';
+import { parkingStyles as styles } from './ParkingScreen.styles';
 
 export default function ParkingScreen() {
-  const isDark = useSystemStore((s) => s.isDark);
-  const C = isDark ? Colors : LightColors;
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const activeParking = useWalletStore((s) => s.activeParking);
-  const setActiveParking = useWalletStore((s) => s.setActiveParking);
-  const balance = useWalletStore((s) => s.balance);
-  const setBalance = useWalletStore((s) => s.setBalance);
-  const addTransaction = useWalletStore((s) => s.addTransaction);
-  const showToast = useSystemStore((s) => s.showToast);
-
-  const [lots, setLots] = useState<any[]>(DEMO_LOTS);
-  const [selectedLot, setSelectedLot] = useState<any>(null);
-  const [selectedSpot, setSelectedSpot] = useState<any>(null);
-  const [confirmModal, setConfirmModal] = useState(false);
-  const [qrModal, setQrModal] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (activeParking) {
-      interval = setInterval(() => {
-        const secs = Math.floor(
-          (Date.now() - new Date(activeParking.start_time).getTime()) /
-            1000
-        );
-        setElapsed(secs);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activeParking]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await fetchParkingLots();
-      if (!cancelled && data?.length) setLots(mapLotsFromDb(data));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const refreshLots = useCallback(async () => {
-    const { data } = await fetchParkingLots();
-    if (data?.length) setLots(mapLotsFromDb(data));
-  }, []);
-
-  const parkUserId = currentUser?.id;
-  useRealtimePostgres({
-    channelName: parkUserId ? `cl-rt-parking-${parkUserId}` : 'cl-rt-parking',
-    table: 'parking_sessions',
-    filter: undefined,
-    enabled: !!parkUserId,
-    onPayload: refreshLots,
-  });
-
-  function formatElapsed(secs: number) {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
-
-  function getCurrentFare() {
-    if (!activeParking) return 0;
-    const hours = elapsed / 3600;
-    return Math.ceil(hours * (activeParking as any).rate_per_hour * 10) / 10;
-  }
-
-  async function handleStartParking() {
-    if (!selectedSpot || !selectedLot) return;
-    if (balance < 10) {
-      showToast('Insufficient balance. Top up first.', 'error');
-      return;
-    }
-    setLoading(true);
-    const sessionId = uid();
-    const session = {
-      id: sessionId,
-      user_id: currentUser?.id || '',
-      lot_id: selectedLot.id,
-      lot_name: selectedLot.name,
-      spot_id: selectedSpot.id,
-      spot_number: selectedSpot.number,
-      start_time: new Date().toISOString(),
-      rate_per_hour: selectedLot.rate_per_hour,
-      qr_token: genQrToken('PRK'),
-      status: 'active',
-      merchant_id: selectedLot.id, // Assuming lot ID for now as fallback
-      created_at: new Date().toISOString(),
-    };
-
-    const { error } = await startParkingSession(session);
-    if (error) {
-      showToast('Could not start parking session', 'error');
-      setLoading(false);
-      return;
-    }
-
-    setActiveParking(session);
-    // Mark spot as occupied
-    setLots((prev) =>
-      prev.map((l) =>
-        l.id === selectedLot.id
-          ? {
-              ...l,
-              spots: l.spots.map((s: any) =>
-                s.id === selectedSpot.id ? { ...s, status: 'occupied' } : s
-              ),
-            }
-          : l
-      )
-    );
-    setSelectedLot(null);
-    setSelectedSpot(null);
-    setConfirmModal(false);
-    showToast(`Parking started at spot ${session.spot_number} ðŸ…¿ï¸`, 'success');
-    setLoading(false);
-  }
-
-  async function handleEndParking() {
-    if (!activeParking) return;
-    const fare = getCurrentFare();
-    if (balance < fare) {
-      showToast('Insufficient balance to pay fare', 'error');
-      return;
-    }
-    setLoading(true);
-
-    try {
-      const res = await endParkingSession(
-        activeParking.id,
-        currentUser?.id || '',
-        (activeParking as any).lot_name || '',
-        activeParking.spot_number || '',
-        fare
-      );
-
-      if (res.error) {
-        showToast(typeof res.error === 'string' ? res.error : (res.error as any)?.message || 'Could not finalize parking session', 'error');
-        setLoading(false);
-        return;
-      }
-
-      // Sync local state
-      const finalBalance = res.data?.new_balance ?? balance - fare;
-      setBalance(finalBalance);
-
-      // Free the spot in the local lot grid so it shows as available again
-      setLots((prev) =>
-        prev.map((l) =>
-          l.id === activeParking.lot_id
-            ? {
-                ...l,
-                spots: l.spots.map((s: any) =>
-                  s.id === (activeParking as any).spot_id
-                    ? { ...s, status: 'available' }
-                    : s
-                ),
-              }
-            : l
-        )
-      );
-
-      showToast(`Parking ended. Fare: ${fmtETB(fare)} ETB`, 'success');
-      setActiveParking(null);
-      setElapsed(0);
-
-      // Haptic feedback for completion
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) {
-      console.error('🔧 handleEndParking crash:', e);
-      showToast('Connection error finalizing session', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const handleLotPress = (lot: any) => {
-    setSelectedLot(selectedLot?.id === lot.id ? null : lot);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  const handleSpotPress = (spot: any) => {
-    if (spot.status === 'occupied') return;
-    setSelectedSpot(spot);
-    setConfirmModal(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  };
-
-  // â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#101319',
-    },
-
-    // Custom Header - Fixed Position
-    header: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 50,
-      backgroundColor: 'rgba(16, 19, 25, 0.9)',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 24 },
-      shadowOpacity: 0.4,
-      shadowRadius: 48,
-      elevation: 24,
-      paddingHorizontal: 24,
-      paddingVertical: 20,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    profileImage: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: 'rgba(134, 148, 137, 0.2)',
-    },
-    brandName: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: '#59de9b',
-      fontFamily: Fonts.headline,
-      letterSpacing: -0.5,
-    },
-    walletBadge: {
-      backgroundColor: '#191c21',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      borderWidth: 1,
-      borderColor: 'rgba(134, 148, 137, 0.1)',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 4,
-    },
-    walletAmount: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: '#59de9b',
-      fontFamily: Fonts.headline,
-      letterSpacing: -0.3,
-    },
-
-    // Main Content Area
-    contentArea: {
-      flex: 1,
-      paddingTop: 110, // Space for custom header
-      paddingBottom: 120, // Space for bottom nav
-    },
-
-    // Scroll View with proper spacing
-    scrollView: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingHorizontal: 24,
-      paddingBottom: 40,
-    },
-
-    // Active Parking Session Banner
-    activeSessionBanner: {
-      position: 'relative',
-      overflow: 'hidden',
-      backgroundColor: '#1d2025',
-      borderRadius: 12,
-      padding: 24,
-      marginBottom: 40,
-      borderLeftWidth: 4,
-      borderLeftColor: '#59de9b',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-    },
-    sessionIcon: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      padding: 32,
-      opacity: 0.1,
-    },
-    sessionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 24,
-    },
-    sessionStatus: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 4,
-    },
-    statusDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: '#59de9b',
-    },
-    statusText: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: '#59de9b',
-      fontFamily: Fonts.label,
-      textTransform: 'uppercase',
-      letterSpacing: 0.2,
-    },
-    sessionTitle: {
-      fontSize: 24,
-      fontWeight: '700',
-      color: '#e1e2ea',
-      fontFamily: Fonts.headline,
-    },
-    sessionSubtitle: {
-      fontSize: 14,
-      color: '#bccabe',
-      fontFamily: Fonts.body,
-      marginTop: 4,
-    },
-    sessionTimer: {
-      alignItems: 'flex-end',
-    },
-    timerText: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: '#ffd887',
-      fontFamily: Fonts.headline,
-      letterSpacing: 1,
-    },
-    rateText: {
-      fontSize: 12,
-      color: '#bccabe',
-      fontFamily: Fonts.body,
-      marginTop: 4,
-    },
-    sessionActions: {
-      flexDirection: 'row',
-      gap: 8,
-    },
-    qrButton: {
-      flex: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: 'rgba(134, 148, 137, 0.2)',
-      alignItems: 'center',
-    },
-    qrButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: '#e1e2ea',
-      fontFamily: Fonts.label,
-    },
-    endButton: {
-      flex: 1,
-      backgroundColor: '#ff5a4c',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 12,
-      alignItems: 'center',
-      shadowColor: '#ff5a4c',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    endButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: '#e1e2ea',
-      fontFamily: Fonts.label,
-    },
-
-    // Parking Lots Section
-    parkingSection: {
-      marginBottom: 40,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 24,
-    },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: '#e1e2ea',
-      fontFamily: Fonts.headline,
-      letterSpacing: -0.3,
-    },
-    refreshTime: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: '#59de9b',
-      fontFamily: Fonts.label,
-      textTransform: 'uppercase',
-      letterSpacing: 0.2,
-    },
-    lotsList: {
-      gap: 16,
-    },
-    lotCard: {
-      backgroundColor: '#1d2025',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: 'rgba(134, 148, 137, 0.05)',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-      overflow: 'hidden',
-    },
-    lotHeader: {
-      padding: 20,
-    },
-    lotInfo: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 16,
-    },
-    lotDetails: {
-      flex: 1,
-    },
-    lotName: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: '#e1e2ea',
-      fontFamily: Fonts.headline,
-    },
-    lotLocation: {
-      fontSize: 14,
-      color: '#bccabe',
-      fontFamily: Fonts.body,
-      marginTop: 4,
-    },
-    lotPricing: {
-      alignItems: 'flex-end',
-    },
-    priceAmount: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: '#59de9b',
-      fontFamily: Fonts.headline,
-    },
-    priceLabel: {
-      fontSize: 12,
-      color: '#bccabe',
-      fontFamily: Fonts.body,
-      marginTop: 2,
-    },
-    availabilityBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-    progressBar: {
-      flex: 1,
-      height: 4,
-      backgroundColor: '#32353b',
-      borderRadius: 2,
-    },
-    progressFill: {
-      height: 4,
-      borderRadius: 2,
-    },
-    availabilityText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: '#bccabe',
-      fontFamily: Fonts.label,
-    },
-
-    // Spot Selection Grid
-    spotSelection: {
-      padding: 16,
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(134, 148, 137, 0.1)',
-    },
-    spotSelectionTitle: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: '#bccabe',
-      fontFamily: Fonts.label,
-      textTransform: 'uppercase',
-      letterSpacing: 0.2,
-      marginBottom: 16,
-    },
-    spotGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
-    },
-    spotButton: {
-      width: 44,
-      height: 36,
-      borderRadius: 6,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1.5,
-    },
-    spotAvailable: {
-      backgroundColor: '#191c21',
-      borderColor: 'rgba(134, 148, 137, 0.2)',
-    },
-    spotSelected: {
-      backgroundColor: 'rgba(89, 222, 155, 0.1)',
-      borderColor: '#59de9b',
-    },
-    spotOccupied: {
-      backgroundColor: 'rgba(255, 90, 76, 0.1)',
-      borderColor: 'rgba(255, 90, 76, 0.2)',
-      opacity: 0.5,
-    },
-    spotText: {
-      fontSize: 12,
-      fontWeight: '700',
-      fontFamily: Fonts.label,
-    },
-    spotTextAvailable: {
-      color: '#bccabe',
-    },
-    spotTextSelected: {
-      color: '#59de9b',
-    },
-    spotTextOccupied: {
-      color: '#ff5a4c',
-    },
-    spotLegend: {
-      flexDirection: 'row',
-      gap: 16,
-      marginTop: 16,
-    },
-    legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    legendDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 3,
-      borderWidth: 1.5,
-    },
-    legendText: {
-      fontSize: 12,
-      color: '#bccabe',
-      fontFamily: Fonts.body,
-    },
-
-    // Modals
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    },
-    modalContent: {
-      backgroundColor: '#101319',
-      borderTopLeftRadius: 12,
-      borderTopRightRadius: 12,
-      padding: 24,
-      paddingBottom: 40,
-    },
-    modalTitle: {
-      fontSize: 24,
-      fontWeight: '800',
-      color: '#e1e2ea',
-      fontFamily: Fonts.headline,
-      marginBottom: 4,
-    },
-    modalSubtitle: {
-      fontSize: 18,
-      color: '#bccabe',
-      fontFamily: Fonts.body,
-      marginBottom: 20,
-    },
-    modalInfo: {
-      backgroundColor: '#191c21',
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 20,
-    },
-    modalButton: {
-      backgroundColor: '#59de9b',
-      paddingVertical: 16,
-      paddingHorizontal: 24,
-      borderRadius: 24,
-      alignItems: 'center',
-      shadowColor: '#59de9b',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    modalButtonText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: '#101319',
-      fontFamily: Fonts.label,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    cancelButton: {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: 'rgba(134, 148, 137, 0.2)',
-      alignItems: 'center',
-      marginTop: 8,
-    },
-    cancelButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: '#e1e2ea',
-      fontFamily: Fonts.label,
-    },
-
-    // QR Modal
-    qrModalContent: {
-      backgroundColor: '#101319',
-      borderTopLeftRadius: 12,
-      borderTopRightRadius: 12,
-      padding: 24,
-      paddingBottom: 40,
-      alignItems: 'center',
-    },
-    qrCard: {
-      backgroundColor: '#ffffff',
-      borderRadius: 16,
-      padding: 20,
-      marginBottom: 16,
-    },
-    qrTitle: {
-      color: '#666',
-      fontSize: 12,
-      textAlign: 'center',
-      letterSpacing: 1,
-      fontWeight: '700',
-      textTransform: 'uppercase',
-      marginBottom: 8,
-      fontFamily: Fonts.label,
-    },
-    qrCode: {
-      fontFamily: 'Courier',
-      fontSize: 14,
-      color: '#333',
-      fontWeight: '700',
-      letterSpacing: 1,
-      textAlign: 'center',
-    },
-    qrDescription: {
-      color: '#bccabe',
-      textAlign: 'center',
-      fontFamily: Fonts.body,
-    },
-  });
+  const {
+    lots,
+    selectedLot,
+    selectedSpot,
+    confirmModal,
+    setConfirmModal,
+    qrModal,
+    setQrModal,
+    elapsed,
+    loading,
+    balance,
+    activeParking,
+    handleStartParking,
+    handleEndParking,
+    handleLotPress,
+    handleSpotPress,
+    getCurrentFare,
+  } = useParking();
 
   return (
     <View style={styles.container}>
-      {/* Custom Header - Fixed Position */}
+      {/* Custom Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.profileImage}>
@@ -791,14 +60,14 @@ export default function ParkingScreen() {
         </View>
       </View>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <View style={styles.contentArea}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Active Parking Session Banner */}
+          {/* Active Session Banner */}
           {activeParking && (
             <View style={styles.activeSessionBanner}>
               <View style={styles.sessionIcon}>
@@ -811,147 +80,45 @@ export default function ParkingScreen() {
                     <Text style={styles.statusText}>Active Session</Text>
                   </View>
                   <Text style={styles.sessionTitle}>Spot {activeParking.spot_number}</Text>
-                  <Text style={styles.sessionSubtitle}>{(activeParking as any).lot_name}</Text>
+                  <Text style={styles.sessionSubtitle}>
+                    {(activeParking as any).lot_name as string}
+                  </Text>
                 </View>
                 <View style={styles.sessionTimer}>
                   <Text style={styles.timerText}>{formatElapsed(elapsed)}</Text>
-                  <Text style={styles.rateText}>{(activeParking as any).rate_per_hour} ETB/hr</Text>
+                  <Text style={styles.rateText}>
+                    {(activeParking as any).rate_per_hour as number} ETB/hr
+                  </Text>
                 </View>
               </View>
               <View style={styles.sessionActions}>
                 <TouchableOpacity style={styles.qrButton} onPress={() => setQrModal(true)}>
-                  <Text style={styles.qrButtonText}>ðŸ“± Show QR</Text>
+                  <Text style={styles.qrButtonText}>📱 Show QR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.endButton} onPress={handleEndParking}>
-                  <Text style={styles.endButtonText}>End â€¢ {fmtETB(getCurrentFare())} ETB</Text>
+                  <Text style={styles.endButtonText}>End • {fmtETB(getCurrentFare())} ETB</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
 
-          {/* Parking Lots Section */}
+          {/* Parking Lots */}
           <View style={styles.parkingSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Available Parking Lots</Text>
               <Text style={styles.refreshTime}>Refresh 2:40 PM</Text>
             </View>
-
             <View style={styles.lotsList}>
-              {lots.map((lot) => {
-                const available = lot.spots.filter((s: any) => s.status === 'available').length;
-                const pct = Math.round((available / lot.total_spots) * 100);
-                const progressColor = pct > 50 ? '#59de9b' : pct > 20 ? '#ffd887' : '#ff5a4c';
-
-                return (
-                  <TouchableOpacity
-                    key={lot.id}
-                    onPress={() => handleLotPress(lot)}
-                    style={styles.lotCard}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.lotHeader}>
-                      <View style={styles.lotInfo}>
-                        <View style={styles.lotDetails}>
-                          <Text style={styles.lotName}>{lot.name}</Text>
-                          <Text style={styles.lotLocation}>ðŸ“ {lot.subcity}</Text>
-                        </View>
-                        <View style={styles.lotPricing}>
-                          <Text style={styles.priceAmount}>{lot.rate_per_hour} ETB</Text>
-                          <Text style={styles.priceLabel}>per hour</Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.availabilityBar}>
-                        <View style={styles.progressBar}>
-                          <View
-                            style={[
-                              styles.progressFill,
-                              { width: `${pct}%`, backgroundColor: progressColor },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.availabilityText}>
-                          {available}/{lot.total_spots} free
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Spot Selection Grid */}
-                    {selectedLot?.id === lot.id && (
-                      <View style={styles.spotSelection}>
-                        <Text style={styles.spotSelectionTitle}>Select a spot</Text>
-                        <View style={styles.spotGrid}>
-                          {lot.spots.slice(0, 40).map((spot: any) => {
-                            const isSelected = selectedSpot?.id === spot.id;
-                            const spotStyle =
-                              spot.status === 'occupied'
-                                ? styles.spotOccupied
-                                : isSelected
-                                  ? styles.spotSelected
-                                  : styles.spotAvailable;
-                            const textStyle =
-                              spot.status === 'occupied'
-                                ? styles.spotTextOccupied
-                                : isSelected
-                                  ? styles.spotTextSelected
-                                  : styles.spotTextAvailable;
-
-                            return (
-                              <TouchableOpacity
-                                key={spot.id}
-                                disabled={spot.status === 'occupied'}
-                                onPress={() => handleSpotPress(spot)}
-                                style={[styles.spotButton, spotStyle]}
-                                activeOpacity={0.8}
-                              >
-                                <Text style={[styles.spotText, textStyle]}>{spot.number}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </View>
-                        <View style={styles.spotLegend}>
-                          <View style={styles.legendItem}>
-                            <View
-                              style={[
-                                styles.legendDot,
-                                {
-                                  backgroundColor: 'rgba(89, 222, 155, 0.2)',
-                                  borderColor: '#59de9b',
-                                },
-                              ]}
-                            />
-                            <Text style={styles.legendText}>Available</Text>
-                          </View>
-                          <View style={styles.legendItem}>
-                            <View
-                              style={[
-                                styles.legendDot,
-                                {
-                                  backgroundColor: 'rgba(89, 222, 155, 0.2)',
-                                  borderColor: '#59de9b',
-                                },
-                              ]}
-                            />
-                            <Text style={styles.legendText}>Selected</Text>
-                          </View>
-                          <View style={styles.legendItem}>
-                            <View
-                              style={[
-                                styles.legendDot,
-                                {
-                                  backgroundColor: 'rgba(255, 90, 76, 0.2)',
-                                  borderColor: '#ff5a4c',
-                                },
-                              ]}
-                            />
-                            <Text style={styles.legendText}>Occupied</Text>
-                          </View>
-                        </View>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+              {lots.map((lot) => (
+                <LotCard
+                  key={lot.id}
+                  lot={lot}
+                  isExpanded={selectedLot?.id === lot.id}
+                  selectedSpot={selectedSpot}
+                  onLotPress={handleLotPress}
+                  onSpotPress={handleSpotPress}
+                />
+              ))}
             </View>
           </View>
         </ScrollView>
@@ -965,7 +132,7 @@ export default function ParkingScreen() {
           {selectedLot && selectedSpot && (
             <>
               <Text style={styles.modalSubtitle}>
-                {selectedLot.name} â€” Spot{' '}
+                {selectedLot.name} — Spot{' '}
                 <Text style={{ color: '#e1e2ea', fontWeight: '700' }}>{selectedSpot.number}</Text>
               </Text>
               <View style={styles.modalInfo}>
@@ -978,7 +145,7 @@ export default function ParkingScreen() {
                 disabled={loading}
               >
                 <Text style={styles.modalButtonText}>
-                  {loading ? 'Startingâ€¦' : 'ðŸ…¿ï¸ Start Parking'}
+                  {loading ? 'Starting…' : '🅿️ Start Parking'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setConfirmModal(false)}>
@@ -995,7 +162,7 @@ export default function ParkingScreen() {
         <View style={styles.qrModalContent}>
           <View style={styles.qrCard}>
             <Text style={styles.qrTitle}>Parking QR Code</Text>
-            <Text style={styles.qrCode}>{(activeParking as any)?.qr_token}</Text>
+            <Text style={styles.qrCode}>{(activeParking as any)?.qr_token as string}</Text>
           </View>
           <Text style={styles.qrDescription}>Show this to the parking attendant</Text>
           <TouchableOpacity style={styles.cancelButton} onPress={() => setQrModal(false)}>
@@ -1003,6 +170,101 @@ export default function ParkingScreen() {
           </TouchableOpacity>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+// ── Sub-Components ──────────────────────────────────────────────────────────
+
+function LotCard({
+  lot,
+  isExpanded,
+  selectedSpot,
+  onLotPress,
+  onSpotPress,
+}: {
+  lot: ParkingLotLocal;
+  isExpanded: boolean;
+  selectedSpot: ParkingSpotLocal | null;
+  onLotPress: (lot: ParkingLotLocal) => void;
+  onSpotPress: (spot: ParkingSpotLocal) => void;
+}) {
+  const available = lot.spots.filter((s) => s.status === 'available').length;
+  const pct = Math.round((available / lot.total_spots) * 100);
+  const progressColor = pct > 50 ? '#59de9b' : pct > 20 ? '#ffd887' : '#ff5a4c';
+
+  return (
+    <TouchableOpacity onPress={() => onLotPress(lot)} style={styles.lotCard} activeOpacity={0.8}>
+      <View style={styles.lotHeader}>
+        <View style={styles.lotInfo}>
+          <View style={styles.lotDetails}>
+            <Text style={styles.lotName}>{lot.name}</Text>
+            <Text style={styles.lotLocation}>📍 {lot.subcity}</Text>
+          </View>
+          <View style={styles.lotPricing}>
+            <Text style={styles.priceAmount}>{lot.rate_per_hour} ETB</Text>
+            <Text style={styles.priceLabel}>per hour</Text>
+          </View>
+        </View>
+        <View style={styles.availabilityBar}>
+          <View style={styles.progressBar}>
+            <View
+              style={[styles.progressFill, { width: `${pct}%`, backgroundColor: progressColor }]}
+            />
+          </View>
+          <Text style={styles.availabilityText}>
+            {available}/{lot.total_spots} free
+          </Text>
+        </View>
+      </View>
+
+      {isExpanded && (
+        <View style={styles.spotSelection}>
+          <Text style={styles.spotSelectionTitle}>Select a spot</Text>
+          <View style={styles.spotGrid}>
+            {lot.spots.slice(0, 40).map((spot) => {
+              const isSelected = selectedSpot?.id === spot.id;
+              const spotStyle =
+                spot.status === 'occupied'
+                  ? styles.spotOccupied
+                  : isSelected
+                    ? styles.spotSelected
+                    : styles.spotAvailable;
+              const textStyle =
+                spot.status === 'occupied'
+                  ? styles.spotTextOccupied
+                  : isSelected
+                    ? styles.spotTextSelected
+                    : styles.spotTextAvailable;
+              return (
+                <TouchableOpacity
+                  key={spot.id}
+                  disabled={spot.status === 'occupied'}
+                  onPress={() => onSpotPress(spot)}
+                  style={[styles.spotButton, spotStyle]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.spotText, textStyle]}>{spot.number}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.spotLegend}>
+            <LegendDot color="#59de9b" label="Available" />
+            <LegendDot color="#59de9b" label="Selected" />
+            <LegendDot color="#ff5a4c" label="Occupied" />
+          </View>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: `${color}33`, borderColor: color }]} />
+      <Text style={styles.legendText}>{label}</Text>
     </View>
   );
 }

@@ -5,7 +5,7 @@ import { useSystemStore } from './SystemStore';
 
 /**
  * Global store utilities.
- * 
+ *
  * Direct domain hooks are preferred for performance:
  * - useAuthStore: User session, authentication, verification
  * - useWalletStore: Balance, transactions, active parking
@@ -18,10 +18,7 @@ import { useSystemStore } from './SystemStore';
  * Clears all domain-specific stores. Useful for sign-out or session reset.
  */
 export const resetAllStores = async () => {
-  await Promise.all([
-    useAuthStore.getState().reset(),
-    useWalletStore.getState().reset(),
-  ]);
+  await Promise.all([useAuthStore.getState().reset(), useWalletStore.getState().reset()]);
   useMarketStore.getState().reset();
   useSystemStore.getState().reset();
 };

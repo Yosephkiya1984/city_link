@@ -195,7 +195,14 @@ export default function RequestMoneyScreen() {
                 <Text style={{ fontSize: 24 }}>{selectedContact.avatar}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 17, fontFamily: Fonts.headline, letterSpacing: -0.5 }}>
+                <Text
+                  style={{
+                    color: C.text,
+                    fontSize: 17,
+                    fontFamily: Fonts.headline,
+                    letterSpacing: -0.5,
+                  }}
+                >
                   {selectedContact.name}
                 </Text>
                 <Text style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.label, marginTop: 2 }}>
@@ -206,7 +213,16 @@ export default function RequestMoneyScreen() {
             </>
           ) : (
             <>
-              <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: C.lift, alignItems: 'center', justifyContent: 'center' }}>
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: C.lift,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Ionicons name="person-add" size={24} color={C.sub} />
               </View>
               <Text style={{ color: C.sub, fontSize: 16, fontFamily: Fonts.label, flex: 1 }}>

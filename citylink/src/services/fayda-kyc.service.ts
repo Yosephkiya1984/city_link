@@ -42,61 +42,63 @@ export const FAYDA_STATUS = {
 export type FaydaStatus = (typeof FAYDA_STATUS)[keyof typeof FAYDA_STATUS];
 
 // ── Ethiopian Fayda Mock Database — DEV ONLY ─────────────────────────────────────
-export const FAYDA_MOCK_DATABASE: Record<string, FaydaKycData> = __DEV__ ? {
-  // Valid Ethiopian Fayda IDs (13-digit format)
-  '0123456789012': {
-    fayda_id: '0123456789012',
-    full_name: 'Abebe Kebede Bekele',
-    date_of_birth: '1990-05-15',
-    gender: 'M',
-    region: 'Addis Ababa',
-    sub_city: 'Bole',
-    woreda: '08',
-    house_number: '1234',
-    phone: '+251911234567',
-    email: 'abebe.kebede@email.com',
-    photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=abebe',
-    fingerprint_hash: 'fp_hash_abc123',
-    iris_hash: 'iris_hash_def456',
-    verification_status: FAYDA_STATUS.VERIFIED,
-    issued_date: '2023-01-15',
-    expiry_date: '2033-01-15',
-    national_id: 'ID123456789',
-    passport_number: 'EP1234567',
-    blood_group: 'O+',
-    emergency_contact: '+251911765432',
-    occupation: 'Software Engineer',
-    employer: 'Ethio Telecom',
-    marital_status: 'Single',
-    education_level: 'Bachelors Degree',
-  },
-  '1234567890123': {
-    fayda_id: '1234567890123',
-    full_name: 'Tigist Hailemariam Solomon',
-    date_of_birth: '1985-08-22',
-    gender: 'F',
-    region: 'Addis Ababa',
-    sub_city: 'Kirkos',
-    woreda: '05',
-    house_number: '5678',
-    phone: '+251912345678',
-    email: 'tigist.h@email.com',
-    photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=tigist',
-    fingerprint_hash: 'fp_hash_ghi789',
-    iris_hash: 'iris_hash_jkl012',
-    verification_status: FAYDA_STATUS.VERIFIED,
-    issued_date: '2023-03-20',
-    expiry_date: '2033-03-20',
-    national_id: 'ID987654321',
-    passport_number: 'EP9876543',
-    blood_group: 'A+',
-    emergency_contact: '+251912987654',
-    occupation: 'Bank Manager',
-    employer: 'Commercial Bank of Ethiopia',
-    marital_status: 'Married',
-    education_level: 'Masters Degree',
-  },
-} : {};
+export const FAYDA_MOCK_DATABASE: Record<string, FaydaKycData> = __DEV__
+  ? {
+      // Valid Ethiopian Fayda IDs (13-digit format)
+      '0123456789012': {
+        fayda_id: '0123456789012',
+        full_name: 'Abebe Kebede Bekele',
+        date_of_birth: '1990-05-15',
+        gender: 'M',
+        region: 'Addis Ababa',
+        sub_city: 'Bole',
+        woreda: '08',
+        house_number: '1234',
+        phone: '+251911234567',
+        email: 'abebe.kebede@email.com',
+        photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=abebe',
+        fingerprint_hash: 'fp_hash_abc123',
+        iris_hash: 'iris_hash_def456',
+        verification_status: FAYDA_STATUS.VERIFIED,
+        issued_date: '2023-01-15',
+        expiry_date: '2033-01-15',
+        national_id: 'ID123456789',
+        passport_number: 'EP1234567',
+        blood_group: 'O+',
+        emergency_contact: '+251911765432',
+        occupation: 'Software Engineer',
+        employer: 'Ethio Telecom',
+        marital_status: 'Single',
+        education_level: 'Bachelors Degree',
+      },
+      '1234567890123': {
+        fayda_id: '1234567890123',
+        full_name: 'Tigist Hailemariam Solomon',
+        date_of_birth: '1985-08-22',
+        gender: 'F',
+        region: 'Addis Ababa',
+        sub_city: 'Kirkos',
+        woreda: '05',
+        house_number: '5678',
+        phone: '+251912345678',
+        email: 'tigist.h@email.com',
+        photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=tigist',
+        fingerprint_hash: 'fp_hash_ghi789',
+        iris_hash: 'iris_hash_jkl012',
+        verification_status: FAYDA_STATUS.VERIFIED,
+        issued_date: '2023-03-20',
+        expiry_date: '2033-03-20',
+        national_id: 'ID987654321',
+        passport_number: 'EP9876543',
+        blood_group: 'A+',
+        emergency_contact: '+251912987654',
+        occupation: 'Bank Manager',
+        employer: 'Commercial Bank of Ethiopia',
+        marital_status: 'Married',
+        education_level: 'Masters Degree',
+      },
+    }
+  : {};
 
 export interface RegistrationCenter {
   id: string;
@@ -130,7 +132,9 @@ export class FaydaKYCService {
   /**
    * initiateKYC — Initializes the KYC process with basic user data.
    */
-  static async initiateKYC(userData: Record<string, string | number | boolean | null>): Promise<KycInitiationResult> {
+  static async initiateKYC(
+    userData: Record<string, string | number | boolean | null>
+  ): Promise<KycInitiationResult> {
     try {
       const tempData: FaydaTempData = {
         id: uid(),
@@ -167,7 +171,10 @@ export class FaydaKYCService {
   /**
    * verifyFaydaID — Verifies the Fayda ID and persists the result to local storage and Supabase.
    */
-  static async verifyFaydaID(faydaId: string, additionalData: Partial<FaydaKycData> & { userId?: string } = {}): Promise<KycVerificationResult> {
+  static async verifyFaydaID(
+    faydaId: string,
+    additionalData: Partial<FaydaKycData> & { userId?: string } = {}
+  ): Promise<KycVerificationResult> {
     try {
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -203,7 +210,8 @@ export class FaydaKYCService {
         woreda: additionalData.woreda || '01',
         house_number: additionalData.house_number || '1234',
         phone: additionalData.phone || '',
-        email: additionalData.email || `${additionalData.phone?.replace('+', '') || faydaId}@email.com`,
+        email:
+          additionalData.email || `${additionalData.phone?.replace('+', '') || faydaId}@email.com`,
         photo: `https://api.dicebear.com/7.x/avataaars/svg?seed=${faydaId}`,
         fingerprint_hash: `fp_hash_${faydaId.slice(-8)}`,
         iris_hash: `iris_hash_${faydaId.slice(-8)}`,
@@ -211,7 +219,7 @@ export class FaydaKYCService {
         issued_date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000)
           .toISOString()
-          .split('T')[0], 
+          .split('T')[0],
         national_id: `ID${faydaId.slice(-9)}`,
         passport_number: `EP${faydaId.slice(-7)}`,
         blood_group: additionalData.blood_group || 'O+',
@@ -264,7 +272,11 @@ export class FaydaKYCService {
   /**
    * getKYCStatus — Retrieves the current KYC status and data.
    */
-  static async getKYCStatus(): Promise<{ status: FaydaStatus; kyc_data: FaydaKycData | null; temp_data: FaydaTempData | null }> {
+  static async getKYCStatus(): Promise<{
+    status: FaydaStatus;
+    kyc_data: FaydaKycData | null;
+    temp_data: FaydaTempData | null;
+  }> {
     try {
       const status = await SecurePersist.loadKYCStatus();
       const data = await SecurePersist.loadKYC();

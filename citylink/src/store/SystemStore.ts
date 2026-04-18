@@ -55,33 +55,36 @@ export const useSystemStore = create<SystemState>()(
         }, 3500);
       },
 
-      addNotification: (notif) => set((s) => ({ 
-        notifications: [notif, ...s.notifications],
-        unreadCount: s.unreadCount + 1
-      })),
+      addNotification: (notif) =>
+        set((s) => ({
+          notifications: [notif, ...s.notifications],
+          unreadCount: s.unreadCount + 1,
+        })),
 
-      markNotifRead: (id) => set((s) => {
-        const targetNotif = s.notifications.find(n => n.id === id);
-        if (!targetNotif || targetNotif.read) return s;
+      markNotifRead: (id) =>
+        set((s) => {
+          const targetNotif = s.notifications.find((n) => n.id === id);
+          if (!targetNotif || targetNotif.read) return s;
 
-        const notifications = s.notifications.map((n) => 
-          n.id === id ? { ...n, read: true, is_read: true } : n
-        );
-        return { notifications, unreadCount: Math.max(0, s.unreadCount - 1) };
-      }),
+          const notifications = s.notifications.map((n) =>
+            n.id === id ? { ...n, read: true, is_read: true } : n
+          );
+          return { notifications, unreadCount: Math.max(0, s.unreadCount - 1) };
+        }),
 
       clearNotifications: () => set({ notifications: [], unreadCount: 0 }),
       addChatMessage: (msg) => set((s) => ({ chatHistory: [...s.chatHistory, msg].slice(-50) })),
       clearChat: () => set({ chatHistory: [] }),
-      reset: () => set({ 
-        isDark: true, 
-        theme: 'dark', 
-        lang: 'en', 
-        notifications: [], 
-        unreadCount: 0, 
-        chatHistory: [],
-        toasts: []
-      }),
+      reset: () =>
+        set({
+          isDark: true,
+          theme: 'dark',
+          lang: 'en',
+          notifications: [],
+          unreadCount: 0,
+          chatHistory: [],
+          toasts: [],
+        }),
     }),
     {
       name: 'citylink-system-storage',

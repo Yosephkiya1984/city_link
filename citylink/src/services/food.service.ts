@@ -20,18 +20,21 @@ export async function fetchFoodItems(merchantId: string) {
 /**
  * placeOrder — places a new food order using atomic purchase RPC.
  */
-export async function placeOrder(orderData: Partial<FoodOrder> & { items_count: number; restaurant: string }) {
-  const res = await supaQuery<{ ok: boolean; error?: string; data?: Record<string, unknown> }>((c) =>
-    c.rpc('process_food_purchase', {
-      p_order_id: orderData.id,
-      p_citizen_id: orderData.citizen_id,
-      p_merchant_id: orderData.merchant_id,
-      p_restaurant_name: orderData.restaurant,
-      p_items_count: orderData.items_count,
-      p_total: orderData.total,
-      p_delivery_pin: orderData.delivery_pin,
-      p_items_json: orderData.items,
-    })
+export async function placeOrder(
+  orderData: Partial<FoodOrder> & { items_count: number; restaurant: string }
+) {
+  const res = await supaQuery<{ ok: boolean; error?: string; data?: Record<string, unknown> }>(
+    (c) =>
+      c.rpc('process_food_purchase', {
+        p_order_id: orderData.id,
+        p_citizen_id: orderData.citizen_id,
+        p_merchant_id: orderData.merchant_id,
+        p_restaurant_name: orderData.restaurant,
+        p_items_count: orderData.items_count,
+        p_total: orderData.total,
+        p_delivery_pin: orderData.delivery_pin,
+        p_items_json: orderData.items,
+      })
   );
 
   if (res.error) return { ok: false, error: res.error };
@@ -54,7 +57,10 @@ export async function fetchMyFoodOrders(userId: string) {
 /**
  * completeFoodOrder — processes payout for a completed food order.
  */
-export async function completeFoodOrder(orderId: string, merchantId: string): Promise<{ ok: boolean; error?: string; merchantNewBalance?: number }> {
+export async function completeFoodOrder(
+  orderId: string,
+  merchantId: string
+): Promise<{ ok: boolean; error?: string; merchantNewBalance?: number }> {
   const res = await supaQuery<{ ok: boolean; new_balance: number }>((c) =>
     c.rpc('complete_food_order_payout', {
       p_order_id: orderId,
@@ -82,7 +88,9 @@ export async function fetchFoodOrdersByMerchant(merchantId: string) {
 
 // ── Merchant Dashboard Functions ───────────────────────────────────────
 
-export const fetchRestaurantOrders = async (merchantId: string): Promise<{ data: FoodOrder[]; error: string | null }> => {
+export const fetchRestaurantOrders = async (
+  merchantId: string
+): Promise<{ data: FoodOrder[]; error: string | null }> => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -119,10 +127,12 @@ export const fetchRestaurantOrders = async (merchantId: string): Promise<{ data:
       .eq('restaurant_id', merchantId)
       .order('created_at', { ascending: false })
   );
-  return { data: res.data || [], error: res.error };
+  return { data: res.data ?? [], error: res.error };
 };
 
-export const fetchRestaurantMenu = async (merchantId: string): Promise<{ data: MenuItem[]; error: string | null }> => {
+export const fetchRestaurantMenu = async (
+  merchantId: string
+): Promise<{ data: MenuItem[]; error: string | null }> => {
   if (!hasSupabase()) {
     return {
       data: [
@@ -155,21 +165,30 @@ export const fetchRestaurantMenu = async (merchantId: string): Promise<{ data: M
       .eq('restaurant_id', merchantId)
       .order('category', { ascending: true })
   );
-  return { data: res.data || [], error: res.error };
+  return { data: res.data ?? [], error: res.error };
 };
 
-export const updateOrderStatus = async (orderId: string, status: string): Promise<{ok: boolean, error: string | null}> => {
+export const updateOrderStatus = async (
+  orderId: string,
+  status: string
+): Promise<{ ok: boolean; error: string | null }> => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
-  const res = await supaQuery<void>((client) => client.from('food_orders').update({ status }).eq('id', orderId));
+  const res = await supaQuery<void>((client) =>
+    client.from('food_orders').update({ status }).eq('id', orderId)
+  );
   return { ok: !res.error, error: res.error };
 };
 
-export const updateMenuItem = async (menuItem: Partial<MenuItem>): Promise<{ok: boolean, error: string | null}> => {
+export const updateMenuItem = async (
+  menuItem: Partial<MenuItem>
+): Promise<{ ok: boolean; error: string | null }> => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
-  const res = await supaQuery<MenuItem>((client) => client.from('menu_items').upsert(menuItem).select().single());
+  const res = await supaQuery<MenuItem>((client) =>
+    client.from('menu_items').upsert(menuItem).select().single()
+  );
   return { ok: !res.error, error: res.error };
 };

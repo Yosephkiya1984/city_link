@@ -14,125 +14,131 @@ interface InventoryPropertyCardProps {
   onFindDelala?: (property: PropertyListing) => void;
 }
 
-const InventoryPropertyCard = memo(({ property, onPress, onNegotiate, onEdit, onFindDelala }: InventoryPropertyCardProps) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+const InventoryPropertyCard = memo(
+  ({ property, onPress, onNegotiate, onEdit, onFindDelala }: InventoryPropertyCardProps) => {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.98,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [scaleAnim]);
+    const handlePressIn = useCallback(() => {
+      Animated.spring(scaleAnim, {
+        toValue: 0.98,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, [scaleAnim]);
 
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
+    const handlePressOut = useCallback(() => {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    }, [scaleAnim]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'NEGOTIATING':
-        return COLORS.secondary;
-      case 'AGREED':
-        return COLORS.primary;
-      case 'PENDING':
-        return COLORS.outline;
-      default:
-        return COLORS.outline;
-    }
-  };
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'NEGOTIATING':
+          return COLORS.secondary;
+        case 'AGREED':
+          return COLORS.primary;
+        case 'PENDING':
+          return COLORS.outline;
+        default:
+          return COLORS.outline;
+      }
+    };
 
-  return (
-    <Animated.View style={[styles.inventoryCard, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.9}
-        style={styles.inventoryCardContent}
-      >
-        <View style={styles.inventoryCardImageContainer}>
-          <Image 
-            source={{ uri: property.images?.[0] || 'https://via.placeholder.com/300' }} 
-            style={styles.inventoryCardImage}
-            defaultSource={require('../../../assets/icon.png')}
-          />
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(property.status) }]}>
-            <Text style={styles.statusBadgeText}>{property.status}</Text>
-          </View>
-        </View>
-
-        <View style={styles.inventoryCardBody}>
-          <View style={styles.inventoryCardHeader}>
-            <Text style={styles.inventoryCardTitle} numberOfLines={1}>{property.title}</Text>
-            <Text style={styles.inventoryCardPrice}>ETB {fmtETB(property.price, 0)}</Text>
-          </View>
-
-          <View style={styles.inventoryCardLocation}>
-            <Ionicons name="location" size={14} color={COLORS.outline} />
-            <Text style={styles.inventoryCardLocationText}>{property.location}</Text>
-          </View>
-
-          {property.negotiations && property.negotiations.length > 0 && (
-            <View style={styles.negotiationSection}>
-              <Text style={styles.negotiationTitle}>Active Negotiations</Text>
-              {property.negotiations.map((negotiation: any, index: number) => (
-                <View
-                  key={negotiation.id ? negotiation.id : `${negotiation.merchant}-${index}`}
-                  style={styles.negotiationItem}
-                >
-                  <Text style={styles.negotiationMerchant}>{negotiation.merchant}</Text>
-                  <Text style={styles.negotiationOffer}>ETB {fmtETB(negotiation.offer, 0)}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <View style={styles.inventoryCardActions}>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={() => onEdit?.(property)}
-              accessibilityLabel="Edit property listing"
-              accessibilityRole="button"
+    return (
+      <Animated.View style={[styles.inventoryCard, { transform: [{ scale: scaleAnim }] }]}>
+        <TouchableOpacity
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={0.9}
+          style={styles.inventoryCardContent}
+        >
+          <View style={styles.inventoryCardImageContainer}>
+            <Image
+              source={{ uri: property.images?.[0] || 'https://via.placeholder.com/300' }}
+              style={styles.inventoryCardImage}
+              defaultSource={require('../../../assets/icon.png')}
+            />
+            <View
+              style={[styles.statusBadge, { backgroundColor: getStatusColor(property.status) }]}
             >
-              <Ionicons name="create" size={16} color={COLORS['on-surface']} />
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-
-            {property.negotiations && property.negotiations.length > 0 ? (
-              <TouchableOpacity
-                style={styles.negotiateButton}
-                onPress={() => onNegotiate(property)}
-                accessibilityLabel="View negotiation chat"
-                accessibilityRole="button"
-              >
-                <Ionicons name="chatbubble" size={16} color={COLORS['on-primary']} />
-                <Text style={styles.negotiateButtonText}>View Chat</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.negotiateButton}
-                onPress={() => onFindDelala?.(property)}
-                accessibilityLabel="Find an agent for this property"
-                accessibilityRole="button"
-              >
-                <Ionicons name="add-circle" size={16} color={COLORS['on-primary']} />
-                <Text style={styles.negotiateButtonText}>Find Delala</Text>
-              </TouchableOpacity>
-            )}
+              <Text style={styles.statusBadgeText}>{property.status}</Text>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
+
+          <View style={styles.inventoryCardBody}>
+            <View style={styles.inventoryCardHeader}>
+              <Text style={styles.inventoryCardTitle} numberOfLines={1}>
+                {property.title}
+              </Text>
+              <Text style={styles.inventoryCardPrice}>ETB {fmtETB(property.price, 0)}</Text>
+            </View>
+
+            <View style={styles.inventoryCardLocation}>
+              <Ionicons name="location" size={14} color={COLORS.outline} />
+              <Text style={styles.inventoryCardLocationText}>{property.location}</Text>
+            </View>
+
+            {property.negotiations && property.negotiations.length > 0 && (
+              <View style={styles.negotiationSection}>
+                <Text style={styles.negotiationTitle}>Active Negotiations</Text>
+                {property.negotiations.map((negotiation: any, index: number) => (
+                  <View
+                    key={negotiation.id ? negotiation.id : `${negotiation.merchant}-${index}`}
+                    style={styles.negotiationItem}
+                  >
+                    <Text style={styles.negotiationMerchant}>{negotiation.merchant}</Text>
+                    <Text style={styles.negotiationOffer}>ETB {fmtETB(negotiation.offer, 0)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.inventoryCardActions}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => onEdit?.(property)}
+                accessibilityLabel="Edit property listing"
+                accessibilityRole="button"
+              >
+                <Ionicons name="create" size={16} color={COLORS['on-surface']} />
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+
+              {property.negotiations && property.negotiations.length > 0 ? (
+                <TouchableOpacity
+                  style={styles.negotiateButton}
+                  onPress={() => onNegotiate(property)}
+                  accessibilityLabel="View negotiation chat"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="chatbubble" size={16} color={COLORS['on-primary']} />
+                  <Text style={styles.negotiateButtonText}>View Chat</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.negotiateButton}
+                  onPress={() => onFindDelala?.(property)}
+                  accessibilityLabel="Find an agent for this property"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="add-circle" size={16} color={COLORS['on-primary']} />
+                  <Text style={styles.negotiateButtonText}>Find Delala</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  }
+);
 
 export default InventoryPropertyCard;
 

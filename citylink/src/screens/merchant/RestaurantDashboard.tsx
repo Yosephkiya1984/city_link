@@ -70,7 +70,8 @@ export default function RestaurantDashboard() {
   const todayRevenue = orders
     .filter(
       (o: any) =>
-        o.status !== 'CANCELLED' && o.created_at &&
+        o.status !== 'CANCELLED' &&
+        o.created_at &&
         new Date(o.created_at).toDateString() === new Date().toDateString()
     )
     .reduce((sum: number, o: any) => sum + (o.total || 0), 0);
@@ -80,7 +81,8 @@ export default function RestaurantDashboard() {
   ).length;
   const deliveredToday = orders.filter(
     (o: any) =>
-      o.status === 'DELIVERED' && o.created_at &&
+      o.status === 'DELIVERED' &&
+      o.created_at &&
       new Date(o.created_at).toDateString() === new Date().toDateString()
   ).length;
 
@@ -96,7 +98,8 @@ export default function RestaurantDashboard() {
       if (ordersRes.data)
         setOrders(
           (ordersRes.data || []).sort(
-            (a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+            (a: any, b: any) =>
+              new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
           )
         );
       if (menuRes.data) setMenu(menuRes.data);
@@ -672,7 +675,9 @@ export default function RestaurantDashboard() {
               <CInput
                 placeholder="Item description (optional)"
                 value={newMenuItem.description}
-                onChangeText={(text: string) => setNewMenuItem({ ...newMenuItem, description: text })}
+                onChangeText={(text: string) =>
+                  setNewMenuItem({ ...newMenuItem, description: text })
+                }
                 multiline
                 numberOfLines={3}
               />

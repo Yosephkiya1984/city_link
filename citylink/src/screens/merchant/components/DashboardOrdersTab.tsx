@@ -183,25 +183,13 @@ export function DashboardOrdersTab({
                 style={{ flex: 1, paddingLeft: 12, borderLeftWidth: 1, borderLeftColor: T.edge }}
               >
                 <Text style={styles.ocTinyLabel}>
-                  {[
-                    'SHIPPED',
-                    'DISPATCHING',
-                    'AGENT_ASSIGNED',
-                    'IN_TRANSIT',
-                    'AWAITING_PIN',
-                  ].includes(o.status)
-                    ? 'DELIVERY PIN'
+                  {['DISPATCHING', 'AGENT_ASSIGNED'].includes(o.status)
+                    ? 'PICKUP PIN'
                     : 'ESCROW STATUS'}
                 </Text>
-                {[
-                  'SHIPPED',
-                  'DISPATCHING',
-                  'AGENT_ASSIGNED',
-                  'IN_TRANSIT',
-                  'AWAITING_PIN',
-                ].includes(o.status) ? (
+                {['DISPATCHING', 'AGENT_ASSIGNED'].includes(o.status) ? (
                   <View style={styles.ocPinBoxMobile}>
-                    <Text style={styles.ocPinTxt}>{o.delivery_pin}</Text>
+                    <Text style={styles.ocPinTxt}>{o.pickup_pin || 'Generating...'}</Text>
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
@@ -226,7 +214,12 @@ export function DashboardOrdersTab({
                   style={[styles.ocBtnMobile, { backgroundColor: T.primaryD, flex: 2 }]}
                   onPress={() => handleMarkShipped(o.id)}
                 >
-                  <Ionicons name="cube-outline" size={16} color={T.ink} style={{ marginRight: 6 }} />
+                  <Ionicons
+                    name="cube-outline"
+                    size={16}
+                    color={T.ink}
+                    style={{ marginRight: 6 }}
+                  />
                   <Text style={[styles.ocBtnTxt, { color: T.ink }]}>Mark Shipped</Text>
                 </TouchableOpacity>
               ) : o.status === 'DISPATCHING' ? (

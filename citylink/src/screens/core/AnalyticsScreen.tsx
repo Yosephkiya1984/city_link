@@ -121,11 +121,20 @@ export default function AnalyticsScreen() {
   const loadData = useCallback(async () => {
     if (!currentUser) return;
     setLoading(true);
-    
+
     // Fetch Spending & Savings
     const [spendRes, saveRes] = await Promise.all([
-      fetchSpendingInsights(currentUser.id, selectedPeriod === 'week' ? 7 : selectedPeriod === 'month' ? 30 : selectedPeriod === 'quarter' ? 90 : 365),
-      getUserSavingsMetrics(currentUser.id)
+      fetchSpendingInsights(
+        currentUser.id,
+        selectedPeriod === 'week'
+          ? 7
+          : selectedPeriod === 'month'
+            ? 30
+            : selectedPeriod === 'quarter'
+              ? 90
+              : 365
+      ),
+      getUserSavingsMetrics(currentUser.id),
     ]);
 
     // Process Spending
@@ -133,12 +142,12 @@ export default function AnalyticsScreen() {
       const txs = spendRes.data;
       const categories: Record<string, number> = {};
       const timeline: any[] = [];
-      
+
       txs.forEach((tx: any) => {
         categories[tx.category] = (categories[tx.category] || 0) + tx.amount;
         // Group by day for simple timeline
         const day = new Date(tx.created_at).toLocaleDateString(undefined, { weekday: 'short' });
-        const existingDay = timeline.find(d => d.day === day);
+        const existingDay = timeline.find((d) => d.day === day);
         if (existingDay) {
           existingDay.amount += tx.amount;
         } else {
@@ -150,8 +159,8 @@ export default function AnalyticsScreen() {
         ...prev,
         spending: {
           ...prev.spending,
-          data: timeline.length > 0 ? timeline : prev.spending.data
-        }
+          data: timeline.length > 0 ? timeline : prev.spending.data,
+        },
       }));
 
       // Generate Insight dynamically
@@ -159,16 +168,16 @@ export default function AnalyticsScreen() {
         const total = txs.reduce((s: number, t: any) => s + t.amount, 0);
         const topCat = Object.entries(categories).sort((a, b) => b[1] - a[1])[0];
         if (topCat) {
-          setInsightList(prev => [
+          setInsightList((prev) => [
             {
               id: 'dynamic-spend',
               title: 'Top Category',
               insight: `You spent ${fmtETB(topCat[1])} on ${topCat[0]} this period.`,
-              recommendation: `This accounts for ${Math.round((topCat[1]/total)*100)}% of total debit.`,
+              recommendation: `This accounts for ${Math.round((topCat[1] / total) * 100)}% of total debit.`,
               type: 'info',
-              icon: 'pie-chart'
+              icon: 'pie-chart',
             },
-            ...prev.filter(i => i.id !== 'dynamic-spend')
+            ...prev.filter((i) => i.id !== 'dynamic-spend'),
           ]);
         }
       }
@@ -182,9 +191,9 @@ export default function AnalyticsScreen() {
         savings: {
           ...prev.savings,
           data: [
-            { category: 'Total Ekub', target: totalSaved * 1.5 || 10000, current: totalSaved }
-          ]
-        }
+            { category: 'Total Ekub', target: totalSaved * 1.5 || 10000, current: totalSaved },
+          ],
+        },
       }));
     }
 
@@ -299,7 +308,11 @@ export default function AnalyticsScreen() {
                   key={index}
                   style={{
                     flex: 1,
-                    height: Math.max(5, (item.amount / Math.max(...realMetric.data.map((d: any) => d.amount || 1))) * 50),
+                    height: Math.max(
+                      5,
+                      (item.amount / Math.max(...realMetric.data.map((d: any) => d.amount || 1))) *
+                        50
+                    ),
                     backgroundColor: realMetric.color,
                     borderRadius: 4,
                   }}
@@ -340,7 +353,10 @@ export default function AnalyticsScreen() {
                 Weekly Activity
               </Text>
               <Text style={{ color: realMetric.color, fontSize: 16, fontFamily: Fonts.black }}>
-                {realMetric.data.reduce((sum: number, item: any) => sum + (item.transactions || 0), 0)}
+                {realMetric.data.reduce(
+                  (sum: number, item: any) => sum + (item.transactions || 0),
+                  0
+                )}
               </Text>
             </View>
           )}
@@ -385,7 +401,8 @@ export default function AnalyticsScreen() {
                   <View
                     style={{
                       width: '80%',
-                      height: (item.amount / Math.max(...metric.data.map((d: any) => d.amount))) * 100,
+                      height:
+                        (item.amount / Math.max(...metric.data.map((d: any) => d.amount))) * 100,
                       backgroundColor: metric.color,
                       borderRadius: 4,
                     }}

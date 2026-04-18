@@ -2,35 +2,30 @@ import { getClient, supaQuery, hasSupabase } from './supabase';
 import { rpcDebitWallet, rpcCreditWallet } from './wallet.service';
 import { uid } from '../utils';
 import { decode } from 'base64-arraybuffer';
-import { 
-  Product, 
-  MarketplaceOrder, 
-  Dispute, 
-  MerchantMetrics, 
-  User 
-} from '../types';
+import { Product, MarketplaceOrder, Dispute, MerchantMetrics, User } from '../types';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-const PRODUCT_COLS =
-  '*, merchant:profiles(id, full_name, business_name, merchant_name)';
+const PRODUCT_COLS = '*, merchant:profiles(id, full_name)';
 const ORDER_COLS =
-  '*, buyer:profiles(full_name, phone), merchant:profiles(business_name, merchant_name)';
+  '*, buyer:profiles(full_name, phone), merchant:profiles(full_name)';
 
 /**
  * Type for product joined with merchant info from Supabase
  */
 interface ProductWithMerchant extends Product {
-  merchant?: {
-    id: string;
-    full_name: string;
-    business_name: string;
-    merchant_name: string;
-  } | {
-    id: string;
-    full_name: string;
-    business_name: string;
-    merchant_name: string;
-  }[];
+  merchant?:
+    | {
+        id: string;
+        full_name: string;
+        business_name: string;
+        merchant_name: string;
+      }
+    | {
+        id: string;
+        full_name: string;
+        business_name: string;
+        merchant_name: string;
+      }[];
 }
 
 // Helper to map relational result to existing flat structure for backward compatibility
@@ -38,7 +33,7 @@ const mapProductMerchant = (p: ProductWithMerchant): Product => {
   if (!p) return p;
   const rawMerchant = p.merchant;
   const merchant = Array.isArray(rawMerchant) ? rawMerchant[0] : rawMerchant;
-  
+
   return {
     ...p,
     business_name: merchant?.business_name,
@@ -63,13 +58,15 @@ export async function fetchProducts(limit: number = 50) {
 
 export async function searchProducts(query: string, limit: number = 40) {
   if (!query?.trim()) return fetchProducts(limit);
+  // Sanitize: strip PostgREST special chars to prevent filter injection
+  const sanitized = query.replace(/[(),.]/g, '');
   const res = await supaQuery<ProductWithMerchant[]>((c) =>
     c
       .from('products')
       .select(PRODUCT_COLS)
       .eq('status', 'active')
       .gt('stock', 0)
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%`)
+      .or(`name.ilike.%${sanitized}%,description.ilike.%${sanitized}%,category.ilike.%${sanitized}%`)
       .order('created_at', { ascending: false })
       .limit(limit)
   );
@@ -114,9 +111,12 @@ export async function insertProduct(product: Partial<Product>) {
     id: product.id || uid(),
     created_at: new Date().toISOString(),
   };
-  
+
   // Clean up any legacy fields that might be passed from UI
-  const { image, images, ...payload } = officialProduct as (Partial<Product> & { image?: string; images?: any });
+  const { image, images, ...payload } = officialProduct as Partial<Product> & {
+    image?: string;
+    images?: any;
+  };
   if (image && !payload.image_url) (payload as any).image_url = image;
   if (images && !payload.images_json) (payload as any).images_json = images;
 
@@ -143,7 +143,10 @@ export async function deleteProduct(productId: string) {
   );
 }
 
-export async function uploadProductImage(imageData: { uri: string; base64: string }): Promise<{ data: string | null; error: string | null }> {
+export async function uploadProductImage(imageData: {
+  uri: string;
+  base64: string;
+}): Promise<{ data: string | null; error: string | null }> {
   const client = getClient();
   if (!client) return { data: null, error: 'no-credentials' };
   try {
@@ -169,7 +172,9 @@ export async function fetchMarketplaceOrdersByBuyer(buyerId: string) {
 }
 
 export async function fetchMarketplaceOrdersByMerchant(merchantId: string) {
-  return supaQuery<MarketplaceOrder[]>((c) => c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId }));
+  return supaQuery<MarketplaceOrder[]>((c) =>
+    c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId })
+  );
 }
 
 export async function executeMarketplacePurchase({
@@ -177,22 +182,27 @@ export async function executeMarketplacePurchase({
   buyerId,
   qty,
   address,
+  deliveryFee = 0,
 }: {
   product: Product;
   buyerId: string;
   qty: number;
   address: string;
+  deliveryFee?: number;
 }) {
   const merchantId = product.merchant_id;
 
-  const res = await supaQuery<{ ok: boolean; order_id: string; total: number; error?: string }>((c) =>
-    c.rpc('process_marketplace_purchase', {
-      p_buyer_id: buyerId,
-      p_product_id: product.id,
-      p_merchant_id: merchantId,
-      p_qty: qty,
-      p_shipping_address: address,
-    })
+  const res = await supaQuery<{ ok: boolean; order_id: string; total: number; error?: string }>(
+    (c) =>
+      c.rpc('process_marketplace_purchase', {
+        p_buyer_id: buyerId,
+        p_product_id: product.id,
+        p_merchant_id: merchantId,
+        p_qty: qty,
+        p_shipping_address: address,
+        p_delivery_fee: deliveryFee,
+        p_expected_price: product.price,
+      })
   );
 
   if (res.error) return { ok: false, error: res.error || 'purchase_failed' };
@@ -202,12 +212,24 @@ export async function executeMarketplacePurchase({
   return { ok: true, orderId: data.order_id, total: data.total };
 }
 
-export async function releaseMarketplaceEscrow(orderId: string, escrowId: string) {
+export async function releaseMarketplaceEscrow(orderId: string, escrowId: string, pin?: string) {
   return supaQuery<void>((c) =>
     c.rpc('release_escrow', {
-      p_order_id: orderId,
       p_escrow_id: escrowId,
-      p_release_method: 'delivery_pin',
+      p_order_id: orderId,
+      p_release_method: pin ? 'delivery_pin' : 'manual_confirmation',
+      p_delivery_pin: pin,
+    })
+  );
+}
+
+export async function requestWithdrawal(userId: string, amount: number, bankName: string, accountNum: string) {
+  return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
+    c.rpc('request_merchant_withdrawal', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_bank_name: bankName,
+      p_account_number: accountNum,
     })
   );
 }
@@ -257,6 +279,61 @@ export async function merchantMarkShippedMarketplace(
   );
 }
 
+export async function confirmAgentHandoverMarketplace(
+  orderId: string,
+  agentId: string,
+  pickupPin: string
+) {
+  return supaQuery<{ ok: boolean; status?: string; error?: string }>((c) =>
+    c.rpc('confirm_agent_handover', {
+      p_order_id: orderId,
+      p_agent_id: agentId,
+      p_pickup_pin: pickupPin,
+    })
+  );
+}
+
+export async function rejectMarketplaceDelivery(
+  orderId: string,
+  buyerId: string,
+  reasonCode: string,
+  comment: string = ''
+) {
+  return supaQuery<{ ok: boolean; status?: string; error?: string }>((c) =>
+    c.rpc('reject_delivery_by_buyer', {
+      p_order_id: orderId,
+      p_buyer_id: buyerId,
+      p_reason_code: reasonCode,
+      p_comment: comment,
+    })
+  );
+}
+
+/**
+ * ADMIN ONLY: Resolves a marketplace dispute with a specific payout logic.
+ */
+export async function resolveMarketplaceDispute(
+  orderId: string,
+  resolutionType: 'BUYER_FAULT' | 'MERCHANT_AT_FAULT' | 'ORDER_CANCELLED_REFUND'
+) {
+  return supaQuery<{ ok: boolean; resolution: string; buyer_refunded: number; error?: string }>(
+    (c) =>
+      c.rpc('resolve_marketplace_dispute', {
+        p_order_id: orderId,
+        p_resolution_type: resolutionType,
+      })
+  );
+}
+
+export async function acceptMarketplaceDeliveryJob(orderId: string, agentId: string) {
+  return supaQuery<{ ok: boolean; error?: string }>((c) =>
+    c.rpc('accept_delivery_job', {
+      p_order_id: orderId,
+      p_agent_id: agentId,
+    })
+  );
+}
+
 // —— Legacy Aliases & RPC Wrappers —————————————————————————————————————————————
 export async function rpcReleaseEscrow(escrowId: string, orderId: string) {
   return releaseMarketplaceEscrow(orderId, escrowId);
@@ -277,78 +354,74 @@ export async function fetchMerchantMetrics(merchantId: string): Promise<Merchant
   if (!hasSupabase() || !merchantId)
     return { totalRevenue: 0, activeOrders: 0, totalProducts: 0, lowStock: 0 };
 
-  const [{ data: ordersData }, { data: productsData }] = await Promise.all([
-    fetchMarketplaceOrdersByMerchant(merchantId),
-    supaQuery<Pick<Product, 'id' | 'stock' | 'status'>[]>((c) =>
-      c
-        .from('products')
-        .select('id, stock, status')
-        .eq('merchant_id', merchantId)
-        .neq('status', 'removed')
-    ),
-  ]);
+  const { data, error } = await supaQuery<{
+    total_revenue: number;
+    active_orders: number;
+    total_products: number;
+    low_stock_products: number;
+  }>((c) =>
+    c
+      .from('merchant_metrics')
+      .select('total_revenue, active_orders, total_products, low_stock_products')
+      .eq('merchant_id', merchantId)
+      .single()
+  );
 
-  const orders = ordersData || [];
-  const products = productsData || [];
+  if (error || !data) {
+    return { totalRevenue: 0, activeOrders: 0, totalProducts: 0, lowStock: 0 };
+  }
 
-  const allActiveStatuses = [
-    'PAID',
-    'DISPATCHING',
-    'AGENT_ASSIGNED',
-    'SHIPPED',
-    'IN_TRANSIT',
-    'AWAITING_PIN',
-  ];
-  const revenueStatuses = [...allActiveStatuses, 'COMPLETED'];
-
-  const totalRevenue = orders
-    .filter((o) => revenueStatuses.includes(o.status))
-    .reduce((sum, o) => sum + Number(o.total || 0), 0);
-  const activeOrders = orders.filter((o) => allActiveStatuses.includes(o.status)).length;
-  const totalProducts = products.filter((p) => p.status === 'active').length;
-  const lowStock = products.filter((p) => (p.stock || 0) <= 5 && p.status === 'active').length;
-
-  return { totalRevenue, activeOrders, totalProducts, lowStock };
+  return {
+    totalRevenue: data.total_revenue,
+    activeOrders: data.active_orders,
+    totalProducts: data.total_products,
+    lowStock: data.low_stock_products,
+  };
 }
 
 export async function fetchMerchantSalesHistory(merchantId: string) {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-  const { data: allOrdersData } = await fetchMarketplaceOrdersByMerchant(merchantId);
-  const allOrders = allOrdersData || [];
+  if (!hasSupabase() || !merchantId) {
+    return { curve: [0, 0, 0, 0, 0, 0, 0], raw: [], labels: [] };
+  }
 
-  const salesStatuses = [
-    'PAID',
-    'DISPATCHING',
-    'AGENT_ASSIGNED',
-    'SHIPPED',
-    'IN_TRANSIT',
-    'AWAITING_PIN',
-    'COMPLETED',
-  ];
-  const orders = allOrders.filter(
-    (o) => salesStatuses.includes(o.status) && o.created_at >= sevenDaysAgo.toISOString()
-  );
-
+  const today = new Date();
   const dailyMap: Record<string, number> = {};
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dailyMap[d.toISOString().split('T')[0]] = 0;
+    const date = new Date();
+    date.setDate(today.getDate() - i);
+    dailyMap[date.toISOString().split('T')[0]] = 0;
   }
-  orders?.forEach((o) => {
-    const key = o.created_at.split('T')[0];
-    if (dailyMap[key] !== undefined) dailyMap[key] += Number(o.total || 0);
+
+  const fromDate = Object.keys(dailyMap)[0];
+  const { data, error } = await supaQuery<{ day: string; total: number }[]>((c) =>
+    c
+      .from('merchant_sales_history_7d')
+      .select('day, total')
+      .eq('merchant_id', merchantId)
+      .gte('day', fromDate)
+      .order('day', { ascending: true })
+  );
+
+  if (error || !data) {
+    return { curve: [0, 0, 0, 0, 0, 0, 0], raw: [], labels: Object.keys(dailyMap) };
+  }
+
+  data.forEach((row) => {
+    const dayKey = new Date(row.day).toISOString().split('T')[0];
+    if (dailyMap[dayKey] !== undefined) {
+      dailyMap[dayKey] = Number(row.total || 0);
+    }
   });
-  const values = Object.values(dailyMap);
-  const maxVal = Math.max(...values, 1);
+
+  const raw = Object.values(dailyMap);
+  const maxVal = Math.max(...raw, 1);
   return {
-    curve: values.map((v: number) => v / maxVal),
-    raw: values,
+    curve: raw.map((value) => value / maxVal),
+    raw,
     labels: Object.keys(dailyMap),
   };
 }
+
 // —— Unified Service Object ———————————————————————————————————————————————————
 
 export const marketplaceService = {
@@ -372,17 +445,20 @@ export const marketplaceService = {
     buyerId,
     qty,
     shippingAddress,
+    deliveryFee = 0,
   }: {
     product: Product;
     buyerId: string;
     qty: number;
     shippingAddress: string;
+    deliveryFee?: number;
   }) => {
     const res = await executeMarketplacePurchase({
       product,
       buyerId,
       qty,
       address: shippingAddress,
+      deliveryFee,
     });
     if (!res.ok) throw new Error(res.error || 'Purchase failed');
     return { success: true, orderId: res.orderId, total: res.total };
@@ -404,8 +480,10 @@ export const marketplaceService = {
   },
 
   getMerchantOpenDisputes: async (merchantId: string) => {
-    const { data } = await fetchMarketplaceOrdersByMerchant(merchantId);
-    return (data || []).filter((o) => o.status === 'DISPUTED');
+    const { data } = await supaQuery<Dispute[]>((c) =>
+      c.from('disputes').select('*').eq('merchant_id', merchantId).eq('status', 'OPEN')
+    );
+    return data || [];
   },
 
   updateProduct: async (productId: string, updates: Partial<Product>) => {
@@ -430,7 +508,8 @@ export const marketplaceService = {
         p_lng: lng,
       })
     );
-    if (res.error || !res.data?.ok) throw res.error || new Error(res.data?.error || 'Failed to dispatch order');
+    if (res.error || !res.data?.ok)
+      throw res.error || new Error(res.data?.error || 'Failed to dispatch order');
     return {
       success: true,
       dispatchedCount: res.data.dispatched_count,
@@ -438,13 +517,19 @@ export const marketplaceService = {
   },
 
   confirmPickup: async (orderId: string, userId: string) => {
-    const res = await supaQuery<{ ok: boolean; status: string; delivery_pin?: string; error?: string }>((c) =>
+    const res = await supaQuery<{
+      ok: boolean;
+      status: string;
+      delivery_pin?: string;
+      error?: string;
+    }>((c) =>
       c.rpc('confirm_order_pickup', {
         p_order_id: orderId,
         p_user_id: userId,
       })
     );
-    if (res.error || !res.data?.ok) throw res.error || new Error(res.data?.error || 'Pickup confirmation failed');
+    if (res.error || !res.data?.ok)
+      throw res.error || new Error(res.data?.error || 'Pickup confirmation failed');
     return {
       success: true,
       status: res.data.status,
@@ -463,8 +548,59 @@ export const marketplaceService = {
     return { success: data?.ok === true, error: data?.error || null };
   },
 
+  confirmAgentHandover: async (orderId: string, agentId: string, pickupPin: string) => {
+    const { data, error } = await confirmAgentHandoverMarketplace(orderId, agentId, pickupPin);
+    if (error || !data?.ok) throw error || new Error(data?.error || 'Handover failed');
+    return { success: true, status: data.status };
+  },
+
+  rejectDelivery: async (
+    orderId: string,
+    buyerId: string,
+    reasonCode: string,
+    comment: string = ''
+  ): Promise<{ success: boolean; status: string | null; error: string | null }> => {
+    const { data, error } = await rejectMarketplaceDelivery(orderId, buyerId, reasonCode, comment);
+    if (error) return { success: false, status: null, error };
+    return { success: data?.ok === true, status: data?.status || null, error: data?.error || null };
+  },
+
+  requestWithdrawal: async (userId: string, amount: number, bankName: string, accountNum: string) => {
+    const res = await requestWithdrawal(userId, amount, bankName, accountNum);
+    return { data: res.data, error: res.error };
+  },
+
+  resolveDispute: async (
+    orderId: string,
+    resolutionType: 'BUYER_FAULT' | 'MERCHANT_AT_FAULT' | 'ORDER_CANCELLED_REFUND'
+  ) => {
+    const { data, error } = await resolveMarketplaceDispute(orderId, resolutionType);
+    if (error || !data?.ok) throw error || new Error(data?.error || 'Resolution failed');
+    return { success: true, resolution: data.resolution, refunded: data.buyer_refunded };
+  },
+
+  acceptDeliveryJob: async (orderId: string, agentId: string) => {
+    const { data, error } = await acceptMarketplaceDeliveryJob(orderId, agentId);
+    if (error || !data?.ok)
+      throw error || new Error(data?.error || 'Failed to accept delivery job');
+    return { success: true };
+  },
+
   subscribeToProducts: (callback: (payload: any) => void) => {
     const { subscribeToTable } = require('./supabase');
     return subscribeToTable('products-realtime', 'products', null, callback);
   },
+
+  revealOrderPin: async (orderId: string, walletPinHash?: string) => {
+    return supaQuery<{ ok: boolean; delivery_pin: string; error?: string }>((c) =>
+      c.rpc('reveal_marketplace_order_pin', {
+        p_order_id: orderId,
+        p_wallet_pin_hash: walletPinHash,
+      })
+    );
+  },
 };
+
+export async function revealMarketplaceOrderPin(orderId: string, walletPinHash?: string) {
+  return marketplaceService.revealOrderPin(orderId, walletPinHash);
+}

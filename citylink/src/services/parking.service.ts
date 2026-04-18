@@ -12,7 +12,7 @@ export async function fetchParkingLots(merchantId?: string) {
 }
 
 export async function startParkingSession(session: Partial<ParkingSession>) {
-  return supaQuery<ParkingSession>((c) => 
+  return supaQuery<ParkingSession>((c) =>
     c.from('parking_sessions').insert([session]).select().single()
   );
 }
@@ -61,7 +61,7 @@ export async function endParkingSession(
   // 2. Process Payment (with Idempotency)
   if (userId && fare > 0) {
     const paymentId = `PRK-END-${sessionId}`;
-    
+
     // Attempt debit
     const balanceRes = await client.rpc('debit_wallet_atomic', {
       p_user_id: userId,
@@ -72,13 +72,16 @@ export async function endParkingSession(
     });
 
     if (balanceRes.error || !balanceRes.data?.ok) {
-      console.error(`[Parking] Payment failed | Session: ${paymentId} | Error:`, balanceRes.error || balanceRes.data?.error);
-      return { 
+      console.error(
+        `[Parking] Payment failed | Session: ${paymentId} | Error:`,
+        balanceRes.error || balanceRes.data?.error
+      );
+      return {
         data: null,
-        error: { 
-          message: 'Wallet transaction failed', 
-          code: 'PAYMENT_ERROR'
-        } 
+        error: {
+          message: 'Wallet transaction failed',
+          code: 'PAYMENT_ERROR',
+        },
       };
     }
 
@@ -103,14 +106,14 @@ export async function endParkingSession(
       // Success Path
       const resultData: ParkingSession = {
         ...updateData,
-        new_balance: balanceRes.data.new_balance
+        new_balance: balanceRes.data.new_balance,
       };
       return { data: resultData, error: null };
     } catch (err: any) {
       console.error(`[Parking] Finalization failed | Session: ${sessionId} | Error:`, err);
-      
+
       // 4. COMPENSATING REFUND
-      const correlationId = sessionId; 
+      const correlationId = sessionId;
       const refundRes = await client.rpc('credit_wallet_atomic', {
         p_user_id: userId,
         p_amount: fare,
@@ -122,43 +125,43 @@ export async function endParkingSession(
       if (refundRes.error) {
         const errorMsg = `[Parking] REFUND_FAILED | Session: ${correlationId} | Error: ${JSON.stringify(refundRes.error)}`;
         console.error(`CRITICAL: ${errorMsg}. Manual intervention required.`);
-        
+
         // Persist refund_failed state with raw error for reconciliation
         await supaQuery<void>((c) =>
-          c.from('parking_sessions').update({ 
-            status: 'refund_failed',
-            refund_failed: true,
-            refund_error: refundRes.error
-          }).eq('id', correlationId)
+          c
+            .from('parking_sessions')
+            .update({
+              status: 'refund_failed',
+              refund_failed: true,
+              refund_error: refundRes.error,
+            })
+            .eq('id', correlationId)
         );
 
-        return { 
+        return {
           data: null,
-          error: { 
+          error: {
             type: 'REFUND_FAILED',
             message: 'Session finalization failed and recovery attempt also failed.',
             sessionId: correlationId,
-            recovery_failed: true 
-          } 
+            recovery_failed: true,
+          },
         };
       }
 
       // Revert status to payment_failed in the DB (Refund was successful)
       const refundKey = `REFUND-${paymentId}`;
       await supaQuery<ParkingSession>((c) =>
-        c
-          .from('parking_sessions')
-          .update({ status: 'payment_failed' })
-          .eq('id', sessionId)
+        c.from('parking_sessions').update({ status: 'payment_failed' }).eq('id', sessionId)
       );
 
-      return { 
+      return {
         data: null,
-        error: { 
-          message: 'Session finalization failed. Payment was successfully refunded to your wallet.', 
-          details: 'Internal reconciliation error', 
-          refund_key: refundKey 
-        } 
+        error: {
+          message: 'Session finalization failed. Payment was successfully refunded to your wallet.',
+          details: 'Internal reconciliation error',
+          refund_key: refundKey,
+        },
       };
     }
   }

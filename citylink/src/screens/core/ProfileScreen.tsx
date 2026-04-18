@@ -44,7 +44,7 @@ export default function ProfileScreen() {
 
   const [pinSet, setPinSet] = useState(false);
   const [kycStatus, setKycStatus] = useState<string>(FAYDA_STATUS.NOT_STARTED);
-  const [kycData, setKycData] = useState<any>(null);
+  const [kycData, setKycData] = useState<Record<string, unknown> | null>(null);
   const [isAgent, setIsAgent] = useState(false);
   const [loadingAgent, setLoadingAgent] = useState(false);
 
@@ -56,11 +56,11 @@ export default function ProfileScreen() {
       } else {
         setPinSet(false);
       }
-      
+
       // Load KYC status
       const statusData = await FaydaKYCService.getKYCStatus();
       setKycStatus(statusData.status);
-      setKycData(statusData.kyc_data);
+      setKycData(statusData.kyc_data ?? null);
 
       // Check if they are a delivery agent
       if (userId) {
@@ -96,8 +96,11 @@ export default function ProfileScreen() {
 
       try {
         // 1. Reset data stores first (Auth & Wallet)
-        const results = await Promise.allSettled([Promise.resolve().then(authReset), Promise.resolve().then(walletReset)]);
-        
+        const results = await Promise.allSettled([
+          Promise.resolve().then(authReset),
+          Promise.resolve().then(walletReset),
+        ]);
+
         results.forEach((res, idx) => {
           if (res.status === 'rejected') {
             const name = idx === 0 ? 'Auth' : 'Wallet';
@@ -106,12 +109,12 @@ export default function ProfileScreen() {
         });
 
         // 2. Add a brief delay so any error messages remain visible during transition
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         // 3. Reset system store last (clears toasts/UI state)
-        await Promise.resolve().then(systemReset).catch((err: any) => 
-          console.error('[Logout] Failed to reset System store:', err)
-        );
+        await Promise.resolve()
+          .then(systemReset)
+          .catch((err: any) => console.error('[Logout] Failed to reset System store:', err));
       } catch (err) {
         console.error('[Logout] Unexpected error during parallel store reset:', err);
       }
@@ -292,7 +295,7 @@ export default function ProfileScreen() {
         {(currentUser?.role === 'citizen' || currentUser?.role === 'delivery_agent') && (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
-               onPress={async () => {
+              onPress={async () => {
                 if (!currentUser?.id) return;
                 const { updateUserRole } = require('../../services/profile.service');
                 if (currentUser.role === 'delivery_agent') {

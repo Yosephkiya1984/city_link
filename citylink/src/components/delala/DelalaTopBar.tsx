@@ -8,11 +8,7 @@ interface EnhancedTopBarProps {
   userImage: string;
 }
 
-const DelalaTopBar = memo(({
-  activeScreen,
-  onScreenChange,
-  userImage,
-}: EnhancedTopBarProps) => {
+const DelalaTopBar = memo(({ activeScreen, onScreenChange, userImage }: EnhancedTopBarProps) => {
   return (
     <View style={styles.topBar}>
       <View style={styles.topBarLeft}>
@@ -37,8 +33,8 @@ const DelalaTopBar = memo(({
         </View>
 
         <View style={styles.profileContainer}>
-          <Image 
-            source={{ uri: userImage || 'https://via.placeholder.com/100' }} 
+          <Image
+            source={{ uri: userImage || 'https://via.placeholder.com/100' }}
             style={styles.profileImage}
             defaultSource={require('../../../assets/icon.png')}
           />

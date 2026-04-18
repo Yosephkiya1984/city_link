@@ -46,6 +46,7 @@ import {
   uploadDeliveryProof,
   recordTelemetry,
 } from '../../services/delivery.service';
+import { marketplaceService } from '../../services/marketplace.service';
 import { subscribeToTable, unsubscribe } from '../../services/supabase';
 import { signOut } from '../../services/auth.service';
 
@@ -98,7 +99,15 @@ function useCountdown(expiresAt: string) {
 }
 
 // ── Dispatch Card ─────────────────────────────────────────────────────────────
-function DispatchCard({ dispatch, onAccept, onDecline }: { dispatch: any; onAccept: (d: any) => void; onDecline: (d: any) => void }) {
+function DispatchCard({
+  dispatch,
+  onAccept,
+  onDecline,
+}: {
+  dispatch: any;
+  onAccept: (d: any) => void;
+  onDecline: (d: any) => void;
+}) {
   const pulse = useRef(new Animated.Value(1)).current;
   const secs = useCountdown(dispatch.expires_at);
   const order = dispatch.order;
@@ -199,7 +208,19 @@ function DispatchCard({ dispatch, onAccept, onDecline }: { dispatch: any; onAcce
 }
 
 // ── Active Job Card ───────────────────────────────────────────────────────────
-function ActiveJobCard({ job, onPickedUp, onArrived, onEnterPin }: { job: any; onPickedUp: (j: any) => void; onArrived: (j: any) => void; onEnterPin: (j: any) => void }) {
+function ActiveJobCard({
+  job,
+  onPickedUp,
+  onArrived,
+  onEnterPin,
+  onReject,
+}: {
+  job: any;
+  onPickedUp: (j: any) => void;
+  onArrived: (j: any) => void;
+  onEnterPin: (j: any) => void;
+  onReject: (j: any) => void;
+}) {
   const statusConfig: Record<string, any> = {
     AGENT_ASSIGNED: {
       label: 'Head to Pickup',
@@ -327,13 +348,26 @@ function ActiveJobCard({ job, onPickedUp, onArrived, onEnterPin }: { job: any; o
           </TouchableOpacity>
         )}
         {cfg.next === 'enter_pin' && (
-          <TouchableOpacity
-            style={[s.actionBtn, { backgroundColor: T.green }]}
-            onPress={() => onEnterPin(job)}
-          >
-            <Ionicons name="keypad-outline" size={18} color="#0a0e14" />
-            <Text style={s.actionBtnText}>Enter Delivery PIN</Text>
-          </TouchableOpacity>
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity
+              style={[s.actionBtn, { backgroundColor: T.green }]}
+              onPress={() => onEnterPin(job)}
+            >
+              <Ionicons name="keypad-outline" size={18} color="#0a0e14" />
+              <Text style={s.actionBtnText}>Enter Delivery PIN</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                s.actionBtn,
+                { backgroundColor: 'transparent', borderWidth: 1, borderColor: T.red },
+              ]}
+              onPress={() => onReject(job)}
+            >
+              <Ionicons name="alert-circle-outline" size={18} color={T.red} />
+              <Text style={[s.actionBtnText, { color: T.red }]}>Unable to Deliver</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </LinearGradient>
     </View>
@@ -358,13 +392,22 @@ export default function DeliveryAgentDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState(0);
 
+  const [rejectionJob, setRejectionJob] = useState<any>(null);
+  const [rejectionType, setRejectionType] = useState<string>('NOT_REACHABLE');
+  const [rejectionComment, setRejectionComment] = useState('');
+  const [submittingRejection, setSubmittingRejection] = useState(false);
+
   const [pinPromptJob, setPinPromptJob] = useState<any>(null);
   const [pinInput, setPinInput] = useState('');
   const [submittingPin, setSubmittingPin] = useState(false);
 
+  const [pickupPinJob, setPickupPinJob] = useState<any>(null);
+  const [pickupPinInput, setPickupPinInput] = useState('');
+  const [submittingPickupPin, setSubmittingPickupPin] = useState(false);
+
   // Proof of Delivery (POD) State
   const [showCamera, setShowCamera] = useState(false);
-  const [arrivedJob, setArrivedJob] = useState<any>(null); // Which job we are currently taking POD for
+  const [arrivedJob, setArrivedJob] = useState<any>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [capturing, setCapturing] = useState(false);
   const cameraRef = useRef<any>(null);
@@ -377,6 +420,97 @@ export default function DeliveryAgentDashboard() {
   useEffect(() => {
     activeJobsRef.current = activeJobs;
   }, [activeJobs]);
+
+  // -- Numeric Keypad Component --
+  const NumericKeypad = ({
+    value,
+    setValue,
+    maxLength,
+    onConfirm,
+    confirmLoading,
+  }: {
+    value: string;
+    setValue: (v: string) => void;
+    maxLength: number;
+    onConfirm: () => void;
+    confirmLoading?: boolean;
+  }) => {
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'delete'];
+
+    const onPress = (key: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (key === 'delete') {
+        setValue(value.slice(0, -1));
+      } else if (key === '') {
+        // Gap
+      } else if (value.length < maxLength) {
+        setValue(value + key);
+      }
+    };
+
+    return (
+      <View style={s.keypadContainer}>
+        {/* Pin Display */}
+        <View style={s.keypadDisplay}>
+          {Array.from({ length: maxLength }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                s.keypadDot,
+                { backgroundColor: value.length > i ? T.primary : T.surfaceHigh },
+                value.length === i && { borderColor: T.primary, borderWidth: 1 },
+              ]}
+            >
+              {value.length > i && (
+                <Text style={{ color: T.bg, fontWeight: '900', fontSize: 18 }}>{value[i]}</Text>
+              )}
+            </View>
+          ))}
+        </View>
+
+        {/* Buttons */}
+        <View style={s.keypadGrid}>
+          {keys.map((key, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[s.keypadKey, key === '' && { opacity: 0 }]}
+              onPress={() => onPress(key)}
+              disabled={key === ''}
+            >
+              {key === 'delete' ? (
+                <Ionicons name="backspace-outline" size={24} color={T.text} />
+              ) : (
+                <Text style={s.keypadKeyText}>{key}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={[
+            s.keypadConfirmBtn,
+            { backgroundColor: value.length === maxLength ? T.green : T.surfaceHigh },
+            confirmLoading && { opacity: 0.7 },
+          ]}
+          onPress={onConfirm}
+          disabled={value.length < maxLength || confirmLoading}
+        >
+          {confirmLoading ? (
+            <ActivityIndicator color={T.bg} size="small" />
+          ) : (
+            <Text
+              style={[
+                s.keypadConfirmText,
+                { color: value.length === maxLength ? T.bg : T.textSub },
+              ]}
+            >
+              {maxLength === 6 ? 'CONFIRM PICKUP' : 'CONFIRM DELIVERY'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   // â”€â”€ Load Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadDashboard = useCallback(async () => {
@@ -411,7 +545,7 @@ export default function DeliveryAgentDashboard() {
     setLoading(true);
     loadDashboard().finally(() => setLoading(false));
 
-    if (!currentUser?.id) return;
+    if (!currentUser || !currentUser.id) return;
 
     // Realtime subscription for dispatches
     dispatchSub.current = subscribeToAgentDispatches(currentUser.id, () => loadDashboard());
@@ -486,9 +620,20 @@ export default function DeliveryAgentDashboard() {
   // —— Accept Dispatch —————————————————————————————————————————————————————
   const handleAccept = async (dispatch: any) => {
     if (!currentUser?.id) return;
+
+    // Quick local check if we know they are blocked
+    if (agentProfile?.blocked_until && new Date(agentProfile.blocked_until) > new Date()) {
+      showToast('You are currently restricted from accepting jobs.', 'error');
+      return;
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const { ok, error } = await acceptDeliveryJob(dispatch.order_id, currentUser.id);
     if (!ok) {
+      if (error?.includes('blocked')) {
+        // Refresh profile to get the block info
+        loadDashboard();
+      }
       showToast(error || 'Job already taken by another agent', 'error');
       return;
     }
@@ -505,30 +650,46 @@ export default function DeliveryAgentDashboard() {
   // —— Decline Dispatch ————————————————————————————————————————————————————————
   const handleDecline = async (dispatch: any) => {
     if (!currentUser?.id) return;
-    await declineDeliveryJob(dispatch.order_id, currentUser.id);
+    const res = await declineDeliveryJob(dispatch.order_id, currentUser.id);
     setDispatches((prev) => prev.filter((d) => d.order_id !== dispatch.order_id));
-    showToast('Job declined', 'info');
+
+    if (res.error) {
+      showToast(`Decline failed: ${res.error}`, 'error');
+    } else {
+      showToast('Job declined', 'info');
+    }
   };
 
   // —— Picked Up (Dual Confirmation) ———————————————————————————————————————————
-  const handlePickedUp = async (job: any) => {
-    if (!currentUser?.id) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setLoading(true);
-    try {
-      const { ok, status, error } = await markOrderPickedUp(job.id, currentUser.id);
-      if (!ok) throw new Error(error);
+  const handleEnterPickupPin = (job: any) => {
+    setPickupPinInput('');
+    setPickupPinJob(job);
+  };
 
-      if (status === 'SHIPPED') {
+  const handleConfirmPickupPin = async () => {
+    if (!pickupPinJob || !currentUser?.id) return;
+    if (pickupPinInput.trim().length < 6) {
+      showToast('Please enter the 6-digit pickup PIN provided by the merchant.', 'error');
+      return;
+    }
+    setSubmittingPickupPin(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    try {
+      const res = await marketplaceService.confirmAgentHandover(
+        pickupPinJob.id,
+        currentUser.id,
+        pickupPinInput.trim()
+      );
+      if (res.success) {
         showToast('Package picked up! Delivery officially started.', 'success');
-      } else {
-        showToast('You confirmed pickup! Waiting for merchant handover...', 'info');
       }
+      setPickupPinJob(null);
+      setPickupPinInput('');
       loadDashboard();
     } catch (e: any) {
       showToast(e.message || 'Pickup confirmation failed', 'error');
     } finally {
-      setLoading(false);
+      setSubmittingPickupPin(false);
     }
   };
 
@@ -553,7 +714,10 @@ export default function DeliveryAgentDashboard() {
     if (!cameraRef.current || capturing || !arrivedJob || !currentUser?.id) return;
     setCapturing(true);
     try {
-      const photo = await (cameraRef.current as any).takePictureAsync({ base64: true, quality: 0.5 });
+      const photo = await (cameraRef.current as any).takePictureAsync({
+        base64: true,
+        quality: 0.5,
+      });
       showToast('Uploading proof...', 'info');
 
       const { ok, error } = await uploadDeliveryProof(arrivedJob.id, photo.base64);
@@ -584,7 +748,11 @@ export default function DeliveryAgentDashboard() {
       return;
     }
     setSubmittingPin(true);
-    const res = await confirmDeliveryWithPin((pinPromptJob as any).id, pinInput.trim(), currentUser.id);
+    const res = await confirmDeliveryWithPin(
+      (pinPromptJob as any).id,
+      pinInput.trim(),
+      currentUser.id
+    );
     setSubmittingPin(false);
 
     if (!res.ok) {
@@ -601,6 +769,28 @@ export default function DeliveryAgentDashboard() {
     setPinPromptJob(null);
     setPinInput('');
     loadDashboard();
+  };
+
+  const handleRejectOrder = async () => {
+    if (!rejectionJob || !currentUser?.id) return;
+    setSubmittingRejection(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    try {
+      await marketplaceService.rejectDelivery(
+        rejectionJob.id,
+        rejectionJob.buyer_id,
+        rejectionType,
+        rejectionComment
+      );
+      showToast('Delivery marked as failed. Dispute opened.', 'info');
+      setRejectionJob(null);
+      setRejectionComment('');
+      loadDashboard();
+    } catch (e: any) {
+      showToast(e.message || 'Rejection failed', 'error');
+    } finally {
+      setSubmittingRejection(false);
+    }
   };
 
   const onRefresh = async () => {
@@ -721,6 +911,30 @@ export default function DeliveryAgentDashboard() {
       >
         {tab === 'home' && (
           <>
+            {/* Penalty Block Banner */}
+            {agentProfile?.blocked_until && new Date(agentProfile.blocked_until) > new Date() && (
+              <View style={[s.penaltyBanner, { marginBottom: 16 }]}>
+                <View style={s.penaltyHeader}>
+                  <Ionicons name="warning" size={20} color={T.red} />
+                  <Text style={s.penaltyTitle}>ACCOUNT TEMPORARILY RESTRICTED</Text>
+                </View>
+                <Text style={s.penaltyReason}>
+                  {agentProfile.last_block_reason || 'Excessive job declines or policy violation.'}
+                </Text>
+                <View style={s.penaltyTimer}>
+                  <Ionicons name="time-outline" size={14} color={T.red} />
+                  <Text style={s.penaltyTimerText}>
+                    Restriction lifts at {new Date(agentProfile.blocked_until).toLocaleTimeString()}{' '}
+                    (
+                    {Math.ceil(
+                      (new Date(agentProfile.blocked_until).getTime() - Date.now()) / 60000
+                    )}{' '}
+                    mins left)
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Stats Row */}
             <View style={s.statsRow}>
               {[
@@ -760,8 +974,8 @@ export default function DeliveryAgentDashboard() {
                 </Text>
                 <Text style={s.onlineSub}>
                   {isOnline
-                    ? 'You are visible to orders within 5km'
-                    : 'Toggle on to start receiving delivery jobs'}
+                    ? 'You are visible to orders within 5km (Requires >500 ETB collateral)'
+                    : 'Toggle on to start receiving delivery jobs (Requires >500 ETB collateral)'}
                 </Text>
               </View>
               {togglingOnline ? (
@@ -806,9 +1020,10 @@ export default function DeliveryAgentDashboard() {
                   <ActiveJobCard
                     key={job.id}
                     job={job}
-                    onPickedUp={handlePickedUp}
+                    onPickedUp={handleEnterPickupPin}
                     onArrived={handleArrived}
                     onEnterPin={handleEnterPin}
+                    onReject={setRejectionJob}
                   />
                 ))}
               </View>
@@ -886,37 +1101,106 @@ export default function DeliveryAgentDashboard() {
               earnings.
             </Text>
 
-            <TextInput
-              style={s.modalInput}
-              placeholder="Enter 4-digit PIN"
-              placeholderTextColor={T.textSub}
+            <NumericKeypad
               value={pinInput}
-              onChangeText={setPinInput}
-              keyboardType="number-pad"
+              setValue={setPinInput}
               maxLength={4}
-              autoFocus
+              onConfirm={handleConfirmWithPin}
+              confirmLoading={submittingPin}
             />
 
-            <View style={s.modalBtns}>
+            {/* Hidden native input removed for premium custom keypad */}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ══ Rejection (Unable to Deliver) Modal ══ */}
+      <Modal visible={!!rejectionJob} animationType="slide" transparent statusBarTranslucent>
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Text style={{ fontSize: 18, fontWeight: '800', color: T.text }}>
+                Unable to Deliver
+              </Text>
               <TouchableOpacity
-                style={s.cancelBtn}
-                onPress={() => setPinPromptJob(null)}
-                disabled={submittingPin}
+                onPress={() => setRejectionJob(null)}
+                disabled={submittingRejection}
               >
-                <Text style={{ color: T.textSub, fontWeight: '700' }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.submitBtn, submittingPin && { opacity: 0.6 }]}
-                onPress={handleConfirmWithPin}
-                disabled={submittingPin}
-              >
-                {submittingPin ? (
-                  <ActivityIndicator color="#000" size="small" />
-                ) : (
-                  <Text style={{ color: '#000', fontWeight: '800' }}>Confirm Delivery</Text>
-                )}
+                <Ionicons name="close" size={22} color={T.textSub} />
               </TouchableOpacity>
             </View>
+
+            <Text style={{ color: T.textSub, fontSize: 13, marginBottom: 16 }}>
+              Select the reason for delivery failure. This will lock the funds and open a formal
+              dispute.
+            </Text>
+
+            <View style={{ gap: 10, marginBottom: 20 }}>
+              {[
+                { id: 'NOT_REACHABLE', label: 'Buyer Not Reachable / Not Home', icon: 'call' },
+                { id: 'WRONG_ITEM', label: 'Wrong Item (Merchant Error)', icon: 'basket' },
+                { id: 'DAMAGED', label: 'Item Damaged', icon: 'warning' },
+                { id: 'CHANGED_MIND', label: 'Buyer Changed Mind', icon: 'close-circle' },
+                { id: 'OTHER', label: 'Other / Custom', icon: 'ellipsis-horizontal' },
+              ].map((reason) => (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[
+                    s.reasonOption,
+                    rejectionType === reason.id && {
+                      borderColor: T.primary,
+                      backgroundColor: T.primaryDim,
+                    },
+                  ]}
+                  onPress={() => setRejectionType(reason.id)}
+                >
+                  <Ionicons
+                    name={reason.icon as any}
+                    size={20}
+                    color={rejectionType === reason.id ? T.primary : T.textSub}
+                  />
+                  <Text
+                    style={[
+                      s.reasonLabel,
+                      rejectionType === reason.id && { color: T.primary, fontWeight: '800' },
+                    ]}
+                  >
+                    {reason.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={s.rejectionInput}
+              placeholder="Provide more details (optional)..."
+              placeholderTextColor={T.textSub}
+              value={rejectionComment}
+              onChangeText={setRejectionComment}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={[s.actionBtn, { marginTop: 20, backgroundColor: T.red }]}
+              onPress={handleRejectOrder}
+              disabled={submittingRejection}
+            >
+              {submittingRejection ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <>
+                  <Ionicons name="alert-circle" size={18} color="#0a0e14" />
+                  <Text style={s.actionBtnText}>MARK AS FAILED</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1174,40 +1458,88 @@ const _s = StyleSheet.create({
   historyDate: { color: T.textSub, fontSize: 11, marginTop: 2 },
   historyEarning: { color: T.green, fontSize: 14, fontWeight: '900' },
 
+  // Penalty Banner
+  penaltyBanner: {
+    backgroundColor: T.redDim,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: T.red,
+    gap: 8,
+  },
+  penaltyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  penaltyTitle: { color: T.red, fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  penaltyReason: { color: T.text, fontSize: 14, fontWeight: '600' },
+  penaltyTimer: { flexDirection: 'row', alignItems: 'center', gap: 6, opacity: 0.8 },
+  penaltyTimerText: { color: T.red, fontSize: 12, fontWeight: '700' },
+
   // Modal classes
+
+  // -- Keypad Styles --
+  keypadContainer: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  keypadDisplay: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 30,
+    justifyContent: 'center',
+  },
+  keypadDot: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: T.surfaceHigh,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keypadGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: 280,
+    justifyContent: 'center',
+    gap: 15,
+  },
+  keypadKey: {
+    width: 75,
+    height: 60,
+    borderRadius: 15,
+    backgroundColor: T.surfaceHigh,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keypadKeyText: {
+    color: T.text,
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  keypadConfirmBtn: {
+    marginTop: 30,
+    width: '100%',
+    padding: 16,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  keypadConfirmText: {
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+
+  // POD Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
-    padding: 20,
+    padding: 24,
   },
   modalSheet: {
     backgroundColor: T.surface,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     borderWidth: 1,
     borderColor: T.border,
-  },
-  modalInput: {
-    backgroundColor: T.bg,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 18,
-    fontWeight: '800',
-    color: T.text,
-    marginBottom: 20,
-    textAlign: 'center',
-    letterSpacing: 4,
-  },
-  modalBtns: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
-  cancelBtn: { paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center' },
-  submitBtn: {
-    backgroundColor: T.green,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    minWidth: 140,
-    alignItems: 'center',
   },
 
   // World-Class Additions
@@ -1256,6 +1588,29 @@ const _s = StyleSheet.create({
     padding: 5,
   },
   shutterInner: { width: 66, height: 66, borderRadius: 33, borderWidth: 2, borderColor: '#000' },
+
+  reasonOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: T.border,
+    backgroundColor: T.surface,
+  },
+  reasonLabel: { color: T.text, fontSize: 13, fontWeight: '600' },
+  rejectionInput: {
+    backgroundColor: T.bg,
+    borderRadius: 12,
+    padding: 14,
+    color: T.text,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: T.border,
+  },
 }) as any;
 
 // Dynamic style helper (cannot live inside StyleSheet.create)

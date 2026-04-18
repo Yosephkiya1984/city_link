@@ -1,5 +1,15 @@
 import React, { useRef } from 'react';
-import { View, Text, Animated, ActivityIndicator, Pressable, Platform, ViewStyle, TextStyle, StyleProp } from 'react-native';
+import {
+  View,
+  Text,
+  Animated,
+  ActivityIndicator,
+  Pressable,
+  Platform,
+  ViewStyle,
+  TextStyle,
+  StyleProp,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -95,7 +105,7 @@ export function CButton({
           backgroundColor: 'rgba(255,255,255,0.3)',
           transform: [
             {
-              translateX: (shimmerAnim?.interpolate 
+              translateX: (shimmerAnim?.interpolate
                 ? shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-100, 300] })
                 : -100) as any,
             },

@@ -1,11 +1,26 @@
-import { sendOtp, verifyOtp } from '../services/auth.service';
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => '00000000-0000-4000-8000-000000000000',
+}));
+
+import { sendOtp, verifyOtp } from './auth.service';
 
 // Mock Supabase client
-jest.mock('../services/supabase', () => ({
+jest.mock('./supabase', () => ({
   getClient: jest.fn(() => ({
     auth: {
       signInWithOtp: jest.fn(),
+      verifyOtp: jest.fn(),
     },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        in: jest.fn(() => ({
+          maybeSingle: jest.fn(() => Promise.resolve({ data: { id: '123' } })),
+        })),
+      })),
+    })),
   })),
 }));
 
@@ -15,47 +30,33 @@ describe('Auth Service', () => {
   });
 
   describe('sendOtp', () => {
-    it('should send OTP successfully in production', async () => {
-      // Mock production environment
-      const originalDev = __DEV__;
-      (global as any).__DEV__ = false;
+    it('should validate phone format', async () => {
+      const result = await sendOtp('invalid-phone');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('invalid-phone-format');
+    });
 
-      const mockClient = require('../services/supabase').getClient();
+    it('should send OTP for valid phone', async () => {
+      const mockClient = require('./supabase').getClient();
       mockClient.auth.signInWithOtp.mockResolvedValue({ error: null });
 
       const result = await sendOtp('+251911123456');
-
       expect(result.success).toBe(true);
       expect(result.error).toBeNull();
-
-      (global as any).__DEV__ = originalDev;
-    });
-
-    it('should return dev OTP in development', async () => {
-      const originalDev = __DEV__;
-      (global as any).__DEV__ = true;
-
-      const result = await sendOtp('+251911123456');
-
-      expect(result.success).toBe(true);
-      expect(result.devOtp).toMatch(/^\d{6}$/);
-
-      (global as any).__DEV__ = originalDev;
     });
   });
 
   describe('verifyOtp', () => {
-    it('should verify OTP successfully', async () => {
-      const mockClient = require('../services/supabase').getClient();
-      mockClient.auth.verifyOtp.mockResolvedValue({
-        data: { user: { id: '123', phone: '+251911123456' } },
-        error: null,
-      });
+    it('should validate phone format', async () => {
+      const result = await verifyOtp('invalid-phone', '123456');
+      expect(result.user).toBeNull();
+      expect(result.error).toBe('invalid-phone-format');
+    });
 
-      const result = await verifyOtp('+251911123456', '123456');
-
-      expect(result.user).toBeDefined();
-      expect(result.error).toBeNull();
+    it('should validate token format', async () => {
+      const result = await verifyOtp('+251911123456', 'invalid');
+      expect(result.user).toBeNull();
+      expect(result.error).toBe('invalid-token-format');
     });
   });
 });

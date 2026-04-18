@@ -22,7 +22,10 @@ export function StatusBadge({ status, size = 'sm', style }: StatusBadgeProps) {
   };
 
   const config = statusConfig[status?.toLowerCase()] || statusConfig.default;
-  const sizeConfig: Record<'sm' | 'md' | 'lg', { padding: number; fontSize: number; borderRadius: number }> = {
+  const sizeConfig: Record<
+    'sm' | 'md' | 'lg',
+    { padding: number; fontSize: number; borderRadius: number }
+  > = {
     sm: { padding: 4, fontSize: FontSize.xs, borderRadius: Radius.sm },
     md: { padding: 6, fontSize: FontSize.sm, borderRadius: Radius.md },
     lg: { padding: 8, fontSize: FontSize.md, borderRadius: Radius.lg },

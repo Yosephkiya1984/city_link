@@ -151,8 +151,17 @@ export default function HomeScreen() {
               {currentUser?.full_name || t('welcome_sub')}
             </Text>
           </View>
-          <TouchableOpacity 
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.edge2 }}
+          <TouchableOpacity
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: C.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1.5,
+              borderColor: C.edge2,
+            }}
             onPress={() => (navigation as any).navigate('Profile')}
           >
             <Ionicons name="person-outline" size={22} color={C.text} />
@@ -160,8 +169,8 @@ export default function HomeScreen() {
         </View>
 
         {/* Hero Section */}
-        <WalletHero 
-          balance={balance} 
+        <WalletHero
+          balance={balance}
           name={currentUser?.full_name?.split(' ')[0] || 'User'}
           greetingKey={greeting()}
           onQuickAction={handleQuickAction}

@@ -3,13 +3,39 @@
  * Strict types for core super-app entities.
  */
 
-export type UserRole = 'citizen' | 'merchant' | 'delivery_agent' | 'station' | 'inspector' | 'admin' | 'minister';
+export type UserRole =
+  | 'citizen'
+  | 'merchant'
+  | 'delivery_agent'
+  | 'station'
+  | 'inspector'
+  | 'admin'
+  | 'minister';
 
 export type VehicleType = 'bicycle' | 'motorcycle' | 'car' | 'van' | 'truck' | 'tuktuk' | 'foot';
 
 export type AgentStatus = 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED';
 
-export type KYCStatus = 'NOT_STARTED' | 'INITIATED' | 'PENDING_VERIFICATION' | 'VERIFIED' | 'REJECTED' | 'EXPIRED' | 'SUSPENDED';
+export type KYCStatus =
+  | 'NOT_STARTED'
+  | 'INITIATED'
+  | 'PENDING_VERIFICATION'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'SUSPENDED';
+
+export interface OfflineP2PTransfer {
+  id: string;
+  sender_id: string;
+  recipient_phone_encrypted: string;
+  recipient_phone_hash: string;
+  amount: number;
+  note_encrypted: string | null;
+  note_hash: string | null;
+  status: 'pending' | 'claimed' | 'synced';
+  created_at: string;
+}
 
 export interface Wallet {
   id: string;
@@ -25,11 +51,11 @@ export interface Notification {
   user_id: string;
   title: string;
   message: string;
-  type: string;  
+  type: string;
   read: boolean;
   /** @deprecated Use `read` instead. Kept for backward compatibility with existing code. */
-  is_read?: boolean; 
-  data?: Record<string, unknown>;  
+  is_read?: boolean;
+  data?: Record<string, unknown>;
   /** @deprecated Use `data` instead */
   metadata?: Record<string, unknown>;
   created_at: string;
@@ -42,7 +68,15 @@ export interface Transaction {
   user_id?: string;
   amount: number;
   type: 'credit' | 'debit';
-  category: 'transfer' | 'marketplace' | 'utility' | 'fine' | 'topup' | 'withdrawal' | 'escrow' | string;
+  category:
+    | 'transfer'
+    | 'marketplace'
+    | 'utility'
+    | 'fine'
+    | 'topup'
+    | 'withdrawal'
+    | 'escrow'
+    | string;
   description: string;
   status: 'pending' | 'completed' | 'failed';
   idempotency_key?: string;
@@ -103,6 +137,10 @@ export interface MerchantDetails {
   business_address?: string;
   license_expiry?: string;
   tax_id?: string;
+  tin?: string;
+  license_no?: string;
+  subcity?: string;
+  address?: string;
   storefront_image?: string;
   categories?: string[];
   bank_name?: string;
@@ -110,10 +148,74 @@ export interface MerchantDetails {
   operating_hours?: Record<string, string>;
   merchant_type?: string;
   merchant_status?: string;
-  tin?: string;
-  address?: string;
-  license_no?: string;
+}
+
+export interface User {
+  id: string;
+  full_name?: string;
+  role?: UserRole;
+  phone?: string;
+  email?: string;
+  fayda_verified?: boolean;
+  kyc_status?: KYCStatus | string;
   subcity?: string;
+  woreda?: string;
+  created_at?: string;
+  credit_score?: number;
+  credit_updated_at?: string;
+  welcome_bonus_paid?: boolean;
+  onboarded?: boolean;
+  pin_hash?: string;
+  avatar_url?: string;
+  merchant_details?: MerchantDetails;
+
+  // 🏛️ Legacy/Flattened compatibility fields
+  business_name?: string;
+  merchant_name?: string;
+  merchant_type?: string;
+  tin?: string;
+  license_no?: string;
+  trade_license?: string;
+}
+
+export interface AuthState {
+  currentUser: User | null;
+  isAuthenticated: boolean;
+  isVerified: boolean;
+}
+
+export interface WalletState {
+  balance: number;
+  transactions: Transaction[];
+  activeParking: ParkingSession | null;
+}
+
+export interface SystemState {
+  isDark: boolean;
+  lang: string;
+  toasts: Toast[];
+  notifications: Notification[];
+  unreadCount: number;
+  chatHistory: ChatMessage[];
+}
+
+export interface MarketplaceState {
+  products: Product[];
+  favorites: string[];
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+}
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  duration?: number;
 }
 
 export interface FoodOrderItem {
@@ -280,7 +382,13 @@ export interface EkubDraw {
   id: string;
   ekub_id: string;
   round_number: number;
-  status: 'AWAITING_CONSENT' | 'NEEDS_VOUCHING' | 'PENDING_RELEASE' | 'RELEASED' | 'DISPUTED' | 'VOIDED';
+  status:
+    | 'AWAITING_CONSENT'
+    | 'NEEDS_VOUCHING'
+    | 'PENDING_RELEASE'
+    | 'RELEASED'
+    | 'DISPUTED'
+    | 'VOIDED';
   winner_id: string;
   winner_name: string;
   pot_amount: number;
@@ -311,15 +419,30 @@ export interface MarketplaceOrder {
   product_name?: string;
   qty: number;
   total: number;
-  status: 'PAID' | 'DISPATCHING' | 'AGENT_ASSIGNED' | 'SHIPPED' | 'IN_TRANSIT' | 'AWAITING_PIN' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
+  status:
+    | 'PAID'
+    | 'DISPATCHING'
+    | 'AGENT_ASSIGNED'
+    | 'SHIPPED'
+    | 'IN_TRANSIT'
+    | 'AWAITING_PIN'
+    | 'COMPLETED'
+    | 'DISPUTED'
+    | 'CANCELLED'
+    | 'REJECTED_BY_BUYER';
   delivery_pin?: string;
+  pickup_pin?: string;
+  agent_fee?: number;
+  platform_fee?: number;
   shipping_address?: string;
   merchant_confirmed_pickup?: boolean;
   agent_confirmed_pickup?: boolean;
   created_at: string;
   updated_at: string;
   buyer?: { full_name?: string; phone?: string } | { full_name?: string; phone?: string }[];
-  merchant?: { business_name?: string; merchant_name?: string } | { business_name?: string; merchant_name?: string }[];
+  merchant?:
+    | { business_name?: string; merchant_name?: string }
+    | { business_name?: string; merchant_name?: string }[];
 }
 
 export interface Escrow {
@@ -352,20 +475,28 @@ export interface MerchantMetrics {
   lowStock: number;
 }
 
+export interface MerchantSalesHistory {
+  curve: number[];
+  raw: number[];
+  labels: string[];
+}
+
 export interface DeliveryAgent {
   id: string;
-  vehicle_type: string;
+  user_id?: string; // Standardize link to profile
+  vehicle_type: VehicleType;
   plate_number?: string;
   license_number: string;
   is_online: boolean;
-  agent_status: AgentStatus; // Use shared type to ensure 'REJECTED' and 'SUSPENDED' inclusion
+  agent_status: AgentStatus;
   total_deliveries: number;
   rating: number;
   current_lat?: number;
   current_lng?: number;
+  current_location?: { lat: number; lng: number }; // Frontend compatibility
   location_updated_at?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   profile?: { full_name: string; phone: string };
   distanceKm?: number;
 }

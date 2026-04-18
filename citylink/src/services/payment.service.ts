@@ -1,5 +1,6 @@
 import { Config, CHAPA_CHANNELS } from '../config';
 import { supaQuery } from './supabase';
+import { getSession } from './auth.service';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 
@@ -28,13 +29,30 @@ export interface ChapaVerifyResponse {
 /**
  * initialize — Starts a real Chapa payment flow.
  */
-export async function initialize({ amount, description, channel = 'telebirr', phone, name }: { amount: number, description: string, channel?: string, phone: string, name: string }): Promise<ChapaInitResponse> {
+export async function initialize({
+  amount,
+  description,
+  channel = 'telebirr',
+  phone,
+  name,
+}: {
+  amount: number;
+  description: string;
+  channel?: string;
+  phone: string;
+  name: string;
+}): Promise<ChapaInitResponse> {
   if (!amount || amount <= 0) return { status: 'error', message: 'Invalid amount.' };
-  
+
   const supaUrl = Config.supaUrl;
-  const anonKey = Config.supaKey;
-  if (!supaUrl || !anonKey || supaUrl.includes('REPLACE')) {
+  const session = await getSession();
+
+  if (!supaUrl || supaUrl.includes('REPLACE')) {
     return { status: 'error', message: 'Payment gateway not configured.' };
+  }
+
+  if (!session?.access_token) {
+    return { status: 'error', message: 'Please sign in to make payments.' };
   }
 
   const txRef = `CL-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
@@ -43,9 +61,9 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
   try {
     const res = await fetch(`${supaUrl}/functions/v1/chapa-payment/initialize`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${anonKey}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         amount,
@@ -59,18 +77,18 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
         customization: {
           title: 'CityLink Wallet Top-up',
           description,
-        }
+        },
       }),
     });
 
     const data: ChapaInitResponse = await res.json();
-    
+
     if (data.status === 'success' && data.data?.checkout_url) {
       // Open real Chapa checkout
       await WebBrowser.openBrowserAsync(data.data.checkout_url);
       return { status: 'success', tx_ref: txRef, data: data.data };
     }
-    
+
     throw new Error(data.message || 'Chapa initialization failed');
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -84,12 +102,13 @@ export async function initialize({ amount, description, channel = 'telebirr', ph
  */
 export async function verify(txRef: string): Promise<ChapaVerifyResponse> {
   const supaUrl = Config.supaUrl;
-  const anonKey = Config.supaKey;
-  
+  const session = await getSession();
+
   try {
+    if (!session?.access_token) throw new Error('Unauthorized');
     const res = await fetch(`${supaUrl}/functions/v1/chapa-payment/verify/${txRef}`, {
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${anonKey}` },
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
 
     return await res.json();
@@ -109,7 +128,13 @@ export function calcFee(amount: number, channel: string = 'telebirr'): number {
 /**
  * payUtilityBill — pays a utility bill atomically.
  */
-export async function payUtilityBill(billId: string, citizenId: string): Promise<{ data: { ok: boolean; error?: string; new_balance: number } | null; error: string | null }> {
+export async function payUtilityBill(
+  billId: string,
+  citizenId: string
+): Promise<{
+  data: { ok: boolean; error?: string; new_balance: number } | null;
+  error: string | null;
+}> {
   return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_utility_payment_atomic', {
       p_bill_id: billId,
@@ -121,7 +146,13 @@ export async function payUtilityBill(billId: string, citizenId: string): Promise
 /**
  * payTrafficFine — pays a traffic fine atomically.
  */
-export async function payTrafficFine(userId: string, fineId: string): Promise<{ data: { ok: boolean; error?: string; new_balance: number } | null; error: string | null }> {
+export async function payTrafficFine(
+  userId: string,
+  fineId: string
+): Promise<{
+  data: { ok: boolean; error?: string; new_balance: number } | null;
+  error: string | null;
+}> {
   return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_traffic_fine_atomic', {
       p_user_id: userId,

@@ -1,29 +1,38 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../../../theme';
 import { CButton, CInput } from '../../../components';
 
-export const AuthLogin = ({ 
-  C, 
-  fadeAnim, 
-  slideAnim, 
-  phone, 
-  setPhone, 
-  badgeId, 
-  setBadgeId, 
-  secPin, 
-  setSecPin, 
-  authMode, 
-  loading, 
-  error, 
-  onBack, 
-  onSendOtp 
+export const AuthLogin = ({
+  C,
+  fadeAnim,
+  slideAnim,
+  phone,
+  setPhone,
+  badgeId,
+  setBadgeId,
+  secPin,
+  setSecPin,
+  authMode,
+  loading,
+  error,
+  onBack,
+  onSendOtp,
 }: any) => {
   return (
-    <Animated.View style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      <TouchableOpacity 
-        style={[styles.backButton, { borderColor: C.edge }]} 
+    <Animated.View
+      style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+    >
+      <TouchableOpacity
+        style={[styles.backButton, { borderColor: C.edge }]}
         onPress={onBack}
         accessibilityLabel="Go back"
         accessibilityRole="button"
@@ -36,8 +45,8 @@ export const AuthLogin = ({
         {authMode === 'gov' ? 'Government Access' : 'Welcome Back'}
       </Text>
       <Text style={[styles.subtitle, { color: C.sub }]}>
-        {authMode === 'gov' 
-          ? 'Enter your badge details and secure PIN' 
+        {authMode === 'gov'
+          ? 'Enter your badge details and secure PIN'
           : 'Sign in with your phone number to continue'}
       </Text>
 
@@ -80,7 +89,7 @@ export const AuthLogin = ({
         ) : null}
 
         <CButton
-          title={authMode === 'gov' ? "Authorize" : "Verify Phone"}
+          title={authMode === 'gov' ? 'Authorize' : 'Verify Phone'}
           onPress={onSendOtp}
           loading={loading}
           disabled={loading}

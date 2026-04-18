@@ -18,7 +18,7 @@ export const clearAllStores = async () => {
 
     // 2. Physical storage wipe (Generic items)
     const keys = await AsyncStorage.getAllKeys();
-    const citylinkKeys = keys.filter(k => k.startsWith('citylink-'));
+    const citylinkKeys = keys.filter((k) => k.startsWith('citylink-'));
     if (citylinkKeys.length > 0) {
       await AsyncStorage.multiRemove(citylinkKeys);
     }

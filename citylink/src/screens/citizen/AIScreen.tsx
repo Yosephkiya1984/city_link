@@ -30,9 +30,27 @@ const SMART_SUGGESTIONS = [
   { id: 'parking', icon: '🅿️', text: 'Find Parking', category: 'services', priority: 'high' },
   { id: 'ekub', icon: '🤝', text: 'Ekub Groups', category: 'social', priority: 'high' },
   { id: 'food', icon: '🍜', text: 'Food Delivery', category: 'lifestyle', priority: 'high' },
-  { id: 'housing', icon: '🏠', text: 'Find Housing (Delala)', category: 'lifestyle', priority: 'medium' },
-  { id: 'market', icon: '🛍️', text: 'Browse Marketplace', category: 'services', priority: 'medium' },
-  { id: 'delivery', icon: '🚚', text: 'Track My Delivery', category: 'services', priority: 'medium' },
+  {
+    id: 'housing',
+    icon: '🏠',
+    text: 'Find Housing (Delala)',
+    category: 'lifestyle',
+    priority: 'medium',
+  },
+  {
+    id: 'market',
+    icon: '🛍️',
+    text: 'Browse Marketplace',
+    category: 'services',
+    priority: 'medium',
+  },
+  {
+    id: 'delivery',
+    icon: '🚚',
+    text: 'Track My Delivery',
+    category: 'services',
+    priority: 'medium',
+  },
 ];
 
 const CATEGORIES = [
@@ -97,17 +115,30 @@ export default function AIScreen() {
     setInput('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const userMsg: ChatMessage = { id: uid(), role: 'user', content: msg, timestamp: new Date().toISOString() };
+    const userMsg: ChatMessage = {
+      id: uid(),
+      role: 'user',
+      content: msg,
+      timestamp: new Date().toISOString(),
+    };
     addChatMessage(userMsg);
     setLoading(true);
 
     const apiMessages = [
-      ...chatHistory.map((m: ChatMessage) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...chatHistory.map((m: ChatMessage) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
       { role: 'user' as const, content: msg },
     ];
 
     const reply = await sendMessage(apiMessages);
-    addChatMessage({ id: uid(), role: 'assistant', content: reply, timestamp: new Date().toISOString() });
+    addChatMessage({
+      id: uid(),
+      role: 'assistant',
+      content: reply,
+      timestamp: new Date().toISOString(),
+    });
     setLoading(false);
   }
 

@@ -73,8 +73,11 @@ export function DashboardFinanceTab({
                 {new Date(tx.created_at).toLocaleDateString()} • {tx.category}
               </Text>
             </View>
-            <Text style={[styles.tablePrice, { color: tx.type === 'credit' ? T.primary : T.onSurface }]}>
-              {tx.type === 'debit' ? '-' : '+'}{Number(tx.amount).toLocaleString()} ETB
+            <Text
+              style={[styles.tablePrice, { color: tx.type === 'credit' ? T.primary : T.onSurface }]}
+            >
+              {tx.type === 'debit' ? '-' : '+'}
+              {Number(tx.amount).toLocaleString()} ETB
             </Text>
           </View>
         ))}

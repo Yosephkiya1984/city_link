@@ -10,18 +10,15 @@ interface ActiveCircleItemProps {
   onSignConsent: (circle: any) => void;
 }
 
-const ActiveCircleItem = memo(({ 
-  circle, 
-  onContribute, 
-  onSignConsent 
-}: ActiveCircleItemProps) => {
+const ActiveCircleItem = memo(({ circle, onContribute, onSignConsent }: ActiveCircleItemProps) => {
   if (!circle) return null;
 
   const totalPot = (circle.contribution_amount || 0) * (circle.max_members || 10);
   const potBalance = Number(circle.pot_balance ?? 0) || 0;
   const progress = totalPot > 0 ? Math.min(100, Math.round((potBalance / totalPot) * 100)) : 0;
 
-  const isWinnerAwaitingConsent = circle.status === 'PAUSED' || circle.status === 'AWAITING_CONSENT';
+  const isWinnerAwaitingConsent =
+    circle.status === 'PAUSED' || circle.status === 'AWAITING_CONSENT';
 
   return (
     <View style={styles.activeCircleItem}>
@@ -63,11 +60,36 @@ const styles = StyleSheet.create({
   },
   circleProgressContainer: { width: 56, height: 56 },
   circleInfo: { flex: 1, gap: 2 },
-  circleName: { fontSize: 16, fontWeight: '700', color: COLORS['on-surface'], fontFamily: Fonts.headline },
+  circleName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.headline,
+  },
   circleDetails: { fontSize: 12, color: COLORS.outline, fontFamily: Fonts.body },
   circleActions: { minWidth: 60, alignItems: 'flex-end' },
-  consentButton: { backgroundColor: COLORS.secondary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  consentButtonText: { fontSize: 13, fontWeight: '800', color: COLORS['on-secondary'], fontFamily: Fonts.label },
-  payButton: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  payButtonText: { fontSize: 13, fontWeight: '800', color: COLORS['on-primary'], fontFamily: Fonts.label },
+  consentButton: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  consentButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS['on-secondary'],
+    fontFamily: Fonts.label,
+  },
+  payButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  payButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS['on-primary'],
+    fontFamily: Fonts.label,
+  },
 });

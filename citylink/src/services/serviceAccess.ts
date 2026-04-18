@@ -38,16 +38,24 @@ export const ServiceAccessUtils = {
       console.warn('ServiceAccessUtils.checkAccess: Using fake permissive access for development');
       return true;
     }
-    throw new Error('ServiceAccessUtils.checkAccess: Not implemented - real access checks required');
+    throw new Error(
+      'ServiceAccessUtils.checkAccess: Not implemented - real access checks required'
+    );
   },
   validateRequirements: async (): Promise<ServiceRequirement[]> => {
     if (process.env.ENABLE_FAKE_ACCESS === 'true' && process.env.NODE_ENV === 'production') {
-      throw new Error('ServiceAccessUtils.validateRequirements: Fake access is not allowed in production');
+      throw new Error(
+        'ServiceAccessUtils.validateRequirements: Fake access is not allowed in production'
+      );
     }
     if (process.env.ENABLE_FAKE_ACCESS === 'true') {
-      console.warn('ServiceAccessUtils.validateRequirements: Using fake empty requirements for development');
+      console.warn(
+        'ServiceAccessUtils.validateRequirements: Using fake empty requirements for development'
+      );
       return [];
     }
-    throw new Error('ServiceAccessUtils.validateRequirements: Not implemented - real validation required');
+    throw new Error(
+      'ServiceAccessUtils.validateRequirements: Not implemented - real validation required'
+    );
   },
 };

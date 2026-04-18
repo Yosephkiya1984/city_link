@@ -17,18 +17,17 @@ const PERFORMANCE_KEYS = {
 
 interface MetricItem {
   duration: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface Metrics {
   appStartupTime: number;
   screenLoadTimes: Record<string, number>;
   apiCallTimes: MetricItem[];
-  memoryUsage: any[];
+  memoryUsage: Record<string, unknown>[];
   bundleSize: number;
   userInteractions: MetricItem[];
 }
-
 
 // Performance monitoring provider
 export function PerformanceProvider({ children }: { children: React.ReactNode }) {
@@ -131,22 +130,21 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
     const summary = {
       appStartupTime: metrics.appStartupTime,
       averageScreenLoadTime:
-        (Object.values(metrics.screenLoadTimes).reduce(
-          (a: number, b: any) => a + (b as number),
-          0
-        ) as number) / (Object.keys(metrics.screenLoadTimes).length || 1),
+        Object.values(metrics.screenLoadTimes).reduce((a, b) => a + b, 0) /
+        (Object.keys(metrics.screenLoadTimes).length || 1),
       averageApiCallTime:
-        metrics.apiCallTimes.reduce((a: number, b: MetricItem) => a + b.duration, 0) / (metrics.apiCallTimes.length || 1),
+        metrics.apiCallTimes.reduce((a: number, b: MetricItem) => a + b.duration, 0) /
+        (metrics.apiCallTimes.length || 1),
       currentMemoryUsage: metrics.memoryUsage[metrics.memoryUsage.length - 1],
       totalInteractions: metrics.userInteractions.length,
-      slowestScreen: Object.entries(metrics.screenLoadTimes).reduce(
+      slowestScreen: Object.entries(metrics.screenLoadTimes).reduce<[string, number]>(
         (a, b) => (a[1] > b[1] ? a : b),
         ['', 0]
       )[0],
-      slowestApiCall: metrics.apiCallTimes.reduce((a: MetricItem, b: MetricItem) => (a.duration > b.duration ? a : b), {
-        endpoint: '',
-        duration: 0,
-      }).endpoint,
+      slowestApiCall:
+        metrics.apiCallTimes.length > 0
+          ? metrics.apiCallTimes.reduce((a, b) => (a.duration > b.duration ? a : b)).endpoint
+          : '',
     };
     return summary;
   };
@@ -156,7 +154,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
     try {
       await AsyncStorage.setItem('performance_metrics', JSON.stringify(metrics));
     } catch (error) {
-      console.error('Failed to save performance metrics:', error);
+      if (__DEV__) console.error('Failed to save performance metrics:', error);
     }
   };
 
@@ -168,7 +166,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
         setMetrics(JSON.parse(stored));
       }
     } catch (error) {
-      console.error('Failed to load performance metrics:', error);
+      if (__DEV__) console.error('Failed to load performance metrics:', error);
     }
   };
 
@@ -246,11 +244,11 @@ export const PerformanceUtils = {
       try {
         const result = await fn(...args);
         const duration = performance.now() - start;
-        console.log(`⏱️ ${name} executed in ${duration.toFixed(2)}ms`);
+        if (__DEV__) console.log(`⏱️ ${name} executed in ${duration.toFixed(2)}ms`);
         return result;
       } catch (error) {
         const duration = performance.now() - start;
-        console.error(`❌ ${name} failed after ${duration.toFixed(2)}ms:`, error);
+        if (__DEV__) console.error(`❌ ${name} failed after ${duration.toFixed(2)}ms:`, error);
         throw error;
       }
     };
@@ -261,7 +259,7 @@ export const PerformanceUtils = {
     const start = performance.now();
     return () => {
       const duration = performance.now() - start;
-      console.log(`🎨 ${componentName} rendered in ${duration.toFixed(2)}ms`);
+      if (__DEV__) console.log(`🎨 ${componentName} rendered in ${duration.toFixed(2)}ms`);
     };
   },
 
@@ -272,12 +270,13 @@ export const PerformanceUtils = {
       const total = (performance as any).memory.totalJSHeapSize / 1024 / 1024;
       const limit = (performance as any).memory.jsHeapSizeLimit / 1024 / 1024;
 
-      console.log(
-        `💾 Memory Usage: ${used.toFixed(2)}MB / ${total.toFixed(2)}MB (limit: ${limit.toFixed(2)}MB)`
-      );
+      if (__DEV__)
+        console.log(
+          `💾 Memory Usage: ${used.toFixed(2)}MB / ${total.toFixed(2)}MB (limit: ${limit.toFixed(2)}MB)`
+        );
 
       if (used > limit * 0.8) {
-        console.warn('⚠️ High memory usage detected!');
+        if (__DEV__) console.warn('⚠️ High memory usage detected!');
       }
     }
   },
@@ -301,7 +300,7 @@ export const PerformanceUtils = {
   },
 
   // Performance score calculation
-  calculatePerformanceScore: (metrics: any) => {
+  calculatePerformanceScore: (metrics: Metrics) => {
     let score = 100;
 
     // App startup time (0-30 points)
@@ -310,24 +309,25 @@ export const PerformanceUtils = {
     else if (metrics.appStartupTime > 1000) score -= 10;
 
     // Screen load times (0-25 points)
+    const screenLoadValues = Object.values(metrics.screenLoadTimes);
     const avgScreenLoad =
-      (Object.values(metrics.screenLoadTimes).reduce(
-        (a: number, b: any) => a + (b as number),
-        0
-      ) as number) / (Object.keys(metrics.screenLoadTimes).length || 1);
+      screenLoadValues.reduce((a: number, b: number) => a + b, 0) / (screenLoadValues.length || 1);
     if (avgScreenLoad > 2000) score -= 25;
     else if (avgScreenLoad > 1500) score -= 15;
     else if (avgScreenLoad > 1000) score -= 5;
 
     // API call times (0-25 points)
     const avgApiTime =
-      metrics.apiCallTimes.reduce((a: any, b: any) => a + b.duration, 0) / metrics.apiCallTimes.length || 0;
+      metrics.apiCallTimes.length > 0
+        ? metrics.apiCallTimes.reduce((a: number, b: MetricItem) => a + b.duration, 0) /
+          metrics.apiCallTimes.length
+        : 0;
     if (avgApiTime > 2000) score -= 25;
     else if (avgApiTime > 1500) score -= 15;
     else if (avgApiTime > 1000) score -= 5;
 
     // Memory usage (0-20 points)
-    const currentMemory = metrics.memoryUsage[metrics.memoryUsage.length - 1];
+    const currentMemory = metrics.memoryUsage[metrics.memoryUsage.length - 1] as any;
     if (currentMemory && currentMemory.used > currentMemory.limit * 0.8) score -= 20;
     else if (currentMemory && currentMemory.used > currentMemory.limit * 0.6) score -= 10;
 

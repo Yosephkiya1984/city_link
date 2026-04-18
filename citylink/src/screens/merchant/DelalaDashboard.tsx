@@ -79,11 +79,14 @@ export default function DelalaDashboard() {
   // KPI calculations
   const activeListings = listings.filter((l: PropertyListing) => l.status === 'ACTIVE').length;
   const pendingEnquiries = enquiries.filter((e: any) => e.status === 'PENDING').length;
-  const negotiatingListings = listings.filter((l: PropertyListing) => l.status === 'NEGOTIATING').length;
+  const negotiatingListings = listings.filter(
+    (l: PropertyListing) => l.status === 'NEGOTIATING'
+  ).length;
 
   const monthlyCommission = enquiries
     .filter(
-      (e: any) => e.status === 'COMPLETED' && new Date(e.created_at).getMonth() === new Date().getMonth()
+      (e: any) =>
+        e.status === 'COMPLETED' && new Date(e.created_at).getMonth() === new Date().getMonth()
     )
     .reduce((sum: number, e: any) => sum + (e.commission_amount || 0), 0);
 
@@ -98,7 +101,8 @@ export default function DelalaDashboard() {
 
       if (listingsRes.data) {
         const sortedListings = (listingsRes.data as PropertyListing[]).sort(
-          (a: PropertyListing, b: PropertyListing) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()
+          (a: PropertyListing, b: PropertyListing) =>
+            new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()
         );
         setListings(sortedListings);
       }
@@ -812,7 +816,8 @@ export default function DelalaDashboard() {
                     ðŸ“ {selectedListing.location}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 12 }}>
-                    Listed: {new Date(selectedListing.created_at || Date.now()).toLocaleDateString()}
+                    Listed:{' '}
+                    {new Date(selectedListing.created_at || Date.now()).toLocaleDateString()}
                   </Text>
                 </View>
 

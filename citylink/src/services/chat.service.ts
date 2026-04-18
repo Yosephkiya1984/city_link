@@ -33,8 +33,8 @@ export const fetchChatThreads = async (userId: string) => {
         created_at,
         unread_a,
         unread_b,
-        user_a:profiles!message_threads_user_a_id_fkey(id, full_name, business_name, merchant_name),
-        user_b:profiles!message_threads_user_b_id_fkey(id, full_name, business_name, merchant_name)
+        user_a:profiles!message_threads_user_a_id_fkey(id, full_name),
+        user_b:profiles!message_threads_user_b_id_fkey(id, full_name)
       `
       )
       .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
@@ -59,7 +59,9 @@ export const fetchChatMessages = async (threadId: string) => {
 /**
  * createChatThread — initializes a new conversation thread.
  */
-export const createChatThread = async (thread: Partial<ChatThread> & { user_a_id: string, user_b_id: string }) => {
+export const createChatThread = async (
+  thread: Partial<ChatThread> & { user_a_id: string; user_b_id: string }
+) => {
   if (!hasSupabase())
     return { data: { thread_id: thread.thread_id || 'mock-thread' } as ChatThread, error: null };
 
@@ -71,13 +73,17 @@ export const createChatThread = async (thread: Partial<ChatThread> & { user_a_id
     last_ts: new Date().toISOString(),
   };
 
-  return supaQuery<ChatThread>((client) => client.from('message_threads').insert(threadData).select().single());
+  return supaQuery<ChatThread>((client) =>
+    client.from('message_threads').insert(threadData).select().single()
+  );
 };
 
 /**
  * createChatMessage — sends a message in a thread.
  */
-export const createChatMessage = async (message: Partial<ChatMessage> & { thread_id: string, user_id: string, content: string }) => {
+export const createChatMessage = async (
+  message: Partial<ChatMessage> & { thread_id: string; user_id: string; content: string }
+) => {
   if (!hasSupabase()) return { data: message as ChatMessage, error: null };
   const cleanMsg = {
     id: message.id || uid(),
@@ -87,7 +93,9 @@ export const createChatMessage = async (message: Partial<ChatMessage> & { thread
     role: message.role || 'user',
     created_at: new Date().toISOString(),
   };
-  return supaQuery<ChatMessage>((client) => client.from('chat_messages').insert(cleanMsg).select().single());
+  return supaQuery<ChatMessage>((client) =>
+    client.from('chat_messages').insert(cleanMsg).select().single()
+  );
 };
 
 /**

@@ -1,7 +1,12 @@
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../../services/supabase';
-import { marketplaceService, insertProduct, uploadProductImage } from '../../../services/marketplace.service';
+import {
+  marketplaceService,
+  insertProduct,
+  uploadProductImage,
+  requestWithdrawal,
+} from '../../../services/marketplace.service';
 import { fetchProfile } from '../../../services/auth.service';
 import { createChatThread, createChatMessage } from '../../../services/chat.service';
 import { getCurrentLocation } from '../../../services/delivery.service';
@@ -121,7 +126,7 @@ export function useShopActions({
       description: product.description,
       condition: product.condition || 'new',
     });
-    setSelectedImage(null); 
+    setSelectedImage(null);
     setShowProductModal(true);
   };
 
@@ -150,7 +155,8 @@ export function useShopActions({
 
     setShipping(true);
     try {
-      let lat = null, lng = null;
+      let lat = null,
+        lng = null;
       try {
         const loc = await getCurrentLocation();
         if (loc) {
@@ -168,7 +174,7 @@ export function useShopActions({
         } else {
           showToast('No delivery agents nearby. Using self-delivery.', 'info');
         }
-        loadData(); 
+        loadData();
       }
     } catch (e: any) {
       showToast(e.message || 'Error updating order', 'error');
@@ -294,8 +300,7 @@ export function useShopActions({
     const { ok, error } = await confirmDeliveryWithPin(
       pinPromptOrder.id,
       pinInput.trim(),
-      null,
-      currentUser.id
+      null
     );
     setSubmittingPin(false);
 
@@ -362,43 +367,29 @@ export function useShopActions({
     }
 
     Alert.alert(
-      'Simulated Withdrawal',
-      `Withdraw ETB ${currentBalance.toLocaleString()} to your linked CBE account?`,
+      'Request Payout',
+      `Withdraw ETB ${currentBalance.toLocaleString()} to your linked bank account?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Confirm',
+          text: 'Confirm Withdrawal',
           onPress: async () => {
             setWithdrawing(true);
             try {
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-              const { data: wallet } = await supabase
-                .from('wallets')
-                .select('id')
-                .eq('user_id', currentUser.id)
-                .single();
-              if (wallet) {
-                const txId = uid();
-                await supabase.from('transactions').insert({
-                  id: txId,
-                  wallet_id: wallet.id,
-                  amount: currentBalance,
-                  type: 'debit',
-                  category: 'withdrawal',
-                  description: 'Bank Payout (CBE Bank)',
-                  created_at: new Date().toISOString(),
-                });
+              // Note: In a real app, bank details would be fetched from merchant profile
+              const res = await requestWithdrawal(
+                currentUser.id,
+                currentBalance,
+                'CBE',
+                '1000XXXXXXXXXX'
+              );
 
-                const { error: balErr } = await supabase
-                  .from('wallets')
-                  .update({ balance: 0 })
-                  .eq('id', wallet.id);
-
-                if (balErr) throw balErr;
-
-                useWalletStore.getState().setBalance(0);
-                showToast('Withdrawal successful! Funds will arrive in 24h.', 'success');
-                loadData(); 
+              if (res.data?.ok) {
+                useWalletStore.getState().setBalance(res.data.new_balance);
+                showToast('Withdrawal request submitted! Funds will arrive in 24h.', 'success');
+                loadData();
+              } else {
+                showToast(res.error || 'Withdrawal failed', 'error');
               }
             } catch (e) {
               console.error('Withdrawal error:', e);

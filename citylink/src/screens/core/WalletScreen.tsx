@@ -64,8 +64,7 @@ export default function WalletScreen() {
 
   // â”€â”€ Verification Effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
-    const isVerified =
-      currentUser?.fayda_verified || currentUser?.kyc_status === 'VERIFIED';
+    const isVerified = currentUser?.fayda_verified || currentUser?.kyc_status === 'VERIFIED';
     setWalletLimit(isVerified ? 50000 : 100);
 
     // Auto-detect provider based on phone (only if not manually selected)
@@ -92,6 +91,10 @@ export default function WalletScreen() {
         setBalance(data.balance);
         setTransactions(data.transactions || []);
       }
+
+      // 📡 SHIELD 2.0: Background PIN Hash Sync (Refinement)
+      const { ensureFullSync } = await import('../../services/walletPin');
+      ensureFullSync(currentUser.id);
     } catch (e) {
       console.error('Wallet sync error:', e);
     }
@@ -115,7 +118,7 @@ export default function WalletScreen() {
       showToast('User ID is missing', 'error');
       return;
     }
-    if ((balance + amt) > walletLimit) {
+    if (balance + amt > walletLimit) {
       showToast(`Wallet limit reached. Please verify your ID for higher limits.`, 'error');
       return;
     }
@@ -123,11 +126,7 @@ export default function WalletScreen() {
     setLoading(true);
     try {
       // Logic for top-up through WalletService
-      const success = await WalletService.processTopup(
-        currentUser.id,
-        amt,
-        selectedProvider
-      );
+      const success = await WalletService.processTopup(currentUser.id, amt, selectedProvider);
       if (success) {
         setBalance(balance + amt);
         addTransaction({

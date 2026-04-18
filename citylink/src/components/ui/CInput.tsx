@@ -74,17 +74,17 @@ export function CInput({
     ]).start();
   }, [isFocused]);
 
-  const borderColor = borderAnim?.interpolate 
+  const borderColor = borderAnim?.interpolate
     ? borderAnim.interpolate({
         inputRange: [0, 1],
         outputRange: [C?.edge2 || '#ddd', C?.primary || '#000'],
       })
     : C?.edge2 || '#ddd';
 
-  const labelColor = labelAnim?.interpolate 
-    ? labelAnim.interpolate({ 
-        inputRange: [0, 1], 
-        outputRange: [C?.sub || '#666', C?.primary || '#000'] 
+  const labelColor = labelAnim?.interpolate
+    ? labelAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [C?.sub || '#666', C?.primary || '#000'],
       })
     : C?.sub || '#666';
 
@@ -113,10 +113,10 @@ export function CInput({
             textTransform: 'uppercase',
             letterSpacing: 1.2,
             transform: [
-              { 
-                translateY: (labelAnim?.interpolate 
-                  ? labelAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) 
-                  : 0) as any
+              {
+                translateY: (labelAnim?.interpolate
+                  ? labelAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -2] })
+                  : 0) as any,
               },
             ],
           }}

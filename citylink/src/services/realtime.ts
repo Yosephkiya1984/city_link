@@ -25,11 +25,13 @@ export interface RealtimePayload<T = Record<string, unknown>> {
 }
 
 // ── Real-time Hook for React Components ────────────────────────────────────────
-export function useRealtimeSubscription<T extends Record<string, unknown> = Record<string, unknown>>(
-  channelName: string, 
-  table: string, 
-  filter: string, 
-  onPayload: (payload: RealtimePayload<T>) => void, 
+export function useRealtimeSubscription<
+  T extends Record<string, unknown> = Record<string, unknown>,
+>(
+  channelName: string,
+  table: string,
+  filter: string,
+  onPayload: (payload: RealtimePayload<T>) => void,
   enabled = true
 ) {
   const currentUser = useAuthStore((s) => s.currentUser);
@@ -98,7 +100,7 @@ export function setupUserRealtime() {
       (payload) => {
         const notif = payload.new;
         if (!notif) return;
-        
+
         const sys = useSystemStore.getState();
         // Persist notification to store and show transient toast
         sys.addNotification({
@@ -123,11 +125,18 @@ export function setupUserRealtime() {
     .channel(`p2p-${userId}`)
     .on<P2PTransfer>(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'p2p_transfers', filter: `recipient_id=eq.${userId}` },
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'p2p_transfers',
+        filter: `recipient_id=eq.${userId}`,
+      },
       (payload) => {
         const transfer = payload.new;
         if (transfer && transfer.status === 'PENDING') {
-          useSystemStore.getState().showToast(`Received ${fmtETB(transfer.amount)} ETB!`, 'success');
+          useSystemStore
+            .getState()
+            .showToast(`Received ${fmtETB(transfer.amount)} ETB!`, 'success');
           if (transfer.amount <= 1000) {
             claimP2PTransfer(transfer.id);
           }
@@ -143,7 +152,9 @@ export function setupUserRealtime() {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'ekub_members', filter: `user_id=eq.${userId}` },
       (payload) => {
-        const ekubId = (payload.new as Record<string, unknown>)?.ekub_id || (payload.old as Record<string, unknown>)?.ekub_id;
+        const ekubId =
+          (payload.new as Record<string, unknown>)?.ekub_id ||
+          (payload.old as Record<string, unknown>)?.ekub_id;
         if (ekubId) {
           useSystemStore.getState().showToast('Ekub circle updated', 'info');
         }
@@ -171,7 +182,12 @@ export function setupMerchantRealtime() {
     .channel(`merchant-orders-${merchantId}`)
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'marketplace_orders', filter: `merchant_id=eq.${merchantId}` },
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'marketplace_orders',
+        filter: `merchant_id=eq.${merchantId}`,
+      },
       () => {
         useSystemStore.getState().showToast('New order received!', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -184,7 +200,12 @@ export function setupMerchantRealtime() {
     .channel(`food-orders-${merchantId}`)
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'food_orders', filter: `merchant_id=eq.${merchantId}` },
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'food_orders',
+        filter: `merchant_id=eq.${merchantId}`,
+      },
       () => {
         useSystemStore.getState().showToast('New food order!', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -232,7 +253,12 @@ export function cleanupRealtime() {
 }
 
 // ── Push Notification Helper ───────────────────────────────────────────────────────
-export function sendPushNotification(userId: string, title: string, body: string, data: Record<string, unknown> = {}) {
+export function sendPushNotification(
+  userId: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown> = {}
+) {
   const client = getClient();
   if (!client) return;
 

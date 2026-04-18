@@ -23,11 +23,20 @@ const normalizeHexWithAlpha = (color: string | undefined): string => {
   return 'rgba(0, 168, 107, 0.1)';
 };
 
-export const AuthWelcome = ({ C, fadeAnim, slideAnim, onLogin, onRegister, onGov }: AuthWelcomeProps) => {
+export const AuthWelcome = ({
+  C,
+  fadeAnim,
+  slideAnim,
+  onLogin,
+  onRegister,
+  onGov,
+}: AuthWelcomeProps) => {
   const logoBg = normalizeHexWithAlpha(C?.primary);
 
   return (
-    <Animated.View style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+    <Animated.View
+      style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+    >
       <View style={styles.heroContainer}>
         <View style={[styles.logoCircle, { backgroundColor: logoBg }]}>
           <Ionicons name="link" size={40} color={C.primary} />
@@ -70,7 +79,12 @@ export const AuthWelcome = ({ C, fadeAnim, slideAnim, onLogin, onRegister, onGov
           accessibilityLabel="Government Login"
           accessibilityHint="Navigates to the inspector or station login screen"
         >
-          <Ionicons name="shield-checkmark" size={20} color={C.primary} style={{ marginRight: 8 }} />
+          <Ionicons
+            name="shield-checkmark"
+            size={20}
+            color={C.primary}
+            style={{ marginRight: 8 }}
+          />
           <Text style={[styles.govBtnText, { color: C.text }]}>Government Login</Text>
         </TouchableOpacity>
       </View>

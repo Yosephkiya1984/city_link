@@ -24,13 +24,13 @@ export default function AuthScreen() {
   // Flow State
   const [flow, setFlow] = useState<AuthFlow>('welcome');
   const [authMode, setAuthMode] = useState<AuthMode>('citizen');
-  
+
   // Form State
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [fullName, setFullName] = useState('');
   const [userType, setUserType] = useState<'citizen' | 'merchant'>('citizen');
-  
+
   // Merchant specific
   const [merchantType, setMerchantType] = useState('');
   const [businessName, setBusinessName] = useState('');
@@ -77,9 +77,9 @@ export default function AuthScreen() {
 
       setFlow(newFlow);
       setError(null);
-      
+
       slideAnim.setValue(-20);
-      
+
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -138,7 +138,8 @@ export default function AuthScreen() {
         setTempUserId(user.id);
         setVerifiedPhone(normalized);
         const profileRes = await ProfileService.fetchProfile(user.id);
-        const needsRegistration = registrationIntent || !profileRes.data || !profileRes.data.full_name;
+        const needsRegistration =
+          registrationIntent || !profileRes.data || !profileRes.data.full_name;
         if (needsRegistration) {
           transitionTo('register');
         } else {
@@ -189,28 +190,29 @@ export default function AuthScreen() {
         throw new Error('Verification data missing. Please verify your phone again.');
       }
 
-      const profileData: Partial<User> & { id: string } = {
-        id: tempUserId,
-        phone: verifiedPhone,
-        full_name: fullName,
-        role: userType,
-        kyc_status: 'PENDING',
-        merchant_details: userType === 'merchant' ? {
+      if (userType === 'merchant') {
+        const { error: merchErr } = await ProfileService.registerMerchant(tempUserId, {
           business_name: businessName,
           merchant_type: merchantType,
           tin,
           license_no: licenseNo,
-          subcity,
-          address: businessAddress
-        } : undefined,
-        business_name: businessName,
-        tin: tin,
-        subcity: subcity,
-        license_no: licenseNo
-      };
-
-      const { error: upsertErr } = await ProfileService.upsertProfile(profileData);
-      if (upsertErr) throw new Error(upsertErr as any);
+          details: {
+            subcity,
+            address: businessAddress,
+          },
+        });
+        if (merchErr) throw new Error(merchErr as any);
+      } else {
+        const profileData: Partial<User> & { id: string } = {
+          id: tempUserId,
+          phone: verifiedPhone,
+          full_name: fullName,
+          role: userType,
+          kyc_status: 'PENDING',
+        };
+        const { error: upsertErr } = await ProfileService.upsertProfile(profileData);
+        if (upsertErr) throw new Error(upsertErr as any);
+      }
 
       await WalletService.ensureWallet(tempUserId);
       await WalletService.claimWelcomeBonus(tempUserId);
@@ -229,28 +231,34 @@ export default function AuthScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: C.ink }]} 
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: C.ink }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
         {flow === 'welcome' && (
-          <AuthWelcome 
+          <AuthWelcome
             C={C}
             fadeAnim={fadeAnim}
             slideAnim={slideAnim}
-            onLogin={() => { setAuthMode('citizen'); transitionTo('login'); }}
+            onLogin={() => {
+              setAuthMode('citizen');
+              transitionTo('login');
+            }}
             onRegister={() => {
               setRegistrationIntent(true);
               setAuthMode('citizen');
               transitionTo('login');
             }}
-            onGov={() => { setAuthMode('gov'); transitionTo('login'); }}
+            onGov={() => {
+              setAuthMode('gov');
+              transitionTo('login');
+            }}
           />
         )}
 
         {flow === 'login' && (
-          <AuthLogin 
+          <AuthLogin
             C={C}
             fadeAnim={fadeAnim}
             slideAnim={slideAnim}

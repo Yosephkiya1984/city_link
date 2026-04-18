@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { T } from './constants';
 import { fmtETB } from '../../utils';
+import { useMarketStore } from '../../store/MarketStore';
 
 interface HeaderProps {
   balance: number;
@@ -13,6 +14,7 @@ interface HeaderProps {
 const MarketplaceHeader = memo(({ balance, name }: HeaderProps) => {
   const navigation = useNavigation();
   const firstName = name?.split(' ')[0] || 'Shopper';
+  const cartItemsCount = useMarketStore((s) => s.cartItems.length);
 
   return (
     <View style={styles.header}>
@@ -23,6 +25,19 @@ const MarketplaceHeader = memo(({ balance, name }: HeaderProps) => {
         </Text>
       </View>
       <View style={styles.headerRight}>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => (navigation as any).navigate('Cart')}
+          accessibilityLabel="View shopping cart"
+          accessibilityRole="button"
+        >
+          <Ionicons name="cart-outline" size={20} color={T.textSub} />
+          {cartItemsCount > 0 && (
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>{cartItemsCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerBtn}
           onPress={() => (navigation as any).navigate('MyOrders')}
@@ -78,6 +93,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  cartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: T.red,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBadgeText: { fontSize: 10, fontWeight: '900', color: T.text },
   balancePill: {
     flexDirection: 'row',
     alignItems: 'center',

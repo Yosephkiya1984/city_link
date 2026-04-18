@@ -12,29 +12,31 @@ interface CityLinkSearchBarProps {
   placeholderTextColor?: string;
 }
 
-const CityLinkSearchBar = memo(({
-  value,
-  onChangeText,
-  placeholder = "Search...",
-  containerStyle,
-  inputStyle,
-  iconColor = "#869489",
-  placeholderTextColor = "#869489",
-}: CityLinkSearchBarProps) => {
-  return (
-    <View style={[styles.container, containerStyle]}>
-      <Ionicons name="search" size={20} color={iconColor} style={styles.icon} />
-      <TextInput
-        style={[styles.input, inputStyle]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={placeholderTextColor}
-        autoCapitalize="none"
-      />
-    </View>
-  );
-});
+const CityLinkSearchBar = memo(
+  ({
+    value,
+    onChangeText,
+    placeholder = 'Search...',
+    containerStyle,
+    inputStyle,
+    iconColor = '#869489',
+    placeholderTextColor = '#869489',
+  }: CityLinkSearchBarProps) => {
+    return (
+      <View style={[styles.container, containerStyle]}>
+        <Ionicons name="search" size={20} color={iconColor} style={styles.icon} />
+        <TextInput
+          style={[styles.input, inputStyle]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={placeholderTextColor}
+          autoCapitalize="none"
+        />
+      </View>
+    );
+  }
+);
 
 export default CityLinkSearchBar;
 

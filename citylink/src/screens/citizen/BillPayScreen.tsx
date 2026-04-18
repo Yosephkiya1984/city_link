@@ -11,7 +11,10 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
-type BillPayRouteProp = RouteProp<{ params: { type?: 'Electric' | 'Water' | 'WiFi' | 'Telecom' | 'Traffic' } }, 'params'>;
+type BillPayRouteProp = RouteProp<
+  { params: { type?: 'Electric' | 'Water' | 'WiFi' | 'Telecom' | 'Traffic' } },
+  'params'
+>;
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';

@@ -28,9 +28,8 @@ export async function fetchCityStats(): Promise<CityStats> {
 
     const usersCount = Array.isArray(users) ? users.length : 0;
 
-    stats.totalUsers = usersCount > 1000
-        ? (usersCount / 1000).toFixed(1) + 'K'
-        : usersCount.toString() || '1.2K';
+    stats.totalUsers =
+      usersCount > 1000 ? (usersCount / 1000).toFixed(1) + 'K' : usersCount.toString() || '1.2K';
 
     // 2. Daily Revenue (Sum of transactions today)
     const today = new Date();

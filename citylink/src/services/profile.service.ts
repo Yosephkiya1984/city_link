@@ -3,10 +3,34 @@ import { fetchWallet, ensureWallet } from './wallet.service';
 import { User } from '../types';
 
 /**
- * fetchProfile — fetches a user's profile by their ID.
+ * flattenUser — flattens the nested merchants join into the User object.
+ */
+export function flattenUser(data: any): User | null {
+  if (!data) return null;
+  const { merchants, ...profile } = data;
+  if (merchants) {
+    return {
+      ...profile,
+      business_name: merchants.business_name,
+      merchant_type: merchants.merchant_type,
+      merchant_status: merchants.merchant_status,
+      tin: merchants.tin,
+      license_no: merchants.license_no,
+      trade_license: merchants.trade_license,
+      merchant_details: merchants.merchant_details,
+    };
+  }
+  return profile as User;
+}
+
+/**
+ * fetchProfile — fetches a user's profile by their ID, joining with merchants.
  */
 export async function fetchProfile(userId: string) {
-  return supaQuery<User>((c) => c.from('profiles').select('*').eq('id', userId).maybeSingle());
+  const res = await supaQuery<any>((c) =>
+    c.from('profiles').select('*, merchants(*)').eq('id', userId).maybeSingle()
+  );
+  return { ...res, data: flattenUser(res.data) };
 }
 
 /**
@@ -22,27 +46,25 @@ export async function upsertProfile(profile: Partial<User> & { id: string }) {
     kyc_status: profile.kyc_status || 'NONE',
     subcity: profile.subcity,
     woreda: profile.woreda,
-    merchant_type: profile.merchant_type,
-    business_name: profile.business_name,
-    tin: profile.tin,
-    license_no: profile.license_no,
-    trade_license: profile.trade_license,
     credit_score: profile.credit_score,
     welcome_bonus_paid: profile.welcome_bonus_paid || false,
-    merchant_details: profile.merchant_details,
     updated_at: new Date().toISOString(),
   };
-  return supaQuery<User>((c) => c.from('profiles').upsert(data, { onConflict: 'id' }).select().single());
+  return supaQuery<User>((c) =>
+    c.from('profiles').upsert(data, { onConflict: 'id' }).select().single()
+  );
 }
 
 /**
  * checkPhoneExists — checks if a phone number is already registered.
  */
-export async function checkPhoneExists(phone: string): Promise<{ id: string, role: string } | null> {
+export async function checkPhoneExists(
+  phone: string
+): Promise<{ id: string; role: string } | null> {
   if (!hasSupabase()) {
     return null;
   }
-  const { data } = await supaQuery<{ id: string, role: string }>((c) =>
+  const { data } = await supaQuery<{ id: string; role: string }>((c) =>
     c.from('profiles').select('id, role').eq('phone', phone).maybeSingle()
   );
   return data;
@@ -57,7 +79,10 @@ interface SessionProfileResult {
  * loadSessionProfile — load profile + balance for a session.
  * Resolves OTP-bypass IDs via phone lookup if necessary.
  */
-export async function loadSessionProfile(authUser: { id: string } | null, normalizedPhone: string): Promise<SessionProfileResult | null> {
+export async function loadSessionProfile(
+  authUser: { id: string } | null,
+  normalizedPhone: string
+): Promise<SessionProfileResult | null> {
   if (!getClient()) return null;
   let row: User | null = null;
   const authId = authUser?.id;
@@ -68,20 +93,20 @@ export async function loadSessionProfile(authUser: { id: string } | null, normal
   }
 
   if (!row && normalizedPhone) {
-    // Attempt lookup by normalized phone
-    const r = await supaQuery<User>((c) =>
-      c.from('profiles').select('*').eq('phone', normalizedPhone).maybeSingle()
+    // Attempt lookup by normalized phone with merchant join
+    const r = await supaQuery<any>((c) =>
+      c.from('profiles').select('*, merchants(*)').eq('phone', normalizedPhone).maybeSingle()
     );
-    if (r.data) row = r.data;
+    if (r.data) row = flattenUser(r.data);
     else {
-      // Fallback: search for variations (some users might have stored it without +251 or with 09)
+      // Fallback: search for variations
       const alt = normalizedPhone.startsWith('+251')
         ? '0' + normalizedPhone.slice(4)
         : normalizedPhone;
-      const r2 = await supaQuery<User>((c) =>
-        c.from('profiles').select('*').eq('phone', alt).maybeSingle()
+      const r2 = await supaQuery<any>((c) =>
+        c.from('profiles').select('*, merchants(*)').eq('phone', alt).maybeSingle()
       );
-      if (r2.data) row = r2.data;
+      if (r2.data) row = flattenUser(r2.data);
     }
   }
 
@@ -104,4 +129,44 @@ export async function loadSessionProfile(authUser: { id: string } | null, normal
  */
 export async function updateUserRole(userId: string, newRole: string) {
   return supaQuery<void>((c) => c.from('profiles').update({ role: newRole }).eq('id', userId));
+}
+
+/**
+ * registerMerchant — registers a user as a merchant in both profiles and merchants tables.
+ */
+export async function registerMerchant(
+  userId: string,
+  merchantData: {
+    business_name: string;
+    merchant_type: string;
+    tin?: string;
+    license_no?: string;
+    details?: any;
+  }
+) {
+  // 1. Update Profile Role
+  const pRes = await supaQuery((c) =>
+    c.from('profiles').update({ role: 'merchant' }).eq('id', userId)
+  );
+  if (pRes.error) return pRes;
+
+  // 2. Upsert Merchant Table
+  return supaQuery((c) =>
+    c
+      .from('merchants')
+      .upsert(
+        {
+          id: userId,
+          business_name: merchantData.business_name,
+          merchant_type: merchantData.merchant_type,
+          merchant_status: 'PENDING',
+          tin: merchantData.tin,
+          license_no: merchantData.license_no,
+          merchant_details: merchantData.details || {},
+        },
+        { onConflict: 'id' }
+      )
+      .select()
+      .single()
+  );
 }

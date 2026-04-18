@@ -3,13 +3,14 @@
 
 export const Colors = {
   // ── Addis Noir Light Elements
-  ink: '#FDFDFC', 
-  surface: '#FFFFFF', 
-  lift: '#F7F8F9', 
-  top: '#EAEDF0', 
-  rim: '#EDF0F2', 
-  overlay: '#E2E8F0', 
-  hint: '#C7C7CC', 
+  ink: '#FDFDFC',
+  surface: '#FFFFFF',
+  surfaceHigh: '#F5F5F7',
+  lift: '#F7F8F9',
+  top: '#EAEDF0',
+  rim: '#EDF0F2',
+  overlay: '#E2E8F0',
+  hint: '#C7C7CC',
 
   // ── Addis Noir Palette (Ethiopian Modernism)
   primary: '#00A86B', // Ethiopian Modern Green
@@ -24,8 +25,8 @@ export const Colors = {
   goldL: '#FFEFB2',
   goldD: '#C49300',
 
-  secondary: '#F5B800', 
-  tertiary: '#ffb4aa', 
+  secondary: '#F5B800',
+  tertiary: '#ffb4aa',
   success: '#00A86B',
   warning: '#F5B800',
   error: '#E8312A',
@@ -70,6 +71,7 @@ export const Colors = {
 export const DarkColors = {
   ink: '#080B10', // Addis Noir background
   surface: '#11141B', // Noir surface
+  surfaceHigh: '#1F242D', // Higher elevation noir
   lift: '#161922', // Low-elevation noir
   top: '#1C1F27', // High-elevation noir
   rim: '#242730', // Noir border accent
@@ -83,7 +85,7 @@ export const DarkColors = {
   primaryGrad: ['#00A86B', '#007D4F'],
 
   secondary: '#F5B800', // Ethiopian Gold
-  tertiary: '#ffb4aa', 
+  tertiary: '#ffb4aa',
   success: '#00A86B',
   warning: '#F5B800',
   error: '#E8312A',

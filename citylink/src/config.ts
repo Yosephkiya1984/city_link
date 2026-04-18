@@ -94,43 +94,48 @@ export const LRT_FARE_PER_KM = 0.45;
 export const LRT_BASE_FARE = 2.0;
 
 // Fayda demo database — ONLY available in development builds
-export const FAYDA_DB: Record<string, { name: string; dob: string; gender: string; region: string; status: string }> = __DEV__ ? {
-  '100000000001': {
-    name: 'Abebe Bikila',
-    dob: '1982-05-12',
-    gender: 'M',
-    region: 'Addis Ababa',
-    status: 'ACTIVE',
-  },
-  '100000000002': {
-    name: 'Tigist Bekele',
-    dob: '1995-03-20',
-    gender: 'F',
-    region: 'Addis Ababa',
-    status: 'ACTIVE',
-  },
-  '100000000003': {
-    name: 'Dawit Haile',
-    dob: '1988-11-07',
-    gender: 'M',
-    region: 'Oromia',
-    status: 'ACTIVE',
-  },
-  '100000000004': {
-    name: 'Selamawit G.',
-    dob: '1991-07-15',
-    gender: 'F',
-    region: 'Addis Ababa',
-    status: 'ACTIVE',
-  },
-  '100000000005': {
-    name: 'Yonas Tesfaye',
-    dob: '1975-09-30',
-    gender: 'M',
-    region: 'Amhara',
-    status: 'SUSPENDED',
-  },
-} : {};
+export const FAYDA_DB: Record<
+  string,
+  { name: string; dob: string; gender: string; region: string; status: string }
+> = __DEV__
+  ? {
+      '100000000001': {
+        name: 'Abebe Bikila',
+        dob: '1982-05-12',
+        gender: 'M',
+        region: 'Addis Ababa',
+        status: 'ACTIVE',
+      },
+      '100000000002': {
+        name: 'Tigist Bekele',
+        dob: '1995-03-20',
+        gender: 'F',
+        region: 'Addis Ababa',
+        status: 'ACTIVE',
+      },
+      '100000000003': {
+        name: 'Dawit Haile',
+        dob: '1988-11-07',
+        gender: 'M',
+        region: 'Oromia',
+        status: 'ACTIVE',
+      },
+      '100000000004': {
+        name: 'Selamawit G.',
+        dob: '1991-07-15',
+        gender: 'F',
+        region: 'Addis Ababa',
+        status: 'ACTIVE',
+      },
+      '100000000005': {
+        name: 'Yonas Tesfaye',
+        dob: '1975-09-30',
+        gender: 'M',
+        region: 'Amhara',
+        status: 'SUSPENDED',
+      },
+    }
+  : {};
 
 // Exchange rates (demo — replace with live API)
 export const EXCHANGE_RATES = [

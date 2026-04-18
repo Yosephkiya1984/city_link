@@ -1,17 +1,32 @@
-import * as Crypto from 'expo-crypto';
 import { t } from './i18n';
 export { t };
+
+let Crypto: typeof import('expo-crypto') | null = null;
+function getCryptoModule() {
+  if (Crypto) return Crypto;
+  try {
+    Crypto = require('expo-crypto');
+  } catch (_error) {
+    Crypto = null;
+  }
+  return Crypto;
+}
+
 // ── ID generation (crypto-safe UUID v4) ──────────────────────────────────────
 export function uid() {
-  try {
-    return Crypto.randomUUID();
-  } catch (_) {
-    // Fallback for environments where expo-crypto isn't available
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-    });
+  const cryptoModule = getCryptoModule();
+  if (cryptoModule?.randomUUID) {
+    try {
+      return cryptoModule.randomUUID();
+    } catch (_) {
+      // ignore and fallback below
+    }
   }
+
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
 // —— Format ETB ———————————————————————————————————————————————————————————————
@@ -73,7 +88,8 @@ export function normalizePhone(phone: string): string {
   if (cleaned.startsWith('2518')) return '+' + cleaned;
   if (cleaned.startsWith('07')) return '+2517' + cleaned.slice(2);
   if (cleaned.startsWith('2517')) return '+' + cleaned;
-  if (cleaned.startsWith('+2519') || cleaned.startsWith('+2518') || cleaned.startsWith('+2517')) return cleaned;
+  if (cleaned.startsWith('+2519') || cleaned.startsWith('+2518') || cleaned.startsWith('+2517'))
+    return cleaned;
   return cleaned;
 }
 
@@ -98,7 +114,10 @@ export function greeting(): string {
 }
 
 // —— Color for status ——————————————————————————————————————————————————————————
-export function statusColor(status: string | undefined | null, colors: Record<string, string>): string {
+export function statusColor(
+  status: string | undefined | null,
+  colors: Record<string, string>
+): string {
   const map: Record<string, string> = {
     APPROVED: colors.green,
     ACTIVE: colors.green,
@@ -134,6 +153,6 @@ export function calcLrtFare(fromKm: number, toKm: number): number {
 }
 
 // —— Shimmer placeholder items —————————————————————————————————————————————————
-export function placeholderArr(n: number = 5): any[] {
+export function placeholderArr(n: number = 5): Array<{ _placeholder: boolean; id: string }> {
   return Array.from({ length: n }, (_, i) => ({ _placeholder: true, id: 'ph-' + i }));
 }

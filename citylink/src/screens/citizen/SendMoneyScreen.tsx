@@ -116,7 +116,10 @@ export default function SendMoneyScreen() {
         type: 'debit',
         category: 'transfer',
         description: `Sent to ${phone}`,
-        status: (res.status === 'completed' ? 'completed' : 'pending') as 'pending' | 'completed' | 'failed',
+        status: (res.status === 'completed' ? 'completed' : 'pending') as
+          | 'pending'
+          | 'completed'
+          | 'failed',
         created_at: new Date().toISOString(),
       });
 
@@ -182,13 +185,29 @@ export default function SendMoneyScreen() {
             ...Shadow.lg,
           }}
         >
-          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontFamily: Fonts.label, textTransform: 'uppercase', letterSpacing: 1 }}>
+          <Text
+            style={{
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: 13,
+              fontFamily: Fonts.label,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            }}
+          >
             {t('avail_bal')}
           </Text>
           <Text style={{ color: C.white, fontSize: 42, fontFamily: Fonts.headline, marginTop: 8 }}>
             {fmtETB(balance, 0)}
           </Text>
-          <View style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radius.full }}>
+          <View
+            style={{
+              marginTop: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderRadius: Radius.full,
+            }}
+          >
             <Text style={{ color: C.white, fontSize: 11, fontFamily: Fonts.label }}>
               Daily limit: 150,000 ETB
             </Text>

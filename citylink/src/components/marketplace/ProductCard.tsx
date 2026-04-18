@@ -44,8 +44,8 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
       <Animated.View style={[styles.productCard, { transform: [{ scale }] }]}>
         <View style={styles.productImgWrap}>
           {img ? (
-            <Image 
-              source={{ uri: img }} 
+            <Image
+              source={{ uri: img }}
               style={styles.productImg}
               defaultSource={require('../../../assets/icon.png')}
             />
@@ -85,9 +85,7 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
           </Text>
           <View style={styles.productFooter}>
             <Text style={styles.productPrice}>ETB {fmtETB(item.price, 0)}</Text>
-            <View
-              style={[styles.buyQuickBtn, soldOut && { opacity: 0.4 }]}
-            >
+            <View style={[styles.buyQuickBtn, soldOut && { opacity: 0.4 }]}>
               <Ionicons name="flash" size={16} color={soldOut ? T.textSub : T.primary} />
             </View>
           </View>

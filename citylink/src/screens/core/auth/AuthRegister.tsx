@@ -58,10 +58,12 @@ export const AuthRegister = ({
   loading,
   error,
   onBack,
-  onRegister
+  onRegister,
 }: AuthRegisterProps) => {
   return (
-    <Animated.View style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+    <Animated.View
+      style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+    >
       <View style={styles.header}>
         <TouchableOpacity style={[styles.backButton, { borderColor: C.edge }]} onPress={onBack}>
           <Ionicons name="chevron-back" size={24} color={C.text} />
@@ -71,17 +73,21 @@ export const AuthRegister = ({
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={[styles.typeSelector, { backgroundColor: C.surface, borderColor: C.edge }]}>
-          <TouchableOpacity 
-            style={[styles.typeBtn, userType === 'citizen' && { backgroundColor: C.primary }]} 
+          <TouchableOpacity
+            style={[styles.typeBtn, userType === 'citizen' && { backgroundColor: C.primary }]}
             onPress={() => setUserType('citizen')}
           >
-            <Text style={[styles.typeText, { color: userType === 'citizen' ? C.ink : C.sub }]}>Citizen</Text>
+            <Text style={[styles.typeText, { color: userType === 'citizen' ? C.ink : C.sub }]}>
+              Citizen
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.typeBtn, userType === 'merchant' && { backgroundColor: C.primary }]} 
+          <TouchableOpacity
+            style={[styles.typeBtn, userType === 'merchant' && { backgroundColor: C.primary }]}
             onPress={() => setUserType('merchant')}
           >
-            <Text style={[styles.typeText, { color: userType === 'merchant' ? C.ink : C.sub }]}>Merchant</Text>
+            <Text style={[styles.typeText, { color: userType === 'merchant' ? C.ink : C.sub }]}>
+              Merchant
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -141,7 +147,7 @@ export const AuthRegister = ({
                 label="Subcity"
                 value={subcity}
                 onValueChange={setSubcity}
-                options={SUBCITIES.map(sc => ({ label: sc, value: sc }))}
+                options={SUBCITIES.map((sc) => ({ label: sc, value: sc }))}
               />
 
               <CInput
@@ -161,7 +167,7 @@ export const AuthRegister = ({
           ) : null}
 
           <CButton
-            title={loading ? "" : "Complete Registration"}
+            title={loading ? '' : 'Complete Registration'}
             onPress={onRegister}
             loading={loading}
             disabled={loading}

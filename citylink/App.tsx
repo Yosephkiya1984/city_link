@@ -72,8 +72,19 @@ function AppBootstrap() {
         console.log(`[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`);
 
         const session = useAuthStore.getState().currentUser;
-        if (session && __DEV__) {
-          console.log(`[App] Welcome back, ${session.full_name || 'User'}`);
+        if (session) {
+          // 🛡️ RECOVERY: Hydrate the wallet state (balance + history)
+          const { hostWalletHydration } = await import('./src/store/WalletStore');
+          const { useWalletStore } = await import('./src/store/WalletStore');
+          await useWalletStore.getState().hydrateWallet(session.id);
+          
+          // 📡 SHIELD 2.0: Background PIN Hash Sync (Refinement)
+          const { ensureFullSync } = await import('./src/services/walletPin');
+          await ensureFullSync(session.id);
+
+          if (__DEV__) {
+            console.log(`[App] Welcome back, ${session.full_name || 'User'}`);
+          }
         }
 
         console.log(`[Performance] Total bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`);

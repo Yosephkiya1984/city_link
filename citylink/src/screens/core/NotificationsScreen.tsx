@@ -245,93 +245,98 @@ export default function NotificationsScreen() {
             </View>
 
             {filtered.map((n: any) => {
-              const cat = String((n.data as any)?.category || (n.metadata as any)?.category || 'system');
+              const cat = String(
+                (n.data as any)?.category || (n.metadata as any)?.category || 'system'
+              );
               return (
-              <TouchableOpacity
-                key={n.id}
-                onPress={() => markNotifRead(n.id)}
-                style={{
-                  padding: 20,
-                  borderBottomWidth: 1,
-                  borderBottomColor: C.edge,
-                  backgroundColor: (n.read || n.is_read) ? 'transparent' : C.primaryL,
-                  flexDirection: 'row',
-                  gap: 16,
-                  borderLeftWidth: (n.read || n.is_read) ? 0 : 4,
-                  borderLeftColor: getNotificationColor(n.type, cat),
-                }}
-              >
-                <View
+                <TouchableOpacity
+                  key={n.id}
+                  onPress={() => markNotifRead(n.id)}
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    backgroundColor: getNotificationColor(n.type, cat) + '20',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    padding: 20,
+                    borderBottomWidth: 1,
+                    borderBottomColor: C.edge,
+                    backgroundColor: n.read || n.is_read ? 'transparent' : C.primaryL,
+                    flexDirection: 'row',
+                    gap: 16,
+                    borderLeftWidth: n.read || n.is_read ? 0 : 4,
+                    borderLeftColor: getNotificationColor(n.type, cat),
                   }}
                 >
-                  <Ionicons
-                    name={getNotificationIcon(n.type, cat)}
-                    size={24}
-                    color={getNotificationColor(n.type, cat)}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
                   <View
                     style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      backgroundColor: getNotificationColor(n.type, cat) + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, flex: 1 }}>
-                      {n.title}
-                    </Text>
+                    <Ionicons
+                      name={getNotificationIcon(n.type, cat)}
+                      size={24}
+                      color={getNotificationColor(n.type, cat)}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
                     <View
                       style={{
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        borderRadius: 4,
-                        backgroundColor: getNotificationColor(n.type, cat) + '20',
-                        marginLeft: 8,
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
                       }}
                     >
                       <Text
+                        style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, flex: 1 }}
+                      >
+                        {n.title}
+                      </Text>
+                      <View
                         style={{
-                          color: getNotificationColor(n.type, cat),
-                          fontSize: 10,
-                          fontFamily: Fonts.bold,
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 4,
+                          backgroundColor: getNotificationColor(n.type, cat) + '20',
+                          marginLeft: 8,
                         }}
                       >
-                        {cat}
-                      </Text>
+                        <Text
+                          style={{
+                            color: getNotificationColor(n.type, cat),
+                            fontSize: 10,
+                            fontFamily: Fonts.bold,
+                          }}
+                        >
+                          {cat}
+                        </Text>
+                      </View>
                     </View>
+                    <Text
+                      style={{
+                        color: C.sub,
+                        fontSize: 13,
+                        fontFamily: Fonts.medium,
+                        marginTop: 4,
+                        lineHeight: 18,
+                      }}
+                    >
+                      {n.message}
+                    </Text>
+                    <Text
+                      style={{ color: C.hint, fontSize: 11, fontFamily: Fonts.bold, marginTop: 8 }}
+                    >
+                      {timeAgo(n.created_at)}
+                    </Text>
                   </View>
-                  <Text
-                    style={{
-                      color: C.sub,
-                      fontSize: 13,
-                      fontFamily: Fonts.medium,
-                      marginTop: 4,
-                      lineHeight: 18,
-                    }}
-                  >
-                    {n.message}
-                  </Text>
-                  <Text
-                    style={{ color: C.hint, fontSize: 11, fontFamily: Fonts.bold, marginTop: 8 }}
-                  >
-                    {timeAgo(n.created_at)}
-                  </Text>
-                </View>
-                {!(n.read || n.is_read) && (
-                  <View
-                    style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary }}
-                  />
-                )}
-              </TouchableOpacity>
-            )})}
+                  {!(n.read || n.is_read) && (
+                    <View
+                      style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary }}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </>
         )}
       </ScrollView>

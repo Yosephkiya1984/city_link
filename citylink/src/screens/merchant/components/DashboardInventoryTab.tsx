@@ -28,7 +28,9 @@ export function DashboardInventoryTab({
   styles,
 }: InventoryTabProps) {
   const filteredInventory = inventory.filter(
-    (p: Product) => !inventorySearch || (p.name || p.title || '').toLowerCase().includes(inventorySearch.toLowerCase())
+    (p: Product) =>
+      !inventorySearch ||
+      (p.name || p.title || '').toLowerCase().includes(inventorySearch.toLowerCase())
   );
 
   return (
@@ -114,9 +116,7 @@ export function DashboardInventoryTab({
 
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
                 <View style={styles.catBadge}>
-                  <Text style={styles.catBadgeText}>
-                    {p.category?.toUpperCase() || 'GENERAL'}
-                  </Text>
+                  <Text style={styles.catBadgeText}>{p.category?.toUpperCase() || 'GENERAL'}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.deleteBtnSmall}

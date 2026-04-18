@@ -26,14 +26,20 @@ export default function PendingVerificationScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: C.ink }]}>
-      <Ionicons name="shield-half-outline" size={80} color={C.primary} style={{ marginBottom: 24 }} />
+      <Ionicons
+        name="shield-half-outline"
+        size={80}
+        color={C.primary}
+        style={{ marginBottom: 24 }}
+      />
       <Text style={[styles.title, { color: C.text }]}>Verification Pending</Text>
       <Text style={[styles.subtitle, { color: C.sub }]}>
-        Your account ({currentUser?.role}) is currently awaiting verification. Please complete KYC or wait for an administrator to approve your account.
+        Your account ({currentUser?.role}) is currently awaiting verification. Please complete KYC
+        or wait for an administrator to approve your account.
       </Text>
-      
-      <TouchableOpacity 
-        style={[styles.btn, { backgroundColor: C.surface, borderColor: C.edge }]} 
+
+      <TouchableOpacity
+        style={[styles.btn, { backgroundColor: C.surface, borderColor: C.edge }]}
         onPress={handleSignOut}
         accessible={true}
         accessibilityRole="button"
@@ -77,5 +83,5 @@ const styles = StyleSheet.create({
   btnText: {
     fontSize: 16,
     fontFamily: Fonts.bold,
-  }
+  },
 });

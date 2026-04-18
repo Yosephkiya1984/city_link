@@ -24,12 +24,7 @@ import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { t } from '../../utils/i18n';
 
 // Import only Core 6 merchant dashboards
-import {
-  RestaurantDashboard,
-  ParkingDashboard,
-  EkubDashboard,
-  DelalaDashboard,
-} from './index';
+import { RestaurantDashboard, ParkingDashboard, EkubDashboard, DelalaDashboard } from './index';
 import ShopDashboard from './ShopDashboard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -65,15 +60,7 @@ export default function MerchantPortalScreen() {
 
   // Handle unknown merchant type toast in useEffect
   React.useEffect(() => {
-    const knownTypes = [
-      'retail',
-      'shop',
-      'seller',
-      'restaurant',
-      'delala',
-      'ekub',
-      'parking',
-    ];
+    const knownTypes = ['retail', 'shop', 'seller', 'restaurant', 'delala', 'ekub', 'parking'];
     if (currentUser && !knownTypes.includes(normalizedType)) {
       console.log('⚠️ Unknown merchant type, dashboard unavailable');
       showToast(`Account Type Not Supported: ${merchantType}. Contact support.`, 'warning');
@@ -97,15 +84,29 @@ export default function MerchantPortalScreen() {
         return <EkubDashboard />;
       default:
         return (
-          <View style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: C.ink,
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 40,
+            }}
+          >
             <Ionicons name="lock-closed-outline" size={64} color={C.primary} />
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.bold, marginTop: 16 }}>
               Dashboard Unavailable
             </Text>
             <Text style={{ color: C.sub, textAlign: 'center', marginTop: 8 }}>
-              This account type is not part of the Core 6 production network. Please contact your administrator.
+              This account type is not part of the Core 6 production network. Please contact your
+              administrator.
             </Text>
-            <CButton title="Logout" onPress={logout} variant="outline" style={{ marginTop: 32, width: '100%' }} />
+            <CButton
+              title="Logout"
+              onPress={logout}
+              variant="outline"
+              style={{ marginTop: 32, width: '100%' }}
+            />
           </View>
         );
     }
@@ -113,7 +114,9 @@ export default function MerchantPortalScreen() {
 
   if (!currentUser) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{ flex: 1, backgroundColor: C.ink, justifyContent: 'center', alignItems: 'center' }}
+      >
         <Text style={{ color: C.sub }}>Loading portal...</Text>
       </View>
     );

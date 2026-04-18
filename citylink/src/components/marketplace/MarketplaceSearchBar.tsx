@@ -23,8 +23,8 @@ const MarketplaceSearchBar = memo(({ value, onChangeText, onClear, onSubmit }: S
       onSubmitEditing={onSubmit}
     />
     {value.length > 0 && (
-      <TouchableOpacity 
-        onPress={onClear} 
+      <TouchableOpacity
+        onPress={onClear}
         style={styles.clearBtn}
         accessibilityLabel="Clear search text"
         accessibilityRole="button"

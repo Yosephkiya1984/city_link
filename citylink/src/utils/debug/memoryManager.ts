@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import * as React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { cacheManager } from './cacheManager';
 import { useErrorReporting } from './errorReporting';
@@ -115,7 +116,9 @@ class MemoryManager {
       try {
         task();
       } catch (error) {
-        console.error('Cleanup task failed:', error);
+        if (__DEV__) {
+          console.error('Cleanup task failed:', error);
+        }
       }
     });
 
@@ -131,12 +134,16 @@ class MemoryManager {
     this.memoryStats.cleanupCount++;
     const cleanupDuration = Date.now() - cleanupStart;
 
-    console.log(`🧹 Routine cleanup completed in ${cleanupDuration.toFixed(2)}ms`);
+    if (__DEV__) {
+      console.log(`🧹 Routine cleanup completed in ${cleanupDuration.toFixed(2)}ms`);
+    }
   }
 
   // Perform emergency cleanup
   performEmergencyCleanup() {
-    console.warn('🚨 Emergency cleanup triggered!');
+    if (__DEV__) {
+      console.warn('🚨 Emergency cleanup triggered!');
+    }
 
     // Clear all cache
     cacheManager.clear();
@@ -148,11 +155,13 @@ class MemoryManager {
     this.cleanupTasks = [];
 
     // Log performance issue
-    console.error('[MemoryManager] Emergency memory cleanup triggered', {
-      type: 'performance',
-      severity: 'high',
-      memoryUsage: this.memoryStats,
-    });
+    if (__DEV__) {
+      console.error('[MemoryManager] Emergency memory cleanup triggered', {
+        type: 'performance',
+        severity: 'high',
+        memoryUsage: this.memoryStats,
+      });
+    }
   }
 
   // Detect memory leaks
@@ -163,11 +172,13 @@ class MemoryManager {
       this.memoryStats.leaksDetected++;
 
       // Log leak
-      console.warn(`🔍 Potential memory leak detected: ${currentObjects} objects registered`, {
-        type: 'performance',
-        severity: 'medium',
-        objectCount: currentObjects,
-      });
+      if (__DEV__) {
+        console.warn(`🔍 Potential memory leak detected: ${currentObjects} objects registered`, {
+          type: 'performance',
+          severity: 'medium',
+          objectCount: currentObjects,
+        });
+      }
     }
   }
 
@@ -229,10 +240,14 @@ export const BundleOptimizer = {
       const module = await importFunc();
       const duration = Date.now() - start;
 
-      console.log(`📦 Component ${componentName} loaded in ${duration.toFixed(2)}ms`);
+      if (__DEV__) {
+        console.log(`📦 Component ${componentName} loaded in ${duration.toFixed(2)}ms`);
+      }
       return module;
     } catch (error) {
-      console.error(`❌ Failed to load component ${componentName}:`, error);
+      if (__DEV__) {
+        console.error(`❌ Failed to load component ${componentName}:`, error);
+      }
       throw error;
     }
   },
@@ -270,25 +285,33 @@ export const BundleOptimizer = {
   // Minimize bundle size
   minimizeBundle: () => {
     // In a real app, this would run bundler optimizations
-    console.log('🗜️ Bundle minimization completed');
+    if (__DEV__) {
+      console.log('🗜️ Bundle minimization completed');
+    }
   },
 };
 
 // Performance profiling tools
 export const PerformanceProfiler = {
   // Profile component render
-  profileComponent: <P extends object>(Component: React.ComponentType<P>, componentName: string) => {
+  profileComponent: <P extends object>(
+    Component: React.ComponentType<P>,
+    componentName: string
+  ) => {
     return React.memo(Component, (prevProps, nextProps) => {
       const start = Date.now();
       // Use shallow comparison instead of heavy JSON.stringify
       const keys1 = Object.keys(prevProps) as (keyof P)[];
       const keys2 = Object.keys(nextProps) as (keyof P)[];
-      const areEqual = keys1.length === keys2.length && keys1.every(key => prevProps[key] === nextProps[key]);
-      
+      const areEqual =
+        keys1.length === keys2.length && keys1.every((key) => prevProps[key] === nextProps[key]);
+
       const duration = Date.now() - start;
 
       if (duration > 1) {
-        console.log(`⏱️ ${componentName} props comparison took ${duration.toFixed(2)}ms`);
+        if (__DEV__) {
+          console.log(`⏱️ ${componentName} props comparison took ${duration.toFixed(2)}ms`);
+        }
       }
 
       return areEqual;
@@ -296,46 +319,59 @@ export const PerformanceProfiler = {
   },
 
   // Profile function execution
-  profileFunction: (fn: any, functionName: string) => {
-    return async (...args: any[]) => {
+  profileFunction: <T extends (...args: unknown[]) => unknown>(fn: T, functionName: string) => {
+    return async (...args: Parameters<T>) => {
       const start = performance.now();
       try {
         const result = await fn(...args);
         const duration = performance.now() - start;
 
         if (duration > 100) {
-          console.warn(`⏱️ ${functionName} took ${duration.toFixed(2)}ms`);
+          if (__DEV__) {
+            console.warn(`⏱️ ${functionName} took ${duration.toFixed(2)}ms`);
+          }
         }
 
         return result;
       } catch (error) {
         const duration = performance.now() - start;
-        console.error(`❌ ${functionName} failed after ${duration.toFixed(2)}ms:`, error);
+        if (__DEV__) {
+          console.error(`❌ ${functionName} failed after ${duration.toFixed(2)}ms:`, error);
+        }
         throw error;
       }
     };
   },
 
   // Profile API call
-  profileApiCall: (apiCall: (...args: any[]) => Promise<any>, endpoint: string) => {
-    return async (...args: any[]) => {
+  profileApiCall: <TArgs extends unknown[], TReturn>(
+    apiCall: (...args: TArgs) => Promise<TReturn>,
+    endpoint: string
+  ) => {
+    return async (...args: TArgs) => {
       const start = Date.now();
       try {
         const result = await apiCall(...args);
         const duration = Date.now() - start;
 
-        console.log(`🌐 API call to ${endpoint} completed in ${duration.toFixed(2)}ms`);
+        if (__DEV__) {
+          console.log(`🌐 API call to ${endpoint} completed in ${duration.toFixed(2)}ms`);
+        }
 
         // Report slow API calls
         if (duration > 2000) {
-          console.warn(`🐌 Slow API call detected: ${endpoint} took ${duration}ms`);
+          if (__DEV__) {
+            console.warn(`🐌 Slow API call detected: ${endpoint} took ${duration}ms`);
+          }
           // Note: useErrorReporting hook cannot be used here safely as this is a non-hook context
         }
 
         return result;
       } catch (error) {
         const duration = Date.now() - start;
-        console.error(`❌ API call to ${endpoint} failed after ${duration.toFixed(2)}ms:`, error);
+        if (__DEV__) {
+          console.error(`❌ API call to ${endpoint} failed after ${duration.toFixed(2)}ms:`, error);
+        }
         throw error;
       }
     };
@@ -360,14 +396,14 @@ export const PerformanceProfiler = {
   },
 
   // Get performance recommendations
-  getRecommendations: (memoryStats: any, cacheStats: any) => {
+  getRecommendations: (memoryStats: MemoryStats, cacheStats: Record<string, unknown>) => {
     const recommendations: string[] = [];
 
     if (memoryStats.percentage > MEMORY_CONFIG.WARNING_THRESHOLD) {
       recommendations.push('Memory usage is high. Consider implementing more aggressive cleanup.');
     }
 
-    if (cacheStats.hitRate < 50) {
+    if ((cacheStats as any).hitRate < 50) {
       recommendations.push('Cache hit rate is low. Consider increasing TTL or preloading data.');
     }
 
@@ -393,7 +429,7 @@ export function useMemoryManager() {
     }, 5000);
 
     return () => {
-      if (cleanup) cleanup();
+      cleanup();
       clearInterval(statsInterval);
     };
   }, []);
@@ -427,7 +463,9 @@ export function usePerformanceProfiler(componentName: string) {
 
     // Log slow renders
     if (renderTime > 100) {
-      console.warn(`🐌 Slow render detected: ${componentName} took ${renderTime}ms`);
+      if (__DEV__) {
+        console.warn(`🐌 Slow render detected: ${componentName} took ${renderTime}ms`);
+      }
     }
   });
 
@@ -444,9 +482,9 @@ export function usePerformanceProfiler(componentName: string) {
 // Optimization utilities
 export const OptimizationUtils = {
   // Debounce function
-  debounce: (func: any, wait: number) => {
+  debounce: <T extends (...args: unknown[]) => void>(func: T, wait: number) => {
     let timeout: ReturnType<typeof setTimeout>;
-    return function executedFunction(...args: any[]) {
+    return function executedFunction(...args: Parameters<T>) {
       const later = () => {
         clearTimeout(timeout);
         func(...args);
@@ -457,9 +495,9 @@ export const OptimizationUtils = {
   },
 
   // Throttle function
-  throttle: (func: any, limit: number) => {
+  throttle: <T extends (...args: unknown[]) => void>(func: T, limit: number) => {
     let inThrottle: boolean;
-    return function (this: any, ...args: any[]) {
+    return function (this: unknown, ...args: Parameters<T>) {
       if (!inThrottle) {
         func.apply(this, args);
         inThrottle = true;
@@ -469,21 +507,26 @@ export const OptimizationUtils = {
   },
 
   // Memoize function
-  memoize: (func: any) => {
-    const cache = new Map();
-    return function (this: any, ...args: any[]) {
+  memoize: <T extends (...args: unknown[]) => unknown>(func: T) => {
+    const cache = new Map<string, ReturnType<T>>();
+    return function (this: unknown, ...args: Parameters<T>) {
       const key = JSON.stringify(args);
       if (cache.has(key)) {
         return cache.get(key);
       }
       const result = func.apply(this, args);
-      cache.set(key, result);
+      cache.set(key, result as any);
       return result;
     };
   },
 
   // Virtual scroll helper
-  virtualScroll: (items: any[], itemHeight: number, containerHeight: number, scrollTop: number) => {
+  virtualScroll: <T>(
+    items: T[],
+    itemHeight: number,
+    containerHeight: number,
+    scrollTop: number
+  ) => {
     const startIndex = Math.floor(scrollTop / itemHeight);
     const endIndex = Math.min(
       startIndex + Math.ceil(containerHeight / itemHeight) + 1,

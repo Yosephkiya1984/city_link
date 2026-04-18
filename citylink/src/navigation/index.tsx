@@ -18,6 +18,7 @@ import NotificationsScreen from '../screens/core/NotificationsScreen';
 import ChatScreen from '../screens/core/ChatScreen';
 import ProfileScreen from '../screens/core/ProfileScreen';
 import { AdminStack } from './AdminStack';
+import BecomeDeliveryAgentScreen from '../screens/agent/BecomeDeliveryAgentScreen';
 
 export type AppStackParamList = {
   Auth: undefined;
@@ -30,6 +31,7 @@ export type AppStackParamList = {
   Chat: { threadId: string; recipientName: string; recipientId: string; propertyTitle?: string };
   Profile: undefined;
   AdminRoot: undefined;
+  BecomeDeliveryAgent: undefined;
 };
 
 export type RootStackParamList = AppStackParamList;
@@ -74,16 +76,16 @@ export default function AppNavigator() {
             ) : (
               <RootStack.Screen name="CitizenRoot" component={CitizenStack} />
             )}
-            
+
             {/* Shared Core Screens (Authenticated only) */}
             <RootStack.Screen name="ChatInbox" component={ChatInboxScreen} />
             <RootStack.Screen name="Notifications" component={NotificationsScreen} />
             <RootStack.Screen name="Chat" component={ChatScreen} />
             <RootStack.Screen name="Profile" component={ProfileScreen} />
+            <RootStack.Screen name="BecomeDeliveryAgent" component={BecomeDeliveryAgentScreen} />
           </>
         )}
       </RootStack.Navigator>
     </NavigationContainer>
   );
 }
-

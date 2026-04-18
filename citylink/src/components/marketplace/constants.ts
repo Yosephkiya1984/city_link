@@ -16,6 +16,7 @@ export const T = {
   text: '#e2e8f0',
   textSub: '#64748b',
   textMuted: '#334155',
+  white: '#FFFFFF',
   border: 'rgba(255,255,255,0.06)',
   borderBright: 'rgba(255,255,255,0.12)',
   glass: 'rgba(12,14,18,0.9)',

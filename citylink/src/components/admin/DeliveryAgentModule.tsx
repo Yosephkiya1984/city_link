@@ -20,8 +20,6 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-
-
 export default function DeliveryAgentModule() {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;

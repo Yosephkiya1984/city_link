@@ -11,113 +11,117 @@ interface PublicPropertyCardProps {
   onMessagePress?: (property: any) => void;
 }
 
-const PublicPropertyCard = memo(({ property, onPress, onMessagePress }: PublicPropertyCardProps) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+const PublicPropertyCard = memo(
+  ({ property, onPress, onMessagePress }: PublicPropertyCardProps) => {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.98,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [scaleAnim]);
+    const handlePressIn = useCallback(() => {
+      Animated.spring(scaleAnim, {
+        toValue: 0.98,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, [scaleAnim]);
 
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
+    const handlePressOut = useCallback(() => {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    }, [scaleAnim]);
 
-  return (
-    <Animated.View style={[styles.propertyCard, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.9}
-        style={styles.propertyCardContent}
-        accessibilityRole="button"
-        accessibilityLabel={`View details for ${property.title}`}
-      >
-        <View style={styles.propertyCardImageContainer}>
-          <Image 
-            source={{ uri: property.image || 'https://via.placeholder.com/300' }} 
-            style={styles.propertyCardImage}
-            defaultSource={require('../../../assets/icon.png')}
-          />
-          <View style={styles.propertyCardFeatures}>
-            {property.features?.slice(0, 2).map((feature: any, index: number) => (
-              <View
-                key={index}
-                style={[
-                  styles.featureBadge,
-                  feature === 'Video' && styles.videoBadge,
-                  feature === 'Verified' && styles.verifiedBadgePrimary,
-                ]}
-              >
-                {feature === 'Video' && (
-                  <Ionicons name="videocam" size={12} color={COLORS['on-primary']} />
-                )}
-                <Text style={styles.featureBadgeText}>{feature}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.propertyCardBody}>
-          <View style={styles.propertyCardHeader}>
-            <Text style={styles.propertyCardTitle} numberOfLines={1}>{property.title}</Text>
-            <Text style={styles.propertyCardPrice}>ETB {fmtETB(property.price, 0)}</Text>
-          </View>
-
-          <View style={styles.propertyCardLocation}>
-            <Ionicons name="location" size={14} color={COLORS.outline} />
-            <Text style={styles.propertyCardLocationText}>{property.location}</Text>
-          </View>
-
-          <View style={styles.propertyCardFooter}>
-            <View style={styles.propertyCardBroker}>
-              {property.broker?.image ? (
-                <Image 
-                  source={{ uri: property.broker.image }} 
-                  style={styles.brokerImage}
-                  defaultSource={require('../../../assets/icon.png')}
-                />
-              ) : (
-                <View style={styles.brokerPlaceholder}>
-                  <Ionicons name="person" size={14} color={COLORS.outline} />
+    return (
+      <Animated.View style={[styles.propertyCard, { transform: [{ scale: scaleAnim }] }]}>
+        <TouchableOpacity
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={0.9}
+          style={styles.propertyCardContent}
+          accessibilityRole="button"
+          accessibilityLabel={`View details for ${property.title}`}
+        >
+          <View style={styles.propertyCardImageContainer}>
+            <Image
+              source={{ uri: property.image || 'https://via.placeholder.com/300' }}
+              style={styles.propertyCardImage}
+              defaultSource={require('../../../assets/icon.png')}
+            />
+            <View style={styles.propertyCardFeatures}>
+              {property.features?.slice(0, 2).map((feature: any, index: number) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.featureBadge,
+                    feature === 'Video' && styles.videoBadge,
+                    feature === 'Verified' && styles.verifiedBadgePrimary,
+                  ]}
+                >
+                  {feature === 'Video' && (
+                    <Ionicons name="videocam" size={12} color={COLORS['on-primary']} />
+                  )}
+                  <Text style={styles.featureBadgeText}>{feature}</Text>
                 </View>
-              )}
-              <View>
-                <Text style={styles.brokerName}>{property.broker?.name || 'Pro Agent'}</Text>
-                {property.broker?.verified && (
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark" size={10} color={COLORS['on-primary']} />
-                    <Text style={styles.verifiedText}>Verified</Text>
-                  </View>
-                )}
-              </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.propertyCardBody}>
+            <View style={styles.propertyCardHeader}>
+              <Text style={styles.propertyCardTitle} numberOfLines={1}>
+                {property.title}
+              </Text>
+              <Text style={styles.propertyCardPrice}>ETB {fmtETB(property.price, 0)}</Text>
             </View>
 
-            <TouchableOpacity 
-              style={styles.messageButton}
-              onPress={() => onMessagePress?.(property)}
-              accessibilityLabel="Send a message about this property"
-              accessibilityRole="button"
-            >
-              <Text style={styles.messageButtonText}>Message</Text>
-            </TouchableOpacity>
+            <View style={styles.propertyCardLocation}>
+              <Ionicons name="location" size={14} color={COLORS.outline} />
+              <Text style={styles.propertyCardLocationText}>{property.location}</Text>
+            </View>
+
+            <View style={styles.propertyCardFooter}>
+              <View style={styles.propertyCardBroker}>
+                {property.broker?.image ? (
+                  <Image
+                    source={{ uri: property.broker.image }}
+                    style={styles.brokerImage}
+                    defaultSource={require('../../../assets/icon.png')}
+                  />
+                ) : (
+                  <View style={styles.brokerPlaceholder}>
+                    <Ionicons name="person" size={14} color={COLORS.outline} />
+                  </View>
+                )}
+                <View>
+                  <Text style={styles.brokerName}>{property.broker?.name || 'Pro Agent'}</Text>
+                  {property.broker?.verified && (
+                    <View style={styles.verifiedBadge}>
+                      <Ionicons name="checkmark" size={10} color={COLORS['on-primary']} />
+                      <Text style={styles.verifiedText}>Verified</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.messageButton}
+                onPress={() => onMessagePress?.(property)}
+                accessibilityLabel="Send a message about this property"
+                accessibilityRole="button"
+              >
+                <Text style={styles.messageButtonText}>Message</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  }
+);
 
 export default PublicPropertyCard;
 

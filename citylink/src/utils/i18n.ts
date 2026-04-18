@@ -1,3 +1,5 @@
+import { useSystemStore } from '../store/SystemStore';
+
 interface TranslationEntry {
   en?: string;
   am?: string;
@@ -150,15 +152,9 @@ export function t(text: string, lang?: string): string {
   if (!text) return '';
 
   // Auto-detect language from store if not explicitly provided
-  // Lazy import to avoid circular dependencies
   let activeLang = lang;
   if (!activeLang) {
-    try {
-      const { useSystemStore } = require('../store/SystemStore');
-      activeLang = useSystemStore.getState().lang || 'en';
-    } catch {
-      activeLang = 'en';
-    }
+    activeLang = useSystemStore.getState().lang || 'en';
   }
 
   // Always try to return a meaningful translation, even in English
@@ -171,8 +167,8 @@ export function t(text: string, lang?: string): string {
     return text.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
   }
 
-  if (entry && activeLang && (entry as any)[activeLang]) {
-    return (entry as any)[activeLang];
+  if (entry && activeLang && activeLang in entry) {
+    return (entry as Record<string, string>)[activeLang];
   }
 
   // Heuristics for currency

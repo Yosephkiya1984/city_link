@@ -66,14 +66,9 @@ export default function ChatInboxScreen({ navigation }: { navigation: any }) {
   useEffect(() => {
     loadThreads();
 
-    const ch = subscribeToTable(
-      `inbox-msgs-${currentUser?.id}`,
-      'chat_messages',
-      null,
-      () => {
-        loadThreads();
-      }
-    );
+    const ch = subscribeToTable(`inbox-msgs-${currentUser?.id}`, 'chat_messages', null, () => {
+      loadThreads();
+    });
 
     return () => unsubscribe(ch);
   }, [currentUser?.id, loadThreads]);

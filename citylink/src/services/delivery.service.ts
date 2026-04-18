@@ -3,12 +3,12 @@
  * Handles GPS, proximity dispatch, job management, and earnings.
  */
 import { supaQuery, subscribeToTable, getClient, hasSupabase } from './supabase';
-import { 
-  DeliveryAgent, 
-  DeliveryDispatch, 
-  AgentTelemetry, 
-  MarketplaceOrder, 
-  VehicleType 
+import {
+  DeliveryAgent,
+  DeliveryDispatch,
+  AgentTelemetry,
+  MarketplaceOrder,
+  VehicleType,
 } from '../types';
 import { RealtimePayload } from './realtime';
 
@@ -33,38 +33,43 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
  */
 export function calculateETA(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const dist = haversine(lat1, lng1, lat2, lng2);
-  const avgSpeedKmh = 20; 
+  const avgSpeedKmh = 20;
   const hours = dist / avgSpeedKmh;
   const minutes = Math.ceil(hours * 60);
   return Math.max(2, minutes); // Min 2 mins
 }
 
-export async function registerDeliveryAgent({ 
-  agentId, 
-  vehicleType, 
-  plateNumber, 
-  licenseNumber 
-}: { 
-  agentId: string; 
-  vehicleType: VehicleType; 
-  plateNumber?: string; 
-  licenseNumber: string; 
+export async function registerDeliveryAgent({
+  agentId,
+  vehicleType,
+  plateNumber,
+  licenseNumber,
+}: {
+  agentId: string;
+  vehicleType: VehicleType;
+  plateNumber?: string;
+  licenseNumber: string;
 }) {
   if (!agentId) return { data: null, error: 'Missing authenticated agent ID' };
   if (!vehicleType) return { data: null, error: 'Vehicle type is required' };
-  if (!licenseNumber || licenseNumber.length < 5) return { data: null, error: 'Valid license number is required' };
+  if (!licenseNumber || licenseNumber.length < 5)
+    return { data: null, error: 'Valid license number is required' };
 
   return supaQuery<DeliveryAgent>((c) =>
-    c.from('delivery_agents').upsert(
-      {
-        id: agentId,
-        vehicle_type: vehicleType,
-        plate_number: plateNumber || null,
-        license_number: licenseNumber,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: 'id' }
-    ).select().single()
+    c
+      .from('delivery_agents')
+      .upsert(
+        {
+          id: agentId,
+          vehicle_type: vehicleType,
+          plate_number: plateNumber || null,
+          license_number: licenseNumber,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
+      .select()
+      .single()
   );
 }
 
@@ -99,7 +104,12 @@ export async function updateAgentLocation(agentId: string, lat: number, lng: num
 }
 
 // ── Online/Offline Toggle ─────────────────────────────────────────────────────
-export async function setAgentOnlineStatus(agentId: string, isOnline: boolean, lat: number | null, lng: number | null) {
+export async function setAgentOnlineStatus(
+  agentId: string,
+  isOnline: boolean,
+  lat: number | null,
+  lng: number | null
+) {
   if (!hasSupabase()) return { ok: true };
   return supaQuery<void>((c) =>
     c
@@ -117,13 +127,19 @@ export async function setAgentOnlineStatus(agentId: string, isOnline: boolean, l
 // ── Fetch Agent Profile ───────────────────────────────────────────────────────
 export async function fetchAgentProfile(agentId: string) {
   if (!hasSupabase()) return { data: null, error: null };
-  return supaQuery<DeliveryAgent>((c) => c.from('delivery_agents').select('*').eq('id', agentId).single());
+  return supaQuery<DeliveryAgent>((c) =>
+    c.from('delivery_agents').select('*').eq('id', agentId).single()
+  );
 }
 
 // ── Find Nearby Agents ────────────────────────────────────────────────────────
-export async function findNearbyAgents(merchantLat: number, merchantLng: number, radiusKm = 10): Promise<DeliveryAgent[]> {
+export async function findNearbyAgents(
+  merchantLat: number,
+  merchantLng: number,
+  radiusKm = 10
+): Promise<DeliveryAgent[]> {
   if (!hasSupabase()) return [];
-  
+
   const heartbeatThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
   const { data, error } = await supaQuery<DeliveryAgent[]>((c) =>
@@ -142,7 +158,10 @@ export async function findNearbyAgents(merchantLat: number, merchantLng: number,
   return (data as (DeliveryAgent & { distanceKm?: number })[])
     .map((a) => ({
       ...a,
-      distanceKm: (a.current_lat && a.current_lng) ? haversine(merchantLat, merchantLng, a.current_lat, a.current_lng) : radiusKm + 1,
+      distanceKm:
+        a.current_lat && a.current_lng
+          ? haversine(merchantLat, merchantLng, a.current_lat, a.current_lng)
+          : radiusKm + 1,
     }))
     .filter((a) => (a.distanceKm || 0) <= radiusKm)
     .sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0))
@@ -150,19 +169,22 @@ export async function findNearbyAgents(merchantLat: number, merchantLng: number,
 }
 
 // ── Dispatch Job ──────────────────────────────────────────────────────────────
-export async function dispatchOrderToAgents(orderId: string, agentIds: string[]): Promise<{ ok: boolean; error?: string; expiresAt?: string; dispatchedTo?: number }> {
+export async function dispatchOrderToAgents(
+  orderId: string,
+  agentIds: string[]
+): Promise<{ ok: boolean; error?: string; expiresAt?: string; dispatchedTo?: number }> {
   if (!hasSupabase() || !agentIds.length) return { ok: false, error: 'no_agents' };
 
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); 
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   const { error } = await supaQuery<void>((c) =>
     c
       .from('marketplace_orders')
       .update({
         dispatch_expires_at: expiresAt,
-        dispatch_attempts: 1, 
+        dispatch_attempts: 1,
         status: 'DISPATCHING',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', orderId)
   );
@@ -183,7 +205,10 @@ export async function dispatchOrderToAgents(orderId: string, agentIds: string[])
 }
 
 // ── Accept Delivery Job ───────────────────────────────────────────────────────
-export async function acceptDeliveryJob(orderId: string, agentId: string): Promise<{ ok: boolean; error?: string }> {
+export async function acceptDeliveryJob(
+  orderId: string,
+  agentId: string
+): Promise<{ ok: boolean; error?: string }> {
   if (!hasSupabase()) return { ok: true };
 
   let attempts = 0;
@@ -223,8 +248,11 @@ export async function acceptDeliveryJob(orderId: string, agentId: string): Promi
 }
 
 // ── Decline Delivery Job ──────────────────────────────────────────────────────
-export async function declineDeliveryJob(orderId: string, agentId: string) {
-  if (!hasSupabase()) return { ok: true };
+export async function declineDeliveryJob(
+  orderId: string,
+  agentId: string
+): Promise<{ data: void | null; count?: number | null; error: string | null }> {
+  if (!hasSupabase()) return { data: null, error: null, count: null };
   return supaQuery<void>((c) =>
     c
       .from('delivery_dispatches')
@@ -235,16 +263,23 @@ export async function declineDeliveryJob(orderId: string, agentId: string) {
 }
 
 // ── Mark Picked Up (Merchant + Agent dual confirmation) ──────────────────────
-export async function markOrderPickedUp(orderId: string, agentId: string): Promise<{ ok: boolean; error?: string; status?: string; pin?: string }> {
+export async function markOrderPickedUp(
+  orderId: string,
+  agentId: string
+): Promise<{ ok: boolean; error?: string; status?: string; pin?: string }> {
   if (!hasSupabase()) return { ok: true };
-  const { data, error } = await supaQuery<{ ok: boolean; status: string; delivery_pin: string; error?: string }>((c) =>
+  const { data, error } = await supaQuery<{
+    ok: boolean;
+    status: string;
+    delivery_pin: string;
+    error?: string;
+  }>((c) =>
     c.rpc('confirm_order_pickup', {
       p_order_id: orderId,
       p_user_id: agentId,
     })
   );
-  if (error || !data?.ok)
-    return { ok: false, error: error || data?.error || 'pickup_failed' };
+  if (error || !data?.ok) return { ok: false, error: error || data?.error || 'pickup_failed' };
   return { ok: true, status: data.status, pin: data.delivery_pin };
 }
 
@@ -254,22 +289,31 @@ export async function markOrderDeliveredByAgent(orderId: string, agentId: string
   return supaQuery<void>((c) =>
     c
       .from('marketplace_orders')
-      .update({ status: 'AWAITING_PIN', delivered_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({
+        status: 'AWAITING_PIN',
+        delivered_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', orderId)
       .eq('agent_id', agentId)
   );
 }
 
 // ── Confirm Delivery with PIN (completes order) ───────────────────────────────
-export async function confirmDeliveryWithPin(orderId: string, pin: string, agentId: string | null = null): Promise<{ ok: boolean; error?: string; agent_share?: number }> {
+export async function confirmDeliveryWithPin(
+  orderId: string,
+  pin: string,
+  agentId: string | null = null
+): Promise<{ ok: boolean; error?: string; agent_share?: number }> {
   if (!hasSupabase()) return { ok: true };
 
-  const { data, error } = await supaQuery<{ ok: boolean; error?: string; agent_share: number }>((c) =>
-    c.rpc('confirm_delivery_with_pin', {
-      p_order_id: orderId,
-      p_pin: pin,
-      p_agent_id: agentId,
-    })
+  const { data, error } = await supaQuery<{ ok: boolean; error?: string; agent_share: number }>(
+    (c) =>
+      c.rpc('confirm_delivery_with_pin', {
+        p_order_id: orderId,
+        p_pin: pin,
+        p_agent_id: agentId,
+      })
   );
 
   if (error || !data?.ok) {
@@ -280,7 +324,10 @@ export async function confirmDeliveryWithPin(orderId: string, pin: string, agent
 }
 
 // ── Proof of Delivery (POD) ───────────────────────────────────────────────────
-export async function uploadDeliveryProof(orderId: string, base64Image: string): Promise<{ ok: boolean; url?: string; error?: string }> {
+export async function uploadDeliveryProof(
+  orderId: string,
+  base64Image: string
+): Promise<{ ok: boolean; url?: string; error?: string }> {
   const client = getClient();
   if (!client) return { ok: false, error: 'no-client' };
 
@@ -299,7 +346,10 @@ export async function uploadDeliveryProof(orderId: string, base64Image: string):
     const publicUrl = data.publicUrl;
 
     const { error: updateError } = await supaQuery<void>((c) =>
-      c.from('marketplace_orders').update({ delivery_proof_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', orderId)
+      c
+        .from('marketplace_orders')
+        .update({ delivery_proof_url: publicUrl, updated_at: new Date().toISOString() })
+        .eq('id', orderId)
     );
 
     if (updateError) throw updateError;
@@ -318,7 +368,14 @@ const _telemetryCache: Record<string, { ts: number; lat: number; lng: number }> 
  * recordTelemetry
  * Records agent GPS coordinates with client-side throttling to save database resources.
  */
-export async function recordTelemetry(agentId: string, orderId: string, lat: number, lng: number, speed: number | null = null, heading: number | null = null) {
+export async function recordTelemetry(
+  agentId: string,
+  orderId: string,
+  lat: number,
+  lng: number,
+  speed: number | null = null,
+  heading: number | null = null
+) {
   if (!hasSupabase()) return;
 
   const now = Date.now();
@@ -343,7 +400,7 @@ export async function recordTelemetry(agentId: string, orderId: string, lat: num
       lng,
       speed,
       heading,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     })
   );
 }
@@ -380,7 +437,10 @@ export async function fetchActiveJobs(agentId: string): Promise<MarketplaceOrder
 }
 
 // ── Fetch Agent Delivery History ──────────────────────────────────────────────
-export async function fetchAgentHistory(agentId: string, limit = 20): Promise<Partial<MarketplaceOrder>[]> {
+export async function fetchAgentHistory(
+  agentId: string,
+  limit = 20
+): Promise<Partial<MarketplaceOrder>[]> {
   if (!hasSupabase()) return [];
   const { data } = await supaQuery<Partial<MarketplaceOrder>[]>((c) =>
     c
@@ -395,7 +455,10 @@ export async function fetchAgentHistory(agentId: string, limit = 20): Promise<Pa
 }
 
 // ── Subscribe to Dispatches (Agent Dashboard) ─────────────────────────────────
-export function subscribeToAgentDispatches(agentId: string, onDispatch: (payload: RealtimePayload<DeliveryDispatch>) => void) {
+export function subscribeToAgentDispatches(
+  agentId: string,
+  onDispatch: (payload: RealtimePayload<DeliveryDispatch>) => void
+) {
   return subscribeToTable(
     `agent-dispatches-${agentId}`,
     'delivery_dispatches',
@@ -405,7 +468,10 @@ export function subscribeToAgentDispatches(agentId: string, onDispatch: (payload
 }
 
 // ── Subscribe to Order Status (Active Job) ────────────────────────────────────
-export function subscribeToOrderStatus(orderId: string, onUpdate: (payload: RealtimePayload<MarketplaceOrder>) => void) {
+export function subscribeToOrderStatus(
+  orderId: string,
+  onUpdate: (payload: RealtimePayload<MarketplaceOrder>) => void
+) {
   return subscribeToTable(
     `order-status-${orderId}`,
     'marketplace_orders',

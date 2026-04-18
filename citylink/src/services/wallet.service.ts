@@ -9,7 +9,9 @@ import { DataEngine } from './data.engine';
  * fetchWallet — returns the raw wallet row for a given user ID.
  */
 export async function fetchWallet(userId: string) {
-  return supaQuery<Wallet>((c) => c.from('wallets').select('*').eq('user_id', userId).maybeSingle());
+  return supaQuery<Wallet>((c) =>
+    c.from('wallets').select('*').eq('user_id', userId).maybeSingle()
+  );
 }
 
 interface WalletStats {
@@ -30,19 +32,19 @@ export async function fetchWalletData(userId: string): Promise<WalletStats | nul
     const { data: walletData, error: wErr } = await DataEngine.wallets.get(userId);
 
     if (wErr) throw new Error(wErr);
-    
+
     let wallet: Wallet | null = walletData;
     if (!wallet) {
       console.log('🔧 Wallet missing for user, attempting creation/recovery...');
       const { data: newWallet, error: ensureErr } = await ensureWallet(userId);
       if (ensureErr) throw new Error(ensureErr);
       if (newWallet) {
-        wallet = { 
-          id: newWallet.id, 
-          balance: newWallet.balance, 
-          user_id: userId, 
+        wallet = {
+          id: newWallet.id,
+          balance: newWallet.balance,
+          user_id: userId,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
       }
     }
@@ -81,8 +83,14 @@ export async function fetchWalletData(userId: string): Promise<WalletStats | nul
 /**
  * processTopup — Atomic idempotency wrapper for top-ups.
  */
-export async function processTopup(userId: string, amount: number, provider: string): Promise<boolean> {
-  const idempotencyKey = `topup-${userId.slice(0, 8)}-${Date.now()}`;
+export async function processTopup(
+  userId: string,
+  amount: number,
+  provider: string,
+  externalRef?: string
+): Promise<boolean> {
+  // Hardened: use external reference if available, otherwise a deterministic window-based key
+  const idempotencyKey = externalRef || `topup-${userId.slice(0, 8)}-${amount}-${provider}-${Math.floor(Date.now() / 60000)}`;
 
   const res = await supaQuery<{ ok: boolean }>((c) =>
     c.rpc('credit_wallet_atomic', {
@@ -106,7 +114,10 @@ export async function rpcDebitWallet(
   description: string,
   category = 'general',
   idempotencyKey: string | null = null
-): Promise<{ data: { ok: boolean; new_balance: number; error?: string } | null; error: string | null }> {
+): Promise<{
+  data: { ok: boolean; new_balance: number; error?: string } | null;
+  error: string | null;
+}> {
   return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('debit_wallet_atomic', {
       p_user_id: userId,
@@ -127,7 +138,10 @@ export async function rpcCreditWallet(
   description: string,
   category = 'general',
   idempotencyKey: string | null = null
-): Promise<{ data: { ok: boolean; new_balance: number; error?: string } | null; error: string | null }> {
+): Promise<{
+  data: { ok: boolean; new_balance: number; error?: string } | null;
+  error: string | null;
+}> {
   return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('credit_wallet_atomic', {
       p_user_id: userId,
@@ -148,23 +162,29 @@ interface EnsureWalletResult {
  * ensureWallet — ensures a wallet row exists for the user.
  * Uses atomic server-side RPC to avoid RLS insert conflicts.
  */
-export async function ensureWallet(userId: string): Promise<{ data: EnsureWalletResult | null; error?: string | null }> {
+export async function ensureWallet(
+  userId: string
+): Promise<{ data: EnsureWalletResult | null; error?: string | null }> {
   const { data, error } = await supaQuery<{ wallet_id: string; current_balance: number }[]>((c) =>
     c.rpc('get_or_create_wallet', { p_user_id: userId })
   );
   if (error) return { data: null, error };
 
   // RPC returns a list since it's a TABLE return
-  const wallet = Array.isArray(data) ? data[0] : (data as unknown as { wallet_id: string; current_balance: number });
+  const wallet = Array.isArray(data)
+    ? data[0]
+    : (data as unknown as { wallet_id: string; current_balance: number });
   if (!wallet) return { data: null, error: 'Failed to find/create wallet' };
-  
+
   return { data: { id: wallet.wallet_id, balance: wallet.current_balance } };
 }
 
 /**
  * claimWelcomeBonus — triggers the one-time welcome bonus logic.
  */
-export async function claimWelcomeBonus(userId: string): Promise<{ applied: boolean; newBalance?: number; error?: string | null }> {
+export async function claimWelcomeBonus(
+  userId: string
+): Promise<{ applied: boolean; newBalance?: number; error?: string | null }> {
   const res = await supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('process_welcome_bonus', {
       p_user_id: userId,
@@ -187,28 +207,29 @@ interface P2PResult {
 /**
  * queueP2PTransfer — starts a P2P transfer (immediate if registered, queued otherwise).
  */
-export async function queueP2PTransfer({ 
-  senderId, 
-  recipientPhone, 
-  amount, 
-  note, 
-  idempotencyKey 
-}: { 
-  senderId: string, 
-  recipientPhone: string, 
-  amount: number, 
-  note?: string,
-  idempotencyKey?: string
+export async function queueP2PTransfer({
+  senderId,
+  recipientPhone,
+  amount,
+  note,
+  idempotencyKey,
+}: {
+  senderId: string;
+  recipientPhone: string;
+  amount: number;
+  note?: string;
+  idempotencyKey?: string;
 }): Promise<P2PResult> {
   const finalKey = idempotencyKey || `p2p-v1-${senderId}-${recipientPhone}-${amount}-${note || ''}`;
-  const res = await supaQuery<{ ok: boolean; new_balance: number; status: string; error?: string }>((c) =>
-    c.rpc('process_p2p_transfer', {
-      p_sender_id: senderId,
-      p_recipient_phone: recipientPhone,
-      p_amount: amount,
-      p_note: note || '',
-      p_idempotency_key: finalKey,
-    })
+  const res = await supaQuery<{ ok: boolean; new_balance: number; status: string; error?: string }>(
+    (c) =>
+      c.rpc('process_p2p_transfer', {
+        p_sender_id: senderId,
+        p_recipient_phone: recipientPhone,
+        p_amount: amount,
+        p_note: note || '',
+        p_idempotency_key: finalKey,
+      })
   );
 
   if (res.error) return { ok: false, error: res.error };
@@ -221,19 +242,26 @@ export async function queueP2PTransfer({
  * fetchSpendingInsights — Optimized query for Analytics.
  * Groups spending by category and calculates daily totals.
  */
-export async function fetchSpendingInsights(userId: string, days: number = 30): Promise<{ data: Pick<DomainTransaction, 'category' | 'amount' | 'created_at' | 'type'>[] | null; error: string | null }> {
+export async function fetchSpendingInsights(
+  userId: string,
+  days: number = 30
+): Promise<{
+  data: Pick<DomainTransaction, 'category' | 'amount' | 'created_at' | 'type'>[] | null;
+  error: string | null;
+}> {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
   const { data: wallet } = await fetchWallet(userId);
   if (!wallet) return { data: null, error: 'no-wallet' };
 
-  return supaQuery<Pick<DomainTransaction, 'category' | 'amount' | 'created_at' | 'type'>[]>((c) => 
-    c.from('transactions')
-     .select('category, amount, created_at, type')
-     .eq('wallet_id', wallet.id)
-     .eq('type', 'debit')
-     .gte('created_at', startDate.toISOString())
-     .order('created_at', { ascending: true })
+  return supaQuery<Pick<DomainTransaction, 'category' | 'amount' | 'created_at' | 'type'>[]>((c) =>
+    c
+      .from('transactions')
+      .select('category, amount, created_at, type')
+      .eq('wallet_id', wallet.id)
+      .eq('type', 'debit')
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: true })
   );
 }

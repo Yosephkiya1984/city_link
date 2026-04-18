@@ -45,6 +45,7 @@
     "expo-image-picker": "~55.0.18",
     "expo-linear-gradient": "~55.0.13",
     "expo-linking": "~55.0.12",
+    "expo-local-authentication": "~55.0.13",
     "expo-location": "~55.1.8",
     "expo-notifications": "~55.0.18",
     "expo-secure-store": "~55.0.13",
@@ -78,7 +79,8 @@
     "jest-expo": "^55.0.16"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFiles": ["<rootDir>/jest.setup.js"]
   },
   "private": true
 }

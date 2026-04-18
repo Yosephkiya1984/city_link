@@ -159,7 +159,17 @@ export default function SystemModule() {
   );
 }
 
-function NodeCard({ name, status, latency, color }: { name: string; status: string; latency: string; color: string }) {
+function NodeCard({
+  name,
+  status,
+  latency,
+  color,
+}: {
+  name: string;
+  status: string;
+  latency: string;
+  color: string;
+}) {
   const theme = useTheme();
   return (
     <View style={[styles.nodeCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
@@ -173,7 +183,19 @@ function NodeCard({ name, status, latency, color }: { name: string; status: stri
   );
 }
 
-function ConfigItem({ label, sub, value, onToggle, isDanger = false }: { label: string; sub: string; value: boolean; onToggle: () => void; isDanger?: boolean }) {
+function ConfigItem({
+  label,
+  sub,
+  value,
+  onToggle,
+  isDanger = false,
+}: {
+  label: string;
+  sub: string;
+  value: boolean;
+  onToggle: () => void;
+  isDanger?: boolean;
+}) {
   const theme = useTheme();
   return (
     <View style={styles.configItem}>

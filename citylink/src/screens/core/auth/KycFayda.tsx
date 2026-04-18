@@ -22,23 +22,30 @@ export const KycFayda = ({
   onOTPSubmit,
   onScan,
   onBiometricProceed,
-  onComplete
+  onComplete,
 }: any) => {
   const renderStepIcon = (step: number) => {
-    let iconName: any = "document-text-outline";
-    if (step === 2) iconName = "chatbubble-ellipses-outline";
-    if (step === 3) iconName = "finger-print-outline";
-    if (step === 4) iconName = "checkmark-circle-outline";
+    let iconName: any = 'document-text-outline';
+    if (step === 2) iconName = 'chatbubble-ellipses-outline';
+    if (step === 3) iconName = 'finger-print-outline';
+    if (step === 4) iconName = 'checkmark-circle-outline';
 
     return (
-      <View style={[styles.stepIcon, { backgroundColor: kycStep >= step ? C.primary : C.surface, borderColor: C.edge }]}>
+      <View
+        style={[
+          styles.stepIcon,
+          { backgroundColor: kycStep >= step ? C.primary : C.surface, borderColor: C.edge },
+        ]}
+      >
         <Ionicons name={iconName} size={24} color={kycStep >= step ? C.ink : C.sub} />
       </View>
     );
   };
 
   return (
-    <Animated.View style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+    <Animated.View
+      style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+    >
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={C.text} />
@@ -73,7 +80,12 @@ export const KycFayda = ({
               maxLength={12}
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            <CButton title="Verify FIN" onPress={onFINSubmit} loading={loading} style={{ marginTop: 24 }} />
+            <CButton
+              title="Verify FIN"
+              onPress={onFINSubmit}
+              loading={loading}
+              style={{ marginTop: 24 }}
+            />
           </View>
         )}
 
@@ -93,7 +105,12 @@ export const KycFayda = ({
               maxLength={6}
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            <CButton title="Submit Code" onPress={onOTPSubmit} loading={loading} style={{ marginTop: 24 }} />
+            <CButton
+              title="Submit Code"
+              onPress={onOTPSubmit}
+              loading={loading}
+              style={{ marginTop: 24 }}
+            />
           </View>
         )}
 
@@ -103,22 +120,28 @@ export const KycFayda = ({
             <Text style={[styles.stepDesc, { color: C.sub }]}>
               Place your thumb on the scanner or align your face for biometric authentication.
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.scanTarget, { borderColor: biometricSimulated ? C.primary : C.edge }]}
               onPress={onScan}
             >
-              <Ionicons 
-                name={biometricSimulated ? "checkmark-circle" : "finger-print"} 
-                size={80} 
-                color={biometricSimulated ? C.primary : C.sub} 
+              <Ionicons
+                name={biometricSimulated ? 'checkmark-circle' : 'finger-print'}
+                size={80}
+                color={biometricSimulated ? C.primary : C.sub}
               />
               <Text style={[styles.scanText, { color: biometricSimulated ? C.primary : C.sub }]}>
-                {biometricSimulated ? "Verification Successful" : "Tap to Scan"}
+                {biometricSimulated ? 'Verification Successful' : 'Tap to Scan'}
               </Text>
             </TouchableOpacity>
 
-            <CButton title="Proceed" onPress={onBiometricProceed} loading={loading} disabled={!biometricSimulated} style={{ marginTop: 24 }} />
+            <CButton
+              title="Proceed"
+              onPress={onBiometricProceed}
+              loading={loading}
+              disabled={!biometricSimulated}
+              style={{ marginTop: 24 }}
+            />
           </View>
         )}
 
@@ -129,7 +152,9 @@ export const KycFayda = ({
               Your identity has been successfully verified via National ID.
             </Text>
 
-            <View style={[styles.successCard, { backgroundColor: C.surface, borderColor: C.primary }]}>
+            <View
+              style={[styles.successCard, { backgroundColor: C.surface, borderColor: C.primary }]}
+            >
               <View style={styles.successHeader}>
                 <Ionicons name="checkmark-circle" size={40} color={C.primary} />
                 <View>
@@ -139,7 +164,12 @@ export const KycFayda = ({
               </View>
             </View>
 
-            <CButton title="Start using CityLink" onPress={onComplete} loading={loading} style={{ marginTop: 24 }} />
+            <CButton
+              title="Start using CityLink"
+              onPress={onComplete}
+              loading={loading}
+              style={{ marginTop: 24 }}
+            />
           </View>
         )}
       </View>

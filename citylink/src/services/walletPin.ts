@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
-import QuickCrypto from 'react-native-quick-crypto';
 import CryptoJS from 'crypto-js';
+import { supaQuery } from './supabase';
 
 const V1_PREFIX = 'cl_wallet_pin_v1_'; // Legacy (Custom SHA-256 loop, Global Salt)
 const V2_PREFIX = 'cl_wallet_pin_v2_'; // Intermediate (Custom SHA-256 loop, Per-user Salt) -- Now deprecated
@@ -10,6 +10,7 @@ const V3_PREFIX = 'cl_wallet_pin_v3_'; // Modern (PBKDF2-HMAC-SHA256, Per-user S
 const SALT_ITERATIONS_MODERN = 600000; // OWASP recommendation for PBKDF2
 const SALT_ITERATIONS_LEGACY = 10000;
 const GLOBAL_SALT_V1 = 'citylink_secure_salt_2024';
+const SYNC_PENDING_KEY = 'cl_wallet_pin_needs_sync';
 
 const getV1Key = (userId: string) => `${V1_PREFIX}${userId}`;
 const getV2Key = (userId: string) => `${V2_PREFIX}${userId}`;
@@ -38,40 +39,16 @@ async function hashLegacy(plain: string, userId: string, salt: string): Promise<
 }
 
 /**
- * Modern PBKDF2-HMAC-SHA256 hash using native native implementation.
- * Performed asynchronously to avoid UI blocking.
+ * Modern PBKDF2-HMAC-SHA256 hash using CryptoJS (Expo Go compatible).
+ * Performed with 600,000 iterations for world-class security.
  */
 export async function hashWalletPin(plain: string, userId: string, salt: string): Promise<string> {
   const password = `${plain}:${userId}`;
 
-  // 1. Try Native QuickCrypto (High Performance / Production)
-  try {
-    // The check for NitroModules spec happens during call, so we wrap in try-catch
-    if (QuickCrypto && typeof QuickCrypto.pbkdf2 === 'function') {
-      return await new Promise((resolve, reject) => {
-        QuickCrypto.pbkdf2(
-          password,
-          salt,
-          SALT_ITERATIONS_MODERN,
-          32,
-          'sha256',
-          (err, derivedKey) => {
-            if (err) reject(err);
-            else if (derivedKey) resolve(derivedKey.toString('hex'));
-            else reject(new Error('Derived key missing'));
-          }
-        );
-      });
-    }
-  } catch (e) {
-    // This is expected in Expo Go environments
-    console.log('[WalletPin] Native PBKDF2 unavailable, using JS fallback');
-  }
-
-  // 2. Fallback to Pure JS (Expo Go / Emulator without custom client)
-  // CryptoJS keySize is in words (4 bytes)
+  // 🛡️ World-Class Security: Primary PBKDF2 implementation using pure JS
+  // This ensures 100% compatibility with Expo Go while maintaining high security.
   const derived = CryptoJS.PBKDF2(password, salt, {
-    keySize: 32 / 4,
+    keySize: 32 / 4, // 256 bits
     iterations: SALT_ITERATIONS_MODERN,
     hasher: CryptoJS.algo.SHA256,
   });
@@ -111,7 +88,7 @@ export async function hasWalletPin(userId: string): Promise<boolean> {
   }
 }
 
-/** 
+/**
  * Migration path to V3 security.
  */
 async function migrateToV3(userId: string, plain: string): Promise<void> {
@@ -120,11 +97,10 @@ async function migrateToV3(userId: string, plain: string): Promise<void> {
     const hash = await hashWalletPin(plain, userId, salt);
     // Store as hash:salt
     await SecureStore.setItemAsync(getV3Key(userId), `${hash}:${salt}`);
-    
-    // Cleanup old versions
-    await SecureStore.deleteItemAsync(getV1Key(userId));
-    await SecureStore.deleteItemAsync(getV2Key(userId));
-    
+
+    // SYNC TO DB (Bulletproof Hardening)
+    await syncPinHashToDB(userId, hash);
+
     console.log('[WalletPin] Security migration to V3 (PBKDF2) completed.');
   } catch (err) {
     console.error('[WalletPin] Migration to V3 failed:', err);
@@ -139,7 +115,16 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
     if (storedV3 && storedV3.includes(':')) {
       const [hash, salt] = storedV3.split(':');
       const h = await hashWalletPin(plain, userId, salt);
-      return timingSafeEqual(h, hash);
+      const matched = timingSafeEqual(h, hash);
+
+      if (matched) {
+        // If matched but we have a pending sync, try it now
+        const needsSync = await SecureStore.getItemAsync(SYNC_PENDING_KEY);
+        if (needsSync === userId) {
+          syncPinHashToDB(userId, hash);
+        }
+      }
+      return matched;
     }
 
     // 2. Try V2 (Intermediate: Custom Loop + Per-user Salt)
@@ -169,7 +154,23 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
   }
 }
 
-export async function setWalletPin(userId: string, plain: string): Promise<{ ok: boolean; error?: string }> {
+/**
+ * verifyWalletPinAndGetHash - Verifies and returns the hash for server-side binding.
+ */
+export async function verifyWalletPinAndGetHash(
+  userId: string,
+  plain: string
+): Promise<{ ok: boolean; hash?: string }> {
+  const ok = await verifyWalletPin(userId, plain);
+  if (!ok) return { ok: false };
+  const hash = await getCurrentPinHash(userId);
+  return { ok: true, hash: hash || undefined };
+}
+
+export async function setWalletPin(
+  userId: string,
+  plain: string
+): Promise<{ ok: boolean; error?: string }> {
   if (!userId) return { ok: false, error: 'missing_user' };
   if (!isValidPinFormat(plain)) return { ok: false, error: 'invalid_format' };
   try {
@@ -177,18 +178,66 @@ export async function setWalletPin(userId: string, plain: string): Promise<{ ok:
     const hash = await hashWalletPin(plain, userId, salt);
     // Always use V3 for new pins
     await SecureStore.setItemAsync(getV3Key(userId), `${hash}:${salt}`);
-    
+
+    // SYNC TO DB (Bulletproof Hardening)
+    await syncPinHashToDB(userId, hash);
+
     // Cleanup old versions if they existed
     await SecureStore.deleteItemAsync(getV1Key(userId));
     await SecureStore.deleteItemAsync(getV2Key(userId));
-    
+
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: String(e?.message || e) };
   }
 }
 
-export async function changeWalletPin(userId: string, currentPlain: string, newPlain: string): Promise<{ ok: boolean; error?: string }> {
+/**
+ * getCurrentPinHash - Returns the hash part of the stored V3 PIN for server-side verification.
+ */
+export async function getCurrentPinHash(userId: string): Promise<string | null> {
+  const stored = await SecureStore.getItemAsync(getV3Key(userId));
+  if (stored && stored.includes(':')) {
+    return stored.split(':')[0];
+  }
+  return null;
+}
+
+/**
+ * syncPinHashToDB - Ensures the server has the hash for verification.
+ */
+async function syncPinHashToDB(userId: string, hash: string) {
+  try {
+    const { error } = await supaQuery((c) =>
+      c.from('profiles').update({ pin_hash: hash }).eq('id', userId)
+    );
+    if (!error) {
+      await SecureStore.deleteItemAsync(SYNC_PENDING_KEY);
+    } else {
+      throw new Error(error);
+    }
+  } catch (err) {
+    console.warn('[WalletPin] DB sync failed (offline?), marked for retry.', err);
+    await SecureStore.setItemAsync(SYNC_PENDING_KEY, userId);
+  }
+}
+
+/**
+ * ensureFullSync - Manual trigger to clear pending syncs (e.g. on app start)
+ */
+export async function ensureFullSync(userId: string) {
+  const pending = await SecureStore.getItemAsync(SYNC_PENDING_KEY);
+  if (pending === userId) {
+    const hash = await getCurrentPinHash(userId);
+    if (hash) await syncPinHashToDB(userId, hash);
+  }
+}
+
+export async function changeWalletPin(
+  userId: string,
+  currentPlain: string,
+  newPlain: string
+): Promise<{ ok: boolean; error?: string }> {
   const ok = await verifyWalletPin(userId, currentPlain);
   if (!ok) return { ok: false, error: 'wrong_current' };
   return setWalletPin(userId, newPlain);

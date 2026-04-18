@@ -110,10 +110,10 @@ export async function calculateCreditScore(userId: string): Promise<CreditScoreR
     return {
       score: score || 300,
       tier: getCreditTier(score || 300),
-      factors: { 
+      factors: {
         onTimePayments: 0, // RPC should eventually return details, but for now we prioritize the score
-        latePayments: 0, 
-        accountAge: 0 
+        latePayments: 0,
+        accountAge: 0,
       },
     };
   } catch (error) {
@@ -158,7 +158,11 @@ function getCreditTier(score: number): CreditTier {
 }
 
 // Log credit events for score calculation
-export async function logCreditEvent(userId: string, eventType: string, data: Record<string, any> = {}) {
+export async function logCreditEvent(
+  userId: string,
+  eventType: string,
+  data: Record<string, any> = {}
+) {
   try {
     const client = getClient();
     if (!client) return;
@@ -233,12 +237,12 @@ export function getCreditRecommendations(score: number, tier: CreditTier): Credi
   return recommendations;
 }
 
-export type CreditAction = 
+export type CreditAction =
   | { type: 'ontime_payment' }
   | { type: 'late_payment' }
   | { type: 'insufficient_funds' }
   | { type: 'fayda_verification' }
-  | { type: 'monthly_transactions', count: number };
+  | { type: 'monthly_transactions'; count: number };
 
 // Simulate credit score impact
 export function simulateCreditScoreChange(currentScore: number, action: CreditAction) {

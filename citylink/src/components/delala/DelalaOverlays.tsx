@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, StyleSheet, Modal, ScrollView, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Animated,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from './constants';
@@ -54,7 +64,9 @@ export const ChatModal = memo(({ visible, thread, onClose, onSendMessage }: Chat
             </View>
             <View>
               <Text style={styles.chatParticipantName}>{thread.participant?.name || 'Agent'}</Text>
-              <Text style={styles.chatPropertyTitle}>{thread.property?.title || 'Negotiation'}</Text>
+              <Text style={styles.chatPropertyTitle}>
+                {thread.property?.title || 'Negotiation'}
+              </Text>
             </View>
           </View>
         </View>
@@ -154,10 +166,14 @@ export const FAB = memo(({ activeScreen, onPress }: FABProps) => {
 
   const getFABLabel = () => {
     switch (activeScreen) {
-      case 'Listings': return 'Browse Public';
-      case 'Inventory': return 'Post Property';
-      case 'Messages': return 'New Message';
-      default: return 'Add';
+      case 'Listings':
+        return 'Browse Public';
+      case 'Inventory':
+        return 'Post Property';
+      case 'Messages':
+        return 'New Message';
+      default:
+        return 'Add';
     }
   };
 
@@ -236,7 +252,13 @@ const styles = StyleSheet.create({
     color: COLORS['on-surface'],
     maxHeight: 100,
   },
-  sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sendButtonActive: { backgroundColor: COLORS.primary },
   sendButtonInactive: { backgroundColor: COLORS['surface-container-low'] },
 

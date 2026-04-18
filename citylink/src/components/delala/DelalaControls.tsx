@@ -27,31 +27,33 @@ interface CategoryFilterProps {
   onSelect: (category: string) => void;
 }
 
-export const DelalaCategoryFilter = memo(({ categories, selected, onSelect }: CategoryFilterProps) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={styles.categoryFilter}
-    contentContainerStyle={styles.categoryFilterContent}
-  >
-    {categories.map((category) => (
-      <TouchableOpacity
-        key={category}
-        onPress={() => onSelect(category)}
-        style={[styles.categoryChip, selected === category && styles.activeCategoryChip]}
-      >
-        <Text
-          style={[
-            styles.categoryChipText,
-            selected === category && styles.activeCategoryChipText,
-          ]}
+export const DelalaCategoryFilter = memo(
+  ({ categories, selected, onSelect }: CategoryFilterProps) => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.categoryFilter}
+      contentContainerStyle={styles.categoryFilterContent}
+    >
+      {categories.map((category) => (
+        <TouchableOpacity
+          key={category}
+          onPress={() => onSelect(category)}
+          style={[styles.categoryChip, selected === category && styles.activeCategoryChip]}
         >
-          {category}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </ScrollView>
-));
+          <Text
+            style={[
+              styles.categoryChipText,
+              selected === category && styles.activeCategoryChipText,
+            ]}
+          >
+            {category}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  )
+);
 
 const styles = StyleSheet.create({
   searchContainer: {

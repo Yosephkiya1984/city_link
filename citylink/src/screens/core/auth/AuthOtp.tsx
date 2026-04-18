@@ -4,22 +4,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../../../theme';
 import { CButton, CInput } from '../../../components';
 
-export const AuthOtp = ({ 
-  C, 
-  fadeAnim, 
-  slideAnim, 
-  phone, 
-  otp, 
-  setOtp, 
-  loading, 
-  error, 
-  devOtp, 
-  onBack, 
+export const AuthOtp = ({
+  C,
+  fadeAnim,
+  slideAnim,
+  phone,
+  otp,
+  setOtp,
+  loading,
+  error,
+  devOtp,
+  onBack,
   onVerify,
-  onResend
+  onResend,
 }: any) => {
   return (
-    <Animated.View style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+    <Animated.View
+      style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+    >
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
         <Ionicons name="arrow-back" size={24} color={C.text} />
       </TouchableOpacity>
@@ -55,15 +57,21 @@ export const AuthOtp = ({
         ) : null}
 
         <CButton
-          title={loading ? "" : "Verify & Continue"}
+          title={loading ? '' : 'Verify & Continue'}
           onPress={onVerify}
           loading={loading}
           disabled={loading}
           style={{ marginTop: 16 }}
         />
 
-        <TouchableOpacity style={styles.resendBtn} onPress={onResend} disabled={!onResend || loading}>
-          <Text style={[styles.resendText, { color: !onResend || loading ? C.edge : C.primary }]}>Didn't receive code? Resend</Text>
+        <TouchableOpacity
+          style={styles.resendBtn}
+          onPress={onResend}
+          disabled={!onResend || loading}
+        >
+          <Text style={[styles.resendText, { color: !onResend || loading ? C.edge : C.primary }]}>
+            Didn't receive code? Resend
+          </Text>
         </TouchableOpacity>
       </View>
     </Animated.View>

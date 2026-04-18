@@ -1,5 +1,15 @@
 import { supaQuery } from './supabase';
-import { User, Wallet, Transaction, MarketplaceOrder, EkubGroup, DeliveryAgent, Product, PropertyListing } from '../types';
+import {
+  User,
+  Wallet,
+  Transaction,
+  MarketplaceOrder,
+  EkubGroup,
+  DeliveryAgent,
+  Product,
+  PropertyListing,
+} from '../types';
+import { flattenUser } from './profile.service';
 
 /**
  * DataEngine — Centralized production-grade query bank.
@@ -17,30 +27,34 @@ export interface QueryResult<T> {
 // ── Engine Definition ─────────────────────────────────────────────────────────
 
 export const DataEngine = {
-  
   // ── Profiles & Users ──
-  
+
   profiles: {
-    get: (id: string) => 
-      supaQuery<User>((c) => c.from('profiles').select('*').eq('id', id).maybeSingle()),
-    
+    get: async (id: string) => {
+      const res = await supaQuery<any>((c) =>
+        c.from('profiles').select('*, merchants(*)').eq('id', id).maybeSingle()
+      );
+      return { ...res, data: flattenUser(res.data) } as any; // Cast for engine compatibility
+    },
+
     update: (id: string, updates: Partial<User>) =>
       supaQuery<User>((c) => c.from('profiles').update(updates).eq('id', id).select().single()),
   },
 
   // ── Wallet & Financial ──
-  
+
   wallets: {
     get: (userId: string) =>
       supaQuery<Wallet>((c) => c.from('wallets').select('*').eq('user_id', userId).maybeSingle()),
-    
+
     getTransactions: (walletId: string, limit = 20) =>
-      supaQuery<Transaction[]>((c) => 
-        c.from('transactions')
-         .select('*')
-         .eq('wallet_id', walletId)
-         .order('created_at', { ascending: false })
-         .limit(limit)
+      supaQuery<Transaction[]>((c) =>
+        c
+          .from('transactions')
+          .select('*')
+          .eq('wallet_id', walletId)
+          .order('created_at', { ascending: false })
+          .limit(limit)
       ),
   },
 
@@ -49,20 +63,23 @@ export const DataEngine = {
   marketplace: {
     getListings: (category?: string) => {
       return supaQuery<Product[]>((c) => {
-        let q = c.from('products').select('*, profiles(id, full_name, business_name, merchant_name)');
+        const q = c
+          .from('products')
+          .select('*, merchant:profiles(id, full_name, merchants(business_name, merchant_type))');
         if (category && category !== 'All') {
-          return q.eq('category', category) as any; // Cast needed due to complex return type in select
+          return q.eq('category', category) as any;
         }
         return q as any;
       });
     },
 
     getOrder: (orderId: string) =>
-      supaQuery<MarketplaceOrder>((c) => 
-        c.from('marketplace_orders')
-         .select('*, merchant:profiles!merchant_id(full_name), buyer:profiles!buyer_id(full_name)')
-         .eq('id', orderId)
-         .maybeSingle()
+      supaQuery<MarketplaceOrder>((c) =>
+        c
+          .from('marketplace_orders')
+          .select('*, merchant:profiles!merchant_id(full_name), buyer:profiles!buyer_id(full_name)')
+          .eq('id', orderId)
+          .maybeSingle()
       ),
   },
 
@@ -71,14 +88,15 @@ export const DataEngine = {
   ekub: {
     getGroups: () =>
       supaQuery<EkubGroup[]>((c) => c.from('ekubs').select('*').neq('status', 'COMPLETE')),
-    
+
     getMemberStatus: (groupId: string, userId: string) =>
-      supaQuery<{ id: string; status: string }>((c) => 
-        c.from('ekub_members')
-         .select('*')
-         .eq('ekub_id', groupId)
-         .eq('user_id', userId)
-         .maybeSingle()
+      supaQuery<{ id: string; status: string }>((c) =>
+        c
+          .from('ekub_members')
+          .select('*')
+          .eq('ekub_id', groupId)
+          .eq('user_id', userId)
+          .maybeSingle()
       ),
   },
 
@@ -86,14 +104,17 @@ export const DataEngine = {
 
   delivery: {
     getAgent: (id: string) =>
-      supaQuery<DeliveryAgent>((c) => c.from('delivery_agents').select('*').eq('id', id).maybeSingle()),
-    
+      supaQuery<DeliveryAgent>((c) =>
+        c.from('delivery_agents').select('*').eq('id', id).maybeSingle()
+      ),
+
     getActiveJobs: (agentId: string) =>
-      supaQuery<MarketplaceOrder[]>((c) => 
-        c.from('marketplace_orders')
-         .select('*')
-         .eq('agent_id', agentId)
-         .in('status', ['AGENT_ASSIGNED', 'SHIPPED', 'IN_TRANSIT'])
+      supaQuery<MarketplaceOrder[]>((c) =>
+        c
+          .from('marketplace_orders')
+          .select('*')
+          .eq('agent_id', agentId)
+          .in('status', ['AGENT_ASSIGNED', 'SHIPPED', 'IN_TRANSIT'])
       ),
   },
 };

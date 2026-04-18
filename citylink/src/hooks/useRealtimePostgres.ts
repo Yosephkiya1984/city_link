@@ -7,7 +7,13 @@ import { hasSupabase } from '../services/supabase';
  * @param channelName unique stable id (e.g. `cl-rt-jobs-${userId}`)
  * @param filter optional, e.g. `applicant_id=eq.${uuid}`
  */
-export function useRealtimePostgres({ channelName, table, filter, onPayload, enabled = true }: any) {
+export function useRealtimePostgres({
+  channelName,
+  table,
+  filter,
+  onPayload,
+  enabled = true,
+}: any) {
   const ref = useRef(onPayload);
   ref.current = onPayload;
 

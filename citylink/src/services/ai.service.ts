@@ -8,6 +8,7 @@
  */
 
 import { Config } from '../config';
+import { getSession } from './auth.service';
 
 export interface AIMessage {
   role: 'user' | 'assistant';
@@ -26,10 +27,14 @@ Always be friendly, concise, and culturally aware. Mention Ethiopian context whe
  */
 export async function sendMessage(messages: AIMessage[]): Promise<string> {
   const supaUrl = Config.supaUrl;
-  const anonKey = Config.supaKey;
-  
-  if (!supaUrl || !anonKey || supaUrl.includes('REPLACE')) {
+  const session = await getSession();
+
+  if (!supaUrl || supaUrl.includes('REPLACE')) {
     return "I'm currently in offline mode. Please configure Supabase in your environment to talk to me.";
+  }
+
+  if (!session?.access_token) {
+    return 'Please sign in to talk to the AI assistant.';
   }
 
   const proxyUrl = `${supaUrl}/functions/v1/ai-chat`;
@@ -37,9 +42,9 @@ export async function sendMessage(messages: AIMessage[]): Promise<string> {
   try {
     const res = await fetch(proxyUrl, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${anonKey}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ messages, system: SYSTEM_PROMPT }),
     });
@@ -48,10 +53,10 @@ export async function sendMessage(messages: AIMessage[]): Promise<string> {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || `Proxy responded ${res.status}`);
     }
-    
+
     const data = await res.json();
     const text = data.content?.[0]?.text;
-    
+
     if (text) return text;
     throw new Error('Empty response from AI proxy');
   } catch (e: unknown) {
@@ -60,4 +65,3 @@ export async function sendMessage(messages: AIMessage[]): Promise<string> {
     return `[System] I'm having trouble connecting to my central brain right now. Please try again in a moment. (Error: ${msg})`;
   }
 }
-

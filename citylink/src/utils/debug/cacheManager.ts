@@ -25,15 +25,15 @@ const CACHE_KEYS = {
 };
 
 // Cache entry structure
-class CacheEntry {
+class CacheEntry<T = unknown> {
   key: string;
-  data: any;
+  data: T;
   timestamp: number;
   ttl: number;
   expiry: number;
   size: number;
 
-  constructor(key: string, data: any, ttl = CACHE_CONFIG.DEFAULT_TTL) {
+  constructor(key: string, data: T, ttl = CACHE_CONFIG.DEFAULT_TTL) {
     this.key = key;
     this.data = data;
     this.timestamp = Date.now();
@@ -94,9 +94,9 @@ class CacheManager {
   }
 
   // Store data in cache
-  async set(key: string, data: any, ttl = CACHE_CONFIG.DEFAULT_TTL) {
+  async set<T>(key: string, data: T, ttl = CACHE_CONFIG.DEFAULT_TTL) {
     try {
-      const entry = new CacheEntry(key, data, ttl);
+      const entry = new CacheEntry<T>(key, data, ttl);
 
       // Check cache size limit
       if (this.cacheStats.totalSize + entry.size > CACHE_CONFIG.MAX_CACHE_SIZE) {
@@ -111,7 +111,9 @@ class CacheManager {
 
       return true;
     } catch (error) {
-      console.error('Cache set error:', error);
+      if (__DEV__) {
+        console.error('Cache set error:', error);
+      }
       return false;
     }
   }
@@ -145,7 +147,9 @@ class CacheManager {
       this.cacheStats.misses++;
       return null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      if (__DEV__) {
+        console.error('Cache get error:', error);
+      }
       this.cacheStats.misses++;
       return null;
     }
@@ -163,7 +167,9 @@ class CacheManager {
       await AsyncStorage.removeItem(`cache_${key}`);
       return true;
     } catch (error) {
-      console.error('Cache remove error:', error);
+      if (__DEV__) {
+        console.error('Cache remove error:', error);
+      }
       return false;
     }
   }
@@ -180,7 +186,9 @@ class CacheManager {
 
       return true;
     } catch (error) {
-      console.error('Cache clear error:', error);
+      if (__DEV__) {
+        console.error('Cache clear error:', error);
+      }
       return false;
     }
   }
@@ -217,11 +225,15 @@ class CacheManager {
         }
       }
     } catch (error) {
-      console.error('Cache cleanup error:', error);
+      if (__DEV__) {
+        console.error('Cache cleanup error:', error);
+      }
     }
 
     this.cacheStats.lastCleanup = now;
-    console.log(`🧹 Cache cleanup: removed ${cleanedCount} entries, freed ${cleanedSize} bytes`);
+    if (__DEV__) {
+      console.log(`🧹 Cache cleanup: removed ${cleanedCount} entries, freed ${cleanedSize} bytes`);
+    }
   }
 
   // Evict least used entries
@@ -241,7 +253,9 @@ class CacheManager {
       await AsyncStorage.removeItem(`cache_${key}`);
     }
 
-    console.log(`🗑️ Cache eviction: removed ${toRemove} entries, freed ${freedSize} bytes`);
+    if (__DEV__) {
+      console.log(`🗑️ Cache eviction: removed ${toRemove} entries, freed ${freedSize} bytes`);
+    }
   }
 
   // Get cache statistics
@@ -290,9 +304,13 @@ class CacheManager {
         CACHE_CONFIG.STATIC_DATA_TTL
       );
 
-      console.log('📦 Common data preloaded successfully');
+      if (__DEV__) {
+        console.log('📦 Common data preloaded successfully');
+      }
     } catch (error) {
-      console.error('Preload error:', error);
+      if (__DEV__) {
+        console.error('Preload error:', error);
+      }
     }
   }
 }
@@ -300,7 +318,7 @@ class CacheManager {
 // Data persistence manager
 class DataPersistenceManager {
   isOnline: boolean;
-  syncQueue: any[];
+  syncQueue: unknown[];
   lastSyncTime: number;
 
   constructor() {
@@ -310,7 +328,7 @@ class DataPersistenceManager {
   }
 
   // Save data with fallback
-  async saveWithFallback(key: string, data: any, cloudSync = false) {
+  async saveWithFallback<T>(key: string, data: T, cloudSync = false) {
     try {
       // Save locally first
       await AsyncStorage.setItem(
@@ -329,7 +347,9 @@ class DataPersistenceManager {
 
       return true;
     } catch (error) {
-      console.error('Save with fallback error:', error);
+      if (__DEV__) {
+        console.error('Save with fallback error:', error);
+      }
       return false;
     }
   }
@@ -363,16 +383,20 @@ class DataPersistenceManager {
 
       return null;
     } catch (error) {
-      console.error('Load with fallback error:', error);
+      if (__DEV__) {
+        console.error('Load with fallback error:', error);
+      }
       return null;
     }
   }
 
   // Sync to cloud (mock implementation)
-  async syncToCloud(key: string, data: any) {
+  async syncToCloud<T>(key: string, data: T) {
     try {
       // In a real app, this would sync to a backend service
-      console.log(`☁️ Syncing ${key} to cloud...`);
+      if (__DEV__) {
+        console.log(`☁️ Syncing ${key} to cloud...`);
+      }
 
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -388,16 +412,20 @@ class DataPersistenceManager {
 
       return true;
     } catch (error) {
-      console.error('Cloud sync error:', error);
+      if (__DEV__) {
+        console.error('Cloud sync error:', error);
+      }
       return false;
     }
   }
 
   // Load from cloud (mock implementation)
-  async loadFromCloud(key: string): Promise<any> {
+  async loadFromCloud<T>(key: string): Promise<T | null> {
     try {
       // In a real app, this would fetch from a backend service
-      console.log(`☁️ Loading ${key} from cloud...`);
+      if (__DEV__) {
+        console.log(`☁️ Loading ${key} from cloud...`);
+      }
 
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -405,7 +433,9 @@ class DataPersistenceManager {
       // Return mock data or null
       return null;
     } catch (error) {
-      console.error('Cloud load error:', error);
+      if (__DEV__) {
+        console.error('Cloud load error:', error);
+      }
       return null;
     }
   }
@@ -414,7 +444,7 @@ class DataPersistenceManager {
   async syncPendingData() {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const pendingKeys = [];
+      const pendingKeys: string[] = [];
 
       for (const key of keys) {
         const data = await AsyncStorage.getItem(key);
@@ -434,10 +464,14 @@ class DataPersistenceManager {
         }
       }
 
-      console.log(`🔄 Synced ${pendingKeys.length} pending items`);
+      if (__DEV__) {
+        console.log(`🔄 Synced ${pendingKeys.length} pending items`);
+      }
       return true;
     } catch (error) {
-      console.error('Sync pending data error:', error);
+      if (__DEV__) {
+        console.error('Sync pending data error:', error);
+      }
       return false;
     }
   }
@@ -460,7 +494,7 @@ export const dataPersistence = new DataPersistenceManager();
 // Utility functions
 export const CacheUtils = {
   // Cache API responses
-  cacheApiResponse: async (endpoint: string, data: any, ttl = CACHE_CONFIG.DEFAULT_TTL) => {
+  cacheApiResponse: async <T>(endpoint: string, data: T, ttl = CACHE_CONFIG.DEFAULT_TTL) => {
     const key = `api_${endpoint}`;
     return await cacheManager.set(key, data, ttl);
   },
@@ -472,7 +506,7 @@ export const CacheUtils = {
   },
 
   // Cache user preferences
-  cacheUserPreferences: async (preferences: any) => {
+  cacheUserPreferences: async (preferences: Record<string, unknown>) => {
     return await cacheManager.set(CACHE_KEYS.SETTINGS, preferences, CACHE_CONFIG.USER_DATA_TTL);
   },
 
@@ -489,7 +523,9 @@ export const CacheUtils = {
       await cacheManager.remove(key);
     }
 
-    console.log(`🗑️ Invalidated ${keys.length} cache entries matching pattern: ${pattern}`);
+    if (__DEV__) {
+      console.log(`🗑️ Invalidated ${keys.length} cache entries matching pattern: ${pattern}`);
+    }
   },
 
   // Get cache health

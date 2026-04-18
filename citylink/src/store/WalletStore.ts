@@ -1,51 +1,69 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Transaction, ParkingSession } from '../types';
 import { SecurePersist } from './SecurePersist';
+import { Transaction, ParkingSession } from '../types/domain_types';
 
 export interface WalletState {
   balance: number;
   transactions: Transaction[];
   activeParking: ParkingSession | null;
   setBalance: (val: number) => Promise<void>;
-  setTransactions: (txs: Transaction[]) => void;
-  addTransaction: (tx: Transaction) => void;
-  setActiveParking: (session: ParkingSession | null) => void;
-  hydrateWallet: (userId: string) => Promise<void>;
+  setTransactions: (txs: Transaction[]) => Promise<void>;
+  addTransaction: (tx: Transaction) => Promise<void>;
+  setActiveParking: (session: ParkingSession | null) => Promise<void>;
+  hydrateWallet: (userId?: string) => Promise<void>;
   reset: () => Promise<void>;
 }
 
-export const useWalletStore = create<WalletState>()(
-  persist(
-    (set) => ({
-      balance: 0,
-      transactions: [],
-      activeParking: null,
+export const useWalletStore = create<WalletState>((set) => ({
+  balance: 0,
+  transactions: [],
+  activeParking: null,
 
-      setBalance: async (val) => {
-        set({ balance: val });
-        await SecurePersist.saveBalance(val);
-      },
+  setBalance: async (val) => {
+    set({ balance: val });
+    await SecurePersist.saveBalance(val);
+  },
 
-      setTransactions: (txs) => set({ transactions: txs }),
-      addTransaction: (tx) => set((s) => ({ transactions: [tx, ...s.transactions].slice(0, 50) })),
-      setActiveParking: (session) => set({ activeParking: session }),
+  setTransactions: async (txs) => {
+    set({ transactions: txs });
+    await SecurePersist.saveTransactions(txs);
+  },
 
-      hydrateWallet: async (userId) => {
-        if (!userId) return;
-        const balance = await SecurePersist.loadBalance();
-        set({ balance });
-      },
+  addTransaction: async (tx) => {
+    set((s) => {
+      const next = [tx, ...s.transactions].slice(0, 50);
+      SecurePersist.saveTransactions(next); // This returns a promise, but we update state immediately
+      return { transactions: next };
+    });
+  },
 
-      reset: async () => {
-        set({ balance: 0, transactions: [], activeParking: null });
-        await SecurePersist.saveBalance(0);
-      },
-    }),
-    {
-      name: 'citylink-wallet-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+  setActiveParking: async (session) => {
+    set({ activeParking: session });
+    await SecurePersist.saveActiveParking(session);
+  },
+
+  hydrateWallet: async (userId) => {
+    // If userId provided, we could verify it matches SecurePersist,
+    // but for now we follow the "Source of Truth" in SecurePersist.
+    const [balance, transactions, activeParking] = await Promise.all([
+      SecurePersist.loadBalance(),
+      SecurePersist.loadTransactions(),
+      SecurePersist.loadActiveParking(),
+    ]);
+    set({ balance, transactions, activeParking });
+  },
+
+  reset: async () => {
+    set({ balance: 0, transactions: [], activeParking: null });
+    await Promise.all([
+      SecurePersist.saveBalance(0),
+      SecurePersist.saveTransactions([]),
+      SecurePersist.saveActiveParking(null),
+    ]);
+  },
+}));
+
+/** 🛡️ CTO Lias - satisfying App.tsx dynamic import dependency */
+export const hostWalletHydration = async (userId: string) => {
+  return useWalletStore.getState().hydrateWallet(userId);
+};

@@ -23,7 +23,10 @@ interface VerifyResponse {
  * Dev builds use a simulated OTP flow gated by __DEV__ (compile-time constant).
  * Production builds ALWAYS use Supabase Auth. No config-based bypass exists.
  */
-export async function sendOtp(phone: string, metadata: Record<string, string | number | boolean> | null = null): Promise<AuthResponse> {
+export async function sendOtp(
+  phone: string,
+  metadata: Record<string, string | number | boolean> | null = null
+): Promise<AuthResponse> {
   // Validate phone number format
   const phoneRegex = /^\+251[79]\d{8}$/;
   if (!phoneRegex.test(phone)) {
@@ -41,7 +44,11 @@ export async function sendOtp(phone: string, metadata: Record<string, string | n
     return { error: null, success: true, devOtp: otp };
   }
 
-  const payload: { phone: string; channel: 'sms'; options?: { data: Record<string, string | number | boolean> } } = { phone, channel: 'sms' };
+  const payload: {
+    phone: string;
+    channel: 'sms';
+    options?: { data: Record<string, string | number | boolean> };
+  } = { phone, channel: 'sms' };
   if (metadata) {
     payload.options = { data: metadata };
   }
@@ -165,7 +172,6 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
 
     const errData = await response.json().catch(() => ({}));
     return { user: null, error: errData.message || 'Invalid government credentials' };
-
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (__DEV__ && client) {
@@ -192,8 +198,9 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
         }
       }
     }
-    
-    const msg = err.name === 'AbortError' ? 'Connection timed out' : 'Government gateway unavailable';
+
+    const msg =
+      err.name === 'AbortError' ? 'Connection timed out' : 'Government gateway unavailable';
     return { user: null, error: msg };
   }
 }

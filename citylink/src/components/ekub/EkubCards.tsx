@@ -13,7 +13,9 @@ export const VerifiedCircleCard = memo(({ circle, onJoin }: VerifiedCircleCardPr
   <View style={styles.verifiedCircleCard}>
     <View style={styles.verifiedCircleHeader}>
       <View style={styles.verifiedCircleInfo}>
-        <Text style={styles.verifiedCircleName} numberOfLines={1}>{circle.name}</Text>
+        <Text style={styles.verifiedCircleName} numberOfLines={1}>
+          {circle.name}
+        </Text>
         <Text style={styles.verifiedCircleGrade}>Official Institutional Circle</Text>
       </View>
     </View>
@@ -26,13 +28,11 @@ export const VerifiedCircleCard = memo(({ circle, onJoin }: VerifiedCircleCardPr
       </View>
       <View style={styles.verifiedCircleStat}>
         <Text style={styles.verifiedCircleStatLabel}>Members</Text>
-        <Text style={styles.verifiedCircleStatValue}>
-          {circle.total_members ?? 0}
-        </Text>
+        <Text style={styles.verifiedCircleStatValue}>{circle.total_members ?? 0}</Text>
       </View>
     </View>
-    <TouchableOpacity 
-      style={styles.verifiedCircleButton} 
+    <TouchableOpacity
+      style={styles.verifiedCircleButton}
       onPress={() => onJoin(circle)}
       accessibilityLabel={`Join ${circle.name} circle`}
       accessibilityRole="button"
@@ -58,19 +58,20 @@ export const VouchCard = memo(({ draw, onVouch }: VouchCardProps) => (
       </View>
     </View>
     <Text style={styles.vouchDescription}>
-      Please verify that you witnessed the digital draw for this round and approve the disbursement of ETB {(draw.pot_amount || 0).toLocaleString()} to the winner.
+      Please verify that you witnessed the digital draw for this round and approve the disbursement
+      of ETB {(draw.pot_amount || 0).toLocaleString()} to the winner.
     </Text>
     <View style={styles.vouchActions}>
-      <TouchableOpacity 
-        style={[styles.vouchButton, styles.vouchRejectButton]} 
+      <TouchableOpacity
+        style={[styles.vouchButton, styles.vouchRejectButton]}
         onPress={() => onVouch(false)}
         accessibilityLabel="Dispute this draw"
         accessibilityRole="button"
       >
         <Text style={styles.vouchRejectText}>Dispute</Text>
       </TouchableOpacity>
-      <TouchableOpacity 
-        style={[styles.vouchButton, styles.vouchApproveButton]} 
+      <TouchableOpacity
+        style={[styles.vouchButton, styles.vouchApproveButton]}
         onPress={() => onVouch(true)}
         accessibilityLabel="Approve this draw"
         accessibilityRole="button"
@@ -82,23 +83,83 @@ export const VouchCard = memo(({ draw, onVouch }: VouchCardProps) => (
 ));
 
 const styles = StyleSheet.create({
-  verifiedCircleCard: { backgroundColor: COLORS['surface-container-low'], borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: COLORS['outline-variant'] },
+  verifiedCircleCard: {
+    backgroundColor: COLORS['surface-container-low'],
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS['outline-variant'],
+  },
   verifiedCircleHeader: { flexDirection: 'row', marginBottom: 16 },
   verifiedCircleInfo: { flex: 1 },
-  verifiedCircleName: { fontSize: 18, fontWeight: '700', color: COLORS['on-surface'], fontFamily: Fonts.headline },
-  verifiedCircleGrade: { fontSize: 12, color: COLORS.primary, fontFamily: Fonts.body, marginTop: 2 },
-  verifiedCircleStats: { flexDirection: 'row', backgroundColor: COLORS['surface-container'], borderRadius: 12, padding: 12, marginBottom: 16, gap: 16 },
+  verifiedCircleName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.headline,
+  },
+  verifiedCircleGrade: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontFamily: Fonts.body,
+    marginTop: 2,
+  },
+  verifiedCircleStats: {
+    flexDirection: 'row',
+    backgroundColor: COLORS['surface-container'],
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 16,
+  },
   verifiedCircleStat: { flex: 1 },
-  verifiedCircleStatLabel: { fontSize: 10, color: COLORS.outline, fontFamily: Fonts.label, textTransform: 'uppercase' },
-  verifiedCircleStatValue: { fontSize: 14, fontWeight: '700', color: COLORS['on-surface'], fontFamily: Fonts.headline, marginTop: 4 },
-  verifiedCircleButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS['surface-container-high'] },
-  verifiedCircleButtonText: { fontSize: 14, fontWeight: '700', color: COLORS['on-surface'], fontFamily: Fonts.label },
-  vouchCard: { backgroundColor: COLORS['surface-container-low'], borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS['outline-variant'] },
+  verifiedCircleStatLabel: {
+    fontSize: 10,
+    color: COLORS.outline,
+    fontFamily: Fonts.label,
+    textTransform: 'uppercase',
+  },
+  verifiedCircleStatValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.headline,
+    marginTop: 4,
+  },
+  verifiedCircleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS['surface-container-high'],
+  },
+  verifiedCircleButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS['on-surface'],
+    fontFamily: Fonts.label,
+  },
+  vouchCard: {
+    backgroundColor: COLORS['surface-container-low'],
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS['outline-variant'],
+  },
   vouchHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   vouchInfo: { flex: 1 },
   vouchTitle: { fontSize: 16, fontWeight: '700', color: COLORS['on-surface'] },
   vouchSubtitle: { fontSize: 12, color: COLORS.outline },
-  vouchDescription: { fontSize: 13, color: COLORS['on-surface-variant'], lineHeight: 18, marginBottom: 16 },
+  vouchDescription: {
+    fontSize: 13,
+    color: COLORS['on-surface-variant'],
+    lineHeight: 18,
+    marginBottom: 16,
+  },
   vouchActions: { flexDirection: 'row', gap: 12 },
   vouchButton: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   vouchRejectButton: { borderWidth: 1, borderColor: COLORS.error },
