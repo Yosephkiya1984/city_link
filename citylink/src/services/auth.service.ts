@@ -3,6 +3,36 @@ import { Config } from '../config';
 import { uid, normalizePhone } from '../utils';
 import { User as AppUser } from '../types';
 import { Session } from '@supabase/supabase-js';
+import { SecurePersist } from '../store/SecurePersist';
+
+const DEV_OTP_EXPIRATION_MS = 5 * 60 * 1000;
+const DEV_OTP_STORAGE_PREFIX = 'dev_otp_';
+
+function getDevOtpKey(phone: string) {
+  return `${DEV_OTP_STORAGE_PREFIX}${phone.replace(/\D/g, '')}`;
+}
+
+async function saveDevOtp(phone: string, otp: string): Promise<void> {
+  const payload = {
+    otp,
+    expires_at: new Date(Date.now() + DEV_OTP_EXPIRATION_MS).toISOString(),
+  };
+  await SecurePersist.setItem(getDevOtpKey(phone), JSON.stringify(payload));
+}
+
+async function loadDevOtp(phone: string): Promise<{ otp: string; expires_at: string } | null> {
+  const raw = await SecurePersist.getItem(getDevOtpKey(phone));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as { otp: string; expires_at: string };
+  } catch {
+    return null;
+  }
+}
+
+async function clearDevOtp(phone: string): Promise<void> {
+  await SecurePersist.deleteItem(getDevOtpKey(phone));
+}
 
 // Re-export auth-adjacent helpers so screens can import from one place
 export { checkPhoneExists, fetchProfile } from './profile.service';
@@ -39,9 +69,14 @@ export async function sendOtp(
   // DEV-ONLY: Simulated OTP for development/emulator testing.
   // __DEV__ is a compile-time constant stripped from production bundles.
   if (__DEV__) {
+    const normalizedPhone = normalizePhone(phone);
     const otp = String(Math.floor(100000 + Math.random() * 900000));
+    await saveDevOtp(normalizedPhone, otp);
     console.log(`[CityLink Dev] Simulated OTP for ${phone}: ${otp}`);
     return { error: null, success: true, devOtp: otp };
+  } else {
+    // In production, we don't mock. If this code runs, we must proceed to real SMS provider.
+    // If the below SMS call fails, it must naturally fail. No fallback mock is permitted.
   }
 
   const payload: {
@@ -78,13 +113,26 @@ export async function verifyOtp(phone: string, token: string): Promise<VerifyRes
   // DEV-ONLY: Simulated verification for emulator testing.
   if (__DEV__) {
     console.log(`[CityLink Dev] Simulated OTP verification for ${phone}`);
-    const norm = normalizePhone(phone);
-    const alt = norm.startsWith('+251') ? '0' + norm.slice(4) : norm;
+    const normalizedPhone = normalizePhone(phone);
+    const otpInfo = await loadDevOtp(normalizedPhone);
+    if (!otpInfo) {
+      return { user: null, error: 'otp_not_sent' };
+    }
+    if (new Date() > new Date(otpInfo.expires_at)) {
+      await clearDevOtp(normalizedPhone);
+      return { user: null, error: 'otp_expired' };
+    }
+    if (token !== otpInfo.otp) {
+      return { user: null, error: 'invalid-token' };
+    }
 
+    await clearDevOtp(normalizedPhone);
+
+    const alt = normalizedPhone.startsWith('+251') ? '0' + normalizedPhone.slice(4) : normalizedPhone;
     const { data } = await client
       .from('profiles')
       .select('id')
-      .in('phone', [norm, alt, phone])
+      .in('phone', [normalizedPhone, alt, phone])
       .maybeSingle();
 
     return {
@@ -149,11 +197,7 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
       console.warn('[CityLink Auth] Gov gateway unavailable — falling back to dev DB');
       try {
         const { data, error } = await client
-          .from('profiles')
-          .select('*')
-          .eq('role', 'admin')
-          .eq('badge_id', badgeId)
-          .eq('sec_pin', secPin)
+          .rpc('verify_gov_admin_dev', { p_badge_id: badgeId, p_sec_pin: secPin })
           .maybeSingle();
 
         if (error) {
@@ -178,11 +222,7 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
       console.warn('[CityLink Auth] Network error — falling back to dev DB');
       try {
         const { data, error } = await client
-          .from('profiles')
-          .select('*')
-          .eq('role', 'admin')
-          .eq('badge_id', badgeId)
-          .eq('sec_pin', secPin)
+          .rpc('verify_gov_admin_dev', { p_badge_id: badgeId, p_sec_pin: secPin })
           .maybeSingle();
 
         if (error) {

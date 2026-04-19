@@ -31,24 +31,17 @@ export async function fetchPendingMerchants() {
 /**
  * approveMerchant — approves a merchant's KYC and status.
  */
-export async function approveMerchant(merchantId: string) {
+export async function approveMerchant(merchantId: string): Promise<{ data: User | null; error: string | null }> {
   if (!merchantId) return { data: null, error: 'No merchant ID provided' };
 
-  // 1. Update Profile KYC
-  const pRes = await supaQuery((c) =>
-    c.from('profiles').update({ kyc_status: 'VERIFIED' }).eq('id', merchantId)
+  const res = await supaQuery<{ success: boolean; data?: User; error?: string }>((c) =>
+    c.rpc('admin_approve_merchant', { p_merchant_id: merchantId })
   );
-  if (pRes.error) return pRes as any;
 
-  // 2. Update Merchant Status
-  return supaQuery<User>((c) =>
-    c
-      .from('merchants')
-      .update({ merchant_status: 'APPROVED' })
-      .eq('id', merchantId)
-      .select()
-      .single()
-  );
+  if (res.error) return { data: null, error: res.error };
+  if (res.data && !res.data.success) return { data: null, error: res.data.error || 'Merchant approval failed' };
+  
+  return { data: res.data?.data as User, error: null };
 }
 
 /**
@@ -84,61 +77,23 @@ export async function rejectMerchant(merchantId: string, reason: string) {
  * approveAgent — approves a delivery agent in both profiles and delivery_agents tables.
  * Uses upsert for delivery_agents to handle missing records.
  */
-export async function approveAgent(agentOrId: string | DeliveryAgent) {
+export async function approveAgent(agentOrId: string | DeliveryAgent): Promise<{ error: string | null }> {
   const agentId = typeof agentOrId === 'object' ? agentOrId.id : agentOrId;
   const agentData = typeof agentOrId === 'object' ? agentOrId : null;
 
   if (!agentId) return { error: 'No agent ID provided' };
 
-  // 1. Update or Create delivery_agents record
-  const agentUpdate: Partial<DeliveryAgent> = {
-    id: agentId,
-    agent_status: 'APPROVED',
-  };
-
-  if (agentData) {
-    if (agentData.vehicle_type) agentUpdate.vehicle_type = agentData.vehicle_type;
-    if (agentData.license_number) agentUpdate.license_number = agentData.license_number;
-    if (agentData.plate_number) agentUpdate.plate_number = agentData.plate_number;
-  }
-
-  const res1 = await supaQuery<DeliveryAgent>((c) =>
-    c.from('delivery_agents').upsert(agentUpdate, { onConflict: 'id' }).select().single()
+  const res = await supaQuery<{ success: boolean; data?: DeliveryAgent; error?: string }>((c) =>
+    c.rpc('admin_approve_agent', { 
+      p_agent_id: agentId,
+      p_vehicle_type: agentData?.vehicle_type ?? null,
+      p_license_number: agentData?.license_number ?? null,
+      p_plate_number: agentData?.plate_number ?? null,
+    })
   );
 
-  if (res1.error) {
-    const errorMsg = String(res1.error);
-    const isRLS = errorMsg.includes('RLS') || errorMsg.includes('row-level security policy');
-    if (isRLS) {
-      return {
-        error:
-          'Database access denied (RLS) on delivery_agents. Please run the admin SQL policy fix.',
-      };
-    }
-    return { error: `Delivery Agent update failed: ${res1.error}` };
-  }
-
-  const rows1 = res1.data && Array.isArray(res1.data) ? res1.data.length : res1.data ? 1 : 0;
-  if (rows1 === 0) {
-    return {
-      error:
-        'Failed to update delivery_agents table. Ensure the record exists or RLS allows upsert.',
-    };
-  }
-
-  // 2. Verify the profile
-  const res2 = await supaQuery<User>((c) =>
-    c.from('profiles').update({ kyc_status: 'VERIFIED' }).eq('id', agentId).select().single()
-  );
-
-  if (res2.error) return { error: `Profile update failed: ${res2.error}` };
-  const rows2 = res2.data && Array.isArray(res2.data) ? res2.data.length : res2.data ? 1 : 0;
-
-  console.log(`[CityLink] approveAgent rows affected: delivery_agents=${rows1}, profiles=${rows2}`);
-
-  if (rows2 === 0) {
-    return { error: 'Failed to update profiles table. Ensure the agent has an active profile.' };
-  }
+  if (res.error) return { error: res.error };
+  if (res.data && !res.data.success) return { error: res.data.error ?? 'Agent approval failed' };
 
   return { error: null };
 }

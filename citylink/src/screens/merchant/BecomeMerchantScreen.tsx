@@ -138,7 +138,13 @@ export default function BecomeMerchantScreen() {
           </Text>
           <CButton
             title="Enter Merchant Portal"
-            onPress={() => (navigation as any).reset({ index: 0, routes: [{ name: 'Main' }] })}
+            onPress={() => {
+              showToast('Welcome to the Merchant Network!', 'success');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'MerchantRoot' }],
+              });
+            }}
             style={{ marginTop: 48, width: '100%', borderRadius: Radius['2xl'] }}
           />
         </View>

@@ -56,6 +56,15 @@ export const SecurePersist = {
     return await AsyncStorage.getItem(key);
   },
 
+  deleteItem: async (key: string): Promise<void> => {
+    try {
+      await SecureStore.deleteItemAsync(`cl_${key}`);
+    } catch {
+      /* ignore */
+    }
+    await AsyncStorage.removeItem(key);
+  },
+
   // Secure KYC Storage
   saveKYC: async (data: Record<string, unknown> | null): Promise<void> => {
     if (!data) {

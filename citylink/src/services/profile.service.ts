@@ -38,18 +38,20 @@ export async function fetchProfile(userId: string) {
  */
 export async function upsertProfile(profile: Partial<User> & { id: string }) {
   // Only use fields that exist in database schema
-  const data = {
+  const data: any = {
     id: profile.id,
-    phone: profile.phone,
-    full_name: profile.full_name,
     role: profile.role || 'citizen',
-    kyc_status: profile.kyc_status || 'NONE',
-    subcity: profile.subcity,
-    woreda: profile.woreda,
-    credit_score: profile.credit_score,
-    welcome_bonus_paid: profile.welcome_bonus_paid || false,
+    kyc_status: profile.kyc_status ?? 'NONE',
     updated_at: new Date().toISOString(),
   };
+
+  if (profile.phone !== undefined) data.phone = profile.phone;
+  if (profile.full_name !== undefined) data.full_name = profile.full_name;
+  if (profile.subcity !== undefined) data.subcity = profile.subcity;
+  if (profile.woreda !== undefined) data.woreda = profile.woreda;
+  if (profile.credit_score !== undefined) data.credit_score = profile.credit_score;
+  if (profile.welcome_bonus_paid !== undefined) data.welcome_bonus_paid = profile.welcome_bonus_paid;
+
   return supaQuery<User>((c) =>
     c.from('profiles').upsert(data, { onConflict: 'id' }).select().single()
   );
@@ -133,21 +135,35 @@ export async function updateUserRole(userId: string, newRole: string) {
 
 /**
  * registerMerchant — registers a user as a merchant in both profiles and merchants tables.
+ * This ensures the profiles entry exists with personal details before creating the merchant entry.
  */
 export async function registerMerchant(
   userId: string,
   merchantData: {
     business_name: string;
     merchant_type: string;
+    full_name?: string;
+    phone?: string;
     tin?: string;
     license_no?: string;
     details?: any;
   }
 ) {
-  // 1. Update Profile Role
-  const pRes = await supaQuery((c) =>
-    c.from('profiles').update({ role: 'merchant' }).eq('id', userId)
-  );
+  // Strict Validation
+  if (!merchantData.tin || !/^\d{10}$/.test(merchantData.tin)) {
+    return { data: null, error: 'Invalid TIN format. Must be exactly 10 digits.' };
+  }
+  if (!merchantData.license_no || merchantData.license_no.trim().length < 4) {
+    return { data: null, error: 'Invalid Trade License Number.' };
+  }
+  // 1. Ensure Profile exists with correct role and personal details
+  const pRes = await upsertProfile({
+    id: userId,
+    full_name: merchantData.full_name,
+    phone: merchantData.phone,
+    role: 'merchant',
+    kyc_status: 'PENDING', // By the book: start as pending
+  });
   if (pRes.error) return pRes;
 
   // 2. Upsert Merchant Table
@@ -159,7 +175,7 @@ export async function registerMerchant(
           id: userId,
           business_name: merchantData.business_name,
           merchant_type: merchantData.merchant_type,
-          merchant_status: 'PENDING',
+          merchant_status: 'PENDING', // By the book: start as pending
           tin: merchantData.tin,
           license_no: merchantData.license_no,
           merchant_details: merchantData.details || {},

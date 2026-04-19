@@ -47,12 +47,8 @@ export default function MerchantPortalScreen() {
     resetWallet();
     resetSystem();
 
-    try {
-      (navigation as any).replace('Auth');
-    } catch (error) {
-      console.log('Navigation reset error, trying alternative method');
-      (navigation as any).navigate('Auth');
-    }
+    // The root navigator will automatically switch to Auth screen
+    // because we called resetAuth() above.
   };
 
   const merchantType = (currentUser as any)?.merchant_type || 'restaurant';

@@ -1,10 +1,12 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, Alert } from 'react-native';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { useWalletStore } from '../../store/WalletStore';
 import { Colors, DarkColors, Fonts } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
+import { KycFayda } from './auth/KycFayda';
+import { KycService } from '../../services/kyc.service';
 
 export default function PendingVerificationScreen({ navigation }: any) {
   const isDark = useSystemStore((s) => s.isDark);
@@ -13,16 +15,113 @@ export default function PendingVerificationScreen({ navigation }: any) {
   const resetWallet = useWalletStore((s) => s.reset);
   const resetSystem = useSystemStore((s) => s.reset);
   const currentUser = useAuthStore((s) => s.currentUser);
+  const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
+
+  // KYC Flow State
+  const [showKyc, setShowKyc] = useState(false);
+  const [kycStep, setKycStep] = useState(1);
+  const [faydaFIN, setFaydaFIN] = useState('');
+  const [faydaOTP, setFaydaOTP] = useState('');
+  const [biometricSimulated, setBiometricSimulated] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Animations for sub-flow
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
   const handleSignOut = () => {
     resetAuth();
     resetWallet();
     resetSystem();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Auth' }],
-    });
   };
+
+  const handleKycComplete = async () => {
+    if (!currentUser?.id) {
+      const message = 'Cannot complete KYC: missing current user ID.';
+      console.error('[KYC] ' + message);
+      setError(message);
+      return;
+    }
+
+    console.log('[KYC] Finishing verification flow');
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await KycService.completeKyc(currentUser.id, faydaFIN, faydaOTP);
+      if (res.success && res.data) {
+        console.log('[KYC] DB updated successfully. User is now:', res.data.kyc_status);
+        await setCurrentUser(res.data);
+        // Navigate away by clearing local state
+        setShowKyc(false);
+      } else {
+        console.error('[KYC] DB update failed:', res.error);
+        setError(res.error || 'Failed to complete KYC');
+      }
+    } catch (e: any) {
+      console.error('[KYC] Unexpected error:', e);
+      setError(e.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showKyc) {
+    return (
+      <View style={[styles.container, { backgroundColor: C.ink, padding: 0 }]}>
+        <KycFayda
+          C={C}
+          fadeAnim={fadeAnim}
+          slideAnim={slideAnim}
+          kycStep={kycStep}
+          faydaFIN={faydaFIN}
+          setFaydaFIN={setFaydaFIN}
+          faydaOTP={faydaOTP}
+          setFaydaOTP={setFaydaOTP}
+          biometricSimulated={biometricSimulated}
+          setBiometricSimulated={setBiometricSimulated}
+          loading={loading}
+          error={error}
+          onBack={() => {
+            if (kycStep === 1) setShowKyc(false);
+            else setKycStep(kycStep - 1);
+          }}
+          onFINSubmit={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const res = await KycService.verifyFin(faydaFIN);
+              if (res.success) setKycStep(2);
+              else setError(res.error || 'Invalid FIN');
+            } catch (e: any) {
+              setError(e?.message || 'Unable to verify Fayda ID. Please try again.');
+            } finally {
+              setLoading(false);
+            }
+          }}
+          onOTPSubmit={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const res = await KycService.verifyFaydaOtp(faydaOTP);
+              if (res.success) setKycStep(3);
+              else setError(res.error || 'Invalid OTP');
+            } catch (e: any) {
+              setError(e?.message || 'Unable to verify OTP. Please try again.');
+            } finally {
+              setLoading(false);
+            }
+          }}
+          onScan={() => {
+            setBiometricSimulated(true);
+          }}
+          onBiometricProceed={() => setKycStep(4)}
+          onComplete={handleKycComplete}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: C.ink }]}>
@@ -39,15 +138,66 @@ export default function PendingVerificationScreen({ navigation }: any) {
       </Text>
 
       <TouchableOpacity
-        style={[styles.btn, { backgroundColor: C.surface, borderColor: C.edge }]}
-        onPress={handleSignOut}
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel="Sign out"
-        accessibilityHint="Signs you out of the app"
-        accessibilityState={{ busy: false }}
+        style={[styles.btn, { backgroundColor: C.primary, marginBottom: 16 }]}
+        onPress={() => setShowKyc(true)}
       >
-        <Text style={[styles.btnText, { color: C.text }]}>Sign Out</Text>
+        <Text style={[styles.btnText, { color: C.ink }]}>Verify with Fayda ID</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.btn,
+          {
+            backgroundColor: C.surface,
+            borderColor: C.edge,
+            marginBottom: 16,
+            opacity: statusLoading || loading ? 0.6 : 1,
+          },
+        ]}
+        disabled={statusLoading || loading}
+        onPress={async () => {
+          setStatusLoading(true);
+          setError(null);
+
+          try {
+            if (!currentUser?.id) {
+              const message = 'Unable to refresh status: missing user identifier.';
+              Alert.alert('Check Status Failed', message);
+              setError(message);
+              return;
+            }
+
+            const { fetchProfile } = await import('../../services/profile.service');
+            const res = await fetchProfile(currentUser.id);
+
+            if (res.data) {
+              await setCurrentUser(res.data);
+            } else {
+              const message = res.error || 'Could not refresh profile. Please try again.';
+              Alert.alert('Check Status Failed', message);
+              setError(message);
+            }
+          } catch (e: any) {
+            const message = e?.message || 'Unable to refresh status. Please try again.';
+            Alert.alert('Check Status Failed', message);
+            setError(message);
+          } finally {
+            setStatusLoading(false);
+          }
+        }}
+      >
+        {statusLoading ? (
+          <ActivityIndicator color={C.text} />
+        ) : (
+          <Text style={[styles.btnText, { color: C.text }]}>Check Status</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.btn, { backgroundColor: 'transparent' }]}
+        onPress={handleSignOut}
+      >
+        <Text style={[styles.btnText, { color: C.sub }]}>Sign Out</Text>
       </TouchableOpacity>
     </View>
   );

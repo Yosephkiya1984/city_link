@@ -194,6 +194,8 @@ export default function AuthScreen() {
         const { error: merchErr } = await ProfileService.registerMerchant(tempUserId, {
           business_name: businessName,
           merchant_type: merchantType,
+          full_name: fullName,
+          phone: verifiedPhone,
           tin,
           license_no: licenseNo,
           details: {

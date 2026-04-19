@@ -23,7 +23,7 @@ import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '..
 import { CButton, CInput, SectionTitle, Card } from '../../components';
 import { signOut } from '../../services/auth.service';
 import { hasWalletPin, setWalletPin, changeWalletPin } from '../../services/walletPin';
-import { FaydaKYCService, FAYDA_STATUS } from '../../services/fayda-kyc.service';
+import { KycService, FAYDA_STATUS } from '../../services/kyc.service';
 import { fetchAgentProfile } from '../../services/delivery.service';
 import { ServiceAccessUtils } from '../../services/serviceAccess';
 import { useTheme } from '../../hooks/useTheme';
@@ -43,7 +43,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
 
   const [pinSet, setPinSet] = useState(false);
-  const [kycStatus, setKycStatus] = useState<string>(FAYDA_STATUS.NOT_STARTED);
+  const [kycStatus, setKycStatus] = useState<string | null>(FAYDA_STATUS.NOT_STARTED);
   const [kycData, setKycData] = useState<Record<string, unknown> | null>(null);
   const [isAgent, setIsAgent] = useState(false);
   const [loadingAgent, setLoadingAgent] = useState(false);
@@ -58,9 +58,15 @@ export default function ProfileScreen() {
       }
 
       // Load KYC status
-      const statusData = await FaydaKYCService.getKYCStatus();
-      setKycStatus(statusData.status);
-      setKycData(statusData.kyc_data ?? null);
+      try {
+        const statusData = await KycService.getKYCStatus();
+        setKycStatus(statusData.status);
+        setKycData(statusData.kyc_data ?? null);
+      } catch (e: any) {
+        console.error('[Profile] Failed to fetch KYC status:', e);
+        setKycStatus(null);
+        setKycData(null);
+      }
 
       // Check if they are a delivery agent
       if (userId) {

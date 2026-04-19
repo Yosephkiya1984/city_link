@@ -1,13 +1,10 @@
-import { getClient, supaQuery, hasSupabase } from './supabase';
-import { rpcDebitWallet, rpcCreditWallet } from './wallet.service';
+import { getClient, supaQuery, hasSupabase, subscribeToTable } from './supabase';
 import { uid } from '../utils';
 import { decode } from 'base64-arraybuffer';
-import { Product, MarketplaceOrder, Dispute, MerchantMetrics, User } from '../types';
+import { Product, MarketplaceOrder, Dispute, MerchantMetrics } from '../types';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 const PRODUCT_COLS = '*, merchant:profiles(id, full_name)';
-const ORDER_COLS =
-  '*, buyer:profiles(full_name, phone), merchant:profiles(full_name)';
 
 /**
  * Type for product joined with merchant info from Supabase
@@ -58,18 +55,35 @@ export async function fetchProducts(limit: number = 50) {
 
 export async function searchProducts(query: string, limit: number = 40) {
   if (!query?.trim()) return fetchProducts(limit);
-  // Sanitize: strip PostgREST special chars to prevent filter injection
-  const sanitized = query.replace(/[(),.]/g, '');
-  const res = await supaQuery<ProductWithMerchant[]>((c) =>
-    c
-      .from('products')
-      .select(PRODUCT_COLS)
-      .eq('status', 'active')
-      .gt('stock', 0)
-      .or(`name.ilike.%${sanitized}%,description.ilike.%${sanitized}%,category.ilike.%${sanitized}%`)
-      .order('created_at', { ascending: false })
-      .limit(limit)
+
+  // Use secure server-side search function instead of vulnerable client-side filtering
+  const res = await supaQuery((c) =>
+    c.rpc('search_products_secure', {
+      p_query: query.trim(),
+      p_limit: limit,
+      p_offset: 0,
+    })
   );
+
+  if (res.error) {
+    console.error('Secure search failed:', res.error);
+    // Fallback to basic client-side search if RPC fails (for backward compatibility)
+    const trimmedQuery = query.trim();
+    const escapedQuery = trimmedQuery.replace(/([%_\\])/g, '\\$1').replace(/'/g, "''");
+    const pattern = `%${escapedQuery}%`;
+
+    return await supaQuery<ProductWithMerchant[]>((c) =>
+      c
+        .from('products')
+        .select(PRODUCT_COLS)
+        .eq('status', 'active')
+        .gt('stock', 0)
+        .or(`name.ilike.'${pattern}',description.ilike.'${pattern}'`)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+    ).then((res) => ({ ...res, data: res.data?.map(mapProductMerchant) || [] }));
+  }
+
   return { ...res, data: res.data?.map(mapProductMerchant) || [] };
 }
 
@@ -115,12 +129,18 @@ export async function insertProduct(product: Partial<Product>) {
   // Clean up any legacy fields that might be passed from UI
   const { image, images, ...payload } = officialProduct as Partial<Product> & {
     image?: string;
-    images?: any;
+    images?: string | string[] | Record<string, unknown>[];
+    image_url?: string;
+    images_json?: string | string[] | Record<string, unknown>[];
   };
-  if (image && !payload.image_url) (payload as any).image_url = image;
-  if (images && !payload.images_json) (payload as any).images_json = images;
+  if (image && !payload.image_url) {
+    payload.image_url = image;
+  }
+  if (images && !payload.images_json) {
+    payload.images_json = images;
+  }
 
-  return supaQuery<Product>((c) => (c.from('products') as any).insert(payload).select().single());
+  return supaQuery<Product>((c) => c.from('products').insert(payload).select().single());
 }
 
 export async function updateProduct(productId: string, updates: Partial<Product>) {
@@ -149,19 +169,59 @@ export async function uploadProductImage(imageData: {
 }): Promise<{ data: string | null; error: string | null }> {
   const client = getClient();
   if (!client) return { data: null, error: 'no-credentials' };
+
   try {
-    const fileExt = imageData.uri.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${uid()}.${fileExt}`;
-    const contentType = `image/${fileExt === 'png' ? 'png' : 'jpeg'}`;
+    // Extract file info from URI
+    const fileName = imageData.uri.split('/').pop() || `image_${Date.now()}.jpg`;
+    const fileSize = (imageData.base64.length * 3) / 4; // Approximate base64 to bytes
+
+    const contentType = fileName.toLowerCase().endsWith('.png')
+      ? 'image/png'
+      : fileName.toLowerCase().endsWith('.jpg') || fileName.toLowerCase().endsWith('.jpeg')
+        ? 'image/jpeg'
+        : fileName.toLowerCase().endsWith('.gif')
+          ? 'image/gif'
+          : fileName.toLowerCase().endsWith('.webp')
+            ? 'image/webp'
+            : 'image/jpeg';
+
+    // Validate image before upload
+    const isValid = await supaQuery((c) =>
+      c.rpc('validate_image_upload', {
+        p_file_name: fileName,
+        p_content_type: contentType,
+        p_file_size_bytes: fileSize,
+      })
+    );
+
+    if (isValid.error || !isValid.data) {
+      return {
+        data: null,
+        error: 'Invalid image file. Only JPG, PNG, GIF, WebP under 5MB allowed.',
+      };
+    }
     const { error: uploadError } = await client.storage
       .from('products')
-      .upload(fileName, decode(imageData.base64), { contentType, cacheControl: '3600' });
-    if (uploadError) throw uploadError;
+      .upload(fileName, decode(imageData.base64), {
+        contentType,
+        cacheControl: '3600',
+        upsert: false, // Prevent overwriting existing files
+      });
+
+    if (uploadError) {
+      // Handle specific storage errors
+      if (uploadError.message.includes('already exists')) {
+        return { data: null, error: 'File already exists. Please rename and try again.' };
+      }
+      throw uploadError;
+    }
+
     const { data } = client.storage.from('products').getPublicUrl(fileName);
     return { data: data.publicUrl, error: null };
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    return { data: null, error: errorMsg };
+    console.error('Image upload failed:', errorMsg);
+    return { data: null, error: `Upload failed: ${errorMsg}` };
   }
 }
 
@@ -223,7 +283,12 @@ export async function releaseMarketplaceEscrow(orderId: string, escrowId: string
   );
 }
 
-export async function requestWithdrawal(userId: string, amount: number, bankName: string, accountNum: string) {
+export async function requestWithdrawal(
+  userId: string,
+  amount: number,
+  bankName: string,
+  accountNum: string
+) {
   return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('request_merchant_withdrawal', {
       p_user_id: userId,
@@ -565,7 +630,12 @@ export const marketplaceService = {
     return { success: data?.ok === true, status: data?.status || null, error: data?.error || null };
   },
 
-  requestWithdrawal: async (userId: string, amount: number, bankName: string, accountNum: string) => {
+  requestWithdrawal: async (
+    userId: string,
+    amount: number,
+    bankName: string,
+    accountNum: string
+  ) => {
     const res = await requestWithdrawal(userId, amount, bankName, accountNum);
     return { data: res.data, error: res.error };
   },
@@ -586,8 +656,7 @@ export const marketplaceService = {
     return { success: true };
   },
 
-  subscribeToProducts: (callback: (payload: any) => void) => {
-    const { subscribeToTable } = require('./supabase');
+  subscribeToProducts: (callback: (payload: unknown) => void) => {
     return subscribeToTable('products-realtime', 'products', null, callback);
   },
 
