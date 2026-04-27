@@ -11,16 +11,21 @@ interface HeaderProps {
   name?: string;
 }
 
+import { GlassView } from '../GlassView';
+import { Fonts } from '../../theme';
+
 const MarketplaceHeader = memo(({ balance, name }: HeaderProps) => {
   const navigation = useNavigation();
   const firstName = name?.split(' ')[0] || 'Shopper';
   const cartItemsCount = useMarketStore((s) => s.cartItems.length);
 
   return (
-    <View style={styles.header}>
+    <GlassView intensity={20} style={styles.header}>
       <View>
-        <Text style={styles.headerGreeting}>Hello, {firstName} 👋</Text>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerGreeting, { fontFamily: Fonts.label }]}>
+          Hello, {firstName} 👋
+        </Text>
+        <Text style={[styles.headerTitle, { fontFamily: Fonts.headline }]}>
           CityLink <Text style={{ color: T.primary }}>Market</Text>
         </Text>
       </View>
@@ -51,7 +56,7 @@ const MarketplaceHeader = memo(({ balance, name }: HeaderProps) => {
           <Text style={styles.balanceText}>{fmtETB(balance, 0)} ETB</Text>
         </View>
       </View>
-    </View>
+    </GlassView>
   );
 });
 
@@ -64,7 +69,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 50,
-    backgroundColor: T.glass,
+    backgroundColor: 'transparent',
     paddingTop: Platform.OS === 'ios' ? 54 : (StatusBar.currentHeight || 28) + 12,
     paddingBottom: 14,
     paddingHorizontal: 20,

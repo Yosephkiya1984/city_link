@@ -30,7 +30,9 @@ export function ChipBar({ chips, selected, onSelect, style }: ChipBarProps) {
             onPress={() => {
               try {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              } catch (_) {}
+              } catch (_) {
+                /* ignore */
+              }
               onSelect(val);
             }}
             style={{

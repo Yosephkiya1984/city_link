@@ -25,22 +25,38 @@ export default function DeliveryAgentModule() {
   const isMobile = SCREEN_WIDTH < 768;
   const [agents, setAgents] = useState<DeliveryAgent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedAgent, setSelectedAgent] = useState<DeliveryAgent | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
-  const loadAgents = useCallback(async () => {
-    setLoading(true);
+  const loadAgentsData = useCallback(async () => {
     const { data } = await supaQuery((c) =>
       c
         .from('delivery_agents')
         .select(`*, profile:profiles!delivery_agents_id_fkey(full_name, phone, subcity)`)
         .order('created_at', { ascending: false })
     );
-    setAgents(data || []);
-    setLoading(false);
+    return data || [];
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    setLoading(true);
+    const data = await loadAgentsData();
+    setAgents(data);
+    setLoading(false);
+  }, [loadAgentsData]);
+
   useEffect(() => {
-    loadAgents();
-  }, [loadAgents]);
+    let ignore = false;
+    loadAgentsData().then((data) => {
+      if (!ignore) {
+        setAgents(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [loadAgentsData]);
 
   const handleApprove = (agent: DeliveryAgent) => {
     const name = agent.profile?.full_name || String(agent.id).slice(0, 8);
@@ -50,7 +66,7 @@ export default function DeliveryAgentModule() {
         if (window.confirm(`Approve ${name} as a delivery agent?`)) {
           approveAgent(agent.id).then((res) => {
             if (res.error) window.alert(res.error);
-            else loadAgents();
+            else handleRefresh();
           });
         }
       } catch (e) {
@@ -61,7 +77,9 @@ export default function DeliveryAgentModule() {
 
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
 
     Alert.alert('Approve Agent', `Approve ${name} as a delivery agent?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -74,7 +92,7 @@ export default function DeliveryAgentModule() {
             Alert.alert('Error', res.error);
             setLoading(false);
           } else {
-            loadAgents();
+            handleRefresh();
           }
         },
       },
@@ -90,7 +108,7 @@ export default function DeliveryAgentModule() {
         if (reason !== null) {
           rejectAgent(agent.id, reason || 'Incomplete documentation').then((res) => {
             if (res.error) window.alert(res.error);
-            else loadAgents();
+            else handleRefresh();
           });
         }
       } catch (e) {
@@ -101,7 +119,9 @@ export default function DeliveryAgentModule() {
 
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
 
     Alert.prompt('Rejection Reason', `Explain why ${name} is being rejected:`, [
       { text: 'Cancel', style: 'cancel' },
@@ -115,7 +135,7 @@ export default function DeliveryAgentModule() {
             Alert.alert('Error', res.error);
             setLoading(false);
           } else {
-            loadAgents();
+            handleRefresh();
           }
         },
       },
@@ -134,7 +154,7 @@ export default function DeliveryAgentModule() {
             c.from('delivery_agents').update({ agent_status: newStatus }).eq('id', agent.id)
           ).then((res) => {
             if (res.error) window.alert(res.error);
-            else loadAgents();
+            else handleRefresh();
           });
         }
       } catch (e) {
@@ -145,7 +165,9 @@ export default function DeliveryAgentModule() {
 
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
 
     Alert.alert(`${action} Agent`, `${action} ${name}?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -157,7 +179,7 @@ export default function DeliveryAgentModule() {
             c.from('delivery_agents').update({ agent_status: newStatus }).eq('id', agent.id)
           );
           if (res.error) Alert.alert('Error', res.error);
-          else loadAgents();
+          else handleRefresh();
         },
       },
     ]);
@@ -213,6 +235,13 @@ export default function DeliveryAgentModule() {
             {item.agent_status}
           </Text>
         </View>
+        <TouchableOpacity 
+          style={styles.inspectBtn}
+          onPress={() => setSelectedAgent(item)}
+        >
+          <Ionicons name="eye-outline" size={16} color={theme.primary} />
+          <Text style={[styles.inspectBtnText, { color: theme.primary }]}>INSPECT</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={[styles.divider, { backgroundColor: theme.rim }]} />
@@ -328,6 +357,98 @@ export default function DeliveryAgentModule() {
           contentContainerStyle={{ padding: isMobile ? 16 : 24, paddingBottom: 100 }}
         />
       )}
+
+      {/* ══ Agent Inspection Dossier ══ */}
+      {selectedAgent && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.dossierSheet, { backgroundColor: theme.surface }]}>
+            <View style={styles.dossierHeader}>
+              <View>
+                <Text style={[styles.dossierTitle, { color: theme.text }]}>AGENT INSPECTION DOSSIER</Text>
+                <Text style={[styles.dossierId, { color: theme.hint }]}>ID: {selectedAgent.id}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedAgent(null)}>
+                <Ionicons name="close-circle" size={28} color={theme.sub} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.dossierContent, { borderColor: theme.rim }]}>
+              <View style={styles.dossierRow}>
+                <View style={styles.dossierField}>
+                  <Text style={styles.dossierLabel}>FULL NAME</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.profile?.full_name}</Text>
+                </View>
+                <View style={styles.dossierField}>
+                  <Text style={styles.dossierLabel}>FAYDA STATUS</Text>
+                  <View style={styles.verifiedRow}>
+                    <Ionicons name="checkmark-circle" size={14} color={theme.green} />
+                    <Text style={{ color: theme.green, fontWeight: '800', fontSize: 12, marginLeft: 4 }}>VERIFIED</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.dossierRow}>
+                <View style={styles.dossierField}>
+                  <Text style={styles.dossierLabel}>VEHICLE TYPE</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.vehicle_type?.toUpperCase()}</Text>
+                </View>
+                <View style={styles.dossierField}>
+                  <Text style={styles.dossierLabel}>PLATE NUMBER</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.plate_number || 'N/A'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.dossierRow}>
+                <View style={styles.dossierField}>
+                  <Text style={styles.dossierLabel}>LICENSE / ID NO.</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.license_number}</Text>
+                </View>
+                <View style={styles.dossierField}>
+                  <Text style={styles.dossierLabel}>PHONE</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.profile?.phone}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.dossierActions}>
+              {selectedAgent.agent_status === 'PENDING' ? (
+                <>
+                  <TouchableOpacity 
+                    style={[styles.dossierRejectBtn, { borderColor: theme.red + '40' }]}
+                    onPress={() => {
+                      handleReject(selectedAgent);
+                      setSelectedAgent(null);
+                    }}
+                  >
+                    <Text style={{ color: theme.red, fontWeight: '900' }}>REJECT APPLICATION</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.dossierApproveBtn, { backgroundColor: theme.primary }]}
+                    onPress={() => {
+                      handleApprove(selectedAgent);
+                      setSelectedAgent(null);
+                    }}
+                  >
+                    <Text style={{ color: theme.ink, fontWeight: '900' }}>GRANT PERMIT</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.dossierToggleBtn, { backgroundColor: selectedAgent.agent_status === 'SUSPENDED' ? theme.green + '20' : theme.red + '20' }]}
+                  onPress={() => {
+                    handleSuspend(selectedAgent);
+                    setSelectedAgent(null);
+                  }}
+                >
+                  <Text style={{ color: selectedAgent.agent_status === 'SUSPENDED' ? theme.green : theme.red, fontWeight: '900' }}>
+                    {selectedAgent.agent_status === 'SUSPENDED' ? 'REACTIVE AGENT' : 'SUSPEND PERMIT'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -378,4 +499,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  
+  // Inspection Dossier Styles
+  inspectBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.md, backgroundColor: 'rgba(99,179,237,0.1)' },
+  inspectBtnText: { fontSize: 10, fontWeight: '800' },
+  
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20, zIndex: 1000 },
+  dossierSheet: { width: '100%', maxWidth: 500, borderRadius: Radius.xxl, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
+  dossierHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+  dossierTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  dossierId: { fontSize: 10, marginTop: 4, fontFamily: Fonts.body },
+  
+  dossierContent: { borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 20, gap: 20 },
+  dossierRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 20 },
+  dossierField: { flex: 1 },
+  dossierLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: '800', letterSpacing: 0.5, marginBottom: 4 },
+  dossierValue: { fontSize: 14, fontWeight: '700' },
+  verifiedRow: { flexDirection: 'row', alignItems: 'center' },
+  
+  dossierActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  dossierRejectBtn: { flex: 1, height: 48, borderRadius: Radius.lg, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  dossierApproveBtn: { flex: 1, height: 48, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
+  dossierToggleBtn: { width: '100%', height: 48, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
 });

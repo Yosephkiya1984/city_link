@@ -1,11 +1,11 @@
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
-);
+import AsyncStorageMock from '@react-native-async-storage/async-storage/jest/async-storage-mock';
+import { sendOtp, verifyOtp } from './auth.service';
+import { getClient } from './supabase';
+
+jest.mock('@react-native-async-storage/async-storage', () => AsyncStorageMock);
 jest.mock('expo-crypto', () => ({
   randomUUID: () => '00000000-0000-4000-8000-000000000000',
 }));
-
-import { sendOtp, verifyOtp } from './auth.service';
 
 // Mock Supabase client
 jest.mock('./supabase', () => ({
@@ -37,8 +37,8 @@ describe('Auth Service', () => {
     });
 
     it('should send OTP for valid phone', async () => {
-      const mockClient = require('./supabase').getClient();
-      mockClient.auth.signInWithOtp.mockResolvedValue({ error: null });
+      const mockClient = getClient();
+      (mockClient.auth.signInWithOtp as jest.Mock).mockResolvedValue({ error: null });
 
       const result = await sendOtp('+251911123456');
       expect(result.success).toBe(true);

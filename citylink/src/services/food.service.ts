@@ -13,7 +13,7 @@ export async function fetchRestaurants() {
  */
 export async function fetchFoodItems(merchantId: string) {
   return supaQuery<MenuItem[]>((c) =>
-    c.from('food_items').select('*').eq('merchant_id', merchantId).eq('available', true)
+    c.from('menu_items').select('*').eq('merchant_id', merchantId).eq('available', true)
   );
 }
 
@@ -170,16 +170,46 @@ export const fetchRestaurantMenu = async (
 
 export const updateOrderStatus = async (
   orderId: string,
-  status: string
+  status: string,
+  pickupPin?: string
 ): Promise<{ ok: boolean; error: string | null }> => {
   if (!hasSupabase()) {
     return { ok: true, error: null };
   }
+  const payload: any = { status };
+  if (pickupPin) payload.pickup_pin = pickupPin;
+
   const res = await supaQuery<void>((client) =>
-    client.from('food_orders').update({ status }).eq('id', orderId)
+    client.from('food_orders').update(payload).eq('id', orderId)
   );
   return { ok: !res.error, error: res.error };
 };
+
+/**
+ * dispatchFoodOrder — triggers the unified dispatch system for a food order.
+ */
+export async function dispatchFoodOrder(
+  orderId: string,
+  merchantId: string,
+  lat: number | null = null,
+  lng: number | null = null
+) {
+  const res = await supaQuery<{ ok: boolean; dispatched_count: number; error?: string }>((c) =>
+    c.rpc('dispatch_order', {
+      p_order_id: orderId,
+      p_merchant_id: merchantId,
+      p_lat: lat,
+      p_lng: lng,
+      p_order_type: 'FOOD',
+    })
+  );
+  if (res.error || !res.data?.ok)
+    throw res.error || new Error(res.data?.error || 'Failed to dispatch order');
+  return {
+    success: true,
+    dispatchedCount: res.data.dispatched_count,
+  };
+}
 
 export const updateMenuItem = async (
   menuItem: Partial<MenuItem>

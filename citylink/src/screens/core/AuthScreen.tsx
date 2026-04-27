@@ -1,62 +1,22 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { View, StyleSheet, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
-import { normalizePhone } from '../../utils';
-import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors } from '../../theme';
-import * as AuthService from '../../services/auth.service';
-import * as ProfileService from '../../services/profile.service';
-import * as WalletService from '../../services/wallet.service';
-import { User } from '../../types';
 import { AuthWelcome } from './auth/AuthWelcome';
 import { AuthLogin } from './auth/AuthLogin';
 import { AuthRegister } from './auth/AuthRegister';
 import { AuthOtp } from './auth/AuthOtp';
-
-type AuthFlow = 'welcome' | 'login' | 'register' | 'otp' | 'success';
-type AuthMode = 'citizen' | 'merchant' | 'gov';
+import { useAuthFlow, AuthFlow } from '../../hooks/useAuthFlow';
 
 export default function AuthScreen() {
   const isDark = useSystemStore((s) => s.isDark);
-  const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
   const C = isDark ? DarkColors : Colors;
 
-  // Flow State
-  const [flow, setFlow] = useState<AuthFlow>('welcome');
-  const [authMode, setAuthMode] = useState<AuthMode>('citizen');
-
-  // Form State
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [userType, setUserType] = useState<'citizen' | 'merchant'>('citizen');
-
-  // Merchant specific
-  const [merchantType, setMerchantType] = useState('');
-  const [businessName, setBusinessName] = useState('');
-  const [tin, setTin] = useState('');
-  const [licenseNo, setLicenseNo] = useState('');
-  const [subcity, setSubcity] = useState('');
-  const [businessAddress, setBusinessAddress] = useState('');
-
-  // Gov specific
-  const [badgeId, setBadgeId] = useState('');
-  const [secPin, setSecPin] = useState('');
-
-  // UI State
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [devOtp, setDevOtp] = useState<string | null>(null);
-  const [tempUserId, setTempUserId] = useState<string | null>(null);
-  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
-  const [registrationIntent, setRegistrationIntent] = useState(false);
-
-  // Animations
+  const auth = useAuthFlow();
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const transitionTo = (newFlow: AuthFlow) => {
-    // Exit animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -71,15 +31,9 @@ export default function AuthScreen() {
         easing: Easing.out(Easing.quad),
       }),
     ]).start(() => {
-      if (newFlow === 'welcome') {
-        setRegistrationIntent(false);
-      }
-
-      setFlow(newFlow);
-      setError(null);
-
+      auth.setFlow(newFlow);
+      auth.setError(null);
       slideAnim.setValue(-20);
-
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -97,230 +51,92 @@ export default function AuthScreen() {
     });
   };
 
-  // Handlers
-  const handleSendOtp = async () => {
-    if (!phone) {
-      setError('Please enter a valid phone number');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setDevOtp(null);
-    try {
-      const normalized = normalizePhone(phone);
-      const { error: otpErr, devOtp: simulatedOtp } = await AuthService.sendOtp(normalized);
-      if (otpErr) {
-        setError(otpErr);
-      } else {
-        if (simulatedOtp) setDevOtp(simulatedOtp);
-        transitionTo('otp');
-      }
-    } catch (e: any) {
-      setError(e.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (otp.length < 6) {
-      setError('Please enter the 6-digit code');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const normalized = normalizePhone(phone);
-      const { user, error: verifyErr } = await AuthService.verifyOtp(normalized, otp);
-      if (verifyErr) {
-        setError(verifyErr);
-      } else if (user) {
-        setTempUserId(user.id);
-        setVerifiedPhone(normalized);
-        const profileRes = await ProfileService.fetchProfile(user.id);
-        const needsRegistration =
-          registrationIntent || !profileRes.data || !profileRes.data.full_name;
-        if (needsRegistration) {
-          transitionTo('register');
-        } else {
-          setCurrentUser(profileRes.data);
-        }
-      }
-    } catch (e: any) {
-      setError(e.message || 'Verification failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGovLogin = async () => {
-    if (!badgeId || !secPin) {
-      setError('Badge ID and PIN are required');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const { user, error: loginErr } = await AuthService.govBadgeLogin(badgeId, secPin);
-      if (loginErr) {
-        setError(loginErr);
-      } else if (user) {
-        setCurrentUser(user as User);
-      }
-    } catch (e: any) {
-      setError(e.message || 'Government login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegister = async () => {
-    if (!fullName || !phone) {
-      setError('Name and Phone are required');
-      return;
-    }
-    if (!tempUserId) {
-      setError('Authentication required before registration. Please verify your phone first.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      if (!verifiedPhone) {
-        throw new Error('Verification data missing. Please verify your phone again.');
-      }
-
-      if (userType === 'merchant') {
-        const { error: merchErr } = await ProfileService.registerMerchant(tempUserId, {
-          business_name: businessName,
-          merchant_type: merchantType,
-          full_name: fullName,
-          phone: verifiedPhone,
-          tin,
-          license_no: licenseNo,
-          details: {
-            subcity,
-            address: businessAddress,
-          },
-        });
-        if (merchErr) throw new Error(merchErr as any);
-      } else {
-        const profileData: Partial<User> & { id: string } = {
-          id: tempUserId,
-          phone: verifiedPhone,
-          full_name: fullName,
-          role: userType,
-          kyc_status: 'PENDING',
-        };
-        const { error: upsertErr } = await ProfileService.upsertProfile(profileData);
-        if (upsertErr) throw new Error(upsertErr as any);
-      }
-
-      await WalletService.ensureWallet(tempUserId);
-      await WalletService.claimWelcomeBonus(tempUserId);
-
-      const finalProfile = await ProfileService.fetchProfile(tempUserId);
-      if (finalProfile.data) {
-        setCurrentUser(finalProfile.data);
-      } else {
-        throw new Error('Profile persistence verification failed');
-      }
-    } catch (e: any) {
-      setError(e.message || 'Registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: C.ink }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
-        {flow === 'welcome' && (
+        {auth.flow === 'welcome' && (
           <AuthWelcome
             C={C}
             fadeAnim={fadeAnim}
             slideAnim={slideAnim}
             onLogin={() => {
-              setAuthMode('citizen');
+              auth.setAuthMode('citizen');
               transitionTo('login');
             }}
             onRegister={() => {
-              setRegistrationIntent(true);
-              setAuthMode('citizen');
+              auth.setRegistrationIntent(true);
+              auth.setAuthMode('citizen');
               transitionTo('login');
             }}
             onGov={() => {
-              setAuthMode('gov');
+              auth.setAuthMode('gov');
               transitionTo('login');
             }}
           />
         )}
-
-        {flow === 'login' && (
+        {auth.flow === 'login' && (
           <AuthLogin
             C={C}
             fadeAnim={fadeAnim}
             slideAnim={slideAnim}
-            phone={phone}
-            setPhone={setPhone}
-            badgeId={badgeId}
-            setBadgeId={setBadgeId}
-            secPin={secPin}
-            setSecPin={setSecPin}
-            authMode={authMode}
-            loading={loading}
-            error={error}
+            authMode={auth.authMode}
+            loading={auth.loading}
+            error={auth.error}
+            phone={auth.phone}
+            setPhone={auth.setPhone}
+            badgeId={auth.badgeId}
+            setBadgeId={auth.setBadgeId}
+            secPin={auth.secPin}
+            setSecPin={auth.setSecPin}
             onBack={() => transitionTo('welcome')}
-            onSendOtp={authMode === 'gov' ? handleGovLogin : handleSendOtp}
+            onSendOtp={auth.authMode === 'gov' ? auth.handleGovLogin : auth.handleSendOtp}
           />
         )}
-
-        {flow === 'otp' && (
+        {auth.flow === 'otp' && (
           <AuthOtp
             C={C}
             fadeAnim={fadeAnim}
             slideAnim={slideAnim}
-            otp={otp}
-            setOtp={setOtp}
-            loading={loading}
-            error={error}
-            devOtp={devOtp}
+            otp={auth.otp}
+            setOtp={auth.setOtp}
+            loading={auth.loading}
+            error={auth.error}
+            devOtp={null}
             onBack={() => transitionTo('login')}
-            onVerify={handleVerifyOtp}
-            onResend={handleSendOtp}
+            onVerify={auth.handleVerifyOtp}
+            onResend={auth.handleSendOtp}
           />
         )}
-
-        {flow === 'register' && (
+        {auth.flow === 'register' && (
           <AuthRegister
             C={C}
             fadeAnim={fadeAnim}
             slideAnim={slideAnim}
-            userType={userType}
-            setUserType={setUserType}
-            fullName={fullName}
-            setFullName={setFullName}
-            phone={verifiedPhone || phone}
-            setPhone={setPhone}
-            merchantType={merchantType}
-            setMerchantType={setMerchantType}
-            businessName={businessName}
-            setBusinessName={setBusinessName}
-            tin={tin}
-            setTin={setTin}
-            licenseNo={licenseNo}
-            setLicenseNo={setLicenseNo}
-            subcity={subcity}
-            setSubcity={setSubcity}
-            businessAddress={businessAddress}
-            setBusinessAddress={setBusinessAddress}
-            loading={loading}
-            error={error}
+            loading={auth.loading}
+            error={auth.error}
+            userType={auth.userType}
+            setUserType={auth.setUserType}
+            fullName={auth.fullName}
+            setFullName={auth.setFullName}
+            phone={auth.phone}
+            setPhone={auth.setPhone}
+            merchantType={auth.merchantType}
+            setMerchantType={auth.setMerchantType}
+            businessName={auth.businessName}
+            setBusinessName={auth.setBusinessName}
+            tin={auth.tin}
+            setTin={auth.setTin}
+            licenseNo={auth.licenseNo}
+            setLicenseNo={auth.setLicenseNo}
+            subcity={auth.subcity}
+            setSubcity={auth.setSubcity}
+            businessAddress={auth.businessAddress}
+            setBusinessAddress={auth.setBusinessAddress}
             onBack={() => transitionTo('welcome')}
-            onRegister={handleRegister}
+            onRegister={auth.handleRegister}
           />
         )}
       </View>
@@ -329,11 +145,6 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  inner: {
-    flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-  },
+  container: { flex: 1 },
+  inner: { flex: 1, paddingTop: Platform.OS === 'ios' ? 60 : 40 },
 });

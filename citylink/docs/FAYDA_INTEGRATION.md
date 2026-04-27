@@ -68,38 +68,6 @@ client_assertion=[SIGNED_JWT]
 - Validate `aud` contains CITYLINK_CLIENT_ID
 - Validate `exp` > current time and `iat` < current time
 - Validate `nonce` matches the nonce sent in authorization request
-**Request**: `POST /oauth/v2/token` with form-encoded parameters:
-```
-grant_type=authorization_code
-code=[AUTHORIZATION_CODE_FROM_CALLBACK]
-redirect_uri=citylink://auth/fayda/callback
-client_id=CITYLINK_CLIENT_ID
-client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
-client_assertion=[SIGNED_JWT]
-```
-
-**Client Assertion JWT**: A JWT signed with CityLink's private key containing:
-- `iss`: CITYLINK_CLIENT_ID
-- `sub`: CITYLINK_CLIENT_ID  
-- `aud`: Fayda token endpoint URL (e.g., `https://[FAYDA_DOMAIN]/oauth/v2/token`)
-- `jti`: Unique JWT ID (UUID)
-- `iat`: Issued at timestamp
-- `exp`: Expiration timestamp (max 5 minutes from iat)
-
-**Generation**: Sign the JWT header + payload with CityLink's private key using RS256 or ES256 algorithm.
-
-**Response**: JSON containing:
-- `access_token`: Bearer token for UserInfo endpoint
-- `id_token`: JWT containing verified user identity claims
-- `token_type`: "Bearer"
-- `expires_in`: Token lifetime in seconds
-
-**ID Token Validation Checklist**:
-- Verify signature against Fayda JWKS public keys
-- Validate `iss` matches expected Fayda issuer
-- Validate `aud` contains CITYLINK_CLIENT_ID
-- Validate `exp` > current time and `iat` < current time
-- Validate `nonce` matches the nonce sent in authorization request
 
 ### Step C: UserInfo Retrieval
 Fetch the verified identity payload using the Access Token.

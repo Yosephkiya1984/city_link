@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { User, Transaction, ParkingSession } from '../types/domain_types';
+import { SecurityUtils } from '../utils/security';
 
 /**
  * SecureStoreAdapter — dedicated for individual sensitive values.
@@ -10,14 +11,14 @@ import { User, Transaction, ParkingSession } from '../types/domain_types';
 export const SecurePersist = {
   saveUser: async (user: User | null): Promise<void> => {
     if (!user) {
-      await SecureStore.deleteItemAsync('cl_current_user');
+      await SecureStore.deleteItemAsync('citylink-current-user');
       return;
     }
-    await SecureStore.setItemAsync('cl_current_user', JSON.stringify(user));
+    await SecureStore.setItemAsync('citylink-current-user', JSON.stringify(user));
   },
   loadUser: async (): Promise<User | null> => {
     try {
-      const res = await SecureStore.getItemAsync('cl_current_user');
+      const res = await SecureStore.getItemAsync('citylink-current-user');
       return res ? JSON.parse(res) : null;
     } catch (err) {
       console.error('[SecurePersist] Failed to parse stored user:', err);
@@ -25,57 +26,69 @@ export const SecurePersist = {
     }
   },
   saveBalance: async (balance: number): Promise<void> => {
-    await SecureStore.setItemAsync('cl_wallet_balance', String(balance));
+    await SecureStore.setItemAsync('citylink-wallet-balance', String(balance));
   },
   loadBalance: async (): Promise<number> => {
-    const res = await SecureStore.getItemAsync('cl_wallet_balance');
+    const res = await SecureStore.getItemAsync('citylink-wallet-balance');
     return res ? parseFloat(res) : 0;
   },
   // Generic key-value storage — uses SecureStore for small values (≤2KB),
   // falls back to AsyncStorage for larger payloads with a dev warning.
   setItem: async (key: string, value: string): Promise<void> => {
+    const fullKey = `citylink-${key}`;
     if (value.length <= 2048) {
-      await SecureStore.setItemAsync(`cl_${key}`, value);
+      await SecureStore.setItemAsync(fullKey, value);
     } else {
       if (__DEV__) {
         console.warn(
-          `[SecurePersist] Value for "${key}" exceeds 2KB (${value.length}B). Using AsyncStorage fallback.`
+          `[SecurePersist] Value for "${key}" exceeds 2KB (${value.length}B). Using AsyncStorage fallback with encryption.`
         );
       }
-      await AsyncStorage.setItem(key, value);
+      const encrypted = await SecurityUtils.encrypt(value);
+      await AsyncStorage.setItem(fullKey, encrypted);
     }
   },
   getItem: async (key: string): Promise<string | null> => {
+    const fullKey = `citylink-${key}`;
     // Try SecureStore first, then AsyncStorage fallback
     try {
-      const secure = await SecureStore.getItemAsync(`cl_${key}`);
+      const secure = await SecureStore.getItemAsync(fullKey);
       if (secure !== null) return secure;
     } catch {
       /* SecureStore miss, try AsyncStorage */
     }
-    return await AsyncStorage.getItem(key);
+    const raw = await AsyncStorage.getItem(fullKey);
+    if (raw) {
+      const decrypted = await SecurityUtils.decrypt(raw);
+      if (decrypted && decrypted !== '[DECRYPTION_ERROR]' && decrypted !== '[CORRUPTED_DATA]') {
+        return decrypted;
+      }
+      return null;
+    }
+    return null;
   },
 
   deleteItem: async (key: string): Promise<void> => {
+    const fullKey = `citylink-${key}`;
     try {
-      await SecureStore.deleteItemAsync(`cl_${key}`);
+      await SecureStore.deleteItemAsync(fullKey);
     } catch {
       /* ignore */
     }
-    await AsyncStorage.removeItem(key);
+    await AsyncStorage.removeItem(fullKey);
   },
 
   // Secure KYC Storage
   saveKYC: async (data: Record<string, unknown> | null): Promise<void> => {
     if (!data) {
-      await SecureStore.deleteItemAsync('cl_kyc_data');
+      await SecureStore.deleteItemAsync('citylink-kyc-data');
       return;
     }
-    await SecureStore.setItemAsync('cl_kyc_data', JSON.stringify(data));
+    await SecureStore.setItemAsync('citylink-kyc-data', JSON.stringify(data));
   },
   loadKYC: async (): Promise<Record<string, unknown> | null> => {
     try {
-      const res = await SecureStore.getItemAsync('cl_kyc_data');
+      const res = await SecureStore.getItemAsync('citylink-kyc-data');
       return res ? JSON.parse(res) : null;
     } catch (err) {
       console.error('[SecurePersist] Failed to parse stored KYC data:', err);
@@ -83,25 +96,33 @@ export const SecurePersist = {
     }
   },
   saveKYCStatus: async (status: string): Promise<void> => {
-    await SecureStore.setItemAsync('cl_kyc_status', status);
+    await SecureStore.setItemAsync('citylink-kyc-status', status);
   },
   loadKYCStatus: async (): Promise<string | null> => {
-    return await SecureStore.getItemAsync('cl_kyc_status');
+    return await SecureStore.getItemAsync('citylink-kyc-status');
   },
   clearKYC: async (): Promise<void> => {
-    await SecureStore.deleteItemAsync('cl_kyc_data');
-    await SecureStore.deleteItemAsync('cl_kyc_status');
+    await SecureStore.deleteItemAsync('citylink-kyc-data');
+    await SecureStore.deleteItemAsync('citylink-kyc-status');
   },
 
   // 🛡️ Transaction History Persistence
   saveTransactions: async (txs: Transaction[]): Promise<void> => {
     // Large list, use AsyncStorage
-    await AsyncStorage.setItem('cl_wallet_transactions', JSON.stringify(txs.slice(0, 50)));
+    const raw = JSON.stringify(txs.slice(0, 50));
+    const encrypted = await SecurityUtils.encrypt(raw);
+    await AsyncStorage.setItem('citylink-wallet-transactions', encrypted);
   },
   loadTransactions: async (): Promise<Transaction[]> => {
     try {
-      const res = await AsyncStorage.getItem('cl_wallet_transactions');
-      return res ? JSON.parse(res) : [];
+      const res = await AsyncStorage.getItem('citylink-wallet-transactions');
+      if (!res) return [];
+
+      const decrypted = await SecurityUtils.decrypt(res);
+      if (decrypted && decrypted !== '[DECRYPTION_ERROR]' && decrypted !== '[CORRUPTED_DATA]') {
+        return JSON.parse(decrypted);
+      }
+      return JSON.parse(res);
     } catch {
       return [];
     }
@@ -110,14 +131,14 @@ export const SecurePersist = {
   // 🛡️ Active Parking Persistence
   saveActiveParking: async (session: ParkingSession | null): Promise<void> => {
     if (!session) {
-      await SecureStore.deleteItemAsync('cl_active_parking');
+      await SecureStore.deleteItemAsync('citylink-active-parking');
       return;
     }
-    await SecureStore.setItemAsync('cl_active_parking', JSON.stringify(session));
+    await SecureStore.setItemAsync('citylink-active-parking', JSON.stringify(session));
   },
   loadActiveParking: async (): Promise<ParkingSession | null> => {
     try {
-      const res = await SecureStore.getItemAsync('cl_active_parking');
+      const res = await SecureStore.getItemAsync('citylink-active-parking');
       return res ? JSON.parse(res) : null;
     } catch {
       return null;

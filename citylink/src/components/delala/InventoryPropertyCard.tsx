@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from './constants';
 import { fmtETB } from '../../utils';
+import DefaultIcon from '../../../assets/icon.png';
 import { PropertyListing } from '../../types';
 
 interface InventoryPropertyCardProps {
@@ -63,7 +64,7 @@ const InventoryPropertyCard = memo(
             <Image
               source={{ uri: property.images?.[0] || 'https://via.placeholder.com/300' }}
               style={styles.inventoryCardImage}
-              defaultSource={require('../../../assets/icon.png')}
+              defaultSource={DefaultIcon}
             />
             <View
               style={[styles.statusBadge, { backgroundColor: getStatusColor(property.status) }]}

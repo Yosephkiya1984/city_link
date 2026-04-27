@@ -57,7 +57,10 @@ export async function queueLocalPendingSend({
   const noteHash = await hashData(note || null);
 
   list.push({
-    id: Math.random().toString(36).substring(7), // Stable local ID
+    // 🛡️ SECURITY: Use a cryptographically secure UUID for the idempotency key.
+    // This value is passed to process_p2p_transfer as p_idempotency_key.
+    // Math.random() was previously used — a predictable key risks double-spend / replay attacks.
+    id: Crypto.randomUUID(),
     sender_id: senderId,
     recipient_phone_encrypted: recipientPhoneEncrypted,
     recipient_phone_hash: recipientPhoneHash!,

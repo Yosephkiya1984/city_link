@@ -168,9 +168,21 @@ export function useParking() {
       return;
     }
     setLoading(true);
-    const sessionId = uid();
+    const { data, error } = await startParkingSession(
+      currentUser?.id || '',
+      selectedLot.id,
+      selectedSpot.id,
+      'AA-A12345' // Defaulting to placeholder for now, would ideally come from user profile
+    );
+
+    if (error || !data?.ok) {
+      showToast(data?.error || 'Could not start parking session', 'error');
+      setLoading(false);
+      return;
+    }
+
     const session = {
-      id: sessionId,
+      id: data.session_id,
       user_id: currentUser?.id || '',
       lot_id: selectedLot.id,
       lot_name: selectedLot.name,
@@ -183,13 +195,6 @@ export function useParking() {
       merchant_id: selectedLot.id,
       created_at: new Date().toISOString(),
     };
-
-    const { error } = await startParkingSession(session);
-    if (error) {
-      showToast('Could not start parking session', 'error');
-      setLoading(false);
-      return;
-    }
 
     setActiveParking(session);
     setLots((prev: ParkingLotLocal[]) =>
@@ -222,13 +227,7 @@ export function useParking() {
     setLoading(true);
 
     try {
-      const res = await endParkingSession(
-        activeParking.id,
-        currentUser?.id || '',
-        ((activeParking as any).lot_name as string) || '',
-        activeParking.spot_number || '',
-        fare
-      );
+      const res = await endParkingSession(activeParking.id, currentUser?.id || '', fare);
 
       if (res.error) {
         showToast(

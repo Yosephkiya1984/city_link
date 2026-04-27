@@ -5,20 +5,25 @@ import { User } from '../types';
 /**
  * flattenUser — flattens the nested merchants join into the User object.
  */
-export function flattenUser(data: any): User | null {
+export function flattenUser(data: User & { merchants?: any }): User | null {
   if (!data) return null;
   const { merchants, ...profile } = data;
-  if (merchants) {
+  let merchant = merchants;
+  if (Array.isArray(merchants)) {
+    merchant = merchants[0];
+  }
+
+  if (merchant) {
     return {
       ...profile,
-      business_name: merchants.business_name,
-      merchant_type: merchants.merchant_type,
-      merchant_status: merchants.merchant_status,
-      tin: merchants.tin,
-      license_no: merchants.license_no,
-      trade_license: merchants.trade_license,
-      merchant_details: merchants.merchant_details,
-    };
+      business_name: merchant.business_name,
+      merchant_type: merchant.merchant_type,
+      merchant_status: merchant.merchant_status,
+      tin: merchant.tin,
+      license_no: merchant.license_no,
+      trade_license: merchant.trade_license,
+      merchant_details: merchant.merchant_details,
+    } as User;
   }
   return profile as User;
 }
@@ -27,10 +32,10 @@ export function flattenUser(data: any): User | null {
  * fetchProfile — fetches a user's profile by their ID, joining with merchants.
  */
 export async function fetchProfile(userId: string) {
-  const res = await supaQuery<any>((c) =>
+  const res = await supaQuery<User & { merchants: any }>((c) =>
     c.from('profiles').select('*, merchants(*)').eq('id', userId).maybeSingle()
   );
-  return { ...res, data: flattenUser(res.data) };
+  return { ...res, data: flattenUser(res.data as any) };
 }
 
 /**
@@ -38,10 +43,10 @@ export async function fetchProfile(userId: string) {
  */
 export async function upsertProfile(profile: Partial<User> & { id: string }) {
   // Only use fields that exist in database schema
-  const data: any = {
+  const data: Partial<User> & { updated_at?: string } = {
     id: profile.id,
     role: profile.role || 'citizen',
-    kyc_status: profile.kyc_status ?? 'NONE',
+    kyc_status: profile.kyc_status ?? 'NOT_STARTED',
     updated_at: new Date().toISOString(),
   };
 
@@ -50,7 +55,8 @@ export async function upsertProfile(profile: Partial<User> & { id: string }) {
   if (profile.subcity !== undefined) data.subcity = profile.subcity;
   if (profile.woreda !== undefined) data.woreda = profile.woreda;
   if (profile.credit_score !== undefined) data.credit_score = profile.credit_score;
-  if (profile.welcome_bonus_paid !== undefined) data.welcome_bonus_paid = profile.welcome_bonus_paid;
+  if (profile.welcome_bonus_paid !== undefined)
+    data.welcome_bonus_paid = profile.welcome_bonus_paid;
 
   return supaQuery<User>((c) =>
     c.from('profiles').upsert(data, { onConflict: 'id' }).select().single()
@@ -58,18 +64,24 @@ export async function upsertProfile(profile: Partial<User> & { id: string }) {
 }
 
 /**
- * checkPhoneExists — checks if a phone number is already registered.
+ * checkPhoneExists — checks if a phone number is already registered via secure RPC.
  */
 export async function checkPhoneExists(
   phone: string
-): Promise<{ id: string; role: string } | null> {
+): Promise<{ id: string; role: string; full_name?: string } | null> {
   if (!hasSupabase()) {
     return null;
   }
-  const { data } = await supaQuery<{ id: string; role: string }>((c) =>
-    c.from('profiles').select('id, role').eq('phone', phone).maybeSingle()
+  const { data, error } = await supaQuery<any>((c) =>
+    c.rpc('lookup_profile_by_phone', { p_phone: phone })
   );
-  return data;
+
+  if (error || !data) return null;
+  return {
+    id: data.id,
+    role: data.role,
+    full_name: data.full_name,
+  };
 }
 
 interface SessionProfileResult {
@@ -96,19 +108,19 @@ export async function loadSessionProfile(
 
   if (!row && normalizedPhone) {
     // Attempt lookup by normalized phone with merchant join
-    const r = await supaQuery<any>((c) =>
+    const r = await supaQuery<User & { merchants: any }>((c) =>
       c.from('profiles').select('*, merchants(*)').eq('phone', normalizedPhone).maybeSingle()
     );
-    if (r.data) row = flattenUser(r.data);
+    if (r.data) row = flattenUser(r.data as any);
     else {
       // Fallback: search for variations
       const alt = normalizedPhone.startsWith('+251')
         ? '0' + normalizedPhone.slice(4)
         : normalizedPhone;
-      const r2 = await supaQuery<any>((c) =>
+      const r2 = await supaQuery<User & { merchants: any }>((c) =>
         c.from('profiles').select('*, merchants(*)').eq('phone', alt).maybeSingle()
       );
-      if (r2.data) row = flattenUser(r2.data);
+      if (r2.data) row = flattenUser(r2.data as any);
     }
   }
 
@@ -127,10 +139,18 @@ export async function loadSessionProfile(
 }
 
 /**
- * updateUserRole — persists a role change for the user.
+ * switchUserMode — allows a verified user to toggle between citizen and delivery_agent roles.
+ * This replaces the insecure admin_set_user_role for self-service mode switching.
  */
-export async function updateUserRole(userId: string, newRole: string) {
-  return supaQuery<void>((c) => c.from('profiles').update({ role: newRole }).eq('id', userId));
+export async function switchUserMode(targetRole: 'citizen' | 'delivery_agent') {
+  const res = await supaQuery<{ ok: boolean; new_role?: string; error?: string }>((c) =>
+    c.rpc('switch_user_mode', { p_target_role: targetRole })
+  );
+
+  if (res.error) return { error: res.error };
+  if (res.data && !res.data.ok) return { error: res.data.error || 'Switch failed' };
+
+  return { data: res.data?.new_role, error: null };
 }
 
 /**

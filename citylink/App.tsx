@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { TamaguiProvider } from 'tamagui';
+import { config } from './src/tamagui.config';
 import { View, ActivityIndicator, StatusBar, Text } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -19,8 +21,16 @@ import { useSystemStore } from './src/store/SystemStore';
 import { migrateLegacyData } from './src/store/StoreUtils';
 
 import { useTheme } from './src/hooks/useTheme';
+import { t } from './src/utils/i18n';
 import { memoryManager, PerformanceProfiler } from './src/utils/debug/memoryManager';
 import { cacheManager } from './src/utils/debug/cacheManager';
+
+import { useBiometricStore } from './src/store/BiometricStore';
+import { BiometricLockScreen } from './src/components/auth/BiometricLockScreen';
+import { AppState, AppStateStatus } from 'react-native';
+
+import { PerformanceProvider } from './src/utils/debug/performanceMonitor';
+import { ErrorReportingProvider } from './src/utils/debug/errorReporting';
 
 // ── Inner bootstrap component — runs INSIDE AppStoreProvider ─────────────────
 function AppBootstrap() {
@@ -42,6 +52,9 @@ function AppBootstrap() {
     async function prepare() {
       const bootStart = performance.now();
       try {
+        // 0. Check Biometric Support
+        await useBiometricStore.getState().checkSupport();
+
         // 0. Migrate legacy data if exists
         try {
           await migrateLegacyData();
@@ -50,9 +63,11 @@ function AppBootstrap() {
           console.error('[App] migrateLegacyData failed:', message, e);
         }
 
-        // 1. Load Fonts Manually
+        // 1 & 2. Load Fonts & Hydrate Session Concurrently
         const fontStart = performance.now();
-        await Font.loadAsync({
+        const authStart = performance.now();
+
+        const fontPromise = Font.loadAsync({
           Inter_400Regular,
           Inter_500Medium,
           Inter_600SemiBold,
@@ -61,24 +76,25 @@ function AppBootstrap() {
           SpaceGrotesk_700Bold,
           Manrope_400Regular,
           Manrope_700Bold,
+        }).then(() => {
+          setFontsLoaded(true);
+          console.log(`[Performance] Fonts loaded in ${(performance.now() - fontStart).toFixed(2)}ms`);
         });
-        setFontsLoaded(true);
-        console.log(`[Performance] Fonts loaded in ${(performance.now() - fontStart).toFixed(2)}ms`);
 
-        // 3. Session Restore & State Hydration
-        const authStart = performance.now();
         const { hydrateSession } = useAuthStore.getState();
-        await hydrateSession();
-        console.log(`[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`);
+        const authPromise = hydrateSession().then(() => {
+          console.log(`[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`);
+        });
+
+        await Promise.all([fontPromise, authPromise]);
 
         const session = useAuthStore.getState().currentUser;
         if (session) {
-          // 🛡️ RECOVERY: Hydrate the wallet state (balance + history)
-          const { hostWalletHydration } = await import('./src/store/WalletStore');
+          // Hydrate the wallet state (balance + history)
           const { useWalletStore } = await import('./src/store/WalletStore');
           await useWalletStore.getState().hydrateWallet(session.id);
-          
-          // 📡 SHIELD 2.0: Background PIN Hash Sync (Refinement)
+
+          // Background PIN Hash Sync
           const { ensureFullSync } = await import('./src/services/walletPin');
           await ensureFullSync(session.id);
 
@@ -87,7 +103,9 @@ function AppBootstrap() {
           }
         }
 
-        console.log(`[Performance] Total bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`);
+        if (__DEV__) {
+          console.log(`[Performance] Total bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`);
+        }
       } catch (e) {
         console.warn('[App] Boot error:', e);
       } finally {
@@ -95,9 +113,22 @@ function AppBootstrap() {
       }
     }
 
+    // 🛡️ Biometric Session Monitor
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const { isBiometricsEnabled, isBiometricsSupported, setLocked } = useBiometricStore.getState();
+      const session = useAuthStore.getState().currentUser;
+
+      if (nextAppState === 'active' && session && isBiometricsEnabled && isBiometricsSupported) {
+        setLocked(true);
+      }
+    };
+
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
     prepare();
     return () => {
       stopMemoryMonitor?.();
+      appStateSubscription.remove();
     };
   }, []);
 
@@ -119,7 +150,7 @@ function AppBootstrap() {
             fontSize: 16,
           }}
         >
-          Loading CityLink...
+          {t('loading_app') || 'Loading CityLink...'}
         </Text>
       </View>
     );
@@ -128,15 +159,20 @@ function AppBootstrap() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar
-          barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={theme.ink}
-          translucent={false}
-        />
-        <ErrorBoundary>
-          <AppNavigator />
-          <ToastContainer />
-        </ErrorBoundary>
+        <PerformanceProvider>
+          <ErrorReportingProvider>
+            <StatusBar
+              barStyle={isDark ? 'light-content' : 'dark-content'}
+              backgroundColor={theme.ink}
+              translucent={false}
+            />
+            <ErrorBoundary>
+              <AppNavigator />
+              <BiometricLockScreen />
+              <ToastContainer />
+            </ErrorBoundary>
+          </ErrorReportingProvider>
+        </PerformanceProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -145,6 +181,8 @@ function AppBootstrap() {
 // ── Root export — wraps everything in AppStoreProvider ───────────────────────
 export default function App() {
   return (
-    <AppBootstrap />
+    <TamaguiProvider config={config} defaultTheme="dark">
+      <AppBootstrap />
+    </TamaguiProvider>
   );
 }

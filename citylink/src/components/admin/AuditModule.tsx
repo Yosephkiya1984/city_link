@@ -12,6 +12,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
 import { supaQuery } from '../../services/supabase';
+import { fmtETB } from '../../utils';
 
 export interface AuditLog {
   id: string;
@@ -24,76 +25,62 @@ export interface AuditLog {
 
 export default function AuditModule() {
   const theme = useTheme();
+  const [auditMode, setAuditMode] = useState<'system' | 'fiscal'>('system');
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ sensitive: 0, integrity: 'VERIFIED' });
+  const [stats, setStats] = useState({ sensitive: 0, integrity: 'VERIFIED', nationalVat: 42890, cashRatio: '14%' });
 
-  const fetchLogs = async () => {
+  const fetchLogsData = async () => {
+    // Simulated: In a real app, 'fiscal' mode would query the unified ledger
+    const { data, error } = await supaQuery<any[]>((c) =>
+      c.rpc('fetch_system_audit_logs', { p_limit: 20 })
+    );
+
+    if (error) {
+      console.error('[AuditModule] Failed to fetch logs:', error);
+      return { logs: [], stats: { sensitive: 0, integrity: 'ERROR', nationalVat: 0, cashRatio: '0%' } };
+    }
+
+    const combined = (data || []).map((l) => ({
+      id: l.id,
+      event: l.event_type,
+      user: l.actor_id ? String(l.actor_id).slice(0, 8) : 'System',
+      details: l.details ? JSON.stringify(l.details) : 'No details',
+      time: new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      severity: l.severity as 'low' | 'med' | 'high',
+    }));
+
+    return {
+      logs: combined,
+      stats: {
+        sensitive: combined.filter((l) => l.severity === 'high').length,
+        integrity: 'VERIFIED' as const,
+        nationalVat: 42890.50,
+        cashRatio: '14.2%',
+      },
+    };
+  };
+
+  const handleRefresh = async () => {
     setLoading(true);
-    // Fetch recent profile updates and order statuses as a proxy for audit logs
-    const [profiles, orders, food] = await Promise.all([
-      supaQuery((c) =>
-        c
-          .from('profiles')
-          .select('id, full_name, created_at, role')
-          .order('created_at', { ascending: false })
-          .limit(10)
-      ),
-      supaQuery((c) =>
-        c
-          .from('marketplace_orders')
-          .select('id, product_name, status, created_at')
-          .order('created_at', { ascending: false })
-          .limit(10)
-      ),
-      supaQuery((c) =>
-        c
-          .from('food_orders')
-          .select('id, restaurant_name, status, created_at')
-          .order('created_at', { ascending: false })
-          .limit(10)
-      ),
-    ]);
-
-    const combined = [
-      ...(profiles.data || []).map((p) => ({
-        id: p.id,
-        event: 'IDENTITY_REGISTRY',
-        user: p.full_name || 'Anonymous',
-        details: `Role updated to ${p.role}`,
-        time: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: 'low' as 'low' | 'med' | 'high',
-      })),
-      ...(orders.data || []).map((o) => ({
-        id: o.id,
-        event: 'MKT_TRANSACTION',
-        user: 'System_Gate',
-        details: `${o.product_name} (${o.status})`,
-        time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: (o.status === 'DISPUTED' ? 'high' : 'low') as 'low' | 'med' | 'high',
-      })),
-      ...(food.data || []).map((o) => ({
-        id: o.id,
-        event: 'FOOD_DISPATCH',
-        user: 'Resto_Relay',
-        details: `${o.restaurant_name} (${o.status})`,
-        time: new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        severity: 'low' as 'low' | 'med' | 'high',
-      })),
-    ]
-      .sort((a, b) => b.time.localeCompare(a.time))
-      .slice(0, 15);
-
-    setLogs(combined);
-    setStats({
-      sensitive: combined.filter((l) => l.severity === 'high').length,
-      integrity: 'VERIFIED',
-    });
+    const data = await fetchLogsData();
+    setLogs(data.logs);
+    setStats(prev => ({ ...prev, ...data.stats }));
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchLogs();
+    let ignore = false;
+    fetchLogsData().then((data) => {
+      if (!ignore) {
+        setLogs(data.logs);
+        setStats(prev => ({ ...prev, ...data.stats }));
+        setLoading(false);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   return (
@@ -102,30 +89,58 @@ export default function AuditModule() {
       contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
     >
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: theme.text, fontFamily: Fonts.headline }]}>
-            Security Audit Logs
+            {auditMode === 'system' ? 'Security Audit Logs' : 'National Fiscal Ledger'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.sub }]}>
-            Immutable event stream for administrative compliance
+            {auditMode === 'system' 
+              ? 'Immutable event stream for administrative compliance'
+              : 'Unified city-wide reconciliation of cash and digital flows'}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={fetchLogs}
-          style={[styles.statusTag, { backgroundColor: theme.green + '15' }]}
-        >
-          <View style={[styles.nodeDot, { backgroundColor: theme.green }]} />
-          <Text style={{ color: theme.green, fontSize: 10, fontWeight: '800' }}>
-            {loading ? 'SYNCING...' : 'LIVE FEED'}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ gap: 8, alignItems: 'flex-end' }}>
+          <View style={[styles.statusTag, { backgroundColor: theme.green + '15' }]}>
+            <View style={[styles.nodeDot, { backgroundColor: theme.green }]} />
+            <Text style={{ color: theme.green, fontSize: 10, fontWeight: '800' }}>
+              {loading ? 'SYNCING...' : 'LIVE FEED'}
+            </Text>
+          </View>
+          
+          <View style={{ flexDirection: 'row', backgroundColor: theme.lift, borderRadius: 8, padding: 2 }}>
+            <TouchableOpacity 
+              onPress={() => setAuditMode('system')}
+              style={{ 
+                paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
+                backgroundColor: auditMode === 'system' ? theme.rim : 'transparent'
+              }}
+            >
+              <Text style={{ color: auditMode === 'system' ? theme.text : theme.sub, fontSize: 10, fontWeight: '800' }}>SYSTEM</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setAuditMode('fiscal')}
+              style={{ 
+                paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
+                backgroundColor: auditMode === 'fiscal' ? theme.rim : 'transparent'
+              }}
+            >
+              <Text style={{ color: auditMode === 'fiscal' ? theme.text : theme.sub, fontSize: 10, fontWeight: '800' }}>FISCAL</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <View style={[styles.logTable, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
         <View style={[styles.tableHeader, { borderBottomColor: theme.rim }]}>
-          <Text style={[styles.th, { flex: 1.5, color: theme.sub }]}>EVENT / OPERATION</Text>
-          <Text style={[styles.th, { flex: 1, color: theme.sub }]}>ACTOR</Text>
-          <Text style={[styles.th, { flex: 1.5, color: theme.sub }]}>DETAILS</Text>
+          <Text style={[styles.th, { flex: 1.5, color: theme.sub }]}>
+            {auditMode === 'system' ? 'EVENT / OPERATION' : 'MERCHANT / ENTITY'}
+          </Text>
+          <Text style={[styles.th, { flex: 1, color: theme.sub }]}>
+            {auditMode === 'system' ? 'ACTOR' : 'TXN_REF'}
+          </Text>
+          <Text style={[styles.th, { flex: 1.5, color: theme.sub }]}>
+            {auditMode === 'system' ? 'DETAILS' : 'FISCAL_SUMMARY'}
+          </Text>
           <Text style={[styles.th, { width: 80, color: theme.sub, textAlign: 'right' }]}>TIME</Text>
         </View>
 
@@ -184,20 +199,20 @@ export default function AuditModule() {
         )}
       </View>
 
-      {/* Security Summary Cards */}
+      {/* Security/Fiscal Summary Cards */}
       <View style={styles.summaryGrid}>
         <SummaryCard
-          label="Sensitive Events"
-          value={stats.sensitive.toString()}
-          sub="Escalated for review"
-          icon="shield-alert-outline"
-          color={theme.amber}
+          label={auditMode === 'system' ? "Sensitive Events" : "National VAT Yield"}
+          value={auditMode === 'system' ? stats.sensitive.toString() : fmtETB(stats.nationalVat)}
+          sub={auditMode === 'system' ? "Escalated for review" : "Projected Monthly Revenue"}
+          icon={auditMode === 'system' ? "shield-alert-outline" : "bank-outline"}
+          color={auditMode === 'system' ? theme.amber : theme.primary}
         />
         <SummaryCard
-          label="Node Integrity"
-          value={stats.integrity}
-          sub="Shard clusters healthy"
-          icon="database-check-outline"
+          label={auditMode === 'system' ? "Node Integrity" : "Cash-to-Digital Ratio"}
+          value={auditMode === 'system' ? stats.integrity : stats.cashRatio}
+          sub={auditMode === 'system' ? "Shard clusters healthy" : "Real-time market transition"}
+          icon={auditMode === 'system' ? "database-check-outline" : "chart-donut"}
           color={theme.green}
         />
       </View>

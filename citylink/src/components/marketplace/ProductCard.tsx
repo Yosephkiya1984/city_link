@@ -1,9 +1,13 @@
-import React, { useRef, memo } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, StyleSheet } from 'react-native';
+import React, { memo } from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { MotiView } from 'moti';
+import { MotiPressable } from 'moti/interactions';
 import { T, SW } from './constants';
 import { fmtETB } from '../../utils';
+import { Fonts, Radius, DarkColors as C } from '../../theme';
+import DEFAULT_ICON from '../../../assets/icon.png';
 
 interface ProductCardProps {
   item: any;
@@ -11,18 +15,9 @@ interface ProductCardProps {
 }
 
 const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
-  const scale = useRef(new Animated.Value(1)).current;
   const img = item.image_url || item.images_json?.[0] || null;
   const soldOut = (item.stock || 0) <= 0;
   const lowStock = !soldOut && (item.stock || 0) <= 5;
-
-  const handlePressIn = () => {
-    Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
-  };
 
   const handlePress = () => {
     if (!soldOut) {
@@ -32,48 +27,42 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
   };
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
+    <MotiPressable
       onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      accessibilityRole="button"
-      accessibilityLabel={`View ${item.name || item.title}. Price: ${fmtETB(item.price, 0)} ETB.`}
-      accessibilityHint="Navigates to product details"
+      animate={({ pressed }) => {
+        'worklet';
+        return {
+          scale: pressed ? 0.96 : 1,
+        };
+      }}
+      style={styles.pressable}
     >
-      <Animated.View style={[styles.productCard, { transform: [{ scale }] }]}>
+      <View style={styles.productCard}>
         <View style={styles.productImgWrap}>
           {img ? (
-            <Image
-              source={{ uri: img }}
-              style={styles.productImg}
-              defaultSource={require('../../../assets/icon.png')}
-            />
+            <Image source={{ uri: img }} style={styles.productImg} defaultSource={DEFAULT_ICON} />
           ) : (
             <View
               style={[
                 styles.productImg,
-                { backgroundColor: T.surfaceHigh, alignItems: 'center', justifyContent: 'center' },
+                { backgroundColor: C.lift, alignItems: 'center', justifyContent: 'center' },
               ]}
             >
-              <Ionicons name="cube-outline" size={32} color={T.textMuted} />
+              <Ionicons name="cube-outline" size={32} color="rgba(255,255,255,0.1)" />
             </View>
           )}
           {soldOut && (
             <View
-              style={[styles.stockLabel, { backgroundColor: T.redDim, borderColor: '#ef444440' }]}
+              style={[styles.stockLabel, { backgroundColor: '#ef444422', borderColor: '#ef444440' }]}
             >
-              <Text style={[styles.stockLabelText, { color: T.red }]}>SOLD OUT</Text>
+              <Text style={[styles.stockLabelText, { color: '#ef4444' }]}>SOLD OUT</Text>
             </View>
           )}
           {lowStock && (
             <View
-              style={[
-                styles.stockLabel,
-                { backgroundColor: T.secondaryDim, borderColor: '#f59e0b40' },
-              ]}
+              style={[styles.stockLabel, { backgroundColor: '#f59e0b22', borderColor: '#f59e0b40' }]}
             >
-              <Text style={[styles.stockLabelText, { color: T.secondary }]}>LOW STOCK</Text>
+              <Text style={[styles.stockLabelText, { color: '#f59e0b' }]}>LOW STOCK</Text>
             </View>
           )}
         </View>
@@ -85,58 +74,59 @@ const ProductCard = memo(({ item, onPress }: ProductCardProps) => {
           </Text>
           <View style={styles.productFooter}>
             <Text style={styles.productPrice}>ETB {fmtETB(item.price, 0)}</Text>
-            <View style={[styles.buyQuickBtn, soldOut && { opacity: 0.4 }]}>
-              <Ionicons name="flash" size={16} color={soldOut ? T.textSub : T.primary} />
+            <View style={[styles.buyQuickBtn, { borderColor: C.primary + '40' }, soldOut && { opacity: 0.4 }]}>
+              <Ionicons name="flash" size={16} color={soldOut ? 'rgba(255,255,255,0.2)' : C.primary} />
             </View>
           </View>
         </View>
-      </Animated.View>
-    </TouchableOpacity>
+      </View>
+    </MotiPressable>
   );
 });
 
 export default ProductCard;
 
 const styles = StyleSheet.create({
-  productCard: {
+  pressable: {
     width: (SW - 52) / 2,
-    backgroundColor: T.card,
-    borderRadius: 14,
+    marginBottom: 16,
+  },
+  productCard: {
+    backgroundColor: C.surface,
+    borderRadius: Radius.card,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: T.border,
-    marginBottom: 4,
+    borderColor: C.edge,
   },
-  productImgWrap: { height: 145, position: 'relative' },
+  productImgWrap: { height: 160, position: 'relative' },
   productImg: { width: '100%', height: '100%', resizeMode: 'cover' },
   stockLabel: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    borderRadius: 6,
+    top: 10,
+    left: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  stockLabelText: { fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
-  productBody: { padding: 12 },
+  stockLabelText: { fontSize: 9, fontFamily: Fonts.bold, letterSpacing: 0.5 },
+  productBody: { padding: 14 },
   productCat: {
     fontSize: 9,
-    color: T.textSub,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    marginBottom: 4,
+    color: 'rgba(255,255,255,0.4)',
+    fontFamily: Fonts.bold,
+    letterSpacing: 1,
+    marginBottom: 6,
   },
-  productName: { fontSize: 13, fontWeight: '700', color: T.text, lineHeight: 17, marginBottom: 10 },
+  productName: { fontSize: 15, fontFamily: Fonts.bold, color: '#FFF', lineHeight: 20, marginBottom: 12 },
   productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  productPrice: { fontSize: 15, fontWeight: '800', color: T.primary },
+  productPrice: { fontSize: 16, fontFamily: Fonts.headline, color: C.primary },
   buyQuickBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: T.primaryDim,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: T.primary + '40',
     alignItems: 'center',
     justifyContent: 'center',
   },

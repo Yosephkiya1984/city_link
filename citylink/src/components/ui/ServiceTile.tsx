@@ -1,92 +1,83 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import { Text, View, TouchableOpacity, Animated } from 'react-native';
+import React, { useCallback } from 'react';
+import { Text, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { MotiView } from 'moti';
 import { useTheme } from '../../hooks/useTheme';
-import { Fonts } from '../../theme';
+import { Fonts, Radius } from '../../theme';
 
 export function ServiceTile({ service, onPress, index }: any) {
   const C = useTheme();
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const delay = index * 50;
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-      ]).start();
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [index]);
+  const [pressed, setPressed] = React.useState(false);
 
   const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPressed(true);
   }, []);
 
   const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      tension: 100,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
+    setPressed(false);
   }, []);
 
   return (
-    <Animated.View
+    <MotiView
+      from={{ opacity: 0, scale: 0.8, translateY: 20 }}
+      animate={{ 
+        opacity: 1, 
+        scale: pressed ? 0.94 : 1, 
+        translateY: 0 
+      }}
+      transition={{
+        type: 'spring',
+        delay: index * 40,
+        damping: 15,
+      }}
       style={{
         width: '33.33%',
         aspectRatio: 1,
         padding: 6,
-        opacity: opacityAnim,
-        transform: [{ scale: scaleAnim }],
       }}
     >
       <TouchableOpacity
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={0.7}
+        activeOpacity={1}
         style={{
           flex: 1,
           backgroundColor: C.surface,
-          borderRadius: 20,
+          borderRadius: Radius.card,
           alignItems: 'center',
           justifyContent: 'center',
           padding: 8,
           borderWidth: 1,
-          borderColor: C.edge2,
+          borderColor: pressed ? C.primary : C.edge2,
+          // Subtle shadow for premium feel
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 3,
         }}
       >
-        <View
+        <MotiView
+          animate={{ scale: pressed ? 1.1 : 1 }}
+          transition={{ type: 'spring', damping: 10 }}
           style={{
             width: 44,
             height: 44,
             borderRadius: 14,
-            backgroundColor: service.color + '15',
+            backgroundColor: service.color + (pressed ? '30' : '15'),
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: 8,
           }}
         >
           <Ionicons name={service.icon} size={22} color={service.color} />
-        </View>
+        </MotiView>
         <Text
           style={{
-            color: C.text,
+            color: pressed ? C.primary : C.text,
             fontSize: 10,
             fontFamily: Fonts.black,
             textAlign: 'center',
@@ -95,6 +86,6 @@ export function ServiceTile({ service, onPress, index }: any) {
           {service.id.toUpperCase()}
         </Text>
       </TouchableOpacity>
-    </Animated.View>
+    </MotiView>
   );
 }

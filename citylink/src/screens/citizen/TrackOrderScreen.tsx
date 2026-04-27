@@ -63,8 +63,10 @@ export default function TrackOrderScreen() {
     let interval: NodeJS.Timeout;
     if (order?.agent_id && (order.status === 'IN_TRANSIT' || order.status === 'AGENT_ASSIGNED')) {
       const fetchLoc = async () => {
-        const { supabase } = require('../../services/supabase');
-        const { data } = await supabase
+        const { getClient } = await import('../../services/supabase');
+        const client = getClient();
+        if (!client) return;
+        const { data } = await client
           .from('delivery_agents')
           .select('current_lat, current_lng')
           .eq('id', order.agent_id)

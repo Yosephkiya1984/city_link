@@ -93,13 +93,14 @@ export async function hasWalletPin(userId: string): Promise<boolean> {
  */
 async function migrateToV3(userId: string, plain: string): Promise<void> {
   try {
+    const currentHash = await getCurrentPinHash(userId);
     const salt = await generateSalt();
     const hash = await hashWalletPin(plain, userId, salt);
     // Store as hash:salt
     await SecureStore.setItemAsync(getV3Key(userId), `${hash}:${salt}`);
 
     // SYNC TO DB (Bulletproof Hardening)
-    await syncPinHashToDB(userId, hash);
+    await syncPinHashToDB(userId, hash, currentHash);
 
     console.log('[WalletPin] Security migration to V3 (PBKDF2) completed.');
   } catch (err) {
@@ -174,13 +175,14 @@ export async function setWalletPin(
   if (!userId) return { ok: false, error: 'missing_user' };
   if (!isValidPinFormat(plain)) return { ok: false, error: 'invalid_format' };
   try {
+    const currentHash = await getCurrentPinHash(userId);
     const salt = await generateSalt();
     const hash = await hashWalletPin(plain, userId, salt);
     // Always use V3 for new pins
     await SecureStore.setItemAsync(getV3Key(userId), `${hash}:${salt}`);
 
     // SYNC TO DB (Bulletproof Hardening)
-    await syncPinHashToDB(userId, hash);
+    await syncPinHashToDB(userId, hash, currentHash);
 
     // Cleanup old versions if they existed
     await SecureStore.deleteItemAsync(getV1Key(userId));
@@ -206,15 +208,23 @@ export async function getCurrentPinHash(userId: string): Promise<string | null> 
 /**
  * syncPinHashToDB - Ensures the server has the hash for verification.
  */
-async function syncPinHashToDB(userId: string, hash: string) {
+/**
+ * syncPinHashToDB - Ensures the server has the hash for verification.
+ * Uses the secure_update_pin_hash RPC to prevent unauthorized hash overwrites.
+ */
+async function syncPinHashToDB(userId: string, hash: string, oldHash: string | null = null) {
   try {
-    const { error } = await supaQuery((c) =>
-      c.from('profiles').update({ pin_hash: hash }).eq('id', userId)
+    const res = await supaQuery<{ success: boolean; error?: string }>((c) =>
+      c.rpc('secure_update_pin_hash', {
+        p_new_hash: hash,
+        p_old_hash: oldHash,
+      })
     );
-    if (!error) {
+
+    if (res.data?.success) {
       await SecureStore.deleteItemAsync(SYNC_PENDING_KEY);
     } else {
-      throw new Error(error);
+      throw new Error(res.data?.error || res.error || 'PIN sync failed');
     }
   } catch (err) {
     console.warn('[WalletPin] DB sync failed (offline?), marked for retry.', err);
@@ -238,7 +248,23 @@ export async function changeWalletPin(
   currentPlain: string,
   newPlain: string
 ): Promise<{ ok: boolean; error?: string }> {
+  const currentHash = await getCurrentPinHash(userId);
   const ok = await verifyWalletPin(userId, currentPlain);
   if (!ok) return { ok: false, error: 'wrong_current' };
-  return setWalletPin(userId, newPlain);
+
+  // Generate new pin locally
+  const salt = await generateSalt();
+  const newHash = await hashWalletPin(newPlain, userId, salt);
+
+  // Update local storage
+  await SecureStore.setItemAsync(getV3Key(userId), `${newHash}:${salt}`);
+
+  // Sync to DB with old hash verification
+  await syncPinHashToDB(userId, newHash, currentHash);
+
+  // Cleanup old versions
+  await SecureStore.deleteItemAsync(getV1Key(userId));
+  await SecureStore.deleteItemAsync(getV2Key(userId));
+
+  return { ok: true };
 }

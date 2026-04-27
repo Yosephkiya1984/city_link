@@ -1,320 +1,252 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable } from 'react-native';
-import { User, FoodItem, FoodOrderItem } from '../../types';
-import * as Haptics from 'expo-haptics';
-import TopBar from '../../components/TopBar';
-import { useAuthStore } from '../../store/AuthStore';
-import { useWalletStore } from '../../store/WalletStore';
-import { useSystemStore } from '../../store/SystemStore';
-import { Colors, LightColors, FontSize, Radius } from '../../theme';
-import { CButton, SectionTitle, EmptyState } from '../../components';
-import { fmtETB, uid, t } from '../../utils';
-import { fetchRestaurants, fetchFoodItems, placeOrder } from '../../services/food.service';
+import React from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  ImageBackground,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import { MotiView } from 'moti';
+import { useFood } from '../../hooks/useFood';
+import { foodStyles as styles } from './FoodScreen.styles';
+import { DarkColors as T, Fonts, Radius } from '../../theme';
+import { fmtETB } from '../../utils';
+import { CButton } from '../../components/ui/CButton';
+import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
+import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
+
+const TONIGHT_DATA = [
+  {
+    id: 't1',
+    name: 'Zoma Lounge',
+    vibe: 'Jazz & Cognac',
+    status: 'LIVE',
+    cover: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?auto=format&fit=crop&q=80&w=800',
+  },
+  {
+    id: 't2',
+    name: 'Black Rose',
+    vibe: 'Techno Underground',
+    status: 'FULL',
+    cover: 'https://images.unsplash.com/photo-1574096079513-d8259312b785?auto=format&fit=crop&q=80&w=800',
+  },
+  {
+    id: 't3',
+    name: 'Brickhouse',
+    vibe: 'Classic Rock',
+    status: 'TABLES',
+    cover: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=800',
+  },
+];
 
 export function FoodScreen() {
-  const isDark = useSystemStore((s) => s.isDark);
-  const C = isDark ? Colors : LightColors;
-  const balance = useWalletStore((s) => s.balance);
-  const setBalance = useWalletStore((s) => s.setBalance);
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const addTransaction = useWalletStore((s) => s.addTransaction);
-  const showToast = useSystemStore((s) => s.showToast);
-  const lang = useSystemStore((s) => s.lang);
+  const {
+    activeTab,
+    setActiveTab,
+    restaurants,
+    loading,
+    selectedRest,
+    setSelectedRest,
+    menuItems,
+    menuLoading,
+    cart,
+    mode,
+    setMode,
+    cartTotal,
+    cartCount,
+    addToCart,
+    removeFromCart,
+    openRestaurant,
+    showToast,
+  } = useFood();
 
-  const [restaurants, setRestaurants] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRest, setSelectedRest] = useState<User | null>(null);
-  const [menuItems, setMenuItems] = useState<FoodItem[]>([]);
-  const [menuLoading, setMenuLoading] = useState(false);
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [orderProcessing, setOrderProcessing] = React.useState(false);
+  const [orderSuccess, setOrderSuccess] = React.useState(false);
 
-  useEffect(() => {
-    async function loadRests() {
-      setLoading(true);
-      const { data, error } = await fetchRestaurants();
-      if (!error && data) setRestaurants(data);
-      setLoading(false);
-    }
-    loadRests();
-  }, []);
+  const handleOrder = async () => {
+    setOrderProcessing(true);
+    await new Promise(r => setTimeout(r, 2000)); // Simulate
+    setOrderProcessing(false);
+    setOrderSuccess(true);
+  };
 
-  async function openRestaurant(r: User) {
-    setSelectedRest(r);
-    setCart({});
-    setMenuLoading(true);
-    const { data } = await fetchFoodItems(r.id);
-    setMenuItems(data || []);
-    setMenuLoading(false);
-  }
-
-  const cartTotal = Object.entries(cart).reduce((sum, [itemId, qty]) => {
-    const item = menuItems.find((m) => m.id === itemId);
-    return sum + (Number(item?.price) || 0) * (qty as number);
-  }, 0);
-
-  const cartCount = Object.values(cart).reduce(
-    (s, q) => (s as number) + (q as number),
-    0
-  ) as number;
-
-  function addToCart(itemId: string) {
-    setCart((prev) => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
-  }
-  function removeFromCart(itemId: string) {
-    setCart((prev) => {
-      const next = { ...prev };
-      if (next[itemId] > 1) next[itemId]--;
-      else delete next[itemId];
-      return next;
-    });
-  }
-
-  async function handlePlaceOrder() {
-    if (!currentUser) {
-      showToast(t('Sign in to order', lang), 'error');
-      return;
-    }
-    if (cartTotal > balance) {
-      showToast(t('Insufficient balance', lang), 'error');
-      return;
-    }
-
-    // Delivery PIN Generation for Security
-    const pin = String(1000 + Math.floor(Math.random() * 9000));
-    const orderId = uid();
-
-    setLoading(true); // Re-using loading state for submission
-
-    // Transform cart Record into FoodOrderItem array with defensive filtering
-    const items: FoodOrderItem[] = Object.entries(cart)
-      .map(([itemId, qty]) => {
-        const item = menuItems.find((m) => m.id === itemId);
-        if (!item) return null;
-        return {
-          id: itemId,
-          name: item.name,
-          qty: qty,
-          price: item.price,
-          subtotal: item.price * qty,
-        };
-      })
-      .filter((x): x is FoodOrderItem => x !== null);
-
-    if (items.length === 0) {
-      showToast(t('Cart empty or items no longer available', lang), 'error');
-      setLoading(false);
-      return;
-    }
-
-    const finalTotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-
-    const payload = {
-      id: orderId,
-      citizen_id: currentUser.id,
-      merchant_id: selectedRest!.id,
-      restaurant: selectedRest!.merchant_name || 'Restaurant',
-      items_count: items.reduce((sum, item) => sum + item.qty, 0),
-      total: finalTotal,
-      delivery_pin: pin,
-      items: items, // Maps to DB 'items' jsonb column
-    };
-
-    try {
-      const r = await placeOrder(payload as any); // cast to any for RPC call if necessary, but payload is now correct for FoodOrder
-
-      if (r.ok) {
-        // Success: New balance is returned by the atomic RPC
-        const finalBalance = (r.data as any)?.new_balance ?? balance - cartTotal;
-        setBalance(finalBalance);
-
-        showToast(t('Order placed! ðŸ›µ On the way!', lang), 'success');
-        setCart({});
-        setSelectedRest(null);
-
-        // Haptic feedback for successful purchase
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        showToast(r.error || t('Failed to place order', lang), 'error');
-      }
-    } catch (e) {
-      console.error('🔧 handlePlaceOrder error:', e);
-      showToast(t('Connection error. Please try again.', lang), 'error');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const renderRestaurant = ({ item: r }: any) => (
+    <TouchableOpacity style={styles.restCard} onPress={() => openRestaurant(r)}>
+      <View style={styles.cardCover}>
+        <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800' }} style={{ flex: 1 }}>
+          <View style={styles.cardOverlay} />
+          <View style={styles.cardBadge}>
+            <Text style={styles.badgeText}>FAYDA VERIFIED</Text>
+          </View>
+        </ImageBackground>
+      </View>
+      <View style={styles.cardBody}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={styles.restName}>{r.merchant_name}</Text>
+          <Text style={styles.restRating}>⭐ 4.8</Text>
+        </View>
+        <Text style={styles.restMeta}>Traditional • Bole • 25-35 min</Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar title={t('food_delivery_title')} />
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 80 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <SectionTitle title={t('rests_near_you')} />
-        {loading ? (
-          <Text style={{ color: C.sub, textAlign: 'center', marginTop: 40 }}>
-            {t('Loadingâ€¦', lang)}
-          </Text>
-        ) : restaurants.length === 0 ? (
-          <EmptyState icon="ðŸ¥¡" title={t('no_rests_title')} subtitle={t('no_rests_sub')} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.header}>
+        <View style={styles.headerMeta}>
+          <View>
+            <Text style={styles.headerTitle}>ADDIS</Text>
+            <Text style={[styles.headerTitle, { color: T.primary }]}>GOURMET</Text>
+          </View>
+          <View style={[styles.districtBadge, { backgroundColor: T.primary + '22' }]}>
+            <Ionicons name="location" size={14} color={T.primary} />
+            <Text style={[styles.districtText, { color: T.primary }]}>BOLE DISTRICT</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.tabBar}>
+        {(['delivery', 'tonight', 'grocery', 'cafe'] as const).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => setActiveTab(tab)}
+            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'tonight' ? '🌙 TONIGHT' : tab.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={{ flex: 1 }}>
+        {activeTab === 'tonight' ? (
+          <ScrollView contentContainerStyle={styles.listContent}>
+            {TONIGHT_DATA.map((item) => (
+              <TouchableOpacity key={item.id} style={styles.nightCard} onPress={() => { setSelectedRest(item); setMode('RESERVE'); }}>
+                <ImageBackground source={{ uri: item.cover }} style={[styles.nightGradient, { borderRadius: Radius.card, overflow: 'hidden' }]}>
+                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.95)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '70%' }} />
+                  <View style={[styles.liveBadge, { backgroundColor: T.primary }]}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFF', marginRight: 6 }} />
+                    <Text style={styles.liveText}>{item.status}</Text>
+                  </View>
+                  <View style={{ padding: 24 }}>
+                    <Text style={styles.nightName}>{item.name}</Text>
+                    <Text style={styles.nightVibe}>{item.vibe}</Text>
+                  </View>
+                </ImageBackground>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         ) : (
-          restaurants.map((r) => (
-            <TouchableOpacity
-              key={r.id}
-              onPress={() => openRestaurant(r)}
-              style={{
-                marginHorizontal: 16,
-                marginBottom: 10,
-                backgroundColor: C.surface,
-                borderRadius: Radius.xl,
-                borderWidth: 1,
-                borderColor: C.edge,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  height: 80,
-                  backgroundColor: C.lift,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ fontSize: 44 }}>
-                  {r.merchant_name?.includes('Pizza') ? 'ðŸ•' : 'ðŸ‡ªðŸ‡¹'}
-                </Text>
-              </View>
-              <View style={{ padding: 14 }}>
-                <Text style={{ color: C.text, fontSize: FontSize.xl, fontWeight: '700' }}>
-                  {r.merchant_name}
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
-                  <Text style={{ color: C.amber }}>â­ 4.5</Text>
-                  <Text style={{ color: C.sub }}>ðŸ• 20-30 min</Text>
+          <FlashList
+            data={restaurants}
+            renderItem={renderRestaurant}
+            estimatedItemSize={280}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={loading ? <ActivityIndicator color={T.primary} style={{ marginTop: 40 }} /> : null}
+          />
+        )}
+      </View>
+
+      <Modal visible={!!selectedRest} transparent animationType="slide">
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)' }} onPress={() => setSelectedRest(null)} />
+        {selectedRest && (
+          <MotiView 
+            from={{ translateY: 300 }}
+            animate={{ translateY: 0 }}
+            style={styles.menuContent}
+          >
+            <View style={styles.menuHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.menuTitle}>{selectedRest.merchant_name}</Text>
+                <View style={{ flexDirection: 'row', gap: 16, marginTop: 12 }}>
+                  <TouchableOpacity onPress={() => setMode('DELIVERY')} style={{ opacity: mode === 'DELIVERY' ? 1 : 0.4 }}>
+                    <Text style={{ color: T.primary, fontFamily: Fonts.bold, fontSize: 13 }}>🛵 DELIVERY</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setMode('RESERVE')} style={{ opacity: mode === 'RESERVE' ? 1 : 0.4 }}>
+                    <Text style={{ color: T.primary, fontFamily: Fonts.bold, fontSize: 13 }}>🍷 RESERVE</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+              <TouchableOpacity onPress={() => setSelectedRest(null)} style={{ padding: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20 }}>
+                <Ionicons name="close" size={24} color="#FFF" />
+              </TouchableOpacity>
+            </View>
 
-      {/* Restaurant menu modal */}
-      <Modal visible={!!selectedRest} transparent animationType="slide">
-        <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}
-          onPress={() => setSelectedRest(null)}
-        />
-        {selectedRest && (
-          <View
-            style={{
-              backgroundColor: C.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 24,
-              paddingBottom: 40,
-              maxHeight: '80%',
-            }}
-          >
-            <Text
-              style={{
-                color: C.text,
-                fontSize: FontSize['2xl'],
-                fontWeight: '800',
-                marginBottom: 4,
-              }}
-            >
-              {selectedRest.merchant_name}
-            </Text>
-
-            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 20 }}>
-              {menuLoading ? (
-                <Text style={{ color: C.sub }}>{t('Loadingâ€¦', lang)}</Text>
-              ) : menuItems.length === 0 ? (
-                <Text style={{ color: C.sub }}>{t('no_menu_avail')}</Text>
-              ) : (
-                menuItems.map((item) => (
-                  <View
-                    key={item.id}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingVertical: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: C.edge,
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: C.text, fontWeight: '700' }}>{item.name}</Text>
-                      <Text style={{ color: C.sub, fontSize: FontSize.sm, marginTop: 2 }}>
-                        {item.description || t('delicious_meal')}
-                      </Text>
-                      <Text style={{ color: C.green, fontWeight: '800', marginTop: 4 }}>
-                        {item.price} {t('ETB', lang)}
-                      </Text>
+            {mode === 'DELIVERY' ? (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {menuLoading ? (
+                  <ActivityIndicator color={T.primary} style={{ marginTop: 40 }} />
+                ) : (
+                  menuItems.map((item) => (
+                    <View key={item.id} style={styles.itemCard}>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
+                        <Text style={styles.itemPrice}>{fmtETB(item.price)}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                        {cart[item.id] > 0 && (
+                          <>
+                            <TouchableOpacity onPress={() => removeFromCart(item.id)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+                              <Ionicons name="remove" size={20} color="#FFF" />
+                            </TouchableOpacity>
+                            <Text style={{ color: '#FFF', fontFamily: Fonts.bold, fontSize: 16, minWidth: 24, textAlign: 'center' }}>{cart[item.id]}</Text>
+                          </>
+                        )}
+                        <TouchableOpacity onPress={() => addToCart(item.id)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: T.primary, alignItems: 'center', justifyContent: 'center' }}>
+                          <Ionicons name="add" size={20} color={T.ink} />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      {cart[item.id] > 0 && (
-                        <>
-                          <TouchableOpacity
-                            onPress={() => removeFromCart(item.id)}
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 14,
-                              backgroundColor: C.redL,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Text style={{ color: C.red, fontWeight: '800' }}>âˆ’</Text>
-                          </TouchableOpacity>
-                          <Text
-                            style={{
-                              color: C.text,
-                              fontWeight: '800',
-                              minWidth: 16,
-                              textAlign: 'center',
-                            }}
-                          >
-                            {cart[item.id]}
-                          </Text>
-                        </>
-                      )}
-                      <TouchableOpacity
-                        onPress={() => addToCart(item.id)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 14,
-                          backgroundColor: C.greenL,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text style={{ color: C.green, fontWeight: '800' }}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
-              )}
-            </ScrollView>
-            {cartCount > 0 && (
-              <CButton
-                title={`ðŸ›’ ${t('Confirm', lang)} (${cartCount}) â€” ${fmtETB(cartTotal)} ${t('ETB', lang)}`}
-                onPress={handlePlaceOrder}
-                style={{ marginTop: 16 }}
-              />
+                  ))
+                )}
+              </ScrollView>
+            ) : (
+              <View style={styles.reserveForm}>
+                <Text style={styles.formLabel}>GUEST COUNT</Text>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                  {[2, 4, 6, 8].map(n => (
+                    <TouchableOpacity key={n} style={{ flex: 1, padding: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+                      <Text style={{ color: '#FFF', fontFamily: Fonts.bold }}>{n}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <CButton title="CONFIRM RESERVATION" onPress={handleOrder} />
+              </View>
             )}
-            <CButton
-              title={t('Cancel', lang)}
-              onPress={() => setSelectedRest(null)}
-              variant="ghost"
-              style={{ marginTop: 8 }}
-            />
-          </View>
+
+            {mode === 'DELIVERY' && cartCount > 0 && (
+              <View style={{ padding: 24 }}>
+                <CButton 
+                  title={`🛒 ORDER (${cartCount}) • ${fmtETB(cartTotal)}`} 
+                  onPress={handleOrder} 
+                />
+              </View>
+            )}
+          </MotiView>
         )}
       </Modal>
+
+      <ProcessingOverlay visible={orderProcessing} message="Placing your gourmet order..." />
+      <SuccessOverlay 
+        visible={orderSuccess} 
+        title="Order Placed!" 
+        subtitle="🛵 Your gourmet meal is being prepared and will be with you shortly." 
+        onClose={() => {
+          setOrderSuccess(false);
+          setSelectedRest(null);
+        }} 
+      />
     </View>
   );
 }

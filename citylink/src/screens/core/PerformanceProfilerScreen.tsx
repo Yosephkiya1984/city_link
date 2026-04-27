@@ -69,7 +69,7 @@ export default function PerformanceProfilerScreen() {
         : performanceScore >= 80
           ? C.amber
           : performanceScore >= 70
-            ? C.orange
+            ? C.amber
             : C.red;
 
     return (
@@ -244,12 +244,12 @@ export default function PerformanceProfilerScreen() {
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  backgroundColor: C.orange + '20',
+                  backgroundColor: C.amber + '20',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name="warning" size={16} color={C.orange} />
+                <Ionicons name="warning" size={16} color={C.amber} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text
@@ -310,7 +310,7 @@ export default function PerformanceProfilerScreen() {
   // Render memory tab
   const renderMemory = () => {
     const memoryPercentage = memoryStats.percentage * 100;
-    const memoryColor = memoryPercentage > 85 ? C.red : memoryPercentage > 70 ? C.orange : C.green;
+    const memoryColor = memoryPercentage > 85 ? C.red : memoryPercentage > 70 ? C.amber : C.green;
 
     return (
       <Animated.View style={{ opacity: animatedValues.memory }}>
@@ -464,7 +464,7 @@ export default function PerformanceProfilerScreen() {
     const cacheHealth =
       cacheStats.hitRate > 70 ? 'good' : cacheStats.hitRate > 50 ? 'warning' : 'poor';
     const cacheColor =
-      cacheHealth === 'good' ? C.green : cacheHealth === 'warning' ? C.orange : C.red;
+      cacheHealth === 'good' ? C.green : cacheHealth === 'warning' ? C.amber : C.red;
 
     return (
       <Animated.View style={{ opacity: animatedValues.cache }}>
@@ -625,7 +625,7 @@ export default function PerformanceProfilerScreen() {
           ? 'critical'
           : 'warning';
     const errorColor =
-      errorHealth === 'good' ? C.green : errorHealth === 'critical' ? C.red : C.orange;
+      errorHealth === 'good' ? C.green : errorHealth === 'critical' ? C.red : C.amber;
 
     return (
       <Animated.View style={{ opacity: animatedValues.errors }}>
@@ -687,13 +687,13 @@ export default function PerformanceProfilerScreen() {
             </View>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ color: C.text, fontSize: 24, fontFamily: Fonts.black }}>
-                {errorStats.networkErrors}
+                {(errorStats as any).networkErrors || 0}
               </Text>
               <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>Network</Text>
             </View>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ color: C.text, fontSize: 24, fontFamily: Fonts.black }}>
-                {errorStats.apiErrors}
+                {(errorStats as any).apiErrors || 0}
               </Text>
               <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>API</Text>
             </View>
@@ -744,7 +744,7 @@ export default function PerformanceProfilerScreen() {
                         height: 24,
                         borderRadius: 12,
                         backgroundColor:
-                          error.severity === 'critical' ? C.red + '20' : C.orange + '20',
+                          error.severity === 'critical' ? C.red + '20' : C.amber + '20',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
@@ -752,7 +752,7 @@ export default function PerformanceProfilerScreen() {
                       <Ionicons
                         name={error.severity === 'critical' ? 'warning' : 'alert-circle'}
                         size={12}
-                        color={error.severity === 'critical' ? C.red : C.orange}
+                        color={error.severity === 'critical' ? C.red : C.amber}
                       />
                     </View>
                     <View style={{ flex: 1 }}>

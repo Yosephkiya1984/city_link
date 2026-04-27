@@ -1,23 +1,12 @@
+import * as Crypto from 'expo-crypto';
 import { t } from './i18n';
 export { t };
 
-let Crypto: typeof import('expo-crypto') | null = null;
-function getCryptoModule() {
-  if (Crypto) return Crypto;
-  try {
-    Crypto = require('expo-crypto');
-  } catch (_error) {
-    Crypto = null;
-  }
-  return Crypto;
-}
-
 // ── ID generation (crypto-safe UUID v4) ──────────────────────────────────────
 export function uid() {
-  const cryptoModule = getCryptoModule();
-  if (cryptoModule?.randomUUID) {
+  if (Crypto?.randomUUID) {
     try {
-      return cryptoModule.randomUUID();
+      return Crypto.randomUUID();
     } catch (_) {
       // ignore and fallback below
     }
@@ -81,16 +70,24 @@ export function isValidEthPhone(phone: string): boolean {
 
 export function normalizePhone(phone: string): string {
   if (!phone) return '';
-  const cleaned = phone.replace(/\s/g, '');
-  if (cleaned.startsWith('09')) return '+2519' + cleaned.slice(2);
-  if (cleaned.startsWith('2519')) return '+' + cleaned;
-  if (cleaned.startsWith('08')) return '+2518' + cleaned.slice(2);
-  if (cleaned.startsWith('2518')) return '+' + cleaned;
-  if (cleaned.startsWith('07')) return '+2517' + cleaned.slice(2);
-  if (cleaned.startsWith('2517')) return '+' + cleaned;
-  if (cleaned.startsWith('+2519') || cleaned.startsWith('+2518') || cleaned.startsWith('+2517'))
+  let cleaned = phone.replace(/\s/g, '').replace(/\+/g, '');
+  
+  // If it starts with 07, 08, 09 -> replace with 251...
+  if (/^0[789]/.test(cleaned)) {
+    return '251' + cleaned.slice(1);
+  }
+  
+  // If it starts with 251... -> keep as is
+  if (/^251[789]/.test(cleaned)) {
     return cleaned;
-  return cleaned;
+  }
+  
+  // If it's just the 9 digits (e.g. 911...) -> add 251
+  if (/^[789]\d{8}$/.test(cleaned)) {
+    return '251' + cleaned;
+  }
+
+  return cleaned; // Default fallback
 }
 
 /**

@@ -17,7 +17,9 @@ export function FloatingActionButton({ icon, onPress, color, size = 'md', style 
     ]).start();
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (_) {}
+    } catch (_) {
+      /* ignore */
+    }
   };
 
   const handlePressOut = () => {

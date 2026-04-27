@@ -40,33 +40,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
     bundleSize: 0,
     userInteractions: [],
   });
-  const [isMonitoring, setIsMonitoring] = useState(true);
-
-  // Initialize performance monitoring
-  useEffect(() => {
-    if (!isMonitoring) return;
-
-    // Calculate app startup time
-    const startupTime = Date.now() - appStartTime.current;
-    updateMetrics('appStartupTime', startupTime);
-
-    // Start memory monitoring
-    if (Platform.OS === 'web') {
-      const memoryInterval = setInterval(() => {
-        if ((performance as any).memory) {
-          const memoryInfo = {
-            used: (performance as any).memory.usedJSHeapSize,
-            total: (performance as any).memory.totalJSHeapSize,
-            limit: (performance as any).memory.jsHeapSizeLimit,
-            timestamp: Date.now(),
-          };
-          updateMetrics('memoryUsage', memoryInfo);
-        }
-      }, 5000); // Monitor every 5 seconds
-
-      return () => clearInterval(memoryInterval);
-    }
-  }, [isMonitoring]);
+  const [isMonitoring, setIsMonitoring] = useState(__DEV__);
 
   // Update metrics
   const updateMetrics = (key: string, value: any) => {
@@ -97,6 +71,34 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
       return newMetrics;
     });
   };
+
+  // Initialize performance monitoring
+  useEffect(() => {
+    if (!isMonitoring) return;
+
+    // Calculate app startup time
+    const startupTime = Date.now() - appStartTime.current;
+    if (__DEV__) {
+      updateMetrics('appStartupTime', startupTime);
+    }
+
+    // Start memory monitoring
+    if (__DEV__ && Platform.OS === 'web') {
+      const memoryInterval = setInterval(() => {
+        if ((performance as any).memory) {
+          const memoryInfo = {
+            used: (performance as any).memory.usedJSHeapSize,
+            total: (performance as any).memory.totalJSHeapSize,
+            limit: (performance as any).memory.jsHeapSizeLimit,
+            timestamp: Date.now(),
+          };
+          updateMetrics('memoryUsage', memoryInfo);
+        }
+      }, 5000); // Monitor every 5 seconds
+
+      return () => clearInterval(memoryInterval);
+    }
+  }, [isMonitoring]);
 
   // Track screen load time
   const trackScreenLoad = (screenName: string, loadTime: number) => {
@@ -184,9 +186,10 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
 
   // Auto-save metrics
   useEffect(() => {
+    if (!__DEV__ || !isMonitoring) return;
     const saveInterval = setInterval(saveMetrics, 30000); // Save every 30 seconds
     return () => clearInterval(saveInterval);
-  }, [metrics]);
+  }, [metrics, isMonitoring]);
 
   const value = {
     metrics,

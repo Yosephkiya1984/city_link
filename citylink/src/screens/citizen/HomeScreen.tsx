@@ -2,17 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  Animated,
+  ScrollView,
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
   StatusBar,
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { AppStackParamList } from '../../navigation';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { MotiView } from 'moti';
 
 // â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import {
@@ -30,7 +30,7 @@ import {
 import { useAuthStore } from '../../store/AuthStore';
 import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
-import { Fonts, Spacing, Radius } from '../../theme';
+import { Fonts, Spacing, Radius, DarkColors as T } from '../../theme';
 import { greeting, t } from '../../utils';
 
 // â”€â”€ Domain Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -40,13 +40,11 @@ import * as WalletService from '../../services/wallet.service';
  * Service Configuration â€” local to Home for easier modification.
  */
 const SERVICES = [
-  { id: 'Marketplace', icon: 'storefront', label: 'Marketplace', color: '#00A86B' }, // Modern Green
-  { id: 'Food', icon: 'restaurant', label: 'Food', color: '#F5B800' }, // Ethiopian Gold
-  { id: 'Ekub', icon: 'people', label: 'Ekub', color: '#00A86B' },
-  { id: 'Delala', icon: 'home', label: 'Delala', color: '#F5B800' },
-  { id: 'Parking', icon: 'car', label: 'Parking', color: '#FFD887' },
-  { id: 'AI', icon: 'sparkles', label: 'Assistant', color: '#8b5cf6' },
-  { id: 'SendMoney', icon: 'send', label: 'Send ETB', color: '#00A86B' },
+  { id: 'Marketplace', icon: 'storefront', label: 'Marketplace', color: '#00A86B' },
+  { id: 'Food', icon: 'restaurant', label: 'Addis Gourmet', color: '#F5B800' },
+  { id: 'Ekub', icon: 'people', label: 'Ekub Pool', color: '#3B82F6' },
+  { id: 'Parking', icon: 'car', label: 'Smart Park', color: '#06b6d4' },
+  { id: 'Delala', icon: 'home', label: 'Property', color: '#8b5cf6' },
   { id: 'FaydaKYC', icon: 'finger-print', label: 'Fayda ID', color: '#06b6d4' },
 ];
 
@@ -60,7 +58,7 @@ const CulturalTexture = () => (
 );
 
 export default function HomeScreen() {
-  const navigation = useNavigation<NavigationProp<AppStackParamList>>();
+  const navigation = useNavigation<any>();
   const C = useTheme();
 
   // â”€â”€ Global State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -74,7 +72,6 @@ export default function HomeScreen() {
   // â”€â”€ UI State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // â”€â”€ Data Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchData = useCallback(
@@ -84,6 +81,14 @@ export default function HomeScreen() {
       else setLoading(true);
 
       try {
+        // Sync Profile (Name, KYC, etc.)
+        const { fetchProfile } = await import('../../services/auth.service');
+        const profileRes = await fetchProfile(currentUser.id);
+        if (profileRes.data) {
+          await useAuthStore.getState().setCurrentUser(profileRes.data);
+        }
+
+        // Sync Wallet Balance
         const walletData = await WalletService.fetchWalletData(currentUser?.id);
         if (walletData) {
           setBalance(walletData.balance);
@@ -95,7 +100,6 @@ export default function HomeScreen() {
       } finally {
         setRefreshing(false);
         setLoading(false);
-        Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
       }
     },
     [currentUser?.id]
@@ -132,8 +136,8 @@ export default function HomeScreen() {
       <TopBar title="CityLink" showProfile />
       <OfflineBanner />
 
-      <Animated.ScrollView
-        contentContainerStyle={styles.scrollContent}
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: C.ink }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -159,12 +163,12 @@ export default function HomeScreen() {
               backgroundColor: C.surface,
               alignItems: 'center',
               justifyContent: 'center',
-              borderWidth: 1.5,
-              borderColor: C.edge2,
+              borderWidth: 1,
+              borderColor: C.rim,
             }}
             onPress={() => (navigation as any).navigate('Profile')}
           >
-            <Ionicons name="person-outline" size={22} color={C.text} />
+            <Ionicons name="person-outline" size={22} color={C.primary} />
           </TouchableOpacity>
         </View>
 
@@ -174,22 +178,73 @@ export default function HomeScreen() {
           name={currentUser?.full_name?.split(' ')[0] || 'User'}
           greetingKey={greeting()}
           onQuickAction={handleQuickAction}
-          animValue={fadeAnim}
         />
+
+        {/* Financial Identity Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: C.text }]}>Financial Identity</Text>
+          </View>
+          <CreditScoreRing score={742} />
+        </View>
 
         {/* Services Grid */}
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: C.text }]}>Explore Services</Text>
+          <Text style={[styles.sectionTitle, { color: C.text }]}>Public Services</Text>
+          <TouchableOpacity>
+             <Text style={{ color: C.primary, fontFamily: Fonts.bold, fontSize: 12 }}>VIEW ALL</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.servicesGrid}>
-          {SERVICES.map((item) => (
-            <ServiceTile
+          {SERVICES.map((item, index) => (
+            <MotiView
               key={item.id}
-              service={item}
-              onPress={() => (navigation as any).navigate(item.id)}
-            />
+              from={{ opacity: 0, scale: 0.9, translateY: 10 }}
+              animate={{ opacity: 1, scale: 1, translateY: 0 }}
+              transition={{
+                type: 'timing',
+                duration: 400,
+                delay: index * 60,
+              }}
+              style={{ width: '48%' }}
+            >
+              <TouchableOpacity
+                onPress={() => handleServicePress(item.id)}
+                style={{
+                  width: '100%',
+                  height: 80,
+                  backgroundColor: C.surface,
+                  borderRadius: Radius.card,
+                  padding: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: C.edge,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: item.color + '15',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <Ionicons name={item.icon as any} size={20} color={item.color} />
+                </View>
+                <View>
+                  <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.bold }}>{item.label}</Text>
+                  <Text style={{ color: C.sub, fontSize: 10, fontFamily: Fonts.medium }}>Available</Text>
+                </View>
+              </TouchableOpacity>
+            </MotiView>
           ))}
         </View>
+
+        {/* Featured Food Section */}
 
         <View style={styles.sectionContainer}>
           <FeaturedCard
@@ -218,7 +273,7 @@ export default function HomeScreen() {
         </View>
 
         <CulturalTexture />
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 }
@@ -269,6 +324,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   sectionContainer: { marginBottom: 24 },
+  transitCard: {
+    padding: 20,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+  },
   emptyTransactions: {
     alignItems: 'center',
     paddingVertical: 32,

@@ -17,9 +17,10 @@ export type VehicleType = 'bicycle' | 'motorcycle' | 'car' | 'van' | 'truck' | '
 export type AgentStatus = 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED';
 
 export type KYCStatus =
+  | 'NONE'
   | 'NOT_STARTED'
   | 'INITIATED'
-  | 'PENDING_VERIFICATION'
+  | 'PENDING'
   | 'VERIFIED'
   | 'REJECTED'
   | 'EXPIRED'
@@ -76,11 +77,14 @@ export interface Transaction {
     | 'topup'
     | 'withdrawal'
     | 'escrow'
+    | 'welcome_bonus'
     | string;
   description: string;
-  status: 'pending' | 'completed' | 'failed';
+  status?: 'pending' | 'completed' | 'failed';
+  reference_id?: string;
   idempotency_key?: string;
   created_at: string;
+  updated_at?: string;
   late?: boolean; // Required for credit scoring
 }
 
@@ -176,6 +180,7 @@ export interface User {
   tin?: string;
   license_no?: string;
   trade_license?: string;
+  merchant_status?: string;
 }
 
 export interface AuthState {
@@ -441,8 +446,8 @@ export interface MarketplaceOrder {
   updated_at: string;
   buyer?: { full_name?: string; phone?: string } | { full_name?: string; phone?: string }[];
   merchant?:
-    | { business_name?: string; merchant_name?: string }
-    | { business_name?: string; merchant_name?: string }[];
+    | { business_name?: string; merchant_name?: string; subcity?: string; woreda?: string }
+    | { business_name?: string; merchant_name?: string; subcity?: string; woreda?: string }[];
 }
 
 export interface Escrow {
@@ -570,4 +575,5 @@ export interface PropertyEnquiry {
   created_at: string;
 }
 
-export interface EkubGroup extends EkubCircle {}
+// MED-6 FIX: Empty interface anti-pattern replaced with type alias
+export type EkubGroup = EkubCircle;

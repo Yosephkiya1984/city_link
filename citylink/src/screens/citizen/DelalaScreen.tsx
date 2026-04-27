@@ -3,11 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   StatusBar,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
@@ -88,17 +88,27 @@ export default function DelalaScreen() {
   const [loading, setLoading] = useState(false);
 
   // Load live threads when on messages screen
-  const loadThreads = useCallback(async () => {
-    if (!currentUser?.id || !hasSupabase()) return;
-    setLoading(true);
+  const loadThreadsData = useCallback(async () => {
+    if (!currentUser?.id || !hasSupabase()) return [];
     const { data } = await fetchChatThreads(currentUser.id);
-    if (data) setThreads(data);
-    setLoading(false);
+    return data || [];
   }, [currentUser?.id]);
 
   useEffect(() => {
-    if (activeScreen === 'Messages') loadThreads();
-  }, [activeScreen, loadThreads]);
+    let ignore = false;
+    if (activeScreen === 'Messages') {
+      setLoading(true);
+      loadThreadsData().then((data) => {
+        if (!ignore) {
+          setThreads(data);
+          setLoading(false);
+        }
+      });
+    }
+    return () => {
+      ignore = true;
+    };
+  }, [activeScreen, loadThreadsData]);
 
   // Unified Filtered Data
   const filteredData = useMemo(() => {
@@ -222,7 +232,7 @@ export default function DelalaScreen() {
         userImage="https://lh3.googleusercontent.com/aida-public/AB6AXuCHwmA-YZrrtVyhsk4Sr6u9lf6Bw1m9DgQVeF-DP5u8cb6eFFQuO00EF6s24Cf2c7x_AtxYSPsYUgSthpfi6v8JgXryKaiTUqYV6kgiW8ErWBEuyDdcIxbutNP9Y2vOgOTEOEYI9gywt2ofFAxE1eYEYcN5SMsHEtkkU-OP9DLXBZopRhZDNmkUIqxAPwlCh_mXstEN5oVynZpzJdrdhUjjZsLAx0OBjkYFbnXAh_PQhQqM8Y8HRL7FC8kHGArKfe9d7l8Hnyym2JVU"
       />
 
-      <FlatList
+      <FlashList
         data={filteredData}
         renderItem={renderItem}
         keyExtractor={(item) => item.id || item.thread_id}
@@ -230,6 +240,7 @@ export default function DelalaScreen() {
         ListEmptyComponent={EmptyState}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        estimatedItemSize={320}
         removeClippedSubviews={true}
         initialNumToRender={5}
       />

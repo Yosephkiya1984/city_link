@@ -20,7 +20,7 @@ export function QRScannerScreen() {
   if (!permission) {
     return (
       <View style={{ flex: 1, backgroundColor: C.ink }}>
-        <TopBar title="ðŸ“· QR Scanner" />
+        <TopBar title="📷 QR Scanner" />
       </View>
     );
   }
@@ -28,9 +28,9 @@ export function QRScannerScreen() {
   if (!permission.granted) {
     return (
       <View style={{ flex: 1, backgroundColor: C.ink }}>
-        <TopBar title="ðŸ“· QR Scanner" />
+        <TopBar title="📷 QR Scanner" />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <Text style={{ fontSize: 60, marginBottom: 16 }}>ðŸ“·</Text>
+          <Text style={{ fontSize: 60, marginBottom: 16 }}>📷</Text>
           <Text
             style={{
               color: C.text,
@@ -40,12 +40,12 @@ export function QRScannerScreen() {
               marginBottom: 12,
             }}
           >
-            {t('Camera Permission Required', lang)}
+            {t('Camera Permission Required')}
           </Text>
           <Text style={{ color: C.sub, textAlign: 'center', marginBottom: 24 }}>
-            {t('CityLink needs access to your camera to scan peer-to-peer ETB QR codes.', lang)}
+            {t('CityLink needs access to your camera to scan peer-to-peer ETB QR codes.')}
           </Text>
-          <CButton title={t('Allow Camera Access', lang)} onPress={requestPermission} />
+          <CButton title={t('Allow Camera Access')} onPress={requestPermission} />
         </View>
       </View>
     );
@@ -58,21 +58,21 @@ export function QRScannerScreen() {
     try {
       const payload = JSON.parse(data);
       if (payload.type === 'profile' && payload.phone) {
-        showToast(t('QR Scanned! Redirecting...', lang), 'success');
+        showToast(t('QR Scanned! Redirecting...'), 'success');
         navigation.navigate('SendMoney', { autoFillPhone: payload.phone });
       } else {
-        showToast(t('Invalid CityLink QR Code', lang), 'error');
+        showToast(t('Invalid CityLink QR Code'), 'error');
         setTimeout(() => setScanned(false), 2000); // Reset after 2s if invalid
       }
     } catch (error) {
-      showToast(t('Unrecognized QR Format', lang), 'error');
+      showToast(t('Unrecognized QR Format'), 'error');
       setTimeout(() => setScanned(false), 2000);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar title="ðŸ“· Scan to Pay" />
+      <TopBar title="📷 Scan to Pay" />
 
       <View style={{ flex: 1 }}>
         <CameraView
@@ -108,11 +108,11 @@ export function QRScannerScreen() {
             }}
           >
             <Text style={{ color: '#fff', fontSize: FontSize.lg, fontWeight: '600' }}>
-              {t('Align QR code within the frame to send ETB', lang)}
+              {t('Align QR code within the frame to send ETB')}
             </Text>
             {scanned && (
               <CButton
-                title={t('Tap to Scan Again', lang)}
+                title={t('Tap to Scan Again')}
                 onPress={() => setScanned(false)}
                 style={{ marginTop: 24 }}
               />

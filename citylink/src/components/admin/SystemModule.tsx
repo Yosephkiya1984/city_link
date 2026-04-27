@@ -49,7 +49,9 @@ export default function SystemModule() {
   const toggleConfig = (key: keyof typeof config) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
     const newValue = !config[key];
     setConfig((prev) => ({ ...prev, [key]: newValue }));
 

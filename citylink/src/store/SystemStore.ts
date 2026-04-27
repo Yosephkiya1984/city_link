@@ -3,6 +3,17 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Toast, Notification, ChatMessage } from '../types';
 
+/** Shape of an incoming P2P transfer awaiting user confirmation. */
+export interface PendingP2PClaim {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  amount: number;
+  note?: string;
+  status: string;
+  created_at: string;
+}
+
 export interface SystemState {
   isDark: boolean;
   lang: string;
@@ -24,6 +35,10 @@ export interface SystemState {
   addChatMessage: (msg: ChatMessage) => void;
   clearChat: () => void;
   reset: () => void;
+  /** The single incoming P2P transfer awaiting user tap-to-confirm. null = none pending. */
+  pendingP2PClaim: PendingP2PClaim | null;
+  /** Set or clear the pending P2P claim. Called by realtime.ts on INSERT, cleared on confirm/reject. */
+  setPendingP2PClaim: (claim: PendingP2PClaim | null) => void;
 }
 
 export const useSystemStore = create<SystemState>()(
@@ -36,6 +51,7 @@ export const useSystemStore = create<SystemState>()(
       unreadCount: 0,
       chatHistory: [],
       theme: 'dark',
+      pendingP2PClaim: null,
 
       toggleTheme: () => set((s) => ({ isDark: !s.isDark, theme: !s.isDark ? 'dark' : 'light' })),
       setIsDark: (isDark) => set({ isDark, theme: isDark ? 'dark' : 'light' }),
@@ -48,7 +64,8 @@ export const useSystemStore = create<SystemState>()(
       setTheme: (theme) => set({ theme, isDark: theme === 'dark' }),
 
       showToast: (message, type = 'info') => {
-        const id = Math.random().toString(36).slice(2);
+        // 🛡️ FIX (MED-3): Use uid() for guaranteed uniqueness — Math.random() can collide
+        const id = `toast-${Date.now()}-${Math.floor(Math.random() * 0xffff).toString(16)}`;
         set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
         setTimeout(() => {
           set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
@@ -75,6 +92,7 @@ export const useSystemStore = create<SystemState>()(
       clearNotifications: () => set({ notifications: [], unreadCount: 0 }),
       addChatMessage: (msg) => set((s) => ({ chatHistory: [...s.chatHistory, msg].slice(-50) })),
       clearChat: () => set({ chatHistory: [] }),
+      setPendingP2PClaim: (claim) => set({ pendingP2PClaim: claim }),
       reset: () =>
         set({
           isDark: true,
@@ -84,6 +102,7 @@ export const useSystemStore = create<SystemState>()(
           unreadCount: 0,
           chatHistory: [],
           toasts: [],
+          pendingP2PClaim: null,
         }),
     }),
     {

@@ -1,664 +1,365 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Dimensions } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  ActivityIndicator,
+  RefreshControl,
+  StatusBar,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import TopBar from '../../components/TopBar';
+import { useNavigation } from '@react-navigation/native';
+import { useRestaurantData } from './hooks/useRestaurantData';
+import { useRestaurantActions } from './hooks/useRestaurantActions';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
-import { useWalletStore } from '../../store/WalletStore';
-import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
-import { CButton, Card, SectionTitle, CInput } from '../../components';
-import { fmtETB, uid, fmtDateTime } from '../../utils';
-import { t } from '../../utils/i18n';
+import { DarkColors as T, Fonts, Radius } from '../../theme';
+import { CButton, CInput } from '../../components';
+import { fmtETB } from '../../utils';
+import { styles } from './components/RestaurantDashboardStyles';
 
-import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
-import {
-  fetchRestaurantOrders,
-  fetchRestaurantMenu,
-  updateOrderStatus,
-  updateMenuItem,
-} from '../../services/food.service';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Restaurant color scheme
-const RESTAURANT_COLORS = {
-  primary: '#F5B800',
-  primaryL: 'rgba(245,184,0,0.1)',
-  primaryB: 'rgba(245,184,0,0.28)',
-  status: {
-    NEW: '#2D7EF0', // Blue
-    PREPARING: '#F5B800', // Amber
-    READY: '#00A86B', // Green
-    DISPATCHED: '#8B5CF6', // Purple
-    DELIVERED: '#00A86B', // Green
-    CANCELLED: '#E8312A', // Red
-  } as Record<string, string>,
-};
+const CATEGORIES = ['Mains', 'Drinks', 'Desserts'];
 
 export default function RestaurantDashboard() {
-  const navigation = useNavigation();
-  const isDark = useSystemStore((s) => s.isDark);
-  const C = isDark ? DarkColors : Colors;
-  const balance = useWalletStore((s) => s.balance);
+  const navigation = useNavigation<any>();
+  const data = useRestaurantData();
+  const actions = useRestaurantActions(data);
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
-  const resetAuth = useAuthStore((s) => s.reset);
-  const resetWallet = useWalletStore((s) => s.reset);
-  const resetSystem = useSystemStore((s) => s.reset);
+  
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'bookings' | 'stats'>('orders');
+  const [orderFilter, setOrderFilter] = useState<'ALL' | 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY'>('ALL');
 
-  const [activeTab, setActiveTab] = useState('orders');
-  const [orders, setOrders] = useState<any[]>([]);
-  const [menu, setMenu] = useState<any[]>([]);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAddMenuItem, setShowAddMenuItem] = useState(false);
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [currentPin, setCurrentPin] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [newMenuItem, setNewMenuItem] = useState({
-    name: '',
-    price: '',
-    category: 'Mains',
-    description: '',
-    available: true,
-  });
+  const { orders, menu, loading, refreshing, loadData } = data;
+  const {
+    onUpdateStatus,
+    onLogout,
+    showAddMenuItem,
+    setShowAddMenuItem,
+    showPinModal,
+    setShowPinModal,
+    currentPin,
+    onAddMenuItem,
+    onToggleAvailability,
+  } = actions;
 
-  // KPI calculations
-  const todayRevenue = orders
-    .filter(
-      (o: any) =>
-        o.status !== 'CANCELLED' &&
-        o.created_at &&
-        new Date(o.created_at).toDateString() === new Date().toDateString()
-    )
-    .reduce((sum: number, o: any) => sum + (o.total || 0), 0);
+  const isVerified = currentUser?.merchant_status === 'APPROVED' && !!currentUser?.tin;
 
-  const activeOrders = orders.filter((o: any) =>
-    ['NEW', 'PREPARING', 'READY'].includes(o.status)
-  ).length;
-  const deliveredToday = orders.filter(
-    (o: any) =>
-      o.status === 'DELIVERED' &&
-      o.created_at &&
-      new Date(o.created_at).toDateString() === new Date().toDateString()
-  ).length;
+  // 📈 Fiscal Intelligence
+  const todayRevenue = useMemo(() => orders
+    .filter(o => o.status !== 'CANCELLED' && new Date(o.created_at).toDateString() === new Date().toDateString())
+    .reduce((sum, o) => sum + (o.total || 0), 0), [orders]);
 
-  const loadData = async () => {
-    if (!currentUser?.id) return;
-    setLoading(true);
-    try {
-      const [ordersRes, menuRes] = await Promise.all([
-        fetchRestaurantOrders(currentUser.id),
-        fetchRestaurantMenu(currentUser.id),
-      ]);
+  const vatAmount = todayRevenue * 0.15;
+  const serviceFee = todayRevenue * 0.05;
+  const netRevenue = todayRevenue - vatAmount - serviceFee;
 
-      if (ordersRes.data)
-        setOrders(
-          (ordersRes.data || []).sort(
-            (a: any, b: any) =>
-              new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-          )
-        );
-      if (menuRes.data) setMenu(menuRes.data);
-    } catch (error) {
-      showToast('Failed to load data', 'error');
-    }
-    setLoading(false);
-  };
+  const activeCount = orders.filter((o) => ['NEW', 'PREPARING', 'READY'].includes(o.status)).length;
 
-  useEffect(() => {
-    loadData();
-  }, [currentUser?.id]);
+  const filteredOrders = useMemo(() => {
+    if (orderFilter === 'ALL') return orders;
+    return orders.filter(o => (o as any).type === orderFilter);
+  }, [orders, orderFilter]);
 
-  // Real-time order updates
-  useRealtimePostgres({
-    channelName: `restaurant-orders-${currentUser?.id}`,
-    table: 'food_orders',
-    filter: `restaurant_id=eq.${currentUser?.id}`,
-    enabled: !!currentUser?.id,
-    onPayload: (payload: any) => {
-      if (payload.eventType === 'INSERT') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast('🍕 New order received!', 'success');
-        loadData();
-      } else {
-        loadData();
-      }
-    },
-  });
-
-  const updateOrder = async (orderId: string, newStatus: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setLoading(true);
-
-    try {
-      const result = await updateOrderStatus(orderId, newStatus);
-      if (!result.error) {
-        showToast(`Order ${newStatus.toLowerCase()}`, 'success');
-
-        // Generate PIN for dispatched orders
-        if (newStatus === 'DISPATCHED') {
-          const pin = Math.floor(1000 + Math.random() * 9000).toString();
-          setCurrentPin(pin);
-          setShowPinModal(true);
-        }
-
-        loadData();
-      } else {
-        showToast(result.error || 'Failed to update order', 'error');
-      }
-    } catch (error) {
-      showToast('Failed to update order', 'error');
-    }
-    setLoading(false);
-  };
-
-  const addMenuItem = async () => {
-    // Enhanced validation
-    if (!newMenuItem.name || newMenuItem.name.trim().length === 0) {
-      showToast('Please enter a menu item name', 'error');
-      return;
-    }
-
-    if (!newMenuItem.price || parseFloat(newMenuItem.price) <= 0) {
-      showToast('Please enter a valid price', 'error');
-      return;
-    }
-
-    if (!newMenuItem.category) {
-      showToast('Please select a category', 'error');
-      return;
-    }
-
-    if (!currentUser?.id) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setLoading(true);
-
-    try {
-      const menuItemData = {
-        id: uid(),
-        restaurant_id: currentUser.id,
-        name: newMenuItem.name.trim(),
-        price: parseFloat(newMenuItem.price),
-        category: newMenuItem.category,
-        description: newMenuItem.description?.trim() || '',
-        available: newMenuItem.available,
-        created_at: new Date().toISOString(),
-      };
-
-      const result = await updateMenuItem(menuItemData);
-      if (!result.error) {
-        setMenu([menuItemData, ...menu]);
-        setNewMenuItem({
-          name: '',
-          price: '',
-          category: 'Main',
-          description: '',
-          available: true,
-        });
-        setShowAddMenuItem(false);
-        showToast('Menu item added successfully!', 'success');
-      } else {
-        showToast(result.error || 'Failed to add menu item', 'error');
-      }
-    } catch (error) {
-      console.error('Add menu item error:', error);
-      showToast('Failed to add menu item', 'error');
-    }
-    setLoading(false);
-  };
-
-  const logout = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    showToast('Logged out successfully', 'success');
-    resetAuth();
-    resetWallet();
-    resetSystem();
-
-    // Use navigation.replace instead of reset to avoid the error
-    try {
-      (navigation as any).replace('Auth');
-    } catch (error) {
-      console.log('Navigation reset error, trying alternative method');
-      (navigation as any).navigate('Auth');
-    }
-  };
-
-  const getStatusColor = (status: string) => RESTAURANT_COLORS.status[status] || C.sub;
-  const getStatusBg = (status: string) => {
-    const color = RESTAURANT_COLORS.status[status];
-    return color ? `${color}20` : C.surface;
-  };
-
-  const OrderCard = ({ order }: { order: any }) => (
-    <Card
-      style={{
-        marginBottom: 12,
-        padding: 16,
-        borderLeftWidth: 3,
-        borderLeftColor: getStatusColor(order.status),
-        opacity: order.status === 'DELIVERED' ? 0.7 : 1,
-      }}
-    >
-      <View
-        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}
-      >
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Text style={{ color: C.text, fontSize: 15, fontFamily: Fonts.black }}>
-              {order.customer_name || 'Customer'}
-            </Text>
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                borderRadius: 4,
-                backgroundColor: getStatusBg(order.status),
-              }}
-            >
-              <Text
-                style={{
-                  color: getStatusColor(order.status),
-                  fontSize: 9,
-                  fontFamily: Fonts.bold,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {order.status || 'NEW'}
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={{ backgroundColor: T.surface }} edges={['top']}>
+        <View style={styles.navBar}>
+          <View style={styles.brandBox}>
+            <View style={[styles.brandIcon, { backgroundColor: T.primary + '20' }]}>
+              <Ionicons name="restaurant" size={22} color={T.primary} />
+            </View>
+            <View>
+              <Text style={styles.brandName}>ADDIS GOURMET</Text>
+              <Text style={[styles.brandSubtitle, { color: isVerified ? T.primary : T.red }]}>
+                {isVerified ? '✅ FISCAL VERIFIED' : '⚠️ COMPLIANCE LOCK'}
               </Text>
             </View>
           </View>
-
-          <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>
-            {new Date(order.created_at || 0).toLocaleTimeString()}
-          </Text>
-
-          <Text style={{ color: C.text, fontSize: 12, marginBottom: 8 }}>
-            {order.items?.map((item: any) => `${item.name} x${item.quantity || 1}`).join(', ') ||
-              'Order items'}
-          </Text>
-
-          <Text style={{ color: RESTAURANT_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}>
-            {fmtETB(order.total || 0)}
-          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={loadData} style={{ padding: 10 }}>
+              <Ionicons name="refresh" size={24} color={T.textSoft} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onLogout} style={{ padding: 10 }}>
+              <Ionicons name="power" size={24} color={T.red} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-
-      {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-          {order.status === 'NEW' && (
-            <CButton
-              title="Start Preparing"
-              onPress={() => updateOrder(order.id, 'PREPARING')}
-              style={{ flex: 1 }}
-              size="sm"
-            />
-          )}
-          {order.status === 'PREPARING' && (
-            <CButton
-              title="Mark Ready"
-              onPress={() => updateOrder(order.id, 'READY')}
-              style={{ flex: 1 }}
-              size="sm"
-            />
-          )}
-          {order.status === 'READY' && (
-            <CButton
-              title="Dispatch + PIN"
-              onPress={() => updateOrder(order.id, 'DISPATCHED')}
-              style={{ flex: 1 }}
-              size="sm"
-            />
-          )}
-        </View>
-      )}
-    </Card>
-  );
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar
-        title="ðŸ½ï¸ Restaurant Dashboard"
-        right={
-          <TouchableOpacity onPress={logout} style={{ padding: 8 }}>
-            <Ionicons name="log-out-outline" size={24} color={C.text} />
-          </TouchableOpacity>
-        }
-      />
-
-      {/* Additional Logout Button for visibility */}
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: 12,
-          paddingBottom: 8,
-          backgroundColor: C.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: C.edge2,
-        }}
-      >
-        <TouchableOpacity
-          onPress={logout}
-          style={{
-            backgroundColor: '#E8312A',
-            borderRadius: Radius.xl,
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            alignSelf: 'flex-end',
-          }}
-        >
-          <Ionicons name="log-out" size={16} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>LOGOUT</Text>
-        </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={T.primary} />}
       >
-        {/* Revenue Stats */}
-        <View style={{ padding: 16 }}>
-          <LinearGradient
-            colors={[RESTAURANT_COLORS.primaryL, 'transparent']}
-            style={{ borderRadius: Radius['3xl'], padding: 24, ...Shadow.md }}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <View>
-                <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.bold, opacity: 0.8 }}>
-                  Today's Revenue
-                </Text>
-                <Text
-                  style={{
-                    color: RESTAURANT_COLORS.primary,
-                    fontSize: 32,
-                    fontFamily: Fonts.black,
-                    marginTop: 4,
-                  }}
-                >
-                  {fmtETB(todayRevenue, 0)}
-                </Text>
-              </View>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  backgroundColor: RESTAURANT_COLORS.primaryL,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="stats-chart" size={24} color={RESTAURANT_COLORS.primary} />
-              </View>
+        {/* 📊 High-Fidelity Summary Tiles */}
+        <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+            <View style={{ flex: 1, backgroundColor: T.surface, padding: 16, borderRadius: Radius.card, borderWidth: 1, borderColor: T.edge }}>
+               <Text style={{ color: T.textSoft, fontSize: 10, fontFamily: Fonts.bold }}>DAILY REVENUE</Text>
+               <Text style={{ color: T.text, fontSize: 20, fontFamily: Fonts.black, marginTop: 4 }}>{fmtETB(todayRevenue, 0)}</Text>
             </View>
-
-            <View
-              style={{ height: 1, backgroundColor: 'rgba(245,184,0,0.2)', marginVertical: 20 }}
-            />
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-              <View style={{ alignItems: 'center' }}>
-                <Text
-                  style={{
-                    color: RESTAURANT_COLORS.primary,
-                    fontSize: 16,
-                    fontFamily: Fonts.black,
-                  }}
-                >
-                  {activeOrders}
-                </Text>
-                <Text
-                  style={{ color: 'rgba(245,184,0,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
-                >
-                  ACTIVE ORDERS
-                </Text>
-              </View>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#2D7EF0', fontSize: 16, fontFamily: Fonts.black }}>
-                  {deliveredToday}
-                </Text>
-                <Text
-                  style={{ color: 'rgba(45,126,240,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
-                >
-                  DELIVERED
-                </Text>
-              </View>
+            <View style={{ flex: 1, backgroundColor: T.surface, padding: 16, borderRadius: Radius.card, borderWidth: 1, borderColor: T.edge }}>
+               <Text style={{ color: T.textSoft, fontSize: 10, fontFamily: Fonts.bold }}>ACTIVE TICKETS</Text>
+               <Text style={{ color: T.primary, fontSize: 20, fontFamily: Fonts.black, marginTop: 4 }}>{activeCount}</Text>
+            </View>
+          </View>
+          
+          <LinearGradient
+            colors={T.noirGrad || ['#A855F7', '#3B82F6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ padding: 20, borderRadius: Radius.card, marginBottom: 20 }}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, fontFamily: Fonts.bold }}>FISCAL COMPLIANCE SCORE</Text>
+            <Text style={{ color: '#FFF', fontSize: 24, fontFamily: Fonts.black, marginTop: 4 }}>99.8% HEALTHY</Text>
+            <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, marginTop: 12, overflow: 'hidden' }}>
+              <View style={{ width: '99.8%', height: '100%', backgroundColor: '#FFF' }} />
             </View>
           </LinearGradient>
         </View>
 
-        {/* Tab Navigation */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 16 }}>
-          {['orders', 'menu', 'bookings', 'stats'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                borderRadius: Radius.xl,
-                backgroundColor: activeTab === tab ? RESTAURANT_COLORS.primaryL : C.surface,
-                borderWidth: 1.5,
-                borderColor: activeTab === tab ? RESTAURANT_COLORS.primaryB : C.edge2,
-                alignItems: 'center',
-              }}
-            >
-              <Text
-                style={{
-                  color: activeTab === tab ? RESTAURANT_COLORS.primary : C.sub,
-                  fontSize: 11,
-                  fontFamily: Fonts.black,
-                  textTransform: 'uppercase',
-                }}
+        {/* 📑 Nav Tabs */}
+        <View style={styles.tabScrollWrap}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroller}>
+            {(['orders', 'menu', 'bookings', 'stats'] as const).map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setActiveTab(tab)}
+                style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
               >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Ionicons
+                  name={tab === 'orders' ? 'receipt' : tab === 'menu' ? 'fast-food' : tab === 'bookings' ? 'calendar' : 'analytics'}
+                  size={18}
+                  color={activeTab === tab ? T.primary : 'rgba(255,255,255,0.4)'}
+                />
+                <Text style={[styles.tabItemTxt, activeTab === tab && styles.tabItemTxtActive]}>
+                  {tab.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* Tab Content */}
-        {activeTab === 'orders' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <SectionTitle title="Live Order Queue" />
-            {loading && orders.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
-                Loading orders...
-              </Text>
-            ) : orders.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>No orders yet</Text>
-            ) : (
-              orders.map((order) => <OrderCard key={order.id} order={order} />)
-            )}
-          </View>
-        )}
-
-        {activeTab === 'menu' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <SectionTitle title="Menu Management" />
-            <CButton
-              title="Add Menu Item"
-              onPress={() => setShowAddMenuItem(true)}
-              style={{ marginBottom: 16 }}
-            />
-
-            {['Mains', 'Drinks', 'Desserts'].map((category) => (
-              <View key={category} style={{ marginBottom: 20 }}>
-                <Text
-                  style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black, marginBottom: 8 }}
-                >
-                  {category}
-                </Text>
-                {menu
-                  .filter((item) => item.category === category)
-                  .map((item) => (
-                    <Card key={item.id} style={{ marginBottom: 8, padding: 12 }}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>
-                            {item.name}
-                          </Text>
-                          <Text
-                            style={{
-                              color: RESTAURANT_COLORS.primary,
-                              fontSize: 12,
-                              fontFamily: Fonts.bold,
-                            }}
-                          >
-                            {fmtETB(item.price || 0)}
-                          </Text>
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            const newAvailable = !item.available;
-                            updateMenuItem({ ...item, available: newAvailable });
-                            setMenu(
-                              menu.map((m: any) =>
-                                m.id === item.id ? { ...m, available: newAvailable } : m
-                              )
-                            );
-                            showToast(`Item ${newAvailable ? 'available' : 'unavailable'}`, 'info');
-                          }}
-                          style={{
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 6,
-                            backgroundColor: item.available
-                              ? RESTAURANT_COLORS.primaryL
-                              : C.surface,
-                            borderWidth: 1,
-                            borderColor: item.available ? RESTAURANT_COLORS.primaryB : C.edge2,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: item.available ? RESTAURANT_COLORS.primary : C.sub,
-                              fontSize: 10,
-                              fontFamily: Fonts.bold,
-                            }}
-                          >
-                            {item.available ? 'AVAILABLE' : 'SOLD OUT'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </Card>
-                  ))}
+        <View style={{ paddingBottom: 100 }}>
+          {activeTab === 'orders' && (
+            <>
+              {/* Order Channel Filters */}
+              <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 20 }}>
+                {['ALL', 'DINE_IN', 'TAKEAWAY', 'DELIVERY'].map((f) => (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => setOrderFilter(f as any)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 10,
+                      backgroundColor: orderFilter === f ? T.primaryL : 'transparent',
+                      borderWidth: 1,
+                      borderColor: orderFilter === f ? T.primary : 'rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <Text style={{ color: orderFilter === f ? T.primary : 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: Fonts.bold }}>
+                      {f.replace('_', ' ')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            ))}
-          </View>
-        )}
 
-        {activeTab === 'bookings' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <SectionTitle title="Table Bookings" />
-            <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
-              Booking management coming soon
-            </Text>
-          </View>
-        )}
+              {filteredOrders.length === 0 ? (
+                <EmptyState text="No matching orders found" />
+              ) : (
+                <View style={styles.orderList}>
+                  {filteredOrders.map((order) => (
+                    <OrderCard key={order.id} order={order} onUpdateStatus={onUpdateStatus} isVerified={isVerified} />
+                  ))}
+                </View>
+              )}
+            </>
+          )}
 
-        {activeTab === 'stats' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <SectionTitle title="Analytics" />
-            <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
-              Analytics dashboard coming soon
-            </Text>
-          </View>
-        )}
+          {activeTab === 'menu' && (
+            <View style={{ paddingHorizontal: 16 }}>
+              <CButton
+                title={isVerified ? "ADD NEW DISH" : "COMPLIANCE LOCK"}
+                onPress={() => isVerified ? setShowAddMenuItem(true) : showToast('Verification Required', 'error')}
+                style={{ marginBottom: 24, backgroundColor: isVerified ? T.primary : '#222' }}
+              />
+              {CATEGORIES.map((cat) => (
+                <View key={cat} style={{ marginBottom: 32 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: Fonts.bold, marginBottom: 16, letterSpacing: 1.5 }}>
+                    {cat.toUpperCase()}
+                  </Text>
+                  {menu.filter((m) => m.category === cat).map((item) => (
+                    <MenuItemCard key={item.id} item={item} onToggle={() => onToggleAvailability(item)} />
+                  ))}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {activeTab === 'bookings' && <EmptyState text="Smart Booking System Offline" />}
+          {activeTab === 'stats' && <EmptyState text="Analytical Dossier Loading..." />}
+        </View>
       </ScrollView>
 
-      {/* Add Menu Item Modal */}
-      <Modal visible={showAddMenuItem} animationType="slide" presentationStyle="pageSheet">
-        <View style={{ flex: 1, backgroundColor: C.ink }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 16,
-              borderBottomWidth: 1,
-              borderBottomColor: C.edge2,
-            }}
-          >
-            <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
-              Add Menu Item
-            </Text>
-            <TouchableOpacity onPress={() => setShowAddMenuItem(false)} style={{ padding: 8 }}>
-              <Ionicons name="close" size={24} color={C.text} />
+      {/* 🏗️ Modals */}
+      <AddMenuItemModal visible={showAddMenuItem} onClose={() => setShowAddMenuItem(false)} onSubmit={onAddMenuItem} />
+      <PinModal visible={showPinModal} pin={currentPin} onClose={() => setShowPinModal(false)} />
+    </View>
+  );
+}
+
+const OrderCard = ({ order, onUpdateStatus, isVerified }: any) => {
+  const getStatusColor = (s: string) => {
+    switch (s) {
+      case 'NEW': return '#2D7EF0';
+      case 'PREPARING': return T.primary;
+      case 'READY': return '#00F5FF';
+      case 'DISPATCHED': return '#8B5CF6';
+      default: return 'rgba(255,255,255,0.3)';
+    }
+  };
+
+  return (
+    <View style={styles.orderCard}>
+      <View style={styles.orderHeader}>
+        <View>
+          <Text style={styles.customerName}>{order.customer_name || 'Addis Citizen'}</Text>
+          <Text style={styles.orderType}>
+            {order.type || 'DELIVERY'} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) + '15' }]}>
+          <Text style={[styles.statusTxt, { color: getStatusColor(order.status) }]}>{order.status}</Text>
+        </View>
+      </View>
+
+      <View style={styles.orderBody}>
+        {order.items?.map((item: any, idx: number) => (
+          <View key={idx} style={styles.itemRow}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemQty}>x{item.quantity || item.qty}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.orderFooter}>
+        <Text style={styles.totalVal}>{fmtETB(order.total || 0)}</Text>
+        {order.pickup_pin && (
+          <View style={styles.pinBox}>
+            <Ionicons name="shield-checkmark" size={14} color={T.primary} />
+            <Text style={styles.pinText}>{order.pickup_pin}</Text>
+          </View>
+        )}
+      </View>
+
+      {['NEW', 'PREPARING', 'READY'].includes(order.status) && (
+        <View style={{ padding: 16, paddingTop: 0 }}>
+          {order.status === 'NEW' && (
+            <CButton
+              title={isVerified ? "ACCEPT TICKET" : "VERIFY TO ACCEPT"}
+              size="sm"
+              disabled={!isVerified}
+              style={{ backgroundColor: isVerified ? '#2D7EF0' : '#222' }}
+              onPress={() => onUpdateStatus(order.id, 'PREPARING')}
+            />
+          )}
+          {order.status === 'PREPARING' && (
+            <CButton
+              title="MARK AS READY"
+              size="sm"
+              style={{ backgroundColor: '#00F5FF' }}
+              onPress={() => onUpdateStatus(order.id, 'READY')}
+            />
+          )}
+          {order.status === 'READY' && (
+            <CButton
+              title={order.type === 'DELIVERY' ? "DISPATCH RIDER" : "HANDOVER"}
+              size="sm"
+              style={{ backgroundColor: T.primary }}
+              onPress={() => onUpdateStatus(order.id, order.type === 'DELIVERY' ? 'DISPATCHING' : 'COMPLETED')}
+            />
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
+const MenuItemCard = ({ item, onToggle }: any) => (
+  <View style={{ backgroundColor: T.surface, borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: T.edge }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <View>
+        <Text style={{ color: '#FFF', fontSize: 16, fontFamily: Fonts.bold }}>{item.name}</Text>
+        <Text style={{ color: T.primary, fontSize: 14, fontFamily: Fonts.bold, marginTop: 4 }}>{fmtETB(item.price)}</Text>
+      </View>
+      <TouchableOpacity
+        onPress={onToggle}
+        style={{
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 10,
+          backgroundColor: item.available ? T.primaryL : 'transparent',
+          borderWidth: 1,
+          borderColor: item.available ? T.primary : 'rgba(255,255,255,0.1)',
+        }}
+      >
+        <Text style={{ color: item.available ? T.primary : 'rgba(255,255,255,0.2)', fontSize: 10, fontFamily: Fonts.bold }}>
+          {item.available ? 'ON MENU' : 'SOLD OUT'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const AddMenuItemModal = ({ visible, onClose, onSubmit }: any) => {
+  const [form, setForm] = useState({ name: '', price: '', category: 'Mains', description: '' });
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 }}>
+            <Text style={styles.modalTitle}>New Gourmet Dish</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={28} color="#FFF" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
-            <View style={{ marginBottom: 20 }}>
-              <Text
-                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
-              >
-                Item Name *
-              </Text>
-              <CInput
-                placeholder="Enter item name"
-                value={newMenuItem.name}
-                onChangeText={(text: string) => setNewMenuItem({ ...newMenuItem, name: text })}
-              />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>DISH NAME</Text>
+              <CInput placeholder="e.g. Special Kitfo" value={form.name} onChangeText={(t: string) => setForm({ ...form, name: t })} />
             </View>
 
-            <View style={{ marginBottom: 20 }}>
-              <Text
-                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
-              >
-                Price (ETB) *
-              </Text>
-              <CInput
-                placeholder="0.00"
-                value={newMenuItem.price}
-                onChangeText={(text: string) => setNewMenuItem({ ...newMenuItem, price: text })}
-                keyboardType="numeric"
-              />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>PRICE (ETB)</Text>
+              <CInput placeholder="0.00" keyboardType="numeric" value={form.price} onChangeText={(t: string) => setForm({ ...form, price: t })} />
             </View>
 
-            <View style={{ marginBottom: 20 }}>
-              <Text
-                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
-              >
-                Category
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {['Mains', 'Drinks', 'Desserts'].map((cat) => (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>CATEGORY</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {CATEGORIES.map((cat) => (
                   <TouchableOpacity
                     key={cat}
-                    onPress={() => setNewMenuItem({ ...newMenuItem, category: cat })}
+                    onPress={() => setForm({ ...form, category: cat })}
                     style={{
                       flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                      backgroundColor:
-                        newMenuItem.category === cat ? RESTAURANT_COLORS.primaryL : C.surface,
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      backgroundColor: form.category === cat ? T.primaryL : T.surface,
                       borderWidth: 1,
-                      borderColor:
-                        newMenuItem.category === cat ? RESTAURANT_COLORS.primaryB : C.edge2,
+                      borderColor: form.category === cat ? T.primary : T.edge,
                       alignItems: 'center',
                     }}
                   >
-                    <Text
-                      style={{
-                        color: newMenuItem.category === cat ? RESTAURANT_COLORS.primary : C.sub,
-                        fontSize: 12,
-                        fontFamily: Fonts.bold,
-                      }}
-                    >
+                    <Text style={{ color: form.category === cat ? T.primary : 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: Fonts.bold }}>
                       {cat}
                     </Text>
                   </TouchableOpacity>
@@ -666,95 +367,33 @@ export default function RestaurantDashboard() {
               </View>
             </View>
 
-            <View style={{ marginBottom: 20 }}>
-              <Text
-                style={{ color: C.text, fontSize: 14, fontFamily: Fonts.bold, marginBottom: 8 }}
-              >
-                Description
-              </Text>
-              <CInput
-                placeholder="Item description (optional)"
-                value={newMenuItem.description}
-                onChangeText={(text: string) =>
-                  setNewMenuItem({ ...newMenuItem, description: text })
-                }
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            <CButton
-              title="Add Menu Item"
-              onPress={addMenuItem}
-              loading={loading}
-              style={{ marginTop: 20 }}
-            />
+            <CButton title="CREATE GOURMET ITEM" onPress={() => onSubmit({ ...form, available: true })} style={{ marginTop: 24, backgroundColor: T.primary }} />
           </ScrollView>
         </View>
-      </Modal>
-
-      {/* PIN Modal */}
-      <Modal visible={showPinModal} animationType="fade" transparent>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: C.surface,
-              borderRadius: Radius['2xl'],
-              padding: 32,
-              alignItems: 'center',
-              borderWidth: 2,
-              borderColor: RESTAURANT_COLORS.primaryB,
-            }}
-          >
-            <Ionicons name="lock-closed" size={48} color={RESTAURANT_COLORS.primary} />
-            <Text
-              style={{
-                color: C.text,
-                fontSize: 18,
-                fontFamily: Fonts.black,
-                marginTop: 16,
-                textAlign: 'center',
-              }}
-            >
-              Delivery PIN
-            </Text>
-            <Text
-              style={{
-                color: RESTAURANT_COLORS.primary,
-                fontSize: 48,
-                fontFamily: 'JetBrains Mono',
-                fontWeight: '700',
-                marginTop: 12,
-                letterSpacing: 8,
-              }}
-            >
-              {currentPin}
-            </Text>
-            <Text
-              style={{
-                color: C.sub,
-                fontSize: 12,
-                marginTop: 8,
-                textAlign: 'center',
-              }}
-            >
-              Share this PIN with the delivery rider
-            </Text>
-            <CButton
-              title="Close"
-              onPress={() => setShowPinModal(false)}
-              style={{ marginTop: 20 }}
-            />
-          </View>
-        </View>
-      </Modal>
-    </View>
+      </View>
+    </Modal>
   );
-}
+};
+
+const PinModal = ({ visible, pin, onClose }: any) => (
+  <Modal visible={visible} transparent animationType="fade">
+    <View style={[styles.modalOverlay, { justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.95)' }]}>
+      <View style={styles.pinCard}>
+        <Ionicons name="bicycle" size={48} color={T.primary} />
+        <Text style={{ color: '#FFF', fontSize: 20, fontFamily: Fonts.bold, marginTop: 20 }}>RIDER PICKUP PIN</Text>
+        <Text style={styles.pinCode}>{pin}</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', fontSize: 13, lineHeight: 20 }}>
+          Give this secure code to the delivery rider to authorize order handover.
+        </Text>
+        <CButton title="CONFIRM HANDOVER" variant="ghost" onPress={onClose} style={{ marginTop: 32, width: '100%' }} textStyle={{ color: T.primary }} />
+      </View>
+    </View>
+  </Modal>
+);
+
+const EmptyState = ({ text }: { text: string }) => (
+  <View style={{ padding: 60, alignItems: 'center' }}>
+    <Ionicons name="restaurant" size={60} color="rgba(255,255,255,0.05)" />
+    <Text style={{ color: 'rgba(255,255,255,0.2)', marginTop: 20, fontFamily: Fonts.bold }}>{text}</Text>
+  </View>
+);

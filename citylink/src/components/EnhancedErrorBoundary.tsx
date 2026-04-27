@@ -5,6 +5,7 @@
 
 import React, { Component } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Updates from 'expo-updates';
 
@@ -176,7 +177,6 @@ class ErrorBoundaryInner extends Component<ErrorBoundaryProps, ErrorBoundaryStat
       };
 
       // Store locally for later sync (using AsyncStorage for React Native)
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       AsyncStorage.getItem('error_logs')
         .then((raw: string | null) => {
           const storedErrors = JSON.parse(raw || '[]');

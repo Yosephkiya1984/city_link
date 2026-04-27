@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { hasSupabase } from '../services/supabase';
+import { hasSupabase, getClient } from '../services/supabase';
 
 /**
  * Subscribe to Supabase Realtime `postgres_changes` on one table.
@@ -62,21 +62,24 @@ export function useRealtimePostgres({
       return () => clearInterval(mockInterval);
     }
 
-    // Real Supabase realtime - try to import and use if available
+    // Real Supabase realtime
     try {
-      // Try to dynamically import realtime functions
-      const { subscribeToTable, unsubscribe } = require('../services/realtime');
+      const client = getClient();
+      if (!client) return;
 
-      const ch = subscribeToTable(channelName, table, filter, (payload: any) => {
-        console.log(`📡 Realtime update: ${channelName}`, payload);
-        ref.current?.(payload);
-      });
+      const ch = client
+        .channel(channelName)
+        .on(
+          'postgres_changes' as any,
+          { event: '*', schema: 'public', table, filter },
+          (payload: any) => {
+            ref.current?.(payload);
+          }
+        )
+        .subscribe();
 
       return () => {
-        if (ch) {
-          console.log(`🔌 Unsubscribing from: ${channelName}`);
-          unsubscribe(ch);
-        }
+        client.removeChannel(ch);
       };
     } catch (error) {
       console.log('🔧 Realtime service not available, using mock updates');

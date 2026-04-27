@@ -9,13 +9,12 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useWalletStore } from '../store/WalletStore';
 import { useSystemStore } from '../store/SystemStore';
 import { Colors, DarkColors, FontSize, Spacing, Radius, Shadow, Fonts } from '../theme';
-import { AppStackParamList } from '../navigation';
 
 interface TopBarProps {
   title?: string;
@@ -25,6 +24,8 @@ interface TopBarProps {
   showProfile?: boolean;
 }
 
+import { GlassView } from './GlassView';
+
 export default function TopBar({
   title,
   showBack = true,
@@ -32,7 +33,7 @@ export default function TopBar({
   minimal,
   showProfile,
 }: TopBarProps) {
-  const navigation = useNavigation<NavigationProp<AppStackParamList>>();
+  const navigation = useNavigation<any>();
   const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
   const insets = useSafeAreaInsets();
@@ -40,16 +41,21 @@ export default function TopBar({
   const balance = useWalletStore((s) => s.balance);
   const toggleTheme = useSystemStore((s) => s.toggleTheme);
 
-  const balScale = useRef(new Animated.Value(1)).current;
+  const balScale = useRef(new Animated.Value(1));
   useEffect(() => {
     Animated.sequence([
-      Animated.spring(balScale, {
+      Animated.spring(balScale.current, {
         toValue: 1.1,
         useNativeDriver: true,
         tension: 120,
         friction: 10,
       }),
-      Animated.spring(balScale, { toValue: 1, useNativeDriver: true, tension: 120, friction: 10 }),
+      Animated.spring(balScale.current, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 120,
+        friction: 10,
+      }),
     ]).start();
   }, [balance]);
 
@@ -63,10 +69,11 @@ export default function TopBar({
         translucent
       />
 
-      <View
+      <GlassView
+        intensity={30}
         style={{
           paddingTop: insets.top + (Platform.OS === 'ios' ? 0 : 10),
-          backgroundColor: isDark ? 'rgba(5,6,8,0.92)' : 'rgba(253,253,252,0.92)',
+          backgroundColor: 'transparent',
           borderBottomWidth: 1,
           borderBottomColor: C.edge,
           paddingHorizontal: 16,
@@ -83,7 +90,9 @@ export default function TopBar({
             onPress={() => {
               try {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              } catch (_) {}
+              } catch (_) {
+                // ignore haptics error
+              }
               navigation.goBack();
             }}
             style={{
@@ -217,7 +226,7 @@ export default function TopBar({
                   gap: 6,
                   ...Shadow.sm,
                 },
-                { transform: [{ scale: balScale }] },
+                { transform: [{ scale: balScale.current }] },
               ]}
             >
               <Text style={{ color: C.primary, fontSize: 13, fontFamily: Fonts.black }}>
@@ -228,7 +237,7 @@ export default function TopBar({
 
           {/* Theme Toggle / Profile */}
           <TouchableOpacity
-            onPress={toggleTheme}
+            onPress={() => toggleTheme()}
             style={{
               width: 40,
               height: 40,
@@ -243,7 +252,7 @@ export default function TopBar({
             <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={C.primary} />
           </TouchableOpacity>
         </View>
-      </View>
+      </GlassView>
     </>
   );
 }

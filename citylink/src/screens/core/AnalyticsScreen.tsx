@@ -118,9 +118,8 @@ export default function AnalyticsScreen() {
   const [metricData, setMetricData] = useState<any>(ANALYTICS_METRICS);
   const [animatedValues, setAnimatedValues] = useState<Record<string, Animated.Value>>({});
 
-  const loadData = useCallback(async () => {
-    if (!currentUser) return;
-    setLoading(true);
+  const loadDataRequest = useCallback(async () => {
+    if (!currentUser) return null;
 
     // Fetch Spending & Savings
     const [spendRes, saveRes] = await Promise.all([
@@ -137,15 +136,17 @@ export default function AnalyticsScreen() {
       getUserSavingsMetrics(currentUser.id),
     ]);
 
+    const timeline: any[] = [];
+    let topCatInsight: any = null;
+    let savingsMetric: any = null;
+
     // Process Spending
     if (spendRes.data) {
       const txs = spendRes.data;
       const categories: Record<string, number> = {};
-      const timeline: any[] = [];
 
       txs.forEach((tx: any) => {
         categories[tx.category] = (categories[tx.category] || 0) + tx.amount;
-        // Group by day for simple timeline
         const day = new Date(tx.created_at).toLocaleDateString(undefined, { weekday: 'short' });
         const existingDay = timeline.find((d) => d.day === day);
         if (existingDay) {
@@ -155,30 +156,18 @@ export default function AnalyticsScreen() {
         }
       });
 
-      setMetricData((prev: any) => ({
-        ...prev,
-        spending: {
-          ...prev.spending,
-          data: timeline.length > 0 ? timeline : prev.spending.data,
-        },
-      }));
-
-      // Generate Insight dynamically
       if (txs.length > 0) {
         const total = txs.reduce((s: number, t: any) => s + t.amount, 0);
         const topCat = Object.entries(categories).sort((a, b) => b[1] - a[1])[0];
         if (topCat) {
-          setInsightList((prev) => [
-            {
-              id: 'dynamic-spend',
-              title: 'Top Category',
-              insight: `You spent ${fmtETB(topCat[1])} on ${topCat[0]} this period.`,
-              recommendation: `This accounts for ${Math.round((topCat[1] / total) * 100)}% of total debit.`,
-              type: 'info',
-              icon: 'pie-chart',
-            },
-            ...prev.filter((i) => i.id !== 'dynamic-spend'),
-          ]);
+          topCatInsight = {
+            id: 'dynamic-spend',
+            title: 'Top Category',
+            insight: `You spent ${fmtETB(topCat[1])} on ${topCat[0]} this period.`,
+            recommendation: `This accounts for ${Math.round((topCat[1] / total) * 100)}% of total debit.`,
+            type: 'info',
+            icon: 'pie-chart',
+          };
         }
       }
     }
@@ -186,23 +175,72 @@ export default function AnalyticsScreen() {
     // Process Savings
     if (saveRes.data) {
       const totalSaved = saveRes.data.reduce((s: number, r: any) => s + r.amount, 0);
-      setMetricData((prev: any) => ({
-        ...prev,
-        savings: {
-          ...prev.savings,
-          data: [
-            { category: 'Total Ekub', target: totalSaved * 1.5 || 10000, current: totalSaved },
-          ],
-        },
-      }));
+      savingsMetric = {
+        category: 'Total Ekub',
+        target: totalSaved * 1.5 || 10000,
+        current: totalSaved,
+      };
     }
 
-    setLoading(false);
+    return { timeline, topCatInsight, savingsMetric };
   }, [currentUser, selectedPeriod]);
 
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    const data = await loadDataRequest();
+    if (data) {
+      if (data.timeline.length > 0) {
+        setMetricData((prev: any) => ({
+          ...prev,
+          spending: { ...prev.spending, data: data.timeline },
+        }));
+      }
+      if (data.topCatInsight) {
+        setInsightList((prev) => [
+          data.topCatInsight,
+          ...prev.filter((i) => i.id !== 'dynamic-spend'),
+        ]);
+      }
+      if (data.savingsMetric) {
+        setMetricData((prev: any) => ({
+          ...prev,
+          savings: { ...prev.savings, data: [data.savingsMetric] },
+        }));
+      }
+    }
+    setLoading(false);
+  }, [loadDataRequest]);
+
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let ignore = false;
+    setLoading(true);
+    loadDataRequest().then((data) => {
+      if (!ignore && data) {
+        if (data.timeline.length > 0) {
+          setMetricData((prev: any) => ({
+            ...prev,
+            spending: { ...prev.spending, data: data.timeline },
+          }));
+        }
+        if (data.topCatInsight) {
+          setInsightList((prev) => [
+            data.topCatInsight,
+            ...prev.filter((i) => i.id !== 'dynamic-spend'),
+          ]);
+        }
+        if (data.savingsMetric) {
+          setMetricData((prev: any) => ({
+            ...prev,
+            savings: { ...prev.savings, data: [data.savingsMetric] },
+          }));
+        }
+        setLoading(false);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [loadDataRequest]);
 
   // Initialize animated values
   useEffect(() => {

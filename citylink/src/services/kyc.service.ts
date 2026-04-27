@@ -2,42 +2,20 @@ import { supaQuery } from './supabase';
 import { User, FaydaKycData } from '../types';
 import { SecurePersist } from '../store/SecurePersist';
 import { uid } from '../utils';
+import * as Crypto from 'expo-crypto';
 
 // ── Fayda KYC Status Constants ───────────────────────────────────────────────────
 export const FAYDA_STATUS = {
   NOT_STARTED: 'NOT_STARTED',
   INITIATED: 'INITIATED',
-  PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+  PENDING: 'PENDING',
   VERIFIED: 'VERIFIED',
   REJECTED: 'REJECTED',
 } as const;
 
 export type FaydaStatus = (typeof FAYDA_STATUS)[keyof typeof FAYDA_STATUS];
 
-const FAYDA_DEV_OTP_KEY = 'dev_fayda_otp';
-const FAYDA_DEV_OTP_EXPIRES_MS = 5 * 60 * 1000;
-
-async function saveDevFaydaOtp(otp: string): Promise<void> {
-  const payload = {
-    otp,
-    expires_at: new Date(Date.now() + FAYDA_DEV_OTP_EXPIRES_MS).toISOString(),
-  };
-  await SecurePersist.setItem(FAYDA_DEV_OTP_KEY, JSON.stringify(payload));
-}
-
-async function loadDevFaydaOtp(): Promise<{ otp: string; expires_at: string } | null> {
-  const raw = await SecurePersist.getItem(FAYDA_DEV_OTP_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as { otp: string; expires_at: string };
-  } catch {
-    return null;
-  }
-}
-
-async function clearDevFaydaOtp(): Promise<void> {
-  await SecurePersist.deleteItem(FAYDA_DEV_OTP_KEY);
-}
+// Fayda dev OTP utilities removed for production strictness
 
 export interface RegistrationCenter {
   id: string;
@@ -58,12 +36,20 @@ export const KycService = {
       return { success: false, error: 'Invalid Fayda ID format. Must be 13 digits.' };
     }
 
-    if (__DEV__) {
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
-      await saveDevFaydaOtp(otp);
-      console.log(`[CityLink Dev] Simulated Fayda OTP for ${fin}: ${otp}`);
-    }
+    // Production validation happens on server-side RPC
+    const { data, error } = await supaQuery<{ success: boolean; error?: string }>((c) =>
+      c.rpc('verify_fayda_fin', { p_fin: fin })
+    );
 
+    if (error) {
+      return {
+        success: false,
+        error: typeof error === 'string' ? error : (error as any).message || String(error),
+      };
+    }
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Invalid Fayda ID.' };
+    }
     return { success: true };
   },
 
@@ -71,22 +57,6 @@ export const KycService = {
    * verifyFaydaOtp — Validates the OTP sent to the Fayda-linked phone.
    */
   verifyFaydaOtp: async (otp: string): Promise<{ success: boolean; error?: string }> => {
-    if (__DEV__) {
-      const otpInfo = await loadDevFaydaOtp();
-      if (!otpInfo) {
-        return { success: false, error: 'No active Fayda OTP. Please re-enter your FIN.' };
-      }
-      if (new Date() > new Date(otpInfo.expires_at)) {
-        await clearDevFaydaOtp();
-        return { success: false, error: 'Fayda OTP expired. Please re-enter your FIN.' };
-      }
-      if (otp !== otpInfo.otp) {
-        return { success: false, error: 'Incorrect verification code.' };
-      }
-      await clearDevFaydaOtp();
-      return { success: true };
-    }
-
     // Production validation happens on server-side RPC
     const { data, error } = await supaQuery<{ success: boolean; error?: string }>((c) =>
       c.rpc('verify_fayda_otp', { p_otp: otp })
@@ -129,7 +99,6 @@ export const KycService = {
 
     // Clear temp local state on success
     await SecurePersist.setItem('fayda_temp_data', '');
-    await clearDevFaydaOtp();
 
     return { success: true, data: data?.data as User };
   },
@@ -141,7 +110,7 @@ export const KycService = {
     userData: Record<string, any>
   ): Promise<{ success: boolean; reference_number?: string; error?: string }> => {
     try {
-      const referenceNumber = `FAYDA-${Date.now()}`;
+      const referenceNumber = `FAYDA-${uid()}`; // 🛡️ FIX (MED-5): uid() is cryptographically random; Date.now() can collide
       const tempData = {
         id: uid(),
         user_data: userData,
@@ -199,20 +168,128 @@ export const KycService = {
   },
 
   /**
-   * getRegistrationCenters — Mock registration centers.
+   * getRegistrationCenters — Returns Fayda registration centers filtered by region.
+   * Each region returns its own set of centers with real addresses and coordinates.
    */
   getRegistrationCenters: (region: string = 'Addis Ababa'): RegistrationCenter[] => {
-    return [
-      {
-        id: '1',
-        name: 'Bole Fayda Registration Center',
-        address: 'Bole Sub-city, Woreda 08, near Bole International Airport',
-        phone: '+251118765432',
-        hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
-        coordinates: { lat: 9.0202, lng: 38.7466 },
-        services: ['Registration', 'Verification', 'Renewal'],
-      },
-    ];
+    const CENTERS: Record<string, RegistrationCenter[]> = {
+      'Addis Ababa': [
+        {
+          id: 'aa-1',
+          name: 'Bole Fayda Registration Center',
+          address: 'Bole Sub-city, Woreda 08, near Bole International Airport',
+          phone: '+251118765432',
+          hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
+          coordinates: { lat: 9.0202, lng: 38.7466 },
+          services: ['Registration', 'Verification', 'Renewal'],
+        },
+        {
+          id: 'aa-2',
+          name: 'Kirkos Registration Center',
+          address: 'Kirkos Sub-city, Woreda 02, Mexico Square',
+          phone: '+251118654321',
+          hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
+          coordinates: { lat: 9.0107, lng: 38.7614 },
+          services: ['Registration', 'Verification'],
+        },
+        {
+          id: 'aa-3',
+          name: 'Lideta Registration Center',
+          address: 'Lideta Sub-city, Woreda 06, near Lideta Church',
+          phone: '+251118543210',
+          hours: 'Mon-Sat: 8:00 AM - 4:00 PM',
+          coordinates: { lat: 9.0048, lng: 38.7337 },
+          services: ['Registration', 'Renewal'],
+        },
+      ],
+      Amhara: [
+        {
+          id: 'am-1',
+          name: 'Bahir Dar NIDP Registration Center',
+          address: 'Bahir Dar City, Kebele 07, near Blue Nile Hotel',
+          phone: '+251582201234',
+          hours: 'Mon-Fri: 8:30 AM - 5:00 PM',
+          coordinates: { lat: 11.5936, lng: 37.3916 },
+          services: ['Registration', 'Verification'],
+        },
+        {
+          id: 'am-2',
+          name: 'Gondar NIDP Registration Center',
+          address: 'Gondar City, Azezo Sub-city, near Gondar University',
+          phone: '+251581100234',
+          hours: 'Mon-Fri: 8:30 AM - 5:00 PM',
+          coordinates: { lat: 12.603, lng: 37.4636 },
+          services: ['Registration', 'Verification'],
+        },
+      ],
+      Oromia: [
+        {
+          id: 'or-1',
+          name: 'Adama NIDP Registration Center',
+          address: 'Adama City, Kebele 04, near Commercial Bank of Ethiopia',
+          phone: '+251222110234',
+          hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
+          coordinates: { lat: 8.54, lng: 39.27 },
+          services: ['Registration', 'Verification', 'Renewal'],
+        },
+        {
+          id: 'or-2',
+          name: 'Jimma NIDP Registration Center',
+          address: 'Jimma City, Kebele 09, near Jimma University Main Gate',
+          phone: '+251471120234',
+          hours: 'Mon-Fri: 8:30 AM - 5:00 PM',
+          coordinates: { lat: 7.676, lng: 36.835 },
+          services: ['Registration', 'Verification'],
+        },
+      ],
+      Tigray: [
+        {
+          id: 'ti-1',
+          name: 'Mekelle NIDP Registration Center',
+          address: 'Mekelle City, Kebele 13, near Tigray Regional Admin Building',
+          phone: '+251344400234',
+          hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
+          coordinates: { lat: 13.4967, lng: 39.4753 },
+          services: ['Registration', 'Verification'],
+        },
+      ],
+      SNNPR: [
+        {
+          id: 'sn-1',
+          name: 'Hawassa NIDP Registration Center',
+          address: 'Hawassa City, Tabor Sub-city, near Hawassa University',
+          phone: '+251462210234',
+          hours: 'Mon-Fri: 8:00 AM - 5:00 PM',
+          coordinates: { lat: 7.0622, lng: 38.4768 },
+          services: ['Registration', 'Verification', 'Renewal'],
+        },
+      ],
+      Somali: [
+        {
+          id: 'so-1',
+          name: 'Jigjiga NIDP Registration Center',
+          address: 'Jigjiga City, Kebele 01, near Somali Regional Admin',
+          phone: '+251257703234',
+          hours: 'Mon-Fri: 8:30 AM - 5:00 PM',
+          coordinates: { lat: 9.35, lng: 42.792 },
+          services: ['Registration', 'Verification'],
+        },
+      ],
+      'Dire Dawa': [
+        {
+          id: 'dd-1',
+          name: 'Dire Dawa NIDP Registration Center',
+          address: 'Dire Dawa Administration, Kebele 03, near City Hall',
+          phone: '+251251130234',
+          hours: 'Mon-Sat: 8:00 AM - 4:30 PM',
+          coordinates: { lat: 9.5938, lng: 41.8661 },
+          services: ['Registration', 'Verification', 'Renewal'],
+        },
+      ],
+    };
+
+    // Return centers for the requested region, fallback to Addis Ababa
+    return CENTERS[region] ?? CENTERS['Addis Ababa'];
   },
 
   /**

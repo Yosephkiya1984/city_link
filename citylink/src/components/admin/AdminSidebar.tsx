@@ -61,14 +61,18 @@ export default function AdminSidebar({
   const handleLogout = () => {
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
 
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to exit the admin portal?')) {
         resetStore().then(() => {
           try {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } catch (e) {}
+          } catch (e) {
+            /* ignore */
+          }
         });
       }
       return;

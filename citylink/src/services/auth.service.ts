@@ -1,41 +1,12 @@
 import { getClient } from './supabase';
 import { Config } from '../config';
-import { uid, normalizePhone } from '../utils';
 import { User as AppUser } from '../types';
 import { Session } from '@supabase/supabase-js';
-import { SecurePersist } from '../store/SecurePersist';
+import { clearAllStores } from '../store/StoreUtils';
 
-const DEV_OTP_EXPIRATION_MS = 5 * 60 * 1000;
-const DEV_OTP_STORAGE_PREFIX = 'dev_otp_';
-
-function getDevOtpKey(phone: string) {
-  return `${DEV_OTP_STORAGE_PREFIX}${phone.replace(/\D/g, '')}`;
-}
-
-async function saveDevOtp(phone: string, otp: string): Promise<void> {
-  const payload = {
-    otp,
-    expires_at: new Date(Date.now() + DEV_OTP_EXPIRATION_MS).toISOString(),
-  };
-  await SecurePersist.setItem(getDevOtpKey(phone), JSON.stringify(payload));
-}
-
-async function loadDevOtp(phone: string): Promise<{ otp: string; expires_at: string } | null> {
-  const raw = await SecurePersist.getItem(getDevOtpKey(phone));
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as { otp: string; expires_at: string };
-  } catch {
-    return null;
-  }
-}
-
-async function clearDevOtp(phone: string): Promise<void> {
-  await SecurePersist.deleteItem(getDevOtpKey(phone));
-}
-
-// Re-export auth-adjacent helpers so screens can import from one place
-export { checkPhoneExists, fetchProfile } from './profile.service';
+// Import and re-export auth-adjacent helpers so screens can import from one place
+import { checkPhoneExists, fetchProfile } from './profile.service';
+export { checkPhoneExists, fetchProfile };
 
 interface AuthResponse {
   error: string | null;
@@ -49,41 +20,30 @@ interface VerifyResponse {
 }
 
 /**
- * sendOtp — sends a 6-digit code to the user's phone.
- * Dev builds use a simulated OTP flow gated by __DEV__ (compile-time constant).
- * Production builds ALWAYS use Supabase Auth. No config-based bypass exists.
+ * sendOtp — sends a 6-digit code to the user's phone or email.
+ * Production builds ALWAYS use Supabase Auth.
  */
 export async function sendOtp(
-  phone: string,
+  identifier: string,
   metadata: Record<string, string | number | boolean> | null = null
 ): Promise<AuthResponse> {
-  // Validate phone number format
-  const phoneRegex = /^\+251[79]\d{8}$/;
-  if (!phoneRegex.test(phone)) {
-    return { error: 'invalid-phone-format', success: false };
+  const isEmail = identifier.includes('@');
+
+  // Validate format
+  if (!isEmail) {
+    const phoneRegex = /^(\+)?251[789]\d{8}$/;
+    if (!phoneRegex.test(identifier)) {
+      return { error: 'invalid-phone-format', success: false };
+    }
   }
 
   const client = getClient();
   if (!client) return { error: 'no-credentials', success: false };
 
-  // DEV-ONLY: Simulated OTP for development/emulator testing.
-  // __DEV__ is a compile-time constant stripped from production bundles.
-  if (__DEV__) {
-    const normalizedPhone = normalizePhone(phone);
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    await saveDevOtp(normalizedPhone, otp);
-    console.log(`[CityLink Dev] Simulated OTP for ${phone}: ${otp}`);
-    return { error: null, success: true, devOtp: otp };
-  } else {
-    // In production, we don't mock. If this code runs, we must proceed to real SMS provider.
-    // If the below SMS call fails, it must naturally fail. No fallback mock is permitted.
-  }
+  const payload: any = isEmail 
+    ? { email: identifier } 
+    : { phone: identifier, channel: 'sms' };
 
-  const payload: {
-    phone: string;
-    channel: 'sms';
-    options?: { data: Record<string, string | number | boolean> };
-  } = { phone, channel: 'sms' };
   if (metadata) {
     payload.options = { data: metadata };
   }
@@ -93,16 +53,21 @@ export async function sendOtp(
 }
 
 /**
- * verifyOtp — verifies the code sent to the phone.
+ * verifyOtp — verifies the code sent to the phone or email.
  * Returns a session/user object.
  */
-export async function verifyOtp(phone: string, token: string): Promise<VerifyResponse> {
+export async function verifyOtp(identifier: string, token: string): Promise<VerifyResponse> {
+  const isEmail = identifier.includes('@');
+
   // Validate inputs
-  const phoneRegex = /^\+251[79]\d{8}$/;
-  if (!phoneRegex.test(phone)) {
-    return { user: null, error: 'invalid-phone-format' };
+  if (!isEmail) {
+    const phoneRegex = /^(\+)?251[789]\d{8}$/;
+    if (!phoneRegex.test(identifier)) {
+      return { user: null, error: 'invalid-phone-format' };
+    }
   }
-  const tokenRegex = /^\d{6}$/;
+
+  const tokenRegex = /^\d{6,8}$/;
   if (!tokenRegex.test(token)) {
     return { user: null, error: 'invalid-token-format' };
   }
@@ -110,37 +75,11 @@ export async function verifyOtp(phone: string, token: string): Promise<VerifyRes
   const client = getClient();
   if (!client) return { user: null, error: 'no-credentials' };
 
-  // DEV-ONLY: Simulated verification for emulator testing.
-  if (__DEV__) {
-    console.log(`[CityLink Dev] Simulated OTP verification for ${phone}`);
-    const normalizedPhone = normalizePhone(phone);
-    const otpInfo = await loadDevOtp(normalizedPhone);
-    if (!otpInfo) {
-      return { user: null, error: 'otp_not_sent' };
-    }
-    if (new Date() > new Date(otpInfo.expires_at)) {
-      await clearDevOtp(normalizedPhone);
-      return { user: null, error: 'otp_expired' };
-    }
-    if (token !== otpInfo.otp) {
-      return { user: null, error: 'invalid-token' };
-    }
+  const payload: any = isEmail
+    ? { email: identifier, token, type: 'email' }
+    : { phone: identifier, token, type: 'sms' };
 
-    await clearDevOtp(normalizedPhone);
-
-    const alt = normalizedPhone.startsWith('+251') ? '0' + normalizedPhone.slice(4) : normalizedPhone;
-    const { data } = await client
-      .from('profiles')
-      .select('id')
-      .in('phone', [normalizedPhone, alt, phone])
-      .maybeSingle();
-
-    return {
-      user: { id: data?.id || uid(), phone },
-      error: null,
-    };
-  }
-  const { data, error } = await client.auth.verifyOtp({ phone, token, type: 'sms' });
+  const { data, error } = await client.auth.verifyOtp(payload);
   return { user: data?.user || null, error: error?.message || null };
 }
 
@@ -156,10 +95,24 @@ export async function getSession(): Promise<Session | null> {
 
 /**
  * signOut — logs out the current user.
+ * Consistently wipes all local data and stores.
  */
 export async function signOut(): Promise<void> {
   const client = getClient();
-  if (client) await client.auth.signOut();
+  if (client) {
+    try {
+      await client.auth.signOut();
+    } catch (err) {
+      console.warn('[AuthService] Supabase signOut failed:', err);
+    }
+  }
+
+  try {
+    const { clearAllStores } = await import('../store/StoreUtils');
+    await clearAllStores();
+  } catch (err) {
+    console.warn('[AuthService] clearAllStores failed during signOut:', err);
+  }
 }
 
 interface GovAuthResponse {
@@ -174,7 +127,6 @@ interface GovAuthResponse {
  */
 export async function govBadgeLogin(badgeId: string, secPin: string): Promise<GovAuthResponse> {
   const BASE_URL = Config.govAuthBaseUrl;
-  const client = getClient();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -193,54 +145,13 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
       return { user: data.user as AppUser, error: null };
     }
 
-    if (__DEV__ && (response.status === 404 || response.status >= 500) && client) {
-      console.warn('[CityLink Auth] Gov gateway unavailable — falling back to dev DB');
-      try {
-        const { data, error } = await client
-          .rpc('verify_gov_admin_dev', { p_badge_id: badgeId, p_sec_pin: secPin })
-          .maybeSingle();
-
-        if (error) {
-          console.warn('[CityLink Auth] Dev fallback query error:', error);
-          return { user: null, error: 'Invalid credentials' };
-        }
-
-        if (data) return { user: data as AppUser, error: null };
-      } catch (dbError) {
-        console.warn('[CityLink Auth] Dev fallback DB error:', dbError);
-        if (process.env.ALLOW_DEV_AUTH_FALLBACK !== 'true') {
-          return { user: null, error: 'Invalid credentials' };
-        }
-      }
-    }
-
     const errData = await response.json().catch(() => ({}));
     return { user: null, error: errData.message || 'Invalid government credentials' };
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(timeoutId);
-    if (__DEV__ && client) {
-      console.warn('[CityLink Auth] Network error — falling back to dev DB');
-      try {
-        const { data, error } = await client
-          .rpc('verify_gov_admin_dev', { p_badge_id: badgeId, p_sec_pin: secPin })
-          .maybeSingle();
 
-        if (error) {
-          console.warn('[CityLink Auth] Dev fallback query error:', error);
-          return { user: null, error: 'Invalid credentials' };
-        }
-
-        if (data) return { user: data as AppUser, error: null };
-      } catch (dbError) {
-        console.warn('[CityLink Auth] Dev fallback DB error:', dbError);
-        if (process.env.ALLOW_DEV_AUTH_FALLBACK !== 'true') {
-          return { user: null, error: 'Invalid credentials' };
-        }
-      }
-    }
-
-    const msg =
-      err.name === 'AbortError' ? 'Connection timed out' : 'Government gateway unavailable';
+    const isAbort = err instanceof Error && err.name === 'AbortError';
+    const msg = isAbort ? 'Connection timed out' : 'Government gateway unavailable';
     return { user: null, error: msg };
   }
 }

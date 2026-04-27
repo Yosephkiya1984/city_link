@@ -140,7 +140,7 @@ export default function BecomeMerchantScreen() {
             title="Enter Merchant Portal"
             onPress={() => {
               showToast('Welcome to the Merchant Network!', 'success');
-              navigation.reset({
+              (navigation as any).reset({
                 index: 0,
                 routes: [{ name: 'MerchantRoot' }],
               });

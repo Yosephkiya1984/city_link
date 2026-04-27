@@ -1,32 +1,20 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   StatusBar,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 
-import { useAuthStore } from '../../store/AuthStore';
-import { useWalletStore } from '../../store/WalletStore';
-import { useSystemStore } from '../../store/SystemStore';
-import {
-  fetchEkubs,
-  fetchMyEkubs,
-  submitEkubApplication,
-  contributeToEkub,
-  signWinnerConsent,
-  submitVouch,
-  fetchPendingVouches,
-  fetchWinnerDraw,
-} from '../../services/ekub.service';
+import { useEkub } from '../../hooks/useEkub';
 import { useTheme } from '../../hooks/useTheme';
-import { Radius, Shadow, Fonts } from '../../theme';
+import { Radius, Shadow, Fonts, DarkColors as T } from '../../theme';
+import { fmtETB } from '../../utils';
 
 // Modular Components
 import { COLORS } from '../../components/ekub/constants';
@@ -35,25 +23,35 @@ import ActiveCircleItem from '../../components/ekub/ActiveCircleItem';
 import { VerifiedCircleCard, VouchCard } from '../../components/ekub/EkubCards';
 import { LiveDrawBanner } from '../../components/ekub/EkubDraws';
 
+import { GlassView } from '../../components/GlassView';
+import { SkiaEkubDrum } from '../../components/ekub/SkiaEkubDrum';
+import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
+import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
+
 // ——————————————————————————————————————————————————————————————————————————————————————————————————
 // Top Bar Component
 // ——————————————————————————————————————————————————————————————————————————————————————————————————
 const EnhancedTopBar = React.memo(({ balance, C }: { balance: number; C: any }) => (
-  <View style={[styles.topBar, { backgroundColor: C.ink }]}>
+  <View
+    style={[
+      styles.topBar,
+      { backgroundColor: C.surface, borderBottomWidth: 1, borderColor: C.edge },
+    ]}
+  >
     <View style={styles.topBarLeft}>
       <Text style={[styles.brandName, { color: C.primary, fontFamily: Fonts.headline }]}>
-        Digital Ekub
+        EKUB POOL
       </Text>
     </View>
     <View
       style={[
         styles.balanceContainer,
-        { backgroundColor: C.surface, borderColor: C.edge2, borderWidth: 1.5 },
+        { backgroundColor: C.ink, borderColor: C.edge, borderWidth: 1, borderRadius: Radius.card },
       ]}
     >
-      <Text style={[styles.balanceLabel, { color: C.sub, fontFamily: Fonts.label }]}>Wallet</Text>
-      <Text style={[styles.balanceAmount, { color: C.primary, fontFamily: Fonts.headline }]}>
-        ETB {balance.toLocaleString()}
+      <Text style={[styles.balanceLabel, { color: C.sub, fontFamily: Fonts.bold }]}>LIQUIDITY</Text>
+      <Text style={[styles.balanceAmount, { color: C.text, fontFamily: Fonts.headline }]}>
+        {fmtETB(balance)}
       </Text>
     </View>
   </View>
@@ -63,125 +61,34 @@ const EnhancedTopBar = React.memo(({ balance, C }: { balance: number; C: any }) 
 // Main Screen
 // ——————————————————————————————————————————————————————————————————————————————————————————————————
 export default function EkubScreen() {
-  const [activeTab, setActiveTab] = useState<'browse' | 'mine' | 'vouch'>('browse');
-  const [loading, setLoading] = useState(true);
-  const [ekubs, setEkubs] = useState<any[]>([]);
-  const [myEkubs, setMyEkubs] = useState<any[]>([]);
-  const [pendingVouches, setPendingVouches] = useState<any[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    activeTab,
+    setActiveTab,
+    loading,
+    ekubs,
+    myEkubs,
+    pendingVouches,
+    refreshing,
+    onRefresh,
+    currentUser,
+    balance,
+    showSuccess,
+    setShowSuccess,
+    successMsg,
+    submitting,
+    isDrawing,
+    winnerIndex,
+    drawMembers,
+    startDraw,
+    onDrawFinished,
+    handleJoin,
+    handleContribute,
+    handleVouch,
+    handleSignConsent,
+    listData,
+  } = useEkub();
 
   const C = useTheme();
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const balance = useWalletStore((s) => s.balance);
-  const setBalance = useWalletStore((s) => s.setBalance);
-  const showToast = useSystemStore((s) => s.showToast);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    const [allRes, myRes, vouchRes] = await Promise.all([
-      fetchEkubs(),
-      fetchMyEkubs(currentUser?.id || ''),
-      fetchPendingVouches(currentUser?.id || ''),
-    ]);
-
-    if (allRes.data) setEkubs(allRes.data);
-    if (myRes.data) setMyEkubs(myRes.data);
-    if (vouchRes.data) setPendingVouches(vouchRes.data);
-
-    setLoading(false);
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
-  // Handlers
-  const handleJoin = useCallback(
-    async (circle: any) => {
-      if (currentUser?.kyc_status !== 'VERIFIED') {
-        showToast('Electronic Ekub requires verified KYC', 'error');
-        return;
-      }
-      const res = await submitEkubApplication(
-        circle.id,
-        currentUser.id,
-        'Joining for circle growth'
-      );
-      if (!res.error) {
-        showToast(`Application sent!`, 'success');
-        loadData();
-      }
-    },
-    [currentUser?.id, currentUser?.kyc_status, showToast, loadData]
-  );
-
-  const handleContribute = useCallback(
-    async (circle: any) => {
-      if (!currentUser?.id) return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const res = await contributeToEkub(currentUser.id, circle.id, circle.current_round || 1);
-      if (res.data?.ok) {
-        showToast('Contribution successful!', 'success');
-        if (res.data.new_balance !== undefined) setBalance(res.data.new_balance);
-        loadData();
-      } else {
-        showToast(res.data?.error || 'Contribution failed', 'error');
-      }
-    },
-    [currentUser?.id, setBalance, showToast, loadData]
-  );
-
-  const handleVouch = useCallback(
-    async (draw: any, approved: boolean) => {
-      if (!currentUser?.id) return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      const res = await submitVouch(
-        draw.id,
-        draw.ekub_id,
-        currentUser.id,
-        currentUser.full_name || 'Voucher',
-        approved,
-        approved ? 'Regular vouch' : 'Dispute raised'
-      );
-      if (!res.error) {
-        showToast(
-          approved ? 'Vouch submitted ⭐' : 'Dispute raised 🚨',
-          approved ? 'success' : 'warning'
-        );
-        loadData();
-      }
-    },
-    [currentUser?.id, currentUser?.full_name, showToast, loadData]
-  );
-
-  const handleSignConsent = useCallback(
-    async (circle: any) => {
-      if (!currentUser?.id) return;
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const { data: draw } = await fetchWinnerDraw(currentUser.id, circle.id);
-      if (draw) {
-        const res = await signWinnerConsent(draw.id);
-        if (!res.error) {
-          showToast('Consent signed!', 'success');
-          loadData();
-        }
-      }
-    },
-    [currentUser?.id, showToast, loadData]
-  );
-
-  // Virtualized List Config
-  const listData = useMemo(() => {
-    if (activeTab === 'browse') return ekubs;
-    if (activeTab === 'mine') return myEkubs;
-    return pendingVouches;
-  }, [activeTab, ekubs, myEkubs, pendingVouches]);
 
   const renderItem = useCallback(
     ({ item }: { item: any }) => {
@@ -221,7 +128,17 @@ export default function EkubScreen() {
 
         {activeTab === 'browse' && (
           <>
-            <LiveDrawBanner onEnterDraw={() => {}} />
+            {isDrawing ? (
+              <SkiaEkubDrum
+                members={drawMembers}
+                winnerIndex={winnerIndex}
+                isSpinning={isDrawing}
+                onFinished={onDrawFinished}
+              />
+            ) : (
+              <LiveDrawBanner onEnterDraw={startDraw} />
+            )}
+
             <View style={styles.bentoRow}>
               <ReliabilityScore score={currentUser?.credit_score ?? 300} />
               <TotalSaved
@@ -231,7 +148,7 @@ export default function EkubScreen() {
           </>
         )}
 
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: C.text, fontFamily: Fonts.headline }]}>
           {activeTab === 'browse'
             ? 'Available Circles'
             : activeTab === 'mine'
@@ -259,13 +176,14 @@ export default function EkubScreen() {
       <StatusBar barStyle="light-content" backgroundColor={C.ink} />
       <EnhancedTopBar balance={balance} C={C} />
 
-      <FlatList
+      <FlashList
         data={listData}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={loading ? null : EmptyState}
         contentContainerStyle={styles.listContent}
+        estimatedItemSize={180}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -279,6 +197,15 @@ export default function EkubScreen() {
           loading ? <ActivityIndicator color={COLORS.primary} style={{ margin: 20 }} /> : null
         }
       />
+
+      <SuccessOverlay
+        visible={showSuccess}
+        title={successMsg.title}
+        subtitle={successMsg.sub}
+        onClose={() => setShowSuccess(false)}
+      />
+
+      <ProcessingOverlay visible={submitting} message="Processing request..." />
     </View>
   );
 }
@@ -315,9 +242,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  activeTab: { backgroundColor: '#00A86B' }, // Primary Green
-  tabText: { fontSize: 13, fontWeight: '800' },
-  activeTabText: { color: '#080B10' }, // Ink Black
+  activeTab: { backgroundColor: T.primary },
+  tabText: { fontSize: 13, fontFamily: Fonts.bold, color: 'rgba(255,255,255,0.4)' },
+  activeTabText: { color: '#FFFFFF' }, 
 
   bentoRow: { flexDirection: 'row', gap: 12, marginBottom: 32 },
   sectionTitle: { fontSize: 26, fontWeight: '900', marginBottom: 20, letterSpacing: -0.8 },

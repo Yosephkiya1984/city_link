@@ -74,10 +74,10 @@ export const KycFayda = ({
               label="FIN Number"
               value={faydaFIN}
               onChangeText={setFaydaFIN}
-              placeholder="1000 0000 0001"
+              placeholder="1000 0000 0000 1"
               iconName="card-outline"
               keyboardType="number-pad"
-              maxLength={12}
+              maxLength={13}
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <CButton

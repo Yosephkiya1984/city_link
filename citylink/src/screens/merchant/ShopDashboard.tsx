@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { signOut } from '../../services/auth.service';
-import { DarkColors as T } from '../../theme';
+import { DarkColors as T, Fonts } from '../../theme';
 
 // Import extracted hooks & sub-components
 import { useShopData } from './hooks/useShopData';
@@ -103,6 +103,8 @@ export default function ShopDashboard() {
     orders,
   });
 
+  const isVerified = currentUser?.merchant_status === 'APPROVED' && !!currentUser?.tin;
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -113,6 +115,10 @@ export default function ShopDashboard() {
   };
 
   const pickImage = async () => {
+    if (!isVerified) {
+      showToast('Account Verification Required', 'error');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -136,7 +142,9 @@ export default function ShopDashboard() {
           </View>
           <View>
             <Text style={styles.brandNameMobile}>{businessName}</Text>
-            <Text style={styles.brandSubtitleMobile}>VERIFIED MERCHANT</Text>
+            <Text style={[styles.brandSubtitleMobile, { color: isVerified ? T.green : T.red }]}>
+              {isVerified ? 'VERIFIED MERCHANT' : 'ACTION REQUIRED'}
+            </Text>
           </View>
         </View>
         <View style={styles.navRight}>
@@ -155,6 +163,23 @@ export default function ShopDashboard() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Verification Guard Banner */}
+      {!isVerified && (
+        <View style={{ backgroundColor: '#E8312A20', padding: 12, borderBottomWidth: 1, borderColor: '#E8312A50', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Ionicons name="warning" size={20} color="#E8312A" />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#E8312A', fontSize: 13, fontFamily: Fonts.bold }}>COMPLIANCE LOCK ACTIVE</Text>
+            <Text style={{ color: '#E8312A', fontSize: 11, opacity: 0.8 }}>Submit your TIN and Business License to enable selling.</Text>
+          </View>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#E8312A', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}
+            onPress={() => navigation.navigate('FaydaKYC')}
+          >
+            <Text style={{ color: '#FFF', fontSize: 10, fontFamily: Fonts.bold }}>VERIFY</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* ─── Scrollable Tabs ────────────────────────────────────────── */}
       <View style={styles.tabScrollWrap}>
@@ -420,10 +445,15 @@ export default function ShopDashboard() {
             </View>
 
             <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-              <View style={[styles.successCirc, { backgroundColor: T.secondary + '20', marginBottom: 20 }]}>
+              <View
+                style={[
+                  styles.successCirc,
+                  { backgroundColor: T.secondary + '20', marginBottom: 20 },
+                ]}
+              >
                 <Ionicons name="shield-checkmark" size={48} color={T.secondary} />
               </View>
-              
+
               <Text style={[styles.ocProdName, { fontSize: 18, marginBottom: 4 }]}>
                 {pinPromptOrder?.product_name}
               </Text>
@@ -432,15 +462,18 @@ export default function ShopDashboard() {
               </Text>
 
               <TextInput
-                style={[styles.modalInput, { 
-                  fontSize: 32, 
-                  letterSpacing: 8, 
-                  textAlign: 'center', 
-                  width: '80%',
-                  height: 60,
-                  backgroundColor: T.top,
-                  borderColor: T.secondary,
-                }]}
+                style={[
+                  styles.modalInput,
+                  {
+                    fontSize: 32,
+                    letterSpacing: 8,
+                    textAlign: 'center',
+                    width: '80%',
+                    height: 60,
+                    backgroundColor: T.top,
+                    borderColor: T.secondary,
+                  },
+                ]}
                 placeholder="000000"
                 placeholderTextColor={T.edge}
                 keyboardType="numeric"
@@ -449,14 +482,20 @@ export default function ShopDashboard() {
                 onChangeText={setPinInput}
                 autoFocus
               />
-              
-              <Text style={{ color: T.onVariant, fontSize: 12, marginTop: 12, textAlign: 'center' }}>
+
+              <Text
+                style={{ color: T.onVariant, fontSize: 12, marginTop: 12, textAlign: 'center' }}
+              >
                 Funds will be released to your wallet immediately upon correct verification.
               </Text>
             </View>
 
             <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: T.secondary }, submittingPin && { opacity: 0.7 }]}
+              style={[
+                styles.submitBtn,
+                { backgroundColor: T.secondary },
+                submittingPin && { opacity: 0.7 },
+              ]}
               onPress={submitSelfDeliveryPin}
               disabled={submittingPin}
             >
@@ -464,8 +503,15 @@ export default function ShopDashboard() {
                 <ActivityIndicator color="#000" />
               ) : (
                 <>
-                  <Ionicons name="lock-open-outline" size={18} color="#000" style={{ marginRight: 8 }} />
-                  <Text style={[styles.submitBtnText, { color: '#000' }]}>Verify & Release Escrow</Text>
+                  <Ionicons
+                    name="lock-open-outline"
+                    size={18}
+                    color="#000"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={[styles.submitBtnText, { color: '#000' }]}>
+                    Verify & Release Escrow
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

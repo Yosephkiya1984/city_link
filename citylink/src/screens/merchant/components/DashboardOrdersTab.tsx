@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { DarkColors as T } from '../../../theme';
+import { DarkColors as T, Fonts } from '../../../theme';
+import { fmtETB } from '../../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -67,10 +68,10 @@ export function DashboardOrdersTab({
             <Ionicons name="warning" size={16} color={T.tertiary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.alertTitle}>
+            <Text style={[styles.alertTitle, { fontFamily: Fonts.bold }]}>
               {openDisputes.length} Open Dispute{openDisputes.length > 1 ? 's' : ''}
             </Text>
-            <Text style={styles.alertSub}>
+            <Text style={[styles.alertSub, { fontFamily: Fonts.regular }]}>
               {openDisputes[0]?.reason || 'Needs resolution within 24h.'}
             </Text>
           </View>
@@ -81,7 +82,7 @@ export function DashboardOrdersTab({
         {orders.length === 0 && !loading && (
           <View style={{ alignItems: 'center', padding: 40 }}>
             <Ionicons name="cart-outline" size={48} color={T.edge} />
-            <Text style={{ color: T.onVariant, marginTop: 12 }}>No orders yet</Text>
+            <Text style={{ color: T.onVariant, marginTop: 12, fontFamily: Fonts.regular }}>No orders yet</Text>
           </View>
         )}
         {orders.map((o) => (
@@ -94,8 +95,8 @@ export function DashboardOrdersTab({
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.ocId}>{o.id.slice(0, 8).toUpperCase()}</Text>
-                <Text style={styles.ocTimeTxtMobile}>
+                <Text style={[styles.ocId, { fontFamily: Fonts.mono }]}>{o.id.slice(0, 8).toUpperCase()}</Text>
+                <Text style={[styles.ocTimeTxtMobile, { fontFamily: Fonts.regular }]}>
                   {' '}
                   •{' '}
                   {new Date(o.created_at).toLocaleTimeString([], {
@@ -112,12 +113,12 @@ export function DashboardOrdersTab({
                       o.status === 'PAID'
                         ? T.primaryD + '30'
                         : [
-                              'SHIPPED',
-                              'DISPATCHING',
-                              'AGENT_ASSIGNED',
-                              'IN_TRANSIT',
-                              'AWAITING_PIN',
-                            ].includes(o.status)
+                                'SHIPPED',
+                                'DISPATCHING',
+                                'AGENT_ASSIGNED',
+                                'IN_TRANSIT',
+                                'AWAITING_PIN',
+                              ].includes(o.status)
                           ? T.secondary + '30'
                           : o.status === 'COMPLETED'
                             ? T.primary + '30'
@@ -131,6 +132,7 @@ export function DashboardOrdersTab({
                   style={[
                     styles.ocStatusTxt,
                     {
+                      fontFamily: Fonts.black,
                       color:
                         o.status === 'PAID'
                           ? T.primary
@@ -162,12 +164,12 @@ export function DashboardOrdersTab({
                 <Ionicons name="cube" size={24} color={T.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.ocProdName}>{o.product_name}</Text>
-                <Text style={styles.ocProdDetail} numberOfLines={1}>
+                <Text style={[styles.ocProdName, { fontFamily: Fonts.bold }]}>{o.product_name}</Text>
+                <Text style={[styles.ocProdDetail, { fontFamily: Fonts.regular }]} numberOfLines={1}>
                   Quantity: {o.qty || 1}
                 </Text>
-                <Text style={styles.ocBigAmountMobile}>
-                  ETB {Number(o.total)?.toLocaleString()}
+                <Text style={[styles.ocBigAmountMobile, { fontFamily: Fonts.black }]}>
+                  {fmtETB(o.total)}
                 </Text>
               </View>
             </View>
@@ -176,20 +178,20 @@ export function DashboardOrdersTab({
 
             <View style={{ flexDirection: 'row' }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.ocTinyLabel}>SHIPPING ADDRESS</Text>
-                <Text style={styles.ocAddressTxt}>{o.shipping_address || 'Standard Delivery'}</Text>
+                <Text style={[styles.ocTinyLabel, { fontFamily: Fonts.bold }]}>SHIPPING ADDRESS</Text>
+                <Text style={[styles.ocAddressTxt, { fontFamily: Fonts.regular }]}>{o.shipping_address || 'Standard Delivery'}</Text>
               </View>
               <View
                 style={{ flex: 1, paddingLeft: 12, borderLeftWidth: 1, borderLeftColor: T.edge }}
               >
-                <Text style={styles.ocTinyLabel}>
+                <Text style={[styles.ocTinyLabel, { fontFamily: Fonts.bold }]}>
                   {['DISPATCHING', 'AGENT_ASSIGNED'].includes(o.status)
                     ? 'PICKUP PIN'
                     : 'ESCROW STATUS'}
                 </Text>
                 {['DISPATCHING', 'AGENT_ASSIGNED'].includes(o.status) ? (
                   <View style={styles.ocPinBoxMobile}>
-                    <Text style={styles.ocPinTxt}>{o.pickup_pin || 'Generating...'}</Text>
+                    <Text style={[styles.ocPinTxt, { fontFamily: Fonts.mono }]}>{o.pickup_pin || 'Generating...'}</Text>
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
@@ -199,7 +201,7 @@ export function DashboardOrdersTab({
                       color={o.status === 'COMPLETED' ? T.primary : T.secondary}
                     />
                     <Text
-                      style={[styles.ocLockTxt, o.status === 'COMPLETED' && { color: T.primary }]}
+                      style={[styles.ocLockTxt, { fontFamily: Fonts.bold }, o.status === 'COMPLETED' && { color: T.primary }]}
                     >
                       {o.status === 'COMPLETED' ? 'Released' : 'Funds Secured'}
                     </Text>
@@ -220,7 +222,7 @@ export function DashboardOrdersTab({
                     color={T.ink}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.ocBtnTxt, { color: T.ink }]}>Mark Shipped</Text>
+                  <Text style={[styles.ocBtnTxt, { color: T.ink, fontFamily: Fonts.black }]}>Mark Shipped</Text>
                 </TouchableOpacity>
               ) : o.status === 'DISPATCHING' ? (
                 <View style={{ flexDirection: 'row', gap: 8, flex: 2 }}>
@@ -229,7 +231,7 @@ export function DashboardOrdersTab({
                     disabled
                   >
                     <ActivityIndicator size="small" color={T.primary} style={{ marginRight: 6 }} />
-                    <Text style={[styles.ocBtnTxt, { color: T.onVariant }]}>Finding Driver...</Text>
+                    <Text style={[styles.ocBtnTxt, { color: T.onVariant, fontFamily: Fonts.bold }]}>Finding Driver...</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -243,10 +245,10 @@ export function DashboardOrdersTab({
                     ]}
                     onPress={() => handleSwitchSelfDelivery(o)}
                   >
-                    <Text style={[styles.ocBtnTxt, { color: T.onSurface }]}>Self-Deliver</Text>
+                    <Text style={[styles.ocBtnTxt, { color: T.onSurface, fontFamily: Fonts.bold }]}>Self-Deliver</Text>
                   </TouchableOpacity>
                 </View>
-              ) : o.status === 'SHIPPED' ? (
+              ) : (o.status === 'SHIPPED' || o.status === 'SELF_DELIVERY') ? (
                 <View style={{ flex: 2, gap: 8 }}>
                   <TouchableOpacity
                     style={[styles.ocBtnMobile, { backgroundColor: T.green }]}
@@ -261,7 +263,7 @@ export function DashboardOrdersTab({
                       color="#000"
                       style={{ marginRight: 4 }}
                     />
-                    <Text style={[styles.ocBtnTxt, { color: '#000' }]}>
+                    <Text style={[styles.ocBtnTxt, { color: '#000', fontFamily: Fonts.black }]}>
                       Complete Delivery (PIN)
                     </Text>
                   </TouchableOpacity>
@@ -282,7 +284,7 @@ export function DashboardOrdersTab({
                       color={T.primary}
                       style={{ marginRight: 4 }}
                     />
-                    <Text style={[styles.ocBtnTxt, { color: T.primary, fontSize: 11 }]}>
+                    <Text style={[styles.ocBtnTxt, { color: T.primary, fontSize: 11, fontFamily: Fonts.bold }]}>
                       Search for Drivers
                     </Text>
                   </TouchableOpacity>
@@ -306,7 +308,7 @@ export function DashboardOrdersTab({
                     <Text
                       style={[
                         styles.ocBtnTxt,
-                        { color: o.merchant_confirmed_pickup ? T.onVariant : T.ink },
+                        { color: o.merchant_confirmed_pickup ? T.onVariant : T.ink, fontFamily: Fonts.black },
                       ]}
                     >
                       {o.merchant_confirmed_pickup ? 'Awaiting Agent...' : 'Confirm Handover'}
@@ -318,7 +320,7 @@ export function DashboardOrdersTab({
                         fontSize: 10,
                         color: T.primary,
                         textAlign: 'center',
-                        fontWeight: '800',
+                        fontFamily: Fonts.black,
                       }}
                     >
                       AGENT HAS CONFIRMED PICKUP
@@ -330,7 +332,7 @@ export function DashboardOrdersTab({
                   style={[styles.ocBtnMobile, { backgroundColor: T.top, flex: 2 }]}
                   disabled
                 >
-                  <Text style={[styles.ocBtnTxt, { color: T.onVariant }]}>
+                  <Text style={[styles.ocBtnTxt, { color: T.onVariant, fontFamily: Fonts.bold }]}>
                     {o.status === 'AWAITING_PIN'
                       ? 'Driver Arrived (Awaiting PIN)'
                       : 'Driver on Route to Buyer'}
@@ -341,14 +343,14 @@ export function DashboardOrdersTab({
                   style={[styles.ocBtnMobile, { backgroundColor: T.tertiary + '30', flex: 2 }]}
                   disabled
                 >
-                  <Text style={[styles.ocBtnTxt, { color: T.tertiary }]}>Disputed</Text>
+                  <Text style={[styles.ocBtnTxt, { color: T.tertiary, fontFamily: Fonts.black }]}>Disputed</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   style={[styles.ocBtnMobile, { backgroundColor: T.top, flex: 2 }]}
                   disabled
                 >
-                  <Text style={[styles.ocBtnTxt, { color: T.primary }]}>Completed</Text>
+                  <Text style={[styles.ocBtnTxt, { color: T.primary, fontFamily: Fonts.black }]}>Completed</Text>
                 </TouchableOpacity>
               )}
               {o.status === 'PAID' && (
@@ -356,7 +358,7 @@ export function DashboardOrdersTab({
                   style={[styles.ocBtnMobileOutlined, { flex: 1, borderColor: T.tertiary + '80' }]}
                   onPress={() => handleCancelOrder(o.id)}
                 >
-                  <Text style={[styles.ocBtnOutlinedTxtMobile, { color: T.tertiary }]}>Cancel</Text>
+                  <Text style={[styles.ocBtnOutlinedTxtMobile, { color: T.tertiary, fontFamily: Fonts.bold }]}>Cancel</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -369,10 +371,10 @@ export function DashboardOrdersTab({
                   color={T.primary}
                   style={{ marginRight: 4 }}
                 />
-                <Text style={[styles.ocBtnOutlinedTxtMobile, { color: T.primary }]}>Message</Text>
+                <Text style={[styles.ocBtnOutlinedTxtMobile, { color: T.primary, fontFamily: Fonts.bold }]}>Message</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.ocBtnMobileOutlined, { flex: 1 }]}>
-                <Text style={styles.ocBtnOutlinedTxtMobile}>Details</Text>
+                <Text style={[styles.ocBtnOutlinedTxtMobile, { fontFamily: Fonts.bold }]}>Details</Text>
               </TouchableOpacity>
             </View>
           </View>

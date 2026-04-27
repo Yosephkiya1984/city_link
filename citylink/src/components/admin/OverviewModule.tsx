@@ -99,11 +99,11 @@ export default function OverviewModule() {
         id: Math.random().toString(),
         title:
           event.type === 'ORDER'
-            ? 'Transaction Logged'
+            ? 'Fiscal Record Logged'
             : event.type === 'PROFILE'
-              ? 'Identity Created'
+              ? 'Citizen Registration'
               : event.type === 'DISPUTE'
-                ? 'Conflict Reported'
+                ? 'Regulatory Conflict'
                 : 'System Registry',
         subtitle:
           payload.new?.product_name ||
@@ -136,31 +136,31 @@ export default function OverviewModule() {
   const displayStats = [
     {
       id: 'rev',
-      label: 'Ecosystem Volume',
+      label: 'National Digital GDP',
       value: `${stats.revenue.toLocaleString()} ETB`,
-      icon: 'wallet-outline',
-      color: '#59de9b',
+      icon: 'stats-chart-outline',
+      color: '#5AC8FA', // Professional Blue
     },
     {
       id: 'usr',
-      label: 'Verified Identities',
+      label: 'Citizens (Fayda Verified)',
       value: stats.identities.toLocaleString(),
-      icon: 'people-outline',
-      color: '#ffd887',
+      icon: 'shield-checkmark-outline',
+      color: '#59de9b', // Compliance Green
     },
     {
       id: 'jobs',
-      label: 'Work Registry',
+      label: 'Commercial Permits',
       value: stats.jobs.toLocaleString(),
-      icon: 'briefcase-outline',
-      color: '#5AC8FA',
+      icon: 'business-outline',
+      color: '#ffd887', // Regulatory Gold
     },
     {
       id: 'dsp',
-      label: 'Resolved Conflicts',
+      label: 'Fiscal Audits',
       value: stats.openDisputes.toLocaleString(),
-      icon: 'hammer-outline',
-      color: '#ffb4aa',
+      icon: 'document-text-outline',
+      color: '#ffb4aa', // Audit Red
     },
   ];
 
@@ -214,20 +214,20 @@ export default function OverviewModule() {
           >
             <View style={styles.cardHeader}>
               <Text style={[styles.cardTitle, { color: theme.text, fontFamily: Fonts.label }]}>
-                Sub-System Analysis
+                National Fiscal Integrity
               </Text>
-              <View style={[styles.pill, { backgroundColor: theme.primary + '15' }]}>
-                <Text style={{ color: theme.primary, fontSize: 10, fontWeight: '700' }}>
-                  DYNAMIC
+              <View style={[styles.pill, { backgroundColor: '#E8312A' + '15' }]}>
+                <Text style={{ color: '#E8312A', fontSize: 10, fontWeight: '700' }}>
+                  AUDIT ACTIVE
                 </Text>
               </View>
             </View>
 
             <View style={styles.healthStrip}>
-              <HealthNode label="Market" metric={stats.revenue > 0 ? 'OK' : 'WAIT'} />
-              <HealthNode label="Jobs" metric={stats.jobs} />
-              <HealthNode label="Estate" metric={stats.realEstate} />
-              <HealthNode label="Parking" metric={stats.parking} />
+              <HealthNode label="Digital VAT" metric="15%" />
+              <HealthNode label="Tax Yield" metric="OK" />
+              <HealthNode label="KYC Ratio" metric="88%" />
+              <HealthNode label="Cash Journal" metric="Live" />
             </View>
 
             <View style={styles.chartContainer}>
@@ -239,7 +239,7 @@ export default function OverviewModule() {
                   fontFamily: Fonts.label,
                 }}
               >
-                DISTRIBUTED LOAD (24H)
+                DAILY REVENUE FLOW (GOVERNMENT CONSOLIDATED)
               </Text>
               <View style={styles.barGrid}>
                 {[40, 60, 35, 90, 75, 50, 85, 30, 65, 45, 78, 56, 40, 90].map((h, i) => (

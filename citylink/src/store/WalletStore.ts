@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SecurePersist } from './SecurePersist';
 import { Transaction, ParkingSession } from '../types/domain_types';
+import { User } from '../types/domain_types';
 
 export interface WalletState {
   balance: number;
@@ -30,11 +31,17 @@ export const useWalletStore = create<WalletState>((set) => ({
   },
 
   addTransaction: async (tx) => {
-    set((s) => {
-      const next = [tx, ...s.transactions].slice(0, 50);
-      SecurePersist.saveTransactions(next); // This returns a promise, but we update state immediately
-      return { transactions: next };
-    });
+    // Compute next state outside set() so we can await the persist call.
+    const current = useWalletStore.getState().transactions;
+    const next = [tx, ...current].slice(0, 50);
+    set({ transactions: next });
+    // 🛡️ FIX: Await the persist and surface errors — previously fire-and-forget.
+    // Failure here means the offline cache is stale, NOT that money is lost (server is source of truth).
+    try {
+      await SecurePersist.saveTransactions(next);
+    } catch (err) {
+      console.error('[WalletStore] addTransaction: failed to persist transaction cache:', err);
+    }
   },
 
   setActiveParking: async (session) => {
@@ -43,8 +50,22 @@ export const useWalletStore = create<WalletState>((set) => ({
   },
 
   hydrateWallet: async (userId) => {
-    // If userId provided, we could verify it matches SecurePersist,
-    // but for now we follow the "Source of Truth" in SecurePersist.
+    // 🛡️ FIX: Validate that cached data belongs to the requesting user.
+    // Without this, a new login on a shared device briefly shows the previous user's balance.
+    if (userId) {
+      const cachedUser: User | null = await SecurePersist.loadUser();
+      if (cachedUser && cachedUser.id !== userId) {
+        // Different user — discard stale cache immediately rather than displaying it.
+        console.warn('[WalletStore] hydrateWallet: userId mismatch, clearing stale wallet cache.');
+        set({ balance: 0, transactions: [], activeParking: null });
+        await Promise.all([
+          SecurePersist.saveBalance(0),
+          SecurePersist.saveTransactions([]),
+          SecurePersist.saveActiveParking(null),
+        ]);
+        return;
+      }
+    }
     const [balance, transactions, activeParking] = await Promise.all([
       SecurePersist.loadBalance(),
       SecurePersist.loadTransactions(),

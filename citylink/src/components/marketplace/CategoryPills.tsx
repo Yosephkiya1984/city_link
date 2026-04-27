@@ -1,8 +1,11 @@
 import React, { memo } from 'react';
-import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { ScrollView, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { MotiView, MotiText } from 'moti';
+import { MotiPressable } from 'moti/interactions';
 import { T, CATEGORIES } from './constants';
+import { Fonts, Radius } from '../../theme';
 
 interface CategoryPillsProps {
   selected: string;
@@ -14,28 +17,44 @@ const CategoryPills = memo(({ selected, onSelect }: CategoryPillsProps) => (
     horizontal
     showsHorizontalScrollIndicator={false}
     style={styles.pillRow}
-    contentContainerStyle={{ paddingRight: 20, gap: 8 }}
+    contentContainerStyle={{ paddingRight: 20, gap: 10 }}
   >
     {CATEGORIES.map((cat: any) => {
       const active = selected === cat.id;
       return (
-        <TouchableOpacity
+        <MotiPressable
           key={cat.id}
-          activeOpacity={0.7}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onSelect(cat.id);
           }}
-          style={[
-            styles.pill,
-            active && { backgroundColor: cat.color + '22', borderColor: cat.color + '60' },
-          ]}
+          animate={({ hovered, pressed }) => {
+            'worklet';
+            return {
+              scale: pressed ? 0.95 : hovered ? 1.05 : 1,
+            };
+          }}
         >
-          <Ionicons name={cat.icon as any} size={13} color={active ? cat.color : T.textSub} />
-          <Text style={[styles.pillText, active && { color: cat.color, fontWeight: '700' }]}>
-            {cat.name}
-          </Text>
-        </TouchableOpacity>
+          <MotiView
+            animate={{
+              backgroundColor: active ? cat.color + '22' : T.surface,
+              borderColor: active ? cat.color + '60' : T.border,
+            }}
+            transition={{ type: 'timing', duration: 250 }}
+            style={styles.pill}
+          >
+            <Ionicons name={cat.icon as any} size={14} color={active ? cat.color : T.textSub} />
+            <MotiText
+              animate={{
+                color: active ? cat.color : T.textSub,
+                fontWeight: active ? '700' : '600',
+              }}
+              style={styles.pillText}
+            >
+              {cat.name}
+            </MotiText>
+          </MotiView>
+        </MotiPressable>
       );
     })}
   </ScrollView>
@@ -48,13 +67,11 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: T.border,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: Radius.full,
+    borderWidth: 1.2,
   },
-  pillText: { fontSize: 12, color: T.textSub, fontWeight: '600' },
+  pillText: { fontSize: 13, fontFamily: Fonts.bold },
 });

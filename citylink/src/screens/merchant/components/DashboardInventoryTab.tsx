@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { DarkColors as T } from '../../../theme';
+import { DarkColors as T, Fonts } from '../../../theme';
 import { Product } from '../../../types/domain_types';
+import { fmtETB } from '../../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -55,7 +56,7 @@ export function DashboardInventoryTab({
           <TextInput
             placeholder="Search products..."
             placeholderTextColor={T.onVariant}
-            style={styles.searchInput}
+            style={[styles.searchInput, { fontFamily: Fonts.regular }]}
             value={inventorySearch}
             onChangeText={setInventorySearch}
           />
@@ -74,7 +75,7 @@ export function DashboardInventoryTab({
         {filteredInventory.length === 0 && !loading && (
           <View style={{ alignItems: 'center', padding: 40 }}>
             <Ionicons name="cube-outline" size={48} color={T.edge} />
-            <Text style={{ color: T.onVariant, marginTop: 12 }}>
+            <Text style={{ color: T.onVariant, marginTop: 12, fontFamily: Fonts.regular }}>
               {inventorySearch ? 'No matching products' : 'No products in stock'}
             </Text>
           </View>
@@ -97,7 +98,7 @@ export function DashboardInventoryTab({
                   )}
                 </View>
                 <View style={{ flex: 1, justifyContent: 'center' }}>
-                  <Text style={styles.tsName} numberOfLines={1}>
+                  <Text style={[styles.tsName, { fontFamily: Fonts.bold }]} numberOfLines={1}>
                     {p.name || p.title}
                   </Text>
                   <View
@@ -108,15 +109,15 @@ export function DashboardInventoryTab({
                       marginTop: 4,
                     }}
                   >
-                    <Text style={styles.tableSku}>ID: {p.id.slice(0, 8)}</Text>
-                    <Text style={styles.tsPrice}>{p.price} ETB</Text>
+                    <Text style={[styles.tableSku, { fontFamily: Fonts.mono }]}>ID: {p.id.slice(0, 8)}</Text>
+                    <Text style={[styles.tsPrice, { fontFamily: Fonts.black }]}>{fmtETB(p.price)}</Text>
                   </View>
                 </View>
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
                 <View style={styles.catBadge}>
-                  <Text style={styles.catBadgeText}>{p.category?.toUpperCase() || 'GENERAL'}</Text>
+                  <Text style={[styles.catBadgeText, { fontFamily: Fonts.black }]}>{p.category?.toUpperCase() || 'GENERAL'}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.deleteBtnSmall}
@@ -131,7 +132,7 @@ export function DashboardInventoryTab({
                   <Ionicons name="trash-outline" size={14} color={T.tertiary} />
                 </TouchableOpacity>
                 <View style={{ flex: 1 }} />
-                <Text style={styles.stockText}>
+                <Text style={[styles.stockText, { fontFamily: Fonts.bold }]}>
                   <Text style={{ color: p.stock > 0 ? T.onSurface : T.tertiary }}>
                     {p.stock || 0}
                   </Text>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,13 +40,9 @@ export default function RequestMoneyScreen() {
   const quickAmounts = [50, 100, 200, 500, 1000, 2000];
 
   // Load recent requests
-  useEffect(() => {
-    loadRecentRequests();
-  }, []);
-
-  const loadRecentRequests = () => {
+  const loadRecentRequestsData = useCallback(() => {
     // Mock recent requests
-    setRecentRequests([
+    return [
       {
         id: uid(),
         from: 'John Doe',
@@ -63,8 +59,12 @@ export default function RequestMoneyScreen() {
         status: 'completed',
         created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
       },
-    ]);
-  };
+    ];
+  }, []);
+
+  useEffect(() => {
+    setRecentRequests(loadRecentRequestsData());
+  }, [loadRecentRequestsData]);
 
   // Send money request
   const sendRequest = async () => {

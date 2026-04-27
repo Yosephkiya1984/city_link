@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { DarkColors as T } from '../../../theme';
+import { DarkColors as T, Radius, Fonts } from '../../../theme';
 
 export const styles = StyleSheet.create({
   // Image Upload Styles
@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
   imagePickerBtn: {
     width: '100%',
     height: 120,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     backgroundColor: T.rim,
     borderStyle: 'dashed',
     borderWidth: 2,
@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
   imagePreviewContainer: {
     width: '100%',
     height: 180,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
     backgroundColor: T.rim,
   },
@@ -86,7 +86,7 @@ export const styles = StyleSheet.create({
   avatarBoxMobile: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     backgroundColor: T.rim,
     alignItems: 'center',
     justifyContent: 'center',
@@ -104,12 +104,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: Radius.full,
     backgroundColor: T.surface,
   },
   tabItemActive: { backgroundColor: T.primary + '20' },
-  tabItemTxt: { color: T.sub, fontSize: 13, fontWeight: '600', marginLeft: 8 },
-  tabItemTxtActive: { color: T.primary, fontWeight: '700' },
+  tabItemTxt: { color: T.sub, fontSize: 13, fontFamily: Fonts.bold, marginLeft: 8 },
+  tabItemTxtActive: { color: T.primary, fontFamily: Fonts.black },
 
   // Content Area
   mainScroll: { flex: 1 },
@@ -121,7 +121,7 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 24,
   },
-  pageTitle: { fontSize: 28, fontWeight: '700', color: T.text },
+  pageTitle: { fontSize: 28, fontFamily: Fonts.black, color: T.text },
   pageSubtitle: { fontSize: 13, color: T.sub, marginTop: 4 },
   primaryButtonSolid: {
     flexDirection: 'row',
@@ -129,19 +129,19 @@ export const styles = StyleSheet.create({
     backgroundColor: T.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: Radius.md,
   },
   iconButtonOutlined: {
     padding: 10,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
     borderWidth: 1,
     borderColor: T.edge,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnTextThick: { fontSize: 13, fontWeight: '700', marginLeft: 6, color: T.ink },
+  btnTextThick: { fontSize: 13, fontFamily: Fonts.bold, marginLeft: 6, color: T.ink },
 
-  cardTitle: { fontSize: 16, color: T.text, fontWeight: '700' },
+  cardTitle: { fontSize: 16, color: T.text, fontFamily: Fonts.bold },
 
   // Tab 1: Overview (Mobile)
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
@@ -151,24 +151,71 @@ export const styles = StyleSheet.create({
     backgroundColor: T.lift,
     borderWidth: 1,
     borderColor: T.edge,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     padding: 16,
   },
   statIconBox: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statValue: { fontSize: 22, fontWeight: '700', color: T.text, marginBottom: 2 },
-  statLabel: { fontSize: 11, color: T.sub, fontWeight: '600' },
+  statValue: { fontSize: 22, fontFamily: Fonts.black, color: T.text, marginBottom: 2 },
+  statLabel: { fontSize: 11, color: T.sub, fontFamily: Fonts.bold },
+
+  premiumStatCard: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    borderRadius: Radius.card,
+    padding: 16,
+    borderWidth: 1,
+  },
+  payoutChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: T.primary + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Radius.sm,
+    marginTop: 12,
+  },
+  payoutText: {
+    fontSize: 10,
+    color: T.primary,
+    fontFamily: Fonts.bold,
+  },
+  miniStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: T.lift,
+    padding: 16,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: T.edge,
+    marginBottom: 24,
+  },
+  miniStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  miniStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: T.text,
+  },
+  miniStatLabel: {
+    fontSize: 9,
+    color: T.sub,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginTop: 4,
+  },
 
   chartContainer: {
     backgroundColor: T.lift,
     borderWidth: 1,
     borderColor: T.edge,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     padding: 16,
     marginBottom: 24,
   },
@@ -211,7 +258,7 @@ export const styles = StyleSheet.create({
     backgroundColor: T.lift,
     borderWidth: 1,
     borderColor: T.edge,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     padding: 16,
   },
   topSellingList: { marginTop: 16, gap: 16 },
@@ -237,7 +284,7 @@ export const styles = StyleSheet.create({
 
   productMobileCard: {
     backgroundColor: T.lift,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     padding: 16,
     borderWidth: 1,
     borderColor: T.edge,
@@ -292,7 +339,7 @@ export const styles = StyleSheet.create({
     backgroundColor: T.lift,
     borderWidth: 1,
     borderColor: T.edge,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     padding: 16,
   },
   ocId: { fontSize: 12, color: T.text, fontFamily: 'monospace', fontWeight: '700' },
@@ -349,7 +396,7 @@ export const styles = StyleSheet.create({
   // Tab 4: Finance (Mobile)
   financeHeroMobile: {
     backgroundColor: T.primaryD,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     padding: 20,
     overflow: 'hidden',
   },
@@ -374,7 +421,7 @@ export const styles = StyleSheet.create({
 
   txListMobile: {
     backgroundColor: T.lift,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     borderWidth: 1,
     borderColor: T.edge,
     padding: 16,
@@ -397,8 +444,8 @@ export const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: T.lift,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: Radius.card,
+    borderTopRightRadius: Radius.card,
     padding: 24,
     paddingBottom: 40,
   },
@@ -462,7 +509,7 @@ export const styles = StyleSheet.create({
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.primary + '30',
-    borderRadius: 16,
+    borderRadius: Radius.card,
     padding: 24,
     marginTop: 24,
     width: '100%',

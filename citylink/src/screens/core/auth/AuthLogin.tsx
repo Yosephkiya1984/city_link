@@ -52,12 +52,14 @@ export const AuthLogin = ({
 
       <View style={styles.form}>
         <CInput
-          label="Phone Number"
+          label="Phone or Email"
           value={phone}
           onChangeText={setPhone}
-          placeholder="+251 9XX XXX XXX"
-          iconName="call-outline"
-          keyboardType="phone-pad"
+          placeholder="+251 9XX... or test@gmail.com"
+          iconName="person-outline"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         {authMode === 'gov' && (

@@ -1,31 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Modal,
-  Pressable,
-  TextInput,
   Switch,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
 import { useAuthStore } from '../../store/AuthStore';
 import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
-import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
-import { CButton, CInput, SectionTitle, Card } from '../../components';
+import { useBiometricStore } from '../../store/BiometricStore';
+import { Radius, Shadow, Fonts } from '../../theme';
+import { CButton, SectionTitle } from '../../components';
 import { signOut } from '../../services/auth.service';
-import { hasWalletPin, setWalletPin, changeWalletPin } from '../../services/walletPin';
+import { hasWalletPin } from '../../services/walletPin';
 import { KycService, FAYDA_STATUS } from '../../services/kyc.service';
 import { fetchAgentProfile } from '../../services/delivery.service';
-import { ServiceAccessUtils } from '../../services/serviceAccess';
 import { useTheme } from '../../hooks/useTheme';
 import { fmtETB } from '../../utils';
 import { t } from '../../utils/i18n';
@@ -36,99 +33,60 @@ export default function ProfileScreen() {
   const C = useTheme();
 
   const currentUser = useAuthStore((s) => s.currentUser);
-  const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
+  const uiMode = useAuthStore((s) => s.uiMode);
+  const setUiMode = useAuthStore((s) => s.setUiMode);
   const balance = useWalletStore((s) => s.balance);
-  const transactions = useWalletStore((s) => s.transactions);
   const showToast = useSystemStore((s) => s.showToast);
+  const { isBiometricsEnabled, isBiometricsSupported, setBiometricsEnabled } = useBiometricStore();
   const navigation = useNavigation();
 
   const [pinSet, setPinSet] = useState(false);
-  const [kycStatus, setKycStatus] = useState<string | null>(FAYDA_STATUS.NOT_STARTED);
-  const [kycData, setKycData] = useState<Record<string, unknown> | null>(null);
+  const [kycStatus, setKycStatus] = useState<string | null>(FAYDA_STATUS.NOT_STARTED as string);
   const [isAgent, setIsAgent] = useState(false);
   const [loadingAgent, setLoadingAgent] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const userId = currentUser?.id;
-      if (userId) {
-        setPinSet(await hasWalletPin(userId));
-      } else {
-        setPinSet(false);
-      }
+  const loadProfileData = useCallback(async () => {
+    const userId = currentUser?.id;
+    if (!userId)
+      return { pinSetStatus: false, kycStatusValue: FAYDA_STATUS.NOT_STARTED, isAgentValue: false };
 
-      // Load KYC status
-      try {
-        const statusData = await KycService.getKYCStatus();
-        setKycStatus(statusData.status);
-        setKycData(statusData.kyc_data ?? null);
-      } catch (e: any) {
-        console.error('[Profile] Failed to fetch KYC status:', e);
-        setKycStatus(null);
-        setKycData(null);
-      }
+    const [pinSetStatus, statusData, agentProfile] = await Promise.all([
+      hasWalletPin(userId),
+      KycService.getKYCStatus(),
+      fetchAgentProfile(userId),
+    ]);
 
-      // Check if they are a delivery agent
-      if (userId) {
-        setLoadingAgent(true);
-        try {
-          const res = await fetchAgentProfile(userId);
-          if (res.data) {
-            setIsAgent(true);
-          } else {
-            setIsAgent(false);
-          }
-        } catch (e) {
-          console.error('[Profile] Failed to fetch agent profile:', e);
-          setIsAgent(false);
-        }
-        setLoadingAgent(false);
-      }
-    })();
+    return {
+      pinSetStatus,
+      kycStatusValue: statusData.status,
+      isAgentValue: !!agentProfile.data,
+    };
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    setLoadingAgent(true);
+    loadProfileData().then((data) => {
+      setPinSet(data.pinSetStatus);
+      setKycStatus(data.kycStatusValue);
+      setIsAgent(data.isAgentValue);
+      setLoadingAgent(false);
+    });
+  }, [loadProfileData]);
 
   async function handleLogout() {
     try {
       await signOut();
-    } catch (error) {
-      console.error('[Profile] signOut failed:', error);
-      showToast('Unable to sign out from server. Local session will still be cleared.', 'error');
     } finally {
-      // Harden: Ensure all stores are reset independently.
-      // We use callables to control the execution order and preserve toasts.
-      const authReset = () => useAuthStore.getState().reset();
-      const walletReset = () => useWalletStore.getState().reset();
-      const systemReset = () => useSystemStore.getState().reset();
-
-      try {
-        // 1. Reset data stores first (Auth & Wallet)
-        const results = await Promise.allSettled([
-          Promise.resolve().then(authReset),
-          Promise.resolve().then(walletReset),
-        ]);
-
-        results.forEach((res, idx) => {
-          if (res.status === 'rejected') {
-            const name = idx === 0 ? 'Auth' : 'Wallet';
-            console.error(`[Logout] Failed to reset ${name} store:`, res.reason);
-          }
-        });
-
-        // 2. Add a brief delay so any error messages remain visible during transition
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // 3. Reset system store last (clears toasts/UI state)
-        await Promise.resolve()
-          .then(systemReset)
-          .catch((err: any) => console.error('[Logout] Failed to reset System store:', err));
-      } catch (err) {
-        console.error('[Logout] Unexpected error during parallel store reset:', err);
-      }
+      useAuthStore.getState().reset();
+      useWalletStore.getState().reset();
+      useSystemStore.getState().reset();
     }
   }
 
-  const roleColor = currentUser?.role === 'merchant' ? '#FF9500' : '#007AFF';
-  const kycVerified = kycStatus === FAYDA_STATUS.VERIFIED;
+  const kycVerified = 
+    kycStatus === FAYDA_STATUS.VERIFIED || 
+    currentUser?.kyc_status === 'VERIFIED' || 
+    currentUser?.fayda_verified === true;
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
@@ -266,7 +224,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Merchant Portal Entry (Only for existing merchants) */}
+        {/* Merchant Portal Entry */}
         {currentUser?.role === 'merchant' && (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
@@ -297,48 +255,32 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Delivery Agent Entry — for verified citizens only */}
-        {(currentUser?.role === 'citizen' || currentUser?.role === 'delivery_agent') && (
+        {/* Delivery Agent Entry */}
+        {(currentUser?.role === 'delivery_agent' || isAgent) ? (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
-              onPress={async () => {
-                if (!currentUser?.id) return;
-                const { updateUserRole } = require('../../services/profile.service');
-                if (currentUser.role === 'delivery_agent') {
-                  // Switch to Citizen app
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                  setCurrentUser({ ...currentUser, role: 'citizen' });
-                  await updateUserRole(currentUser.id, 'citizen');
+              onPress={() => {
+                console.log('[Profile] Switching mode. Current uiMode:', uiMode);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                if (uiMode === 'agent') {
+                  console.log('[Profile] Setting mode to citizen');
+                  setUiMode('citizen');
                   showToast('Switched to Citizen Mode', 'info');
-                } else if (isAgent) {
-                  // Switch to Delivery Dashboard
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                  setCurrentUser({ ...currentUser, role: 'delivery_agent' });
-                  await updateUserRole(currentUser.id, 'delivery_agent');
-                  showToast('Switched to Delivery Mode', 'success');
                 } else {
-                  (navigation as any).navigate('BecomeDeliveryAgent');
+                  console.log('[Profile] Setting mode to agent');
+                  setUiMode('agent');
+                  showToast('Switched to Delivery Mode', 'success');
                 }
               }}
               style={{
-                backgroundColor:
-                  currentUser?.role === 'delivery_agent' || isAgent
-                    ? currentUser?.role === 'delivery_agent'
-                      ? C.primaryL
-                      : '#1a3a1a'
-                    : '#0d1f2d',
+                backgroundColor: uiMode === 'agent' ? C.primaryL : C.surface,
                 borderRadius: Radius.xl,
                 padding: 20,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 16,
                 borderWidth: 1.5,
-                borderColor:
-                  currentUser?.role === 'delivery_agent' || isAgent
-                    ? currentUser?.role === 'delivery_agent'
-                      ? C.primary
-                      : '#68d391'
-                    : '#63b3ed',
+                borderColor: uiMode === 'agent' ? C.primary : C.edge2,
                 ...Shadow.md,
               }}
             >
@@ -348,58 +290,33 @@ export default function ProfileScreen() {
                   height: 50,
                   borderRadius: 25,
                   backgroundColor:
-                    currentUser?.role === 'delivery_agent' || isAgent
-                      ? 'rgba(104,211,145,0.15)'
-                      : 'rgba(99,179,237,0.12)',
+                    uiMode === 'agent' ? 'rgba(104,211,145,0.15)' : 'rgba(99,179,237,0.12)',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
                 <Ionicons
-                  name={
-                    currentUser?.role === 'delivery_agent'
-                      ? 'person-outline'
-                      : isAgent
-                        ? 'bicycle'
-                        : 'bicycle-outline'
-                  }
+                  name={uiMode === 'agent' ? 'person-outline' : 'bicycle'}
                   size={26}
-                  color={
-                    currentUser?.role === 'delivery_agent'
-                      ? C.primary
-                      : isAgent
-                        ? '#68d391'
-                        : '#63b3ed'
-                  }
+                  color={uiMode === 'agent' ? C.primary : C.sub}
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
-                    color:
-                      currentUser?.role === 'delivery_agent'
-                        ? C.primary
-                        : isAgent
-                          ? '#68d391'
-                          : '#63b3ed',
+                    color: uiMode === 'agent' ? C.primary : C.text,
                     fontSize: 16,
                     fontFamily: Fonts.black,
                   }}
                 >
-                  {currentUser?.role === 'delivery_agent'
-                    ? 'Switch to Citizen App'
-                    : isAgent
-                      ? 'Enter Delivery Dashboard'
-                      : 'Become a Delivery Agent'}
+                  {uiMode === 'agent' ? 'Switch to Citizen App' : 'Enter Delivery Dashboard'}
                 </Text>
                 <Text
-                  style={{ color: '#8b949e', fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}
+                  style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}
                 >
-                  {currentUser?.role === 'delivery_agent'
+                  {uiMode === 'agent'
                     ? 'Return to main superapp services'
-                    : isAgent
-                      ? 'Start receiving delivery jobs'
-                      : 'Earn 12% per delivery · Set your own schedule'}
+                    : 'Start receiving delivery jobs'}
                 </Text>
               </View>
               {loadingAgent ? (
@@ -408,15 +325,48 @@ export default function ProfileScreen() {
                 <Ionicons
                   name="repeat-outline"
                   size={20}
-                  color={
-                    currentUser?.role === 'delivery_agent' || isAgent
-                      ? currentUser?.role === 'delivery_agent'
-                        ? C.primary
-                        : '#68d391'
-                      : '#63b3ed'
-                  }
+                  color={uiMode === 'agent' ? C.primary : C.sub}
                 />
               )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+             <TouchableOpacity
+              onPress={() => (navigation as any).navigate('BecomeDeliveryAgent')}
+              style={{
+                backgroundColor: C.surface,
+                borderRadius: Radius.xl,
+                padding: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 16,
+                borderWidth: 1.5,
+                borderColor: C.primary,
+                ...Shadow.sm,
+              }}
+            >
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: C.primaryL,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="bicycle" size={26} color={C.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
+                  Work with CityLink
+                </Text>
+                <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}>
+                  Earn money by becoming a delivery agent
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={C.primary} />
             </TouchableOpacity>
           </View>
         )}
@@ -430,7 +380,7 @@ export default function ProfileScreen() {
               label: t('dark_mode'),
               type: 'switch',
               value: isDark,
-              onValueChange: toggleTheme,
+              onValueChange: () => toggleTheme(),
             },
             {
               icon: 'lock-closed',
@@ -438,15 +388,23 @@ export default function ProfileScreen() {
               value: pinSet ? t('active') : t('not_set'),
               onPress: () => showToast(t('pin_coming'), 'info'),
             },
+            ...(isBiometricsSupported ? [{
+              icon: 'finger-print',
+              label: t('biometric_lock'),
+              type: 'switch',
+              value: isBiometricsEnabled,
+              onValueChange: (val: boolean) => {
+                setBiometricsEnabled(val);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              },
+            }] : []),
             {
               icon: 'shield-checkmark',
               label: t('id_kyc'),
-              value: kycStatus === FAYDA_STATUS.VERIFIED ? t('verified') : t('unverified'),
+              value: kycVerified ? t('verified') : t('unverified'),
               onPress: () =>
                 showToast(
-                  kycStatus === FAYDA_STATUS.VERIFIED
-                    ? 'KYC already completed'
-                    : 'KYC completed during registration',
+                  kycVerified ? 'KYC already completed' : 'KYC completed during registration',
                   'info'
                 ),
             },
@@ -458,13 +416,19 @@ export default function ProfileScreen() {
             },
             {
               icon: 'chatbubbles',
-              label: t('messages') || 'Messages',
+              label: 'Messages',
               onPress: () => (navigation as any).navigate('ChatInbox'),
             },
             {
               icon: 'help-circle',
               label: t('help_support'),
               onPress: () => showToast(t('help_coming'), 'info'),
+            },
+            {
+              icon: 'construct',
+              label: 'Developer Portal',
+              value: 'v1.0-AUDIT',
+              onPress: () => (navigation as any).navigate('DevPortal'),
             },
           ].map((item: any, idx) => (
             <TouchableOpacity
@@ -514,7 +478,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ padding: 32 }}>
-          <CButton title={t('sign_out')} onPress={handleLogout} variant="danger" />
+          <CButton title={t('sign_out')} onPress={() => handleLogout()} variant="danger" />
           <Text
             style={{
               color: C.hint,

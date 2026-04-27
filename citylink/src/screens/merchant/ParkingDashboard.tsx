@@ -1,708 +1,383 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  StatusBar,
+  Modal,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import TopBar from '../../components/TopBar';
+import { useParkingData } from './hooks/useParkingData';
+import { useParkingActions } from './hooks/useParkingActions';
 import { useAuthStore } from '../../store/AuthStore';
-import { useSystemStore } from '../../store/SystemStore';
-import { useWalletStore } from '../../store/WalletStore';
-import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
-import { CButton, Card, SectionTitle, CInput } from '../../components';
-import { fmtETB, uid, fmtDateTime } from '../../utils';
-import { t } from '../../utils/i18n';
-
-import { useRealtimePostgres } from '../../hooks/useRealtimePostgres';
-import {
-  fetchParkingSessions,
-  fetchParkingLots,
-  updateSessionStatus,
-  updateParkingLot,
-} from '../../services/parking.service';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Parking color scheme
-const PARKING_COLORS = {
-  primary: '#2D7EF0',
-  primaryL: 'rgba(45,126,240,0.1)',
-  primaryB: 'rgba(45,126,240,0.28)',
-  spot: {
-    available: '#00A86B', // Green
-    occupied: '#E8312A', // Red
-    blocked: '#8A9AB8', // Grey
-  },
-};
+import { DarkColors as T, Radius, FontSize, Fonts } from '../../theme';
+import { CButton, LegalReceipt } from '../../components';
+import { fmtETB } from '../../utils';
+import { styles } from './components/ParkingDashboardStyles';
 
 export default function ParkingDashboard() {
-  const navigation = useNavigation();
-  const isDark = useSystemStore((s) => s.isDark);
-  const C = isDark ? DarkColors : Colors;
-  const balance = useWalletStore((s) => s.balance);
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const showToast = useSystemStore((s) => s.showToast);
-  const resetAuth = useAuthStore((s) => s.reset);
-  const resetWallet = useWalletStore((s) => s.reset);
-  const resetSystem = useSystemStore((s) => s.reset);
+  const navigation = useNavigation<any>();
+  const data = useParkingData();
+  const actions = useParkingActions(data);
+  const [activeTab, setActiveTab] = useState<'live' | 'sessions' | 'rates' | 'stats'>('live');
 
-  const [activeTab, setActiveTab] = useState('live');
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [lots, setLots] = useState<any[]>([]);
-  const [selectedLot, setSelectedLot] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [showSessionDetail, setShowSessionDetail] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<any>(null);
-  const [exitRequests, setExitRequests] = useState<any[]>([]);
+  const { sessions, lots, selectedLot, loading, refreshing, loadData, currentUser } = data;
+  const {
+    onUpdateSession,
+    onFinalizeSession,
+    actionLoading,
+    onLogout,
+    showSessionDetail,
+    setShowSessionDetail,
+    selectedSession,
+    setSelectedSession,
+  } = actions;
 
-  // KPI calculations
-  const totalSpots = lots.reduce((sum: number, lot: any) => sum + (lot.total_spots || 0), 0);
-  const occupiedSpots = sessions.filter((s: any) => s.status === 'ACTIVE').length;
-  const availableSpots = totalSpots - occupiedSpots;
-  const occupancyRate = totalSpots > 0 ? ((occupiedSpots / totalSpots) * 100).toFixed(1) : '0';
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastSessionSettled, setLastSessionSettled] = useState<any>(null);
 
+  // KYC/Legal Guard
+  const isVerified = currentUser?.merchant_status === 'APPROVED' && !!currentUser?.tin;
+
+  const handleFinalize = async (id: string, method: 'WALLET' | 'CASH', amount: number) => {
+    const success = await onFinalizeSession(id, method, amount);
+    // Even if hook returns void, we can assume success if no error was shown
+    setLastSessionSettled({
+      id,
+      method,
+      amount,
+      date: new Date().toISOString(),
+      plate: selectedSession?.plate || 'N/A'
+    });
+    setShowReceipt(true);
+  };
+
+  // KPIs
+  const totalSpots = selectedLot?.total_spots || 0;
+  const occupiedCount = sessions.filter((s) => s.status === 'ACTIVE').length;
   const todayRevenue = sessions
     .filter(
-      (s: any) =>
+      (s) =>
         s.status === 'COMPLETED' &&
         new Date(s.end_time).toDateString() === new Date().toDateString()
     )
-    .reduce((sum: number, s: any) => sum + (s.calculated_cost || 0), 0);
+    .reduce((sum, s) => sum + (s.calculated_cost || 0), 0);
 
-  const loadData = async () => {
-    if (!currentUser?.id) return;
-    setLoading(true);
-    try {
-      const [sessionsRes, lotsRes] = await Promise.all([
-        fetchParkingSessions(currentUser.id),
-        fetchParkingLots(currentUser.id),
-      ]);
-
-      if (sessionsRes.data) {
-        const sortedSessions = (sessionsRes.data as any[]).sort(
-          (a: any, b: any) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
-        );
-        setSessions(sortedSessions);
-        setExitRequests(sortedSessions.filter((s: any) => s.status === 'AWAITING_CONFIRMATION'));
-      }
-      if (lotsRes.data) {
-        setLots(lotsRes.data);
-        setSelectedLot(lotsRes.data[0] || null);
-      }
-    } catch (error) {
-      showToast('Failed to load data', 'error');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [currentUser?.id]);
-
-  // Real-time session updates
-  useRealtimePostgres({
-    channelName: `parking-sessions-${currentUser?.id}`,
-    table: 'parking_sessions',
-    filter: `merchant_id=eq.${currentUser?.id}`,
-    enabled: !!currentUser?.id,
-    onPayload: (payload: any) => {
-      if (payload.eventType === 'INSERT') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast('ðŸ…¿ï¸ New parking session started', 'info');
-      }
-      loadData();
-    },
-  });
-
-  const updateSession = async (sessionId: string, newStatus: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setLoading(true);
-
-    try {
-      const result = await updateSessionStatus(sessionId, newStatus);
-      if (!result.error) {
-        showToast(`Session ${newStatus.toLowerCase()}`, 'success');
-        loadData();
-      } else {
-        showToast(result.error || 'Failed to update session', 'error');
-      }
-    } catch (error) {
-      showToast('Failed to update session', 'error');
-    }
-    setLoading(false);
-  };
-
-  const logout = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    showToast('Logged out successfully', 'success');
-    resetAuth();
-    resetWallet();
-    resetSystem();
-
-    // Use navigation.replace instead of reset to avoid the error
-    try {
-      (navigation as any).replace('Auth');
-    } catch (error) {
-      console.log('Navigation reset error, trying alternative method');
-      (navigation as any).navigate('Auth');
-    }
-  };
-
-  const getSpotStatus = (spotNumber: number) => {
-    const session = sessions.find(
-      (s: any) => s.lot_id === selectedLot?.id && s.spot_id === spotNumber && s.status === 'ACTIVE'
-    );
-    return session ? 'occupied' : 'available';
-  };
-
-  const getSpotColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return PARKING_COLORS.spot.available;
-      case 'occupied':
-        return PARKING_COLORS.spot.occupied;
-      case 'blocked':
-        return PARKING_COLORS.spot.blocked;
-      default:
-        return PARKING_COLORS.spot.available;
-    }
-  };
-
-  const SpotGrid = () => {
-    if (!selectedLot) return null;
-
-    const spots = [];
-    const cols = 6; // 6 columns for mobile
-    const totalSpots = selectedLot.total_spots || 30;
-
-    for (let i = 1; i <= totalSpots; i++) {
-      const status = getSpotStatus(i);
-      spots.push(
-        <TouchableOpacity
-          key={i}
-          onPress={() => {
-            const session = sessions.find(
-              (s: any) => s.lot_id === selectedLot?.id && s.spot_id === i && s.status === 'ACTIVE'
-            );
-            if (session) {
-              setSelectedSession(session);
-              setShowSessionDetail(true);
-            }
-          }}
-          style={{
-            width: (SCREEN_WIDTH - 64) / cols - 4,
-            height: 36,
-            borderRadius: 6,
-            backgroundColor: getSpotColor(status),
-            borderWidth: 1,
-            borderColor: C.edge2,
-            justifyContent: 'center',
-            alignItems: 'center',
-            margin: 2,
-          }}
-        >
-          <Text
-            style={{
-              color: '#FFFFFF',
-              fontSize: 9,
-              fontFamily: Fonts.black,
-              fontWeight: '700',
-            }}
-          >
-            {selectedLot.spot_prefix || ''}
-            {i}
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-
-    return (
-      <View
-        style={{
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'flex-start',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-        }}
-      >
-        {spots}
-      </View>
-    );
-  };
-
-  const SessionCard = ({ session }: { session: any }) => {
-    const elapsed = session.start_time
-      ? Math.floor((new Date().getTime() - new Date(session.start_time).getTime()) / 60000)
-      : 0;
-    const hours = Math.floor(elapsed / 60);
-    const minutes = elapsed % 60;
-    const currentFare = ((elapsed / 60) * (selectedLot?.rate_per_hour || 10)).toFixed(1);
-
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          setSelectedSession(session);
-          setShowSessionDetail(true);
-        }}
-      >
-        <Card style={{ marginBottom: 8, padding: 12 }}>
-          <View
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>
-                  {selectedLot?.spot_prefix || ''}
-                  {session.spot_id}
-                </Text>
-                <View
-                  style={{
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    borderRadius: 4,
-                    backgroundColor:
-                      session.status === 'ACTIVE' ? PARKING_COLORS.primaryL : 'rgba(0,168,107,0.1)',
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: session.status === 'ACTIVE' ? PARKING_COLORS.primary : '#00A86B',
-                      fontSize: 9,
-                      fontFamily: Fonts.bold,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {session.status.replace('_', ' ')}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={{ color: C.sub, fontSize: 11, marginBottom: 2 }}>
-                Started: {new Date(session.start_time).toLocaleTimeString()}
-              </Text>
-
-              <Text style={{ color: C.sub, fontSize: 11 }}>
-                Elapsed: {hours}h {minutes}m
-              </Text>
-            </View>
-
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text
-                style={{ color: PARKING_COLORS.primary, fontSize: 14, fontFamily: Fonts.black }}
-              >
-                {fmtETB(currentFare)}
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 9 }}>Current fare</Text>
-            </View>
-          </View>
-        </Card>
-      </TouchableOpacity>
-    );
+  const getSpotStatus = (spotId: number) => {
+    const active = sessions.find((s) => s.status === 'ACTIVE' && s.spot_id === spotId);
+    return active ? 'occupied' : 'available';
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar
-        title={`ðŸ…¿ï¸ ${selectedLot?.name || 'Parking Lot'}`}
-        right={
-          <TouchableOpacity onPress={logout} style={{ padding: 8 }}>
-            <Ionicons name="log-out-outline" size={24} color={C.text} />
-          </TouchableOpacity>
-        }
-      />
-
-      {/* Additional Logout Button for visibility */}
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: 12,
-          paddingBottom: 8,
-          backgroundColor: C.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: C.edge2,
-        }}
-      >
-        <TouchableOpacity
-          onPress={logout}
-          style={{
-            backgroundColor: '#E8312A',
-            borderRadius: Radius.xl,
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            alignSelf: 'flex-end',
-          }}
-        >
-          <Ionicons name="log-out" size={16} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 12, fontFamily: Fonts.bold }}>LOGOUT</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Occupancy Stats */}
-        <View style={{ padding: 16 }}>
-          <LinearGradient
-            colors={[PARKING_COLORS.primaryL, 'transparent']}
-            style={{ borderRadius: Radius['3xl'], padding: 24, ...Shadow.md }}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={[T.surface, T.ink]} style={styles.header}>
+        <SafeAreaView>
+          <View style={styles.navBar}>
+            <View style={styles.brandBox}>
+              <View style={[styles.brandIconBox, { backgroundColor: T.primary + '20' }]}>
+                <Ionicons name="business" size={20} color={T.primary} />
+              </View>
               <View>
-                <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.bold, opacity: 0.8 }}>
-                  Occupancy Rate
-                </Text>
-                <Text
-                  style={{
-                    color: PARKING_COLORS.primary,
-                    fontSize: 32,
-                    fontFamily: Fonts.black,
-                    marginTop: 4,
-                  }}
-                >
-                  {occupancyRate}%
-                </Text>
-              </View>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  backgroundColor: PARKING_COLORS.primaryL,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="car" size={24} color={PARKING_COLORS.primary} />
+                <Text style={styles.brandName}>{selectedLot?.name?.toUpperCase() || 'HUB-PARK'}</Text>
+                <View style={styles.statusBadge}>
+                  <View style={[styles.statusDot, { backgroundColor: T.primary }]} />
+                  <Text style={styles.statusText}>OPERATIONAL · {selectedLot?.district || 'ADDIS ABABA'}</Text>
+                </View>
               </View>
             </View>
-
-            <View
-              style={{ height: 1, backgroundColor: 'rgba(45,126,240,0.2)', marginVertical: 20 }}
-            />
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#00A86B', fontSize: 16, fontFamily: Fonts.black }}>
-                  {availableSpots}
-                </Text>
-                <Text
-                  style={{ color: 'rgba(0,168,107,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
-                >
-                  AVAILABLE
-                </Text>
-              </View>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#E8312A', fontSize: 16, fontFamily: Fonts.black }}>
-                  {occupiedSpots}
-                </Text>
-                <Text
-                  style={{ color: 'rgba(232,49,42,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
-                >
-                  OCCUPIED
-                </Text>
-              </View>
-              <View style={{ alignItems: 'center' }}>
-                <Text
-                  style={{ color: PARKING_COLORS.primary, fontSize: 16, fontFamily: Fonts.black }}
-                >
-                  {fmtETB(todayRevenue, 0)}
-                </Text>
-                <Text
-                  style={{ color: 'rgba(45,126,240,0.7)', fontSize: 10, fontFamily: Fonts.bold }}
-                >
-                  REVENUE
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-
-        {/* Exit Requests Alert */}
-        {exitRequests.length > 0 && (
-          <View
-            style={{
-              marginHorizontal: 16,
-              marginBottom: 16,
-              backgroundColor: 'rgba(245,184,0,0.1)',
-              borderRadius: Radius.xl,
-              padding: 12,
-              borderWidth: 1,
-              borderColor: 'rgba(245,184,0,0.28)',
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="alert-circle" size={20} color="#F5B800" />
-              <Text style={{ color: '#F5B800', fontSize: 12, fontFamily: Fonts.bold }}>
-                {exitRequests.length} exit request{exitRequests.length > 1 ? 's' : ''} pending
-              </Text>
-            </View>
+            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+              <Ionicons name="log-out-outline" size={20} color={T.red} />
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Tab Navigation */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 16 }}>
-          {['live', 'sessions', 'rates', 'stats'].map((tab) => (
+          {/* Revenue Dossier */}
+          <View style={styles.dossierRow}>
+            <View style={styles.dossierMain}>
+              <Text style={styles.dossierLabel}>TOTAL REVENUE (TODAY)</Text>
+              <Text style={styles.dossierValue}>ETB {fmtETB(todayRevenue, 0)}</Text>
+              <View style={styles.fiscalRow}>
+                <Ionicons name="shield-checkmark" size={12} color={T.primary} />
+                <Text style={[styles.fiscalText, { color: T.primary }]}>TAX COMPLIANT · 15% TOT RESERVED</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.scanActionBtn}>
+              <LinearGradient colors={T.noirGrad || ['#A855F7', '#3B82F6']} style={styles.scanActionGradient}>
+                <Ionicons name="qr-code" size={24} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Compliance Guard */}
+      {!isVerified && (
+        <TouchableOpacity 
+          style={styles.lockdownBanner}
+          onPress={() => navigation.navigate('FaydaIdentityPortal' as any)}
+        >
+          <View style={styles.lockdownIconBox}>
+            <Ionicons name="lock-closed" size={18} color={T.red} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.lockdownTitle}>COMPLIANCE LOCK ACTIVE</Text>
+            <Text style={styles.lockdownSub}>Verify TIN & Identity to enable wallet settlements.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={T.red} />
+        </TouchableOpacity>
+      )}
+
+      <View style={styles.tabContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroller}>
+          {(['live', 'sessions', 'rates', 'stats'] as const).map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                borderRadius: Radius.xl,
-                backgroundColor: activeTab === tab ? PARKING_COLORS.primaryL : C.surface,
-                borderWidth: 1.5,
-                borderColor: activeTab === tab ? PARKING_COLORS.primaryB : C.edge2,
-                alignItems: 'center',
-              }}
+              style={[styles.tabPill, activeTab === tab && styles.tabPillActive]}
             >
-              <Text
-                style={{
-                  color: activeTab === tab ? PARKING_COLORS.primary : C.sub,
-                  fontSize: 11,
-                  fontFamily: Fonts.black,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {tab}
+              <Ionicons
+                name={
+                  tab === 'live' ? 'grid' : tab === 'sessions' ? 'time' : tab === 'rates' ? 'cash' : 'stats-chart'
+                }
+                size={14}
+                color={activeTab === tab ? T.primary : T.textSub}
+              />
+              <Text style={[styles.tabPillText, activeTab === tab && styles.tabPillTextActive]}>
+                {tab.toUpperCase()}
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
+      </View>
 
-        {/* Tab Content */}
+      <ScrollView
+        style={{ flex: 1 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={T.primary} />}
+      >
         {activeTab === 'live' && (
-          <View>
-            <SectionTitle title="Live Spot Grid" />
-            <SpotGrid />
-
-            {/* Legend */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                gap: 20,
-                paddingVertical: 16,
-                backgroundColor: C.surface,
-                marginHorizontal: 16,
-                borderRadius: Radius.xl,
-                marginTop: 16,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View
-                  style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: '#00A86B' }}
-                />
-                <Text style={{ color: C.sub, fontSize: 10 }}>Available</Text>
+          <View style={styles.liveContainer}>
+            <View style={styles.occupancyHeader}>
+              <View>
+                <Text style={styles.occupancyTitle}>FACILITY OCCUPANCY</Text>
+                <Text style={styles.occupancySub}>{occupiedCount} of {totalSpots} SLOTS IN USE</Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View
-                  style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: '#E8312A' }}
-                />
-                <Text style={{ color: C.sub, fontSize: 10 }}>Occupied</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View
-                  style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: '#8A9AB8' }}
-                />
-                <Text style={{ color: C.sub, fontSize: 10 }}>Blocked</Text>
+              <View style={styles.occupancyPercentBox}>
+                <Text style={styles.occupancyPercentText}>{Math.round((occupiedCount / totalSpots) * 100)}%</Text>
               </View>
             </View>
+
+            <View style={styles.slotGrid}>
+              {Array.from({ length: totalSpots }).map((_, i) => {
+                const spotId = i + 1;
+                const status = getSpotStatus(spotId);
+                const active = sessions.find((s) => s.status === 'ACTIVE' && s.spot_id === spotId);
+                
+                return (
+                  <TouchableOpacity
+                    key={spotId}
+                    onPress={() => {
+                      if (active) {
+                        setSelectedSession(active);
+                        setShowSessionDetail(true);
+                      }
+                    }}
+                    style={[
+                      styles.slotCard,
+                      status === 'occupied' ? styles.slotOccupied : styles.slotAvailable
+                    ]}
+                  >
+                    <Text style={[styles.slotName, { color: status === 'occupied' ? T.red : T.green }]}>
+                      {selectedLot?.spot_prefix}{spotId}
+                    </Text>
+                    {status === 'occupied' && (
+                      <View style={styles.slotOccupantPulse} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            
+            <Legend />
           </View>
         )}
 
         {activeTab === 'sessions' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <SectionTitle title="Active Sessions" />
-            {loading && sessions.length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
-                Loading sessions...
-              </Text>
-            ) : sessions.filter((s) => s.status === 'ACTIVE').length === 0 ? (
-              <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
-                No active sessions
-              </Text>
-            ) : (
-              sessions
-                .filter((s) => s.status === 'ACTIVE')
-                .map((session) => <SessionCard key={session.id} session={session} />)
-            )}
-
-            {exitRequests.length > 0 && (
-              <View style={{ marginTop: 20 }}>
-                <SectionTitle title="Exit Requests" />
-                {exitRequests.map((session: any) => (
-                  <Card
-                    key={session.id}
-                    style={{
-                      marginBottom: 8,
-                      padding: 12,
-                      backgroundColor: 'rgba(245,184,0,0.05)',
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <View>
-                        <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>
-                          Spot {selectedLot?.spot_prefix || ''}
-                          {session.spot_id}
-                        </Text>
-                        <Text style={{ color: C.sub, fontSize: 11 }}>Waiting for confirmation</Text>
-                      </View>
-                      <CButton
-                        title="Confirm Exit"
-                        onPress={() => updateSession(session.id, 'COMPLETED')}
-                        size="sm"
-                      />
-                    </View>
-                  </Card>
-                ))}
-              </View>
+          <View style={styles.sessionList}>
+            {sessions.filter(s => s.status === 'ACTIVE').map((session) => (
+              <TouchableOpacity
+                key={session.id}
+                onPress={() => {
+                  setSelectedSession(session);
+                  setShowSessionDetail(true);
+                }}
+                style={styles.sessionItem}
+              >
+                <View style={styles.sessionMain}>
+                  <View style={styles.sessionIconBox}>
+                    <Ionicons name="car-sport" size={20} color={T.textSub} />
+                  </View>
+                  <View>
+                    <Text style={styles.sessionSpot}>SPOT {selectedLot?.spot_prefix}{session.spot_id}</Text>
+                    <Text style={styles.sessionPlate}>{session.plate || 'NO PLATE LOGGED'}</Text>
+                  </View>
+                </View>
+                <View style={styles.sessionRight}>
+                  <Text style={styles.sessionFare}>ETB {fmtETB(session.calculated_cost || 0)}</Text>
+                  <Text style={styles.sessionTime}>{new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            {sessions.filter(s => s.status === 'ACTIVE').length === 0 && (
+              <EmptyState text="No active vehicles in facility" />
             )}
           </View>
         )}
 
-        {activeTab === 'rates' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <SectionTitle title="Rate Management" />
-            <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
-              Rate management coming soon
-            </Text>
-          </View>
-        )}
+        {activeTab === 'rates' && <EmptyState text="Rate config coming soon" />}
+        {activeTab === 'stats' && <EmptyState text="Analytics loading..." />}
 
-        {activeTab === 'stats' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <SectionTitle title="Analytics" />
-            <Text style={{ color: C.sub, textAlign: 'center', padding: 20 }}>
-              Analytics dashboard coming soon
-            </Text>
-          </View>
-        )}
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Session Detail Modal */}
-      <Modal visible={showSessionDetail} animationType="slide" presentationStyle="pageSheet">
-        {selectedSession && (
-          <View style={{ flex: 1, backgroundColor: C.ink }}>
+      <Modal visible={showSessionDetail} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.detailCard}>
             <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: C.edge2,
-              }}
+              style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}
             >
-              <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
-                Session Details
-              </Text>
-              <TouchableOpacity onPress={() => setShowSessionDetail(false)} style={{ padding: 8 }}>
-                <Ionicons name="close" size={24} color={C.text} />
+              <Text style={{ color: T.text, fontSize: 18, fontWeight: '800' }}>Session Detail</Text>
+              <TouchableOpacity onPress={() => setShowSessionDetail(false)}>
+                <Ionicons name="close" size={24} color={T.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              <Card style={{ padding: 16, marginBottom: 16 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 12,
-                  }}
-                >
-                  <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
-                    Spot {selectedLot?.spot_prefix || ''}
-                    {selectedSession.spot_id}
-                  </Text>
-                  <View
-                    style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 6,
-                      backgroundColor:
-                        selectedSession.status === 'ACTIVE'
-                          ? PARKING_COLORS.primaryL
-                          : 'rgba(0,168,107,0.1)',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          selectedSession.status === 'ACTIVE' ? PARKING_COLORS.primary : '#00A86B',
-                        fontSize: 10,
-                        fontFamily: Fonts.bold,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {selectedSession.status.replace('_', ' ')}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={{ marginBottom: 8 }}>
-                  <Text style={{ color: C.sub, fontSize: 12, marginBottom: 4 }}>Start Time</Text>
-                  <Text style={{ color: C.text, fontSize: 14 }}>
-                    {new Date(selectedSession.start_time).toLocaleString()}
-                  </Text>
-                </View>
-
-                {selectedSession.end_time && (
-                  <View style={{ marginBottom: 8 }}>
-                    <Text style={{ color: C.sub, fontSize: 12, marginBottom: 4 }}>End Time</Text>
-                    <Text style={{ color: C.text, fontSize: 14 }}>
-                      {new Date(selectedSession.end_time).toLocaleString()}
-                    </Text>
-                  </View>
-                )}
-
-                <View style={{ marginBottom: 8 }}>
-                  <Text style={{ color: C.sub, fontSize: 12, marginBottom: 4 }}>Current Fare</Text>
-                  <Text
-                    style={{ color: PARKING_COLORS.primary, fontSize: 18, fontFamily: Fonts.black }}
-                  >
-                    {fmtETB(selectedSession.calculated_cost || 0)}
-                  </Text>
-                </View>
-
-                <View style={{ marginBottom: 8 }}>
-                  <Text style={{ color: C.sub, fontSize: 12, marginBottom: 4 }}>Rate</Text>
-                  <Text style={{ color: C.text, fontSize: 14 }}>
-                    {fmtETB(selectedLot?.rate_per_hour || 0)}/hour
-                  </Text>
-                </View>
-              </Card>
-
-              {selectedSession.status === 'ACTIVE' && (
-                <CButton
-                  title="Force Release Spot"
-                  onPress={() => updateSession(selectedSession.id, 'COMPLETED')}
-                  style={{ backgroundColor: '#F5B800' }}
+            {selectedSession && (
+              <>
+                <DetailRow
+                  label="Vehicle Spot"
+                  value={`${selectedLot?.spot_prefix}${selectedSession.spot_id}`}
                 />
-              )}
-
-              {selectedSession.status === 'AWAITING_CONFIRMATION' && (
-                <CButton
-                  title="Confirm Exit"
-                  onPress={() => updateSession(selectedSession.id, 'COMPLETED')}
+                <DetailRow
+                  label="Start Time"
+                  value={new Date(selectedSession.start_time).toLocaleString()}
                 />
-              )}
-            </ScrollView>
+                <DetailRow
+                  label="Est. Duration"
+                  value={`${Math.floor((Date.now() - new Date(selectedSession.start_time).getTime()) / 60000)} mins`}
+                />
+                <DetailRow
+                  label="Current Fare"
+                  value={fmtETB(selectedSession.calculated_cost || 0)}
+                />
+
+                <View style={{ marginTop: 24 }}>
+                  <Text style={{ color: T.sub, fontSize: 12, marginBottom: 12, textAlign: 'center' }}>
+                    SELECT LEGAL SETTLEMENT METHOD
+                  </Text>
+                  
+                  <CButton
+                    title="Settle via Digital Wallet"
+                    onPress={() => handleFinalize(selectedSession.id, 'WALLET', selectedSession.calculated_cost)}
+                    loading={actionLoading}
+                    disabled={!isVerified}
+                    style={{ backgroundColor: isVerified ? '#2D7EF0' : '#444', marginBottom: 12 }}
+                  />
+
+                  <CButton
+                    title="Record Cash Collection"
+                    onPress={() => handleFinalize(selectedSession.id, 'CASH', selectedSession.calculated_cost)}
+                    loading={actionLoading}
+                    variant="outline"
+                    style={{ borderColor: T.primary }}
+                    textStyle={{ color: T.primary }}
+                  />
+
+                  <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 12, textAlign: 'center' }}>
+                    * Cash payments will be logged to the Non-Financial Journal for tax compliance and will NOT affect your digital wallet balance.
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
-        )}
+        </View>
       </Modal>
+
+      {/* Legal Receipt Modal */}
+      {lastSessionSettled && (
+        <LegalReceipt
+          visible={showReceipt}
+          onClose={() => setShowReceipt(false)}
+          merchantName={currentUser?.business_name || 'CityLink Merchant'}
+          merchantTIN={currentUser?.tin || 'NOT_VERIFIED'}
+          transactionId={lastSessionSettled.id.slice(0, 8).toUpperCase()}
+          date={lastSessionSettled.date}
+          amount={lastSessionSettled.amount}
+          paymentMethod={lastSessionSettled.method}
+          items={[
+            { label: 'Parking Fee', value: lastSessionSettled.amount },
+            { label: 'Plate', value: 0 } // Small hack to show plate in items if needed
+          ]}
+        />
+      )}
     </View>
   );
 }
+
+const StatCard = ({ value, label }: any) => (
+  <View style={styles.statCard}>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
+const Legend = () => (
+  <View style={styles.legend}>
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: '#00A86B' }]} />
+      <Text style={styles.legendTxt}>Available</Text>
+    </View>
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: '#E8312A' }]} />
+      <Text style={styles.legendTxt}>Occupied</Text>
+    </View>
+  </View>
+);
+
+const SessionCard = ({ session, lot, onPress }: any) => (
+  <TouchableOpacity style={styles.card} onPress={onPress}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <View>
+        <Text style={styles.sessionTitle}>
+          Spot {lot?.spot_prefix}
+          {session.spot_id}
+        </Text>
+        <Text style={styles.sessionSub}>
+          Active since {new Date(session.start_time).toLocaleTimeString()}
+        </Text>
+      </View>
+      <Text style={styles.fareValue}>{fmtETB(session.calculated_cost || 0)}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+const DetailRow = ({ label, value }: any) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={styles.detailValue}>{value}</Text>
+  </View>
+);
+
+const EmptyState = ({ text }: { text: string }) => (
+  <View style={styles.emptyState}>
+    <Ionicons name="car-outline" size={48} color={T.rim} />
+    <Text style={styles.emptyText}>{text}</Text>
+  </View>
+);

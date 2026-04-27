@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '../../../store/AuthStore';
 import { useSystemStore } from '../../../store/SystemStore';
 import { useWalletStore } from '../../../store/WalletStore';
-import { supabase, subscribeToTable, unsubscribe } from '../../../services/supabase';
+import { getClient, subscribeToTable, unsubscribe } from '../../../services/supabase';
 import {
   marketplaceService,
   fetchMarketplaceOrdersByMerchant,
@@ -52,11 +52,12 @@ export function useShopData(): ShopData {
     if (!currentUser?.id) return;
     setLoading(true);
 
-    const { data: wallet } = await supabase
+    const client = getClient();
+    const { data: wallet } = client ? await client
       .from('wallets')
       .select('id, balance')
       .eq('user_id', currentUser.id)
-      .single();
+      .single() : { data: null };
 
     const [ordRes, invRes, txRes, salesRes, disputes] = await Promise.all([
       fetchMarketplaceOrdersByMerchant(currentUser.id),

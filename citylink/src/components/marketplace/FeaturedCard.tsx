@@ -1,9 +1,12 @@
-import React, { useRef, memo } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, StyleSheet } from 'react-native';
+import React, { memo } from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MotiView } from 'moti';
+import { MotiPressable } from 'moti/interactions';
 import { T, SW } from './constants';
 import { fmtETB } from '../../utils';
+import { Fonts, Radius, DarkColors as C } from '../../theme';
 
 interface FeaturedCardProps {
   item: any;
@@ -11,34 +14,28 @@ interface FeaturedCardProps {
 }
 
 const FeaturedCard = memo(({ item, onPress }: FeaturedCardProps) => {
-  const scale = useRef(new Animated.Value(1)).current;
   const img = item.image_url || item.images_json?.[0] || null;
 
-  const handlePressIn = () => {
-    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
-  };
-
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
+    <MotiPressable
       onPress={() => onPress(item)}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+      animate={({ pressed }) => {
+        'worklet';
+        return {
+          scale: pressed ? 0.97 : 1,
+        };
+      }}
     >
-      <Animated.View style={[styles.featuredCard, { transform: [{ scale }] }]}>
+      <View style={styles.featuredCard}>
         {img ? (
           <Image source={{ uri: img }} style={styles.featuredImg} />
         ) : (
           <View style={styles.imgPlaceholder}>
-            <Ionicons name="cube-outline" size={40} color={T.textMuted} />
+            <Ionicons name="cube-outline" size={40} color="rgba(255,255,255,0.1)" />
           </View>
         )}
         <LinearGradient
-          colors={['transparent', 'rgba(12,14,18,0.95)']}
+          colors={['transparent', 'rgba(0,0,0,0.95)']}
           style={styles.featuredGradient}
         />
         <View style={styles.featuredOverlay}>
@@ -55,8 +52,8 @@ const FeaturedCard = memo(({ item, onPress }: FeaturedCardProps) => {
             <Text style={styles.lowStockText}>Only {item.stock} left</Text>
           </View>
         )}
-      </Animated.View>
-    </TouchableOpacity>
+      </View>
+    </MotiPressable>
   );
 });
 
@@ -66,44 +63,45 @@ const styles = StyleSheet.create({
   featuredCard: {
     width: SW * 0.78,
     height: 240,
-    borderRadius: 16,
+    borderRadius: Radius.card,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: C.edge,
+    backgroundColor: C.surface,
   },
   featuredImg: { width: '100%', height: '100%', resizeMode: 'cover' },
   imgPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: T.surfaceHigh,
+    backgroundColor: C.lift,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featuredGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '65%' },
-  featuredOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 },
+  featuredGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '70%' },
+  featuredOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 },
   featuredBadge: {
-    backgroundColor: T.primary + '20',
+    backgroundColor: C.primary + '22',
     borderWidth: 1,
-    borderColor: T.primary + '60',
+    borderColor: C.primary + '60',
     alignSelf: 'flex-start',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginBottom: 8,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 10,
   },
-  featuredBadgeText: { fontSize: 9, fontWeight: '800', color: T.primary, letterSpacing: 1 },
-  featuredName: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4, lineHeight: 22 },
-  featuredPrice: { fontSize: 15, fontWeight: '700', color: T.primary },
+  featuredBadgeText: { fontSize: 10, fontFamily: Fonts.bold, color: C.primary, letterSpacing: 1 },
+  featuredName: { fontSize: 20, fontFamily: Fonts.bold, color: '#fff', marginBottom: 6, lineHeight: 26 },
+  featuredPrice: { fontSize: 16, fontFamily: Fonts.headline, color: C.primary },
   lowStockBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: T.secondaryDim,
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
     borderWidth: 1,
-    borderColor: T.secondary + '60',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  lowStockText: { fontSize: 9, fontWeight: '800', color: T.secondary },
+  lowStockText: { fontSize: 10, fontFamily: Fonts.bold, color: '#f59e0b' },
 });

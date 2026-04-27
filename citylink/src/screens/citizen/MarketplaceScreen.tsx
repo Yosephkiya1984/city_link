@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   Image,
   TextInput,
   RefreshControl,
@@ -13,29 +12,33 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuthStore } from '../../store/AuthStore';
 import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { useMarketStore } from '../../store/MarketStore';
 import { fmtETB } from '../../utils';
-import { subscribeToTable, unsubscribe, supabase } from '../../services/supabase';
+import { subscribeToTable, unsubscribe, getClient } from '../../services/supabase';
 import { createChatThread, createChatMessage } from '../../services/chat.service';
 import { marketplaceService } from '../../services/marketplace.service';
 import { useTheme } from '../../hooks/useTheme';
-import { Radius, Shadow, Fonts, FontSize } from '../../theme';
+import { useMarketplace } from '../../hooks/useMarketplace';
+import { Radius, Shadow, Fonts, FontSize, DarkColors as T } from '../../theme';
 
 // Modular Components
-import { T, SW, SH } from '../../components/marketplace/constants';
+import { SW, SH } from '../../components/marketplace/constants';
 import MarketplaceHeader from '../../components/marketplace/MarketplaceHeader';
 import MarketplaceSearchBar from '../../components/marketplace/MarketplaceSearchBar';
 import CategoryPills from '../../components/marketplace/CategoryPills';
 import FeaturedCard from '../../components/marketplace/FeaturedCard';
 import ProductCard from '../../components/marketplace/ProductCard';
 import MarketplaceSkeleton from '../../components/marketplace/MarketplaceSkeleton';
+import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
 
 // Internal Modal Badge
 const EscrowBadge = ({ C }: { C: any }) => (
@@ -58,92 +61,37 @@ const EscrowBadge = ({ C }: { C: any }) => (
 export default function MarketplaceScreen() {
   const C = useTheme();
   const navigation = useNavigation();
-  const balance = useWalletStore((s) => s.balance);
+  const {
+    products,
+    loading,
+    setLoading,
+    refreshing,
+    onRefresh,
+    buying,
+    setBuying,
+    qty,
+    setQty,
+    search,
+    setSearch,
+    category,
+    setCategory,
+    selectedProduct,
+    setSelectedProduct,
+    deliveryInstructions,
+    setDeliveryInstructions,
+    showSuccess,
+    setShowSuccess,
+    balance,
+    currentUser,
+    handleAddToCart,
+    featured,
+  } = useMarketplace();
+
   const showToast = useSystemStore((s) => s.showToast);
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const addToCart = useMarketStore((s) => s.addToCart);
-
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [buying, setBuying] = useState(false);
-  const [qty, setQty] = useState(1);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('All');
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [deliveryInstructions, setDeliveryInstructions] = useState('');
-  const searchTimer = useRef<any>(null);
-
-  // ——————————————————————————————————————————————————————————————————————————————————————————————
-  const loadProducts = useCallback(
-    async (q = '', cat = 'All') => {
-      try {
-        let data;
-        if (q.trim()) {
-          data = await marketplaceService.searchProducts(q);
-        } else if (cat !== 'All') {
-          data = await marketplaceService.getProductsByCategory(cat);
-        } else {
-          data = await marketplaceService.getActiveProducts();
-        }
-        setProducts(data || []);
-      } catch (e) {
-        showToast('Could not load products', 'error');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [showToast]
-  );
-
-  useEffect(() => {
-    loadProducts(search, category);
-  }, [category]);
-
-  useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => loadProducts(search, category), 350);
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    };
-  }, [search]);
-
-  // Real-time product updates
-  useEffect(() => {
-    const ch = subscribeToTable('mkt-products-rt', 'products', null, (payload) => {
-      if (payload.eventType === 'UPDATE') {
-        setProducts((prev) =>
-          prev.map((p) => (p.id === payload.new.id ? { ...p, ...payload.new } : p))
-        );
-      } else if (payload.eventType === 'INSERT' && payload.new.status === 'active') {
-        setProducts((prev) => [payload.new, ...prev]);
-      } else if (payload.eventType === 'DELETE') {
-        setProducts((prev) => prev.filter((p) => p.id !== payload.old?.id));
-      }
-    });
-    return () => unsubscribe(ch);
-  }, []);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadProducts(search, category);
-    setRefreshing(false);
-  };
-
-  // ——————————————————————————————————————————————————————————————————————————————————————————————
-  const handleAddToCart = () => {
-    if (!selectedProduct) return;
-    addToCart(selectedProduct, qty);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showToast('Added to cart!', 'success');
-    setSelectedProduct(null);
-    setQty(1);
-    setDeliveryInstructions('');
-  };
 
   const handleBuy = async () => {
     if (buying) return;
-    const user = useAuthStore.getState().currentUser;
+    const user = currentUser;
     if (!user) {
       showToast('Please login to purchase', 'error');
       return;
@@ -153,7 +101,7 @@ export default function MarketplaceScreen() {
       return;
     }
     const totalCost = (selectedProduct?.price || 0) * qty;
-    const estimatedDelivery = 150; // Dynamic estimation stub based on location
+    const estimatedDelivery = 150; 
     const grandTotal = totalCost + estimatedDelivery;
     if (balance < grandTotal) {
       showToast(`Insufficient balance (ETB ${fmtETB(grandTotal, 0)} needed)`, 'error');
@@ -176,14 +124,11 @@ export default function MarketplaceScreen() {
         deliveryFee: estimatedDelivery,
       });
       if (res.success) {
-        const finalTotal = res.total || grandTotal;
-        useWalletStore.getState().setBalance(balance - finalTotal);
-
+        useWalletStore.getState().setBalance(balance - (res.total || grandTotal));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSelectedProduct(null);
         setDeliveryInstructions('');
-        showToast('Purchase placed! Funds locked in escrow 🔒', 'success');
-        setTimeout(() => (navigation as any).navigate('MyOrders'), 800);
+        setShowSuccess(true);
       }
     } catch (e: any) {
       showToast(e.message || 'Purchase failed', 'error');
@@ -212,7 +157,10 @@ export default function MarketplaceScreen() {
       const threadId = `${ids[0]}-${ids[1]}`;
       const initMsg = `Hi! I'm interested in your product: ${selectedProduct.name}`;
 
-      const { data: existing } = await supabase
+      const client = getClient();
+      if (!client) throw new Error('Supabase client not initialized');
+
+      const { data: existing } = await client
         .from('message_threads')
         .select('thread_id')
         .eq('thread_id', threadId)
@@ -248,20 +196,17 @@ export default function MarketplaceScreen() {
     }
   };
 
-  // ——————————————————————————————————————————————————————————————————————————————————————————————
-  const featured = useMemo(() => products.slice(0, 4), [products]);
-
   const renderProductItem = useCallback(
     ({ item }: { item: any }) => (
-      <ProductCard
-        item={item}
-        onPress={(p: any) => {
+      <ProductCard 
+        item={item} 
+        onPress={(p) => {
           setQty(1);
           setSelectedProduct(p);
-        }}
+        }} 
       />
     ),
-    []
+    [setSelectedProduct, setQty]
   );
 
   const ListHeader = useMemo(
@@ -283,10 +228,15 @@ export default function MarketplaceScreen() {
         {!loading && search === '' && category === 'All' && featured.length > 0 && (
           <View style={{ marginBottom: 32 }}>
             <View style={styles.sectionRow}>
-              <Text style={[styles.sectionTitle, { color: C.text, fontFamily: Fonts.headline }]}>
+              <Text style={[styles.sectionTitle, { color: '#FFF', fontFamily: Fonts.headline }]}>
                 Featured
               </Text>
-              <Text style={[styles.sectionSub, { color: C.sub, fontFamily: Fonts.label }]}>
+              <Text
+                style={[
+                  styles.sectionSub,
+                  { color: 'rgba(255,255,255,0.4)', fontFamily: Fonts.label },
+                ]}
+              >
                 {products.length} listings
               </Text>
             </View>
@@ -298,13 +248,13 @@ export default function MarketplaceScreen() {
               contentContainerStyle={{ paddingLeft: 20, paddingRight: 4, gap: 16 }}
             >
               {featured.map((item: any) => (
-                <FeaturedCard
-                  key={item.id}
-                  item={item}
-                  onPress={(p: any) => {
+                <FeaturedCard 
+                  key={item.id} 
+                  item={item} 
+                  onPress={(p) => {
                     setQty(1);
                     setSelectedProduct(p);
-                  }}
+                  }} 
                 />
               ))}
             </ScrollView>
@@ -318,7 +268,7 @@ export default function MarketplaceScreen() {
         </View>
       </View>
     ),
-    [search, category, loading, featured, products.length]
+    [search, category, loading, featured, products.length, C, setCategory, setLoading, setSelectedProduct, setQty]
   );
 
   const ListEmpty = useMemo(() => {
@@ -346,22 +296,21 @@ export default function MarketplaceScreen() {
           <MarketplaceSkeleton />
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={products}
           renderItem={renderProductItem}
           keyExtractor={(item) => item.id}
           numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={ListEmpty}
+          estimatedItemSize={260}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />
           }
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
           initialNumToRender={6}
-          maxToRenderPerBatch={10}
         />
       )}
 
@@ -652,6 +601,16 @@ export default function MarketplaceScreen() {
           </View>
         </View>
       </Modal>
+
+      <SuccessOverlay
+        visible={showSuccess}
+        title="Purchase Confirmed"
+        subtitle="Your funds are held in escrow. They will be released only when you confirm delivery."
+        onClose={() => {
+          setShowSuccess(false);
+          (navigation as any).navigate('MyOrders');
+        }}
+      />
     </View>
   );
 }

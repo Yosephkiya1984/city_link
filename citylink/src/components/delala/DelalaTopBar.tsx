@@ -1,6 +1,9 @@
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { COLORS } from './constants';
+import { GlassView } from '../GlassView';
+import { Fonts } from '../../theme';
+import DefaultIcon from '../../../assets/icon.png';
 
 interface EnhancedTopBarProps {
   activeScreen: string;
@@ -10,9 +13,9 @@ interface EnhancedTopBarProps {
 
 const DelalaTopBar = memo(({ activeScreen, onScreenChange, userImage }: EnhancedTopBarProps) => {
   return (
-    <View style={styles.topBar}>
+    <GlassView intensity={25} style={styles.topBar}>
       <View style={styles.topBarLeft}>
-        <Text style={styles.brandName}>Delala</Text>
+        <Text style={[styles.brandName, { fontFamily: Fonts.headline }]}>Delala</Text>
       </View>
 
       <View style={styles.topBarRight}>
@@ -36,11 +39,11 @@ const DelalaTopBar = memo(({ activeScreen, onScreenChange, userImage }: Enhanced
           <Image
             source={{ uri: userImage || 'https://via.placeholder.com/100' }}
             style={styles.profileImage}
-            defaultSource={require('../../../assets/icon.png')}
+            defaultSource={DefaultIcon}
           />
         </View>
       </View>
-    </View>
+    </GlassView>
   );
 });
 
@@ -53,7 +56,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.outline + '20',
   },
   topBarLeft: {
     flexDirection: 'row',
@@ -86,9 +91,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS['surface-container-highest'],
   },
   navLinkText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: COLORS['on-surface-variant'],
+    fontFamily: Fonts.label,
   },
   activeNavLinkText: {
     color: COLORS['on-surface'],

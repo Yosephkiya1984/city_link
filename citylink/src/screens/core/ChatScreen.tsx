@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -13,12 +12,13 @@ import {
   StatusBar,
   LayoutAnimation,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
-import { supabase, subscribeToTable, unsubscribe } from '../../services/supabase';
+import { subscribeToTable, unsubscribe } from '../../services/supabase';
 import {
   fetchChatMessages,
   createChatMessage,
@@ -49,16 +49,31 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<any>(null);
 
-  const loadMessages = useCallback(async () => {
-    setLoading(true);
+  const loadMessagesData = useCallback(async () => {
     const { data, error } = await fetchChatMessages(threadId);
-    if (data) setMessages(data);
-    if (error) showToast('Failed to load messages', 'error');
-    setLoading(false);
+    if (error) {
+      showToast('Failed to load messages', 'error');
+      return [];
+    }
+    return data ? data.reverse() : [];
   }, [threadId, showToast]);
 
+  const loadMessages = useCallback(async () => {
+    setLoading(true);
+    const data = await loadMessagesData();
+    setMessages(data);
+    setLoading(false);
+  }, [loadMessagesData]);
+
   useEffect(() => {
-    loadMessages();
+    let ignore = false;
+    setLoading(true);
+    loadMessagesData().then((data) => {
+      if (!ignore) {
+        setMessages(data);
+        setLoading(false);
+      }
+    });
 
     const ch = subscribeToTable(
       `chat-${threadId}`,
@@ -69,14 +84,17 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setMessages((prev) => {
             if (prev.find((m) => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new];
+            return [payload.new, ...prev];
           });
         }
       }
     );
 
-    return () => unsubscribe(ch);
-  }, [threadId, loadMessages]);
+    return () => {
+      ignore = true;
+      unsubscribe(ch);
+    };
+  }, [threadId, loadMessagesData]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || sending || !currentUser) return;
@@ -99,7 +117,7 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
     // Remove duplicate protection in state insertion if the same ID gets pushed by realtime first
     setMessages((prev) => {
       if (prev.find((m) => m.id === msgId)) return prev;
-      return [...prev, optimisticMsg];
+      return [optimisticMsg, ...prev];
     });
 
     const { data, error } = await createChatMessage({
@@ -122,8 +140,8 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
 
   const renderItem = ({ item, index }: { item: any; index: number }) => {
     const isMine = item.user_id === currentUser?.id;
-    const prevMsg = index > 0 ? messages[index - 1] : null;
-    const sameUser = prevMsg?.user_id === item.user_id;
+    const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+    const sameUser = nextMsg?.user_id === item.user_id;
 
     return (
       <View
@@ -205,14 +223,14 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
           <ActivityIndicator color={T.primary} />
         </View>
       ) : (
-        <FlatList
+        <FlashList
           ref={flatListRef}
           data={messages}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          onContentSizeChange={() => (flatListRef.current as any)?.scrollToEnd({ animated: true })}
-          onLayout={() => (flatListRef.current as any)?.scrollToEnd({ animated: true })}
+          estimatedItemSize={70}
+          inverted
           showsVerticalScrollIndicator={false}
         />
       )}

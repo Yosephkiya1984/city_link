@@ -12,7 +12,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
-
 import { useMarketStore } from '../../store/MarketStore';
 import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
@@ -21,6 +20,7 @@ import { fmtETB } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Shadow, Fonts } from '../../theme';
 import { marketplaceService } from '../../services/marketplace.service';
+import { LegalReceipt } from '../../components';
 
 export default function CartScreen() {
   const C = useTheme();
@@ -39,6 +39,8 @@ export default function CartScreen() {
   } = useMarketStore();
 
   const [checkingOut, setCheckingOut] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastTxData, setLastTxData] = useState<any>(null);
 
   const merchants = getCartItemsByMerchant();
   const cartItemsCount = cartItems.length;
@@ -93,7 +95,7 @@ export default function CartScreen() {
           0
         );
         const merchantDeliveryFee = Number(
-          ((deliveryFee * (merchantTotal / totalPrice)) || 0).toFixed(2)
+          (deliveryFee * (merchantTotal / totalPrice) || 0).toFixed(2)
         );
 
         for (const item of merchantItems) {
@@ -110,8 +112,20 @@ export default function CartScreen() {
       clearCart();
       useWalletStore.getState().setBalance(balance - grandTotal);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast('Checkout successful! Funds locked in escrow 🔒', 'success');
-      setTimeout(() => navigation.navigate('MyOrders' as never), 800);
+      
+      // Store data for receipt
+      setLastTxData({
+        amount: grandTotal,
+        merchantName: merchantGroups.length > 1 ? 'Multiple Merchants' : (merchantGroups[0][0].product.business_name || 'CityLink Marketplace'),
+        merchantTIN: 'CITY-MKT-001', // Platform aggregate TIN or specific if single
+        items: cartItems.map(i => ({ label: i.product.name, value: i.product.price * i.quantity })),
+        date: new Date().toISOString(),
+        id: `MKT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+      });
+      
+      showToast('Checkout successful!', 'success');
+      setShowReceipt(true);
+      // navigation.navigate will be called after closing receipt
     } catch (e: any) {
       showToast(e.message || 'Checkout failed', 'error');
     } finally {
@@ -140,13 +154,25 @@ export default function CartScreen() {
                 {img ? (
                   <Image source={{ uri: img }} style={styles.itemImage} />
                 ) : (
-                  <View style={[styles.itemImage, { backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' }]}>
+                  <View
+                    style={[
+                      styles.itemImage,
+                      {
+                        backgroundColor: C.surface,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      },
+                    ]}
+                  >
                     <Ionicons name="cube-outline" size={24} color={C.hint} />
                   </View>
                 )}
               </View>
               <View style={styles.itemDetails}>
-                <Text style={[styles.itemName, { color: C.text, fontFamily: Fonts.headline }]} numberOfLines={2}>
+                <Text
+                  style={[styles.itemName, { color: C.text, fontFamily: Fonts.headline }]}
+                  numberOfLines={2}
+                >
                   {cartItem.product.name}
                 </Text>
                 <Text style={[styles.itemPrice, { color: C.primary, fontFamily: Fonts.label }]}>
@@ -218,10 +244,14 @@ export default function CartScreen() {
         <Text style={[styles.headerTitle, { color: C.white, fontFamily: Fonts.headline }]}>
           Shopping Cart ({cartItems.length})
         </Text>
-        <TouchableOpacity onPress={() => Alert.alert('Clear Cart', 'Remove all items?', [
-          { text: 'Cancel' },
-          { text: 'Clear', style: 'destructive', onPress: clearCart },
-        ])}>
+        <TouchableOpacity
+          onPress={() =>
+            Alert.alert('Clear Cart', 'Remove all items?', [
+              { text: 'Cancel' },
+              { text: 'Clear', style: 'destructive', onPress: clearCart },
+            ])
+          }
+        >
           <Ionicons name="trash-outline" size={24} color={C.white} />
         </TouchableOpacity>
       </View>
@@ -270,10 +300,35 @@ export default function CartScreen() {
           disabled={checkingOut || balance < grandTotal}
         >
           <Text style={[styles.checkoutBtnText, { color: C.ink, fontFamily: Fonts.headline }]}>
-            {checkingOut ? 'Processing...' : balance < grandTotal ? 'Insufficient Balance' : 'Checkout & Lock Escrow'}
+            {checkingOut
+              ? 'Processing...'
+              : balance < grandTotal
+                ? 'Insufficient Balance'
+                : 'Checkout & Lock Escrow'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Legal Receipt Modal */}
+      {lastTxData && (
+        <LegalReceipt
+          visible={showReceipt}
+          onClose={() => {
+            setShowReceipt(false);
+            navigation.navigate('MyOrders' as never);
+          }}
+          merchantName={lastTxData.merchantName}
+          merchantTIN={lastTxData.merchantTIN}
+          transactionId={lastTxData.id}
+          date={lastTxData.date}
+          amount={lastTxData.amount}
+          paymentMethod="WALLET"
+          items={[
+            ...lastTxData.items,
+            { label: 'Delivery Fee', value: deliveryFee }
+          ]}
+        />
+      )}
     </View>
   );
 }

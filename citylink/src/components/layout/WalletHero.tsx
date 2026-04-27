@@ -1,44 +1,73 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Svg, Path } from 'react-native-svg';
 import { useTheme } from '../../hooks/useTheme';
-import { Fonts, Spacing } from '../../theme';
+import { Fonts, Spacing, Radius } from '../../theme';
 import { fmtETB, t } from '../../utils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+import { MotiView } from 'moti';
+
 /**
  * SparklineChart — small visual indicator for wallet activity.
  */
+import {
+  Canvas,
+  Path as SkiaPath,
+  Skia,
+  LinearGradient as SkiaGradient,
+  vec,
+} from '@shopify/react-native-skia';
+import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
+
 export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }: any) => {
-  const points = data
-    .map((value: any, index: number) => {
-      const x = (index / (data.length - 1)) * 100;
-      const y = value;
-      return `${x},${y}`;
-    })
-    .join(' ');
+  const progress = useSharedValue(0);
+
+  React.useEffect(() => {
+    progress.value = withTiming(1, {
+      duration: 1500,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
+    });
+  }, []);
+
+  const path = React.useMemo(() => {
+    const p = Skia.Path.Make();
+    data.forEach((value: number, index: number) => {
+      const x = (index / (data.length - 1)) * 96;
+      const y = 40 - (value / 100) * 40;
+      if (index === 0) p.moveTo(x, y);
+      else p.lineTo(x, y);
+    });
+    return p;
+  }, [data]);
 
   return (
-    <View style={{ width: 96, height: 40, opacity: 0.8 }}>
-      <Svg width={96} height={40} viewBox="0 0 100 40">
-        <Path
-          d={`M ${points}`}
-          fill="none"
-          stroke="#59de9b"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
+    <View style={{ width: 96, height: 40 }}>
+      <Canvas style={{ flex: 1 }}>
+        <SkiaPath
+          path={path}
+          style="stroke"
+          strokeWidth={2.5}
+          strokeCap="round"
+          strokeJoin="round"
+          start={0}
+          end={progress}
+        >
+          <SkiaGradient
+            start={vec(0, 0)}
+            end={vec(96, 0)}
+            colors={['#59de9b', '#06b6d4']}
+          />
+        </SkiaPath>
+      </Canvas>
     </View>
   );
 };
 
-export function WalletHero({ balance, name, greetingKey, onQuickAction, animValue }: any) {
+export function WalletHero({ balance, name, greetingKey, onQuickAction }: any) {
   const C = useTheme();
   const [showBalance, setShowBalance] = useState(true);
 
@@ -55,25 +84,22 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
   ];
 
   return (
-    <Animated.View
+    <MotiView
+      from={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 600, delay: 100 }}
       style={{
-        opacity: animValue,
-        transform: [
-          {
-            translateY: (animValue?.interpolate
-              ? animValue.interpolate({ inputRange: [0, 1], outputRange: [20, 0] })
-              : 0) as any,
-          },
-        ],
         paddingHorizontal: 16,
         marginBottom: 20,
       }}
     >
       <LinearGradient
-        colors={['#101319', '#050608']}
-        style={{ borderRadius: 24, padding: 1, overflow: 'hidden' }}
+        colors={C.liquidGrad || ['#22C97A', '#059669']}
+        style={{ borderRadius: Radius.card, padding: 1, overflow: 'hidden' }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 24 }}>
+        <View style={{ backgroundColor: 'rgba(0,0,0,0.15)', padding: 24 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -84,19 +110,20 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
           >
             <View>
               <Text
-                style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontFamily: Fonts.bold }}
+                style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontFamily: Fonts.bold }}
               >
                 {t(greetingKey)}, {name}
               </Text>
               <Text
                 style={{
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'rgba(255,255,255,0.6)',
                   fontSize: 10,
                   fontFamily: Fonts.black,
                   marginTop: 4,
+                  letterSpacing: 1.2,
                 }}
               >
-                ACTIVE LEDGER
+                LIQUIDITY POOL ACTIVE
               </Text>
             </View>
             <TouchableOpacity onPress={toggleBalance} style={{ padding: 8 }}>
@@ -118,15 +145,15 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
           >
             <View>
               <Text
-                style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: Fonts.medium }}
+                style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: Fonts.medium }}
               >
                 Available Balance
               </Text>
-              <Text style={{ color: '#fff', fontSize: 32, fontFamily: Fonts.black, marginTop: 4 }}>
+              <Text style={{ color: '#fff', fontSize: 34, fontFamily: Fonts.black, marginTop: 4 }}>
                 {showBalance ? `${fmtETB(balance, 2)}` : '••••••'}
               </Text>
             </View>
-            <SparklineChart />
+            <SparklineChart data={[40, 20, 60, 30, 80]} />
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
@@ -134,9 +161,16 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
               <TouchableOpacity
                 key={action.id}
                 style={{ flex: 1, alignItems: 'center' }}
-                onPress={() => onQuickAction?.(action.id)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  onQuickAction?.(action.id);
+                }}
               >
-                <View
+                <MotiView
+                  from={{ scale: 1 }}
+                  animate={{ scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   style={{
                     width: 44,
                     height: 44,
@@ -145,12 +179,12 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
                     borderColor: action.color + '30',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
                     marginBottom: 8,
                   }}
                 >
                   <Ionicons name={action.icon as any} size={22} color={action.color} />
-                </View>
+                </MotiView>
                 <Text
                   style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: Fonts.bold }}
                 >
@@ -161,6 +195,6 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction, animValu
           </View>
         </View>
       </LinearGradient>
-    </Animated.View>
+    </MotiView>
   );
 }

@@ -9,6 +9,8 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'react-native';
 import { Fonts } from '../../theme';
 import { fmtETB } from '../../utils';
 import {
@@ -18,6 +20,15 @@ import {
   ParkingLotLocal,
 } from '../../hooks/useParking';
 import { parkingStyles as styles } from './ParkingScreen.styles';
+import { FlashList } from '@shopify/flash-list';
+import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
+import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
+import { useTheme } from '../../hooks/useTheme';
+
+const ADDIS_NOIR = {
+  gold: '#D4AF37',
+  cyan: '#00F5FF',
+};
 
 export default function ParkingScreen() {
   const {
@@ -39,134 +50,174 @@ export default function ParkingScreen() {
     getCurrentFare,
   } = useParking();
 
+  const C = useTheme();
+  const [showSuccess, setShowSuccess] = React.useState(false);
+  const [successMsg, setSuccessMsg] = React.useState({ title: '', sub: '' });
+
+  const onParkingStart = async () => {
+    const success = await handleStartParking();
+    if (success) {
+      setSuccessMsg({ 
+        title: 'Parking Reserved', 
+        sub: `Spot ${selectedSpot?.number} at ${selectedLot?.name} is ready for you.` 
+      });
+      setShowSuccess(true);
+    }
+  };
+
+  const onParkingEnd = async () => {
+    const success = await handleEndParking();
+    if (success) {
+      setSuccessMsg({ 
+        title: 'Session Ended', 
+        sub: 'Payment processed successfully. Safe travels!' 
+      });
+      setShowSuccess(true);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Custom Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.profileImage}>
-            <Image
-              source={{
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_QR_FniUXCslWzPE1iOtR204CdDlO3hTqRa4b8DugkIRWNCrNOs3qQ-2uu-n0OS8vUwwTIKxFkp9vv1xFV61KwyMYNzOkFxPl9DH8uJyOLZEqYOh_9rE2vsnrQWd5jM5XJhjdStneTudMk5VDZU4wOjaf3DzP2fAuf7bXY0aEAugCn599yqM5AhdPtmbdJMUMPJ9D295G8g0QJXRCw_x9IGG33hCRGcQ0phNKIbUIQyaczNnRBoyGlQfj2dUNbcW6keam_ayug0Bh',
-              }}
-              style={{ width: '100%', height: '100%' }}
-            />
+      <StatusBar barStyle="light-content" />
+      
+      {/* 🏙️ Addis Hotspot Map Header */}
+      <View style={styles.mapHeader}>
+        <LinearGradient colors={['rgba(11,13,17,0.8)', 'transparent']} style={styles.mapGradient} />
+        <View style={styles.mapMeta}>
+          <View style={styles.hotspotBadge}>
+            <View style={styles.pulseDot} />
+            <Text style={styles.hotspotText}>LIVE: BOLE HOTSPOT</Text>
           </View>
-          <Text style={styles.brandName}>ETHIO-SUPER</Text>
+          <Text style={styles.mapTitle}>Smart Park Addis</Text>
         </View>
-        <View style={styles.walletBadge}>
-          <Ionicons name="wallet" size={16} color="#ffd887" />
-          <Text style={styles.walletAmount}>ETB {fmtETB(balance)}</Text>
+        <View style={styles.headerWallet}>
+          <Text style={styles.walletLabel}>BALANCE</Text>
+          <Text style={styles.walletValue}>{fmtETB(balance)}</Text>
         </View>
       </View>
 
-      {/* Main Content */}
-      <View style={styles.contentArea}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Active Session Banner */}
-          {activeParking && (
-            <View style={styles.activeSessionBanner}>
-              <View style={styles.sessionIcon}>
-                <Ionicons name="car" size={80} color="#59de9b" />
-              </View>
-              <View style={styles.sessionHeader}>
-                <View>
-                  <View style={styles.sessionStatus}>
-                    <View style={styles.statusDot} />
-                    <Text style={styles.statusText}>Active Session</Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 🏎️ Active Session "Cockpit" */}
+        {activeParking && (
+          <View style={styles.cockpitCard}>
+            <LinearGradient colors={['#2D7EF0', '#1B2030']} style={styles.cockpitGradient}>
+              <View style={styles.cockpitHeader}>
+                <View style={styles.cockpitBrand}>
+                  <Ionicons name="car-sport" size={24} color="#FFF" />
+                  <View>
+                    <Text style={styles.cockpitTitle}>CURRENTLY PARKED</Text>
+                    <Text style={styles.cockpitSub}>{activeParking.spot_number} · {(activeParking as any).lot_name}</Text>
                   </View>
-                  <Text style={styles.sessionTitle}>Spot {activeParking.spot_number}</Text>
-                  <Text style={styles.sessionSubtitle}>
-                    {(activeParking as any).lot_name as string}
-                  </Text>
                 </View>
-                <View style={styles.sessionTimer}>
-                  <Text style={styles.timerText}>{formatElapsed(elapsed)}</Text>
-                  <Text style={styles.rateText}>
-                    {(activeParking as any).rate_per_hour as number} ETB/hr
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.sessionActions}>
-                <TouchableOpacity style={styles.qrButton} onPress={() => setQrModal(true)}>
-                  <Text style={styles.qrButtonText}>📱 Show QR</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.endButton} onPress={handleEndParking}>
-                  <Text style={styles.endButtonText}>End • {fmtETB(getCurrentFare())} ETB</Text>
+                <TouchableOpacity style={styles.cockpitQrBtn} onPress={() => setQrModal(true)}>
+                  <Ionicons name="qr-code" size={20} color="#FFF" />
                 </TouchableOpacity>
               </View>
-            </View>
-          )}
 
-          {/* Parking Lots */}
-          <View style={styles.parkingSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Available Parking Lots</Text>
-              <Text style={styles.refreshTime}>Refresh 2:40 PM</Text>
-            </View>
-            <View style={styles.lotsList}>
-              {lots.map((lot) => (
-                <LotCard
-                  key={lot.id}
-                  lot={lot}
-                  isExpanded={selectedLot?.id === lot.id}
-                  selectedSpot={selectedSpot}
-                  onLotPress={handleLotPress}
-                  onSpotPress={handleSpotPress}
-                />
-              ))}
-            </View>
+              <View style={styles.cockpitMain}>
+                <View style={styles.timerBlock}>
+                  <Text style={styles.timerVal}>{formatElapsed(elapsed)}</Text>
+                  <Text style={styles.timerLabel}>DURATION</Text>
+                </View>
+                <View style={styles.fareBlock}>
+                  <Text style={styles.fareVal}>{fmtETB(getCurrentFare())}</Text>
+                  <Text style={styles.fareLabel}>TOTAL FARE</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.cockpitEndBtn} onPress={onParkingEnd}>
+                <Text style={styles.cockpitEndText}>END SESSION & PAY</Text>
+                <Ionicons name="chevron-forward" size={16} color="#0B0D11" />
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
-        </ScrollView>
-      </View>
+        )}
 
-      {/* Confirm Modal */}
+        {/* 🅿️ Available Hotspots */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>NEAREST FACILITIES</Text>
+          <View style={styles.filterChip}>
+            <Text style={styles.filterText}>ALL DISTRICTS</Text>
+            <Ionicons name="chevron-down" size={12} color="rgba(255,255,255,0.4)" />
+          </View>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <FlashList
+            data={lots}
+            estimatedItemSize={120}
+            renderItem={({ item: lot }) => (
+              <LotCard
+                lot={lot}
+                isExpanded={selectedLot?.id === lot.id}
+                selectedSpot={selectedSpot}
+                onLotPress={handleLotPress}
+                onSpotPress={handleSpotPress}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+          />
+        </View>
+        
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* 🧾 Confirm Modal */}
       <Modal visible={confirmModal} transparent animationType="slide">
         <Pressable style={styles.modalOverlay} onPress={() => setConfirmModal(false)} />
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Confirm Parking</Text>
+          <Text style={styles.modalTitle}>Confirm Booking</Text>
           {selectedLot && selectedSpot && (
             <>
               <Text style={styles.modalSubtitle}>
-                {selectedLot.name} — Spot{' '}
-                <Text style={{ color: '#e1e2ea', fontWeight: '700' }}>{selectedSpot.number}</Text>
+                {selectedLot.name} · Spot <Text style={{ color: ADDIS_NOIR.gold }}>{selectedSpot.number}</Text>
               </Text>
               <View style={styles.modalInfo}>
-                <Row label="Rate" value={`${selectedLot.rate_per_hour} ETB/hr`} />
-                <Row label="Your Balance" value={`${fmtETB(balance)} ETB`} />
+                <Row label="Hourly Rate" value={`${selectedLot.rate_per_hour} ETB`} />
+                <Row label="Current Balance" value={`${fmtETB(balance)} ETB`} />
               </View>
               <TouchableOpacity
                 style={styles.modalButton}
-                onPress={handleStartParking}
+                onPress={onParkingStart}
                 disabled={loading}
               >
                 <Text style={styles.modalButtonText}>
-                  {loading ? 'Starting…' : '🅿️ Start Parking'}
+                  {loading ? 'RESERVING…' : '🅿️ START PARKING'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setConfirmModal(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>CANCEL</Text>
               </TouchableOpacity>
             </>
           )}
         </View>
       </Modal>
 
-      {/* QR Modal */}
+      <SuccessOverlay
+        visible={showSuccess}
+        title={successMsg.title}
+        subtitle={successMsg.sub}
+        onClose={() => setShowSuccess(false)}
+      />
+
+      <ProcessingOverlay visible={loading} message="Securing reservation..." />
+
+      {/* 📱 QR Modal */}
       <Modal visible={qrModal} transparent animationType="slide">
         <Pressable style={styles.modalOverlay} onPress={() => setQrModal(false)} />
         <View style={styles.qrModalContent}>
           <View style={styles.qrCard}>
-            <Text style={styles.qrTitle}>Parking QR Code</Text>
-            <Text style={styles.qrCode}>{(activeParking as any)?.qr_token as string}</Text>
+            <Text style={styles.qrTitle}>FACILITY ACCESS CODE</Text>
+            <Text style={styles.qrCode}>{(activeParking as any)?.qr_token?.toUpperCase() || 'REF-8291'}</Text>
           </View>
-          <Text style={styles.qrDescription}>Show this to the parking attendant</Text>
+          <Text style={styles.qrDescription}>Show this code to the Addis Smart Park attendant at the gate for secure entry/exit.</Text>
           <TouchableOpacity style={styles.cancelButton} onPress={() => setQrModal(false)}>
-            <Text style={styles.cancelButtonText}>Close</Text>
+            <Text style={styles.cancelButtonText}>CLOSE PORTAL</Text>
           </TouchableOpacity>
         </View>
       </Modal>

@@ -31,7 +31,9 @@ export async function fetchPendingMerchants() {
 /**
  * approveMerchant — approves a merchant's KYC and status.
  */
-export async function approveMerchant(merchantId: string): Promise<{ data: User | null; error: string | null }> {
+export async function approveMerchant(
+  merchantId: string
+): Promise<{ data: User | null; error: string | null }> {
   if (!merchantId) return { data: null, error: 'No merchant ID provided' };
 
   const res = await supaQuery<{ success: boolean; data?: User; error?: string }>((c) =>
@@ -39,52 +41,53 @@ export async function approveMerchant(merchantId: string): Promise<{ data: User 
   );
 
   if (res.error) return { data: null, error: res.error };
-  if (res.data && !res.data.success) return { data: null, error: res.data.error || 'Merchant approval failed' };
-  
+  if (res.data && !res.data.success)
+    return { data: null, error: res.data.error || 'Merchant approval failed' };
+
   return { data: res.data?.data as User, error: null };
 }
 
 /**
  * rejectMerchant — rejects a merchant's application with a reason.
+ * Uses the admin_reject_merchant RPC which enforces server-side role authorization,
+ * consistent with approveMerchant. Direct table mutations were removed because they
+ * bypass the auth.uid() role check enforced inside SECURITY DEFINER RPCs.
  */
-export async function rejectMerchant(merchantId: string, reason: string) {
-  // 1. Update Profile
-  const pRes = await supaQuery((c) =>
-    c
-      .from('profiles')
-      .update({
-        kyc_status: 'REJECTED',
-        fayda_verified: false,
-        reject_reason: reason,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', merchantId)
-  );
-  if (pRes.error) return pRes as any;
+export async function rejectMerchant(
+  merchantId: string,
+  reason: string
+): Promise<{ data: null; error: string | null }> {
+  if (!merchantId) return { data: null, error: 'No merchant ID provided' };
+  if (!reason?.trim()) return { data: null, error: 'Rejection reason is required' };
 
-  // 2. Update Merchant Table
-  return supaQuery<User>((c) =>
-    c
-      .from('merchants')
-      .update({ merchant_status: 'REJECTED' })
-      .eq('id', merchantId)
-      .select()
-      .single()
+  const res = await supaQuery<{ success: boolean; error?: string }>((c) =>
+    c.rpc('admin_reject_merchant', {
+      p_merchant_id: merchantId,
+      p_reason: reason.trim(),
+    })
   );
+
+  if (res.error) return { data: null, error: res.error };
+  if (res.data && !res.data.success)
+    return { data: null, error: res.data.error || 'Rejection failed' };
+
+  return { data: null, error: null };
 }
 
 /**
  * approveAgent — approves a delivery agent in both profiles and delivery_agents tables.
  * Uses upsert for delivery_agents to handle missing records.
  */
-export async function approveAgent(agentOrId: string | DeliveryAgent): Promise<{ error: string | null }> {
+export async function approveAgent(
+  agentOrId: string | DeliveryAgent
+): Promise<{ error: string | null }> {
   const agentId = typeof agentOrId === 'object' ? agentOrId.id : agentOrId;
   const agentData = typeof agentOrId === 'object' ? agentOrId : null;
 
   if (!agentId) return { error: 'No agent ID provided' };
 
   const res = await supaQuery<{ success: boolean; data?: DeliveryAgent; error?: string }>((c) =>
-    c.rpc('admin_approve_agent', { 
+    c.rpc('admin_approve_agent', {
       p_agent_id: agentId,
       p_vehicle_type: agentData?.vehicle_type ?? null,
       p_license_number: agentData?.license_number ?? null,
@@ -100,48 +103,21 @@ export async function approveAgent(agentOrId: string | DeliveryAgent): Promise<{
 
 /**
  * rejectAgent — rejects a delivery agent in both profiles and delivery_agents tables.
+ * Uses the admin_reject_agent RPC for secure server-side role authorization and atomicity.
  */
 export async function rejectAgent(agentId: string, reason: string) {
   if (!agentId) return { error: 'No agent ID provided' };
+  if (!reason?.trim()) return { error: 'Rejection reason is required' };
 
-  // 1. Update delivery_agents first
-  const res1 = await supaQuery<DeliveryAgent>((c) =>
-    c
-      .from('delivery_agents')
-      .update({ agent_status: 'REJECTED' })
-      .eq('id', agentId)
-      .select()
-      .single()
+  const res = await supaQuery<{ success: boolean; error?: string }>((c) =>
+    c.rpc('admin_reject_agent', {
+      p_agent_id: agentId,
+      p_reason: reason.trim(),
+    })
   );
 
-  if (res1.error) return { error: res1.error };
-  const rows1 = res1.data && Array.isArray(res1.data) ? res1.data.length : res1.data ? 1 : 0;
-
-  if (rows1 === 0) {
-    return { error: 'Agent record not found or access denied (RLS).' };
-  }
-
-  // 2. Update profile
-  const res2 = await supaQuery<User>((c) =>
-    c
-      .from('profiles')
-      .update({
-        kyc_status: 'REJECTED',
-        reject_reason: reason,
-      })
-      .eq('id', agentId)
-      .select()
-      .single()
-  );
-
-  if (res2.error) return { error: res2.error };
-  const rows2 = res2.data && Array.isArray(res2.data) ? res2.data.length : res2.data ? 1 : 0;
-
-  console.log(`[CityLink] rejectAgent rows affected: delivery_agents=${rows1}, profiles=${rows2}`);
-
-  if (rows2 === 0) {
-    return { error: 'Failed to update the agent profile record.' };
-  }
+  if (res.error) return { error: res.error };
+  if (res.data && !res.data.success) return { error: res.data.error || 'Rejection failed' };
 
   return { error: null };
 }
@@ -166,12 +142,18 @@ export const fetchAdminLiveStats = async (): Promise<{ data: AdminStats; error?:
       parkingRes,
       disputeMktRes,
       disputeFoodRes,
+      revenueRes,
     ] = await Promise.all([
       supaQuery<{ id: string }[]>((c) =>
         c.from('profiles').select('id', { count: 'exact', head: true })
       ),
-      supaQuery<{ total: number }[]>((c) => c.from('marketplace_orders').select('total')),
-      supaQuery<{ total: number }[]>((c) => c.from('food_orders').select('total')),
+      // Use count-only HEAD queries — never fetch full row data for counting
+      supaQuery<{ id: string }[]>((c) =>
+        c.from('marketplace_orders').select('id', { count: 'exact', head: true })
+      ),
+      supaQuery<{ id: string }[]>((c) =>
+        c.from('food_orders').select('id', { count: 'exact', head: true })
+      ),
       supaQuery<{ id: string }[]>((c) =>
         c.from('delivery_dispatches').select('id', { count: 'exact', head: true })
       ),
@@ -190,16 +172,14 @@ export const fetchAdminLiveStats = async (): Promise<{ data: AdminStats; error?:
       supaQuery<{ id: string }[]>((c) =>
         c.from('food_orders').select('id', { count: 'exact', head: true }).eq('status', 'DISPUTED')
       ),
+      // Single RPC returns both marketplace + food revenue as SUM() — no row fetching
+      supaQuery<{ marketplace_revenue: number; food_revenue: number }>((c) =>
+        c.rpc('get_platform_revenue')
+      ),
     ]);
 
-    const mktRevenue = (mktOrdersRes.data || []).reduce(
-      (acc, o) => acc + (Number(o.total) || 0),
-      0
-    );
-    const foodRevenue = (foodOrdersRes.data || []).reduce(
-      (acc, o) => acc + (Number(o.total) || 0),
-      0
-    );
+    const mktRevenue = revenueRes.data?.marketplace_revenue ?? 0;
+    const foodRevenue = revenueRes.data?.food_revenue ?? 0;
 
     return {
       data: {

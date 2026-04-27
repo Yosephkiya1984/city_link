@@ -28,7 +28,7 @@ export const AuthOtp = ({
 
       <Text style={[styles.title, { color: C.text }]}>Security Check</Text>
       <Text style={[styles.subtitle, { color: C.sub }]}>
-        Enter the 6-digit code sent to {phone}
+        Enter the secure code sent to {phone}
       </Text>
 
       <View style={styles.form}>
@@ -36,10 +36,10 @@ export const AuthOtp = ({
           label="Verification Code"
           value={otp}
           onChangeText={setOtp}
-          placeholder="000000"
+          placeholder="00000000"
           iconName="key-outline"
           keyboardType="number-pad"
-          maxLength={6}
+          maxLength={8}
         />
 
         {__DEV__ && devOtp ? (

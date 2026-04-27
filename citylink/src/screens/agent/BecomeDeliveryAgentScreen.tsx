@@ -20,7 +20,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
-import { registerDeliveryAgent, requestLocationPermission } from '../../services/delivery.service';
+import {
+  registerDeliveryAgent,
+  requestLocationPermission,
+  fetchAgentProfile,
+} from '../../services/delivery.service';
 import { VEHICLE_TYPES, SUBCITIES } from '../../config';
 
 const { width } = Dimensions.get('window');
@@ -86,7 +90,6 @@ export default function BecomeDeliveryAgentScreen() {
       }
 
       // 2. Check if agent record already exists (handles re-registration & RLS issues)
-      const { fetchAgentProfile } = require('../../services/delivery.service');
       const { data: existing } = await fetchAgentProfile(currentUser.id);
 
       if (!existing) {

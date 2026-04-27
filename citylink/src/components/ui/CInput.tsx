@@ -5,25 +5,35 @@ import * as Haptics from 'expo-haptics';
 import { Colors, Radius, FontSize, Spacing, Shadow, Fonts } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 
+import {
+  KeyboardTypeOptions,
+  ReturnKeyTypeOptions,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
+
 interface CInputProps {
-  label?: any;
-  value?: any;
-  onChangeText?: any;
-  placeholder?: any;
-  keyboardType?: any;
-  secureTextEntry?: any;
-  maxLength?: any;
-  multiline?: any;
-  numberOfLines?: any;
-  style?: any;
-  inputStyle?: any;
+  label?: string;
+  value?: string;
+  onChangeText?: (text: string) => void;
+  placeholder?: string;
+  keyboardType?: KeyboardTypeOptions;
+  secureTextEntry?: boolean;
+  maxLength?: number;
+  multiline?: boolean;
+  numberOfLines?: number;
+  style?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
   editable?: boolean;
-  autoFocus?: any;
-  onSubmitEditing?: any;
+  autoFocus?: boolean;
+  onSubmitEditing?: () => void;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
-  iconName?: any;
-  hint?: any;
+  iconName?: React.ComponentProps<typeof Ionicons>['name'];
+  hint?: string;
+  returnKeyType?: ReturnKeyTypeOptions;
+  accessibilityLabel?: string;
 }
 
 export function CInput({
@@ -45,6 +55,8 @@ export function CInput({
   autoCorrect,
   iconName,
   hint,
+  returnKeyType,
+  accessibilityLabel,
 }: CInputProps) {
   const C = useTheme();
   const [isFocused, setIsFocused] = useState(false);
@@ -93,7 +105,9 @@ export function CInput({
     setIsActive(true);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (_) {}
+    } catch (_) {
+      /* ignore */
+    }
   };
 
   const handleBlur = () => {
@@ -164,6 +178,9 @@ export function CInput({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onSubmitEditing={onSubmitEditing}
+          returnKeyType={returnKeyType}
+          accessibilityLabel={accessibilityLabel || label || placeholder}
+          accessibilityHint={hint}
           style={[
             {
               flex: 1,
@@ -173,16 +190,18 @@ export function CInput({
               paddingVertical: 14,
               minHeight: multiline ? 100 : undefined,
             },
-            inputStyle,
+            inputStyle as any,
           ]}
         />
-        {value?.length > 0 && (
+        {(value?.length ?? 0) > 0 && (
           <TouchableOpacity
             onPress={() => {
-              onChangeText('');
+              onChangeText?.('');
               try {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              } catch (_) {}
+              } catch (_) {
+                /* ignore */
+              }
             }}
             style={{ padding: 4 }}
           >

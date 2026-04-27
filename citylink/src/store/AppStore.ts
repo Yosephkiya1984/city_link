@@ -13,15 +13,5 @@ import { useSystemStore } from './SystemStore';
  * - useSystemStore: Theme, language, notifications, toasts, chat
  */
 
-/**
- * resetAllStores
- * Clears all domain-specific stores. Useful for sign-out or session reset.
- */
-export const resetAllStores = async () => {
-  await Promise.all([useAuthStore.getState().reset(), useWalletStore.getState().reset()]);
-  useMarketStore.getState().reset();
-  useSystemStore.getState().reset();
-};
-
 // Re-export domain stores for unified entry point
 export { useAuthStore, useWalletStore, useMarketStore, useSystemStore };

@@ -3,16 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TopBar from '../../components/TopBar';
 import { useSystemStore } from '../../store/SystemStore';
-import { Colors, DarkColors, Radius, Fonts, Shadow } from '../../theme';
+import { DarkColors as T, Radius, Fonts } from '../../theme';
+import { GlassView } from '../../components/GlassView';
 import { t } from '../../utils/i18n';
 
-function useTheme() {
-  const isDark = useSystemStore((s) => s.isDark);
-  return isDark ? DarkColors : Colors;
-}
-
 export default function LanguageScreen() {
-  const C = useTheme();
   const lang = useSystemStore((s) => s.lang);
   const setLang = useSystemStore((s) => s.setLang);
   const showToast = useSystemStore((s) => s.showToast);
@@ -20,11 +15,11 @@ export default function LanguageScreen() {
   const langs = [
     { code: 'en', label: 'English', sub: 'Universal' },
     { code: 'am', label: 'አማርኛ', sub: 'Amharic' },
-    { code: 'or', label: 'Afaan Oromoo', sub: 'Oromo' },
+    { code: 'om', label: 'Afaan Oromoo', sub: 'Oromo' },
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.ink }}>
+    <View style={{ flex: 1, backgroundColor: T.ink }}>
       <TopBar title={t('language')} />
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         {langs.map((l) => (
@@ -34,28 +29,48 @@ export default function LanguageScreen() {
               setLang(l.code);
               showToast(t('lang_changed'), 'success');
             }}
-            style={{
-              backgroundColor: C.surface,
-              borderRadius: Radius.xl,
-              borderWidth: 1.5,
-              borderColor: lang === l.code ? C.primary : C.edge2,
-              padding: 20,
-              marginBottom: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              ...Shadow.sm,
-            }}
           >
-            <View>
-              <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
-                {l.label}
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.medium, marginTop: 2 }}>
-                {l.sub}
-              </Text>
-            </View>
-            {lang === l.code && <Ionicons name="checkmark-circle" size={24} color={C.primary} />}
+            <GlassView
+              intensity={20}
+              style={{
+                borderRadius: Radius.xl,
+                borderWidth: 1.5,
+                borderColor: lang === l.code ? T.primary : T.edge,
+                padding: 24,
+                marginBottom: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View>
+                <Text style={{ color: T.text, fontSize: 20, fontFamily: Fonts.headline }}>
+                  {l.label}
+                </Text>
+                <Text
+                  style={{ color: T.textSoft, fontSize: 13, fontFamily: Fonts.body, marginTop: 4 }}
+                >
+                  {l.sub}
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  borderWidth: 2,
+                  borderColor: lang === l.code ? T.primary : T.edge,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {lang === l.code && (
+                  <View
+                    style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: T.primary }}
+                  />
+                )}
+              </View>
+            </GlassView>
           </TouchableOpacity>
         ))}
       </ScrollView>

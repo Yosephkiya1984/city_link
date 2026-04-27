@@ -24,18 +24,28 @@ export default function UserModule() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  const fetchUsers = async () => {
-    // Only show loading for the initial fetch to keep UI responsive during real-time updates
-    if (users.length === 0) setLoading(true);
+  const fetchUsersData = async () => {
     const { data } = await supaQuery((c) =>
       c.from('profiles').select('*').order('created_at', { ascending: false }).limit(100)
     );
-    if (data) setUsers(data);
+    return data || [];
+  };
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    const data = await fetchUsersData();
+    setUsers(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchUsers();
+    let ignore = false;
+    fetchUsersData().then((data) => {
+      if (!ignore) {
+        setUsers(data);
+        setLoading(false);
+      }
+    });
 
     const client = getClient();
     if (!client) return;
@@ -43,11 +53,14 @@ export default function UserModule() {
     const subscription = client
       .channel('public:profiles')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        fetchUsers();
+        fetchUsersData().then((data) => {
+          if (!ignore) setUsers(data);
+        });
       })
       .subscribe();
 
     return () => {
+      ignore = true;
       subscription.unsubscribe();
     };
   }, []);

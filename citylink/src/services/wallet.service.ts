@@ -3,7 +3,6 @@ import { WELCOME_BONUS_ETB } from '../config';
 import { SecurePersist } from '../store/SecurePersist';
 import { uid } from '../utils';
 import { Wallet, Transaction as DomainTransaction } from '../types/domain_types';
-import { DataEngine } from './data.engine';
 
 /**
  * fetchWallet — returns the raw wallet row for a given user ID.
@@ -21,6 +20,20 @@ interface WalletStats {
 }
 
 /**
+ * fetchTransactions — returns recent transactions for a wallet.
+ */
+export async function fetchTransactions(walletId: string, limit = 20) {
+  return supaQuery<DomainTransaction[]>((c) =>
+    c
+      .from('transactions')
+      .select('*')
+      .eq('wallet_id', walletId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+  );
+}
+
+/**
  * fetchWalletData — High-level function used by screens.
  * Orchestrates balance, transactions, and SECURE OFFLINE CACHING.
  */
@@ -29,7 +42,7 @@ export async function fetchWalletData(userId: string): Promise<WalletStats | nul
 
   try {
     // 1. Fetch from Supabase
-    const { data: walletData, error: wErr } = await DataEngine.wallets.get(userId);
+    const { data: walletData, error: wErr } = await fetchWallet(userId);
 
     if (wErr) throw new Error(wErr);
 
@@ -51,7 +64,7 @@ export async function fetchWalletData(userId: string): Promise<WalletStats | nul
 
     if (!wallet) return null;
 
-    const { data: txs, error: tErr } = await DataEngine.wallets.getTransactions(wallet.id, 20);
+    const { data: txs, error: tErr } = await fetchTransactions(wallet.id, 20);
 
     const result: WalletStats = {
       balance: wallet.balance,
@@ -60,14 +73,14 @@ export async function fetchWalletData(userId: string): Promise<WalletStats | nul
     };
 
     // 2. SECURE OFFLINE CACHE (Hardening)
-    await SecurePersist.setItem(`wallet_cache_${userId}`, JSON.stringify(result));
+    await SecurePersist.setItem(`wallet-cache-${userId}`, JSON.stringify(result));
 
     return result;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('Wallet fetch failed, checking cache:', msg);
     // FALLBACK TO CACHE (Strike 3 Resilience)
-    const cached = await SecurePersist.getItem(`wallet_cache_${userId}`);
+    const cached = await SecurePersist.getItem(`wallet-cache-${userId}`);
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -90,7 +103,9 @@ export async function processTopup(
   externalRef?: string
 ): Promise<boolean> {
   // Hardened: use external reference if available, otherwise a deterministic window-based key
-  const idempotencyKey = externalRef || `topup-${userId.slice(0, 8)}-${amount}-${provider}-${Math.floor(Date.now() / 60000)}`;
+  const idempotencyKey =
+    externalRef ||
+    `topup-${userId.slice(0, 8)}-${amount}-${provider}-${Math.floor(Date.now() / 60000)}`;
 
   const res = await supaQuery<{ ok: boolean }>((c) =>
     c.rpc('credit_wallet_atomic', {
@@ -185,11 +200,13 @@ export async function ensureWallet(
 export async function claimWelcomeBonus(
   userId: string
 ): Promise<{ applied: boolean; newBalance?: number; error?: string | null }> {
+  // 🛡️ FIX (CRIT-2): DB function signature is process_welcome_bonus(p_user_id, p_amount).
+  // Idempotency is enforced server-side via the welcome_bonus_paid column on profiles.
+  // Passing a p_idempotency_key parameter caused every call to fail with a DB error.
   const res = await supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
     c.rpc('process_welcome_bonus', {
       p_user_id: userId,
       p_amount: WELCOME_BONUS_ETB,
-      p_idempotency_key: `welcome-${userId.slice(0, 8)}`,
     })
   );
 
@@ -220,7 +237,9 @@ export async function queueP2PTransfer({
   note?: string;
   idempotencyKey?: string;
 }): Promise<P2PResult> {
-  const finalKey = idempotencyKey || `p2p-v1-${senderId}-${recipientPhone}-${amount}-${note || ''}`;
+  const finalKey =
+    idempotencyKey ||
+    `p2p-v1-${senderId}-${recipientPhone}-${amount}-${note || ''}-${uid().slice(0, 8)}`;
   const res = await supaQuery<{ ok: boolean; new_balance: number; status: string; error?: string }>(
     (c) =>
       c.rpc('process_p2p_transfer', {

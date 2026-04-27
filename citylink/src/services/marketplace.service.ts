@@ -56,33 +56,15 @@ export async function fetchProducts(limit: number = 50) {
 export async function searchProducts(query: string, limit: number = 40) {
   if (!query?.trim()) return fetchProducts(limit);
 
-  // Use secure server-side search function instead of vulnerable client-side filtering
-  const res = await supaQuery((c) =>
+  // Use secure server-side search function.
+  // No client-side fallback is permitted to ensure security and SQL injection resistance.
+  const res = await supaQuery<ProductWithMerchant[]>((c) =>
     c.rpc('search_products_secure', {
       p_query: query.trim(),
       p_limit: limit,
       p_offset: 0,
     })
   );
-
-  if (res.error) {
-    console.error('Secure search failed:', res.error);
-    // Fallback to basic client-side search if RPC fails (for backward compatibility)
-    const trimmedQuery = query.trim();
-    const escapedQuery = trimmedQuery.replace(/([%_\\])/g, '\\$1').replace(/'/g, "''");
-    const pattern = `%${escapedQuery}%`;
-
-    return await supaQuery<ProductWithMerchant[]>((c) =>
-      c
-        .from('products')
-        .select(PRODUCT_COLS)
-        .eq('status', 'active')
-        .gt('stock', 0)
-        .or(`name.ilike.'${pattern}',description.ilike.'${pattern}'`)
-        .order('created_at', { ascending: false })
-        .limit(limit)
-    ).then((res) => ({ ...res, data: res.data?.map(mapProductMerchant) || [] }));
-  }
 
   return { ...res, data: res.data?.map(mapProductMerchant) || [] };
 }
@@ -120,25 +102,29 @@ export async function fetchMerchantInventory(merchantId: string) {
 }
 
 export async function insertProduct(product: Partial<Product>) {
-  const officialProduct: Partial<Product> = {
-    ...product,
-    id: product.id || uid(),
+  const productId = product.id || uid();
+
+  // Construct clean payload for database
+  const payload: any = {
+    id: productId,
+    merchant_id: product.merchant_id,
+    name: product.name || product.title,
+    title: product.title || product.name,
+    price: product.price,
+    category: product.category,
+    stock: product.stock,
+    description: product.description,
+    status: product.status || 'active',
+    condition: product.condition || 'new',
+    image_url: product.image_url || product.image,
+    images_json: product.images_json || [],
     created_at: new Date().toISOString(),
   };
 
-  // Clean up any legacy fields that might be passed from UI
-  const { image, images, ...payload } = officialProduct as Partial<Product> & {
-    image?: string;
-    images?: string | string[] | Record<string, unknown>[];
-    image_url?: string;
-    images_json?: string | string[] | Record<string, unknown>[];
-  };
-  if (image && !payload.image_url) {
-    payload.image_url = image;
-  }
-  if (images && !payload.images_json) {
-    payload.images_json = images;
-  }
+  // Remove any undefined fields to avoid overwriting defaults with null
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
 
   return supaQuery<Product>((c) => c.from('products').insert(payload).select().single());
 }
@@ -171,8 +157,10 @@ export async function uploadProductImage(imageData: {
   if (!client) return { data: null, error: 'no-credentials' };
 
   try {
-    // Extract file info from URI
-    const fileName = imageData.uri.split('/').pop() || `image_${Date.now()}.jpg`;
+    // Extract file info from URI and prefix with UUID to prevent bucket collisions
+    // between merchants who upload files with the same original name (e.g. "product.jpg")
+    const rawName = imageData.uri.split('/').pop() || `image_${Date.now()}.jpg`;
+    const fileName = `${uid()}-${rawName}`; // 🛡️ FIX (HIGH-4): Namespaced per upload
     const fileSize = (imageData.base64.length * 3) / 4; // Approximate base64 to bytes
 
     const contentType = fileName.toLowerCase().endsWith('.png')
@@ -300,34 +288,18 @@ export async function requestWithdrawal(
 }
 
 export async function openMarketplaceDispute(orderId: string, buyerId: string, reason: string) {
-  const { data, error } = await supaQuery<MarketplaceOrder>((c) =>
-    c
-      .from('marketplace_orders')
-      .update({ status: 'DISPUTED', updated_at: new Date().toISOString() })
-      .eq('id', orderId)
-      .eq('buyer_id', buyerId)
-      .select()
-      .single()
+  const res = await supaQuery<{ success: boolean; error?: string }>((c) =>
+    c.rpc('open_order_dispute', {
+      p_order_id: orderId,
+      p_buyer_id: buyerId,
+      p_reason: reason || 'Other',
+    })
   );
 
-  if (!error && data) {
-    await supaQuery<Dispute>((c) =>
-      c.from('disputes').insert({
-        order_id: orderId,
-        buyer_id: buyerId,
-        merchant_id: data.merchant_id,
-        product_name: data.product_name || 'Generic Product',
-        amount: data.total,
-        reason: reason || 'Other',
-        description: reason || 'Other',
-        stage: 'before_pin',
-        status: 'OPEN',
-        raised_at: new Date().toISOString(),
-      })
-    );
-  }
-
-  return { ok: !error, error };
+  return {
+    ok: res.data?.success === true,
+    error: res.error || (res.data && !res.data.success ? res.data.error : null),
+  };
 }
 
 export async function merchantMarkShippedMarketplace(
@@ -335,12 +307,17 @@ export async function merchantMarkShippedMarketplace(
   merchantId: string,
   pin: string
 ) {
-  return supaQuery<void>((c) =>
-    c
-      .from('marketplace_orders')
-      .update({ status: 'SHIPPED', delivery_pin: pin, updated_at: new Date().toISOString() })
-      .eq('id', orderId)
-      .eq('merchant_id', merchantId)
+  // Use RPC to enforce server-side validation:
+  // - Order must be in PAID state (not already shipped/cancelled)
+  // - Merchant must be the order owner
+  // - Merchant must have APPROVED status
+  // - PIN format is validated server-side
+  return supaQuery<{ ok: boolean; error?: string }>((c) =>
+    c.rpc('merchant_mark_shipped', {
+      p_order_id: orderId,
+      p_merchant_id: merchantId,
+      p_delivery_pin: pin,
+    })
   );
 }
 
@@ -667,6 +644,17 @@ export const marketplaceService = {
         p_wallet_pin_hash: walletPinHash,
       })
     );
+  },
+
+  selfDeliverOrder: async (orderId: string, merchantId: string) => {
+    const res = await supaQuery<void>((c) =>
+      c.rpc('self_deliver_marketplace_order', {
+        p_order_id: orderId,
+        p_merchant_id: merchantId,
+      })
+    );
+    if (res.error) throw res.error;
+    return { success: true };
   },
 };
 

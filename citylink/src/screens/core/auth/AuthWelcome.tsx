@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../../../theme';
+import { useNavigation } from '@react-navigation/native';
 
 export interface AuthWelcomeProps {
   C: any;
@@ -12,17 +13,6 @@ export interface AuthWelcomeProps {
   onGov: () => void;
 }
 
-const normalizeHexWithAlpha = (color: string | undefined): string => {
-  if (typeof color !== 'string') return 'rgba(0, 168, 107, 0.1)';
-  const val = color.trim();
-  if (val.startsWith('#')) {
-    if (val.length === 4) return `#${val[1]}${val[1]}${val[2]}${val[2]}${val[3]}${val[3]}1A`;
-    if (val.length === 7) return `${val}1A`;
-    if (val.length === 9) return `${val.slice(0, 7)}1A`;
-  }
-  return 'rgba(0, 168, 107, 0.1)';
-};
-
 export const AuthWelcome = ({
   C,
   fadeAnim,
@@ -31,7 +21,8 @@ export const AuthWelcome = ({
   onRegister,
   onGov,
 }: AuthWelcomeProps) => {
-  const logoBg = normalizeHexWithAlpha(C?.primary);
+  const logoBg = C.primary + '1A';
+  const navigation = useNavigation<any>();
 
   return (
     <Animated.View
@@ -47,11 +38,8 @@ export const AuthWelcome = ({
 
       <View style={styles.welcomeButtons}>
         <TouchableOpacity
-          style={[styles.primaryBtn, { backgroundColor: C.primary }]}
+          style={[styles.primaryBtn, { backgroundColor: C.primary, shadowColor: C.primary }]}
           onPress={onLogin}
-          accessibilityRole="button"
-          accessibilityLabel="Sign In"
-          accessibilityHint="Navigates to the sign in screen"
         >
           <Text style={[styles.primaryBtnText, { color: C.ink }]}>Sign In</Text>
         </TouchableOpacity>
@@ -59,9 +47,6 @@ export const AuthWelcome = ({
         <TouchableOpacity
           style={[styles.secondaryBtn, { borderColor: C.edge }]}
           onPress={onRegister}
-          accessibilityRole="button"
-          accessibilityLabel="Create Account"
-          accessibilityHint="Navigates to the account creation screen"
         >
           <Text style={[styles.secondaryBtnText, { color: C.text }]}>Create Account</Text>
         </TouchableOpacity>
@@ -75,9 +60,6 @@ export const AuthWelcome = ({
         <TouchableOpacity
           style={[styles.govBtn, { backgroundColor: C.surface, borderColor: C.edge }]}
           onPress={onGov}
-          accessibilityRole="button"
-          accessibilityLabel="Government Login"
-          accessibilityHint="Navigates to the inspector or station login screen"
         >
           <Ionicons
             name="shield-checkmark"
@@ -86,6 +68,15 @@ export const AuthWelcome = ({
             style={{ marginRight: 8 }}
           />
           <Text style={[styles.govBtnText, { color: C.text }]}>Government Login</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{ marginTop: 20, alignItems: 'center' }}
+          onPress={() => navigation.navigate('DevPortal')}
+        >
+          <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.label, textDecorationLine: 'underline' }}>
+            🛠️ Developer Access
+          </Text>
         </TouchableOpacity>
       </View>
     </Animated.View>

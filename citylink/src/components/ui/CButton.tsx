@@ -23,9 +23,10 @@ interface CButtonProps {
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   icon?: React.ComponentProps<typeof Ionicons>['name'];
+  accessibilityLabel?: string;
 }
 
 export function CButton({
@@ -38,6 +39,7 @@ export function CButton({
   style,
   textStyle,
   icon,
+  accessibilityLabel,
 }: CButtonProps) {
   const C = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
@@ -56,7 +58,9 @@ export function CButton({
     }).start();
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (_) {}
+    } catch (_) {
+      /* ignore */
+    }
   };
 
   const onPressOut = () => {
@@ -68,7 +72,7 @@ export function CButton({
     }).start();
   };
 
-  async function handlePress() {
+  async function handlePress(..._args: any[]) {
     if (disabled || loading) return;
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -76,7 +80,9 @@ export function CButton({
         Animated.timing(shimmerAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.timing(shimmerAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
       ]).start();
-    } catch (_) {}
+    } catch (_) {
+      /* ignore */
+    }
     onPress?.();
   }
 
@@ -125,7 +131,7 @@ export function CButton({
                 fontFamily: fw,
                 letterSpacing: 0.5,
               },
-              textStyle,
+              textStyle as any,
             ]}
           >
             {title}
@@ -136,12 +142,15 @@ export function CButton({
   );
 
   return (
-    <Animated.View style={[{ transform: [{ scale }], width: '100%' }, style]}>
+    <Animated.View style={[{ transform: [{ scale }], width: '100%' }, style as any]}>
       <Pressable
         onPress={handlePress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         disabled={disabled || loading}
+        accessibilityLabel={accessibilityLabel || title}
+        accessibilityRole="button"
+        accessibilityState={{ disabled, busy: loading }}
         style={({ pressed }) => ({
           borderRadius: Radius.xl,
           overflow: 'hidden',

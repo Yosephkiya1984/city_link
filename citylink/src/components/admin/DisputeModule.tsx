@@ -51,8 +51,7 @@ export default function DisputeModule() {
   const [loading, setLoading] = useState(true);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
 
-  const fetchDisputes = async () => {
-    setLoading(true);
+  const fetchDisputesData = async () => {
     // Combine both Marketplace and Restaurant disputes.
     // We fetch food orders without a join first to avoid relationship hint errors (citizen_id FK ambiguous)
     const [mktRes, foodRes] = await Promise.all([
@@ -74,7 +73,7 @@ export default function DisputeModule() {
 
     const mkt = (mktRes.data || []).map((d) => ({
       ...d,
-      type: 'MARKETPLACE',
+      type: 'MARKETPLACE' as const,
       name: d.product_name,
       amount: d.total,
     }));
@@ -95,22 +94,35 @@ export default function DisputeModule() {
 
     const food = foodRaw.map((d) => ({
       ...d,
-      type: 'RESTAURANT',
+      type: 'RESTAURANT' as const,
       name: d.restaurant_name || 'Food Order',
       amount: d.total,
       profiles: profileMap[d.citizen_id],
     }));
 
-    setDisputes(
-      ([...mkt, ...food] as Dispute[]).sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
+    return ([...mkt, ...food] as Dispute[]).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
+  };
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    const data = await fetchDisputesData();
+    setDisputes(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchDisputes();
+    let ignore = false;
+    fetchDisputesData().then((data) => {
+      if (!ignore) {
+        setDisputes(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleResolve = async (
@@ -119,7 +131,9 @@ export default function DisputeModule() {
   ) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (e) {}
+    } catch (e) {
+      /* ignore */
+    }
 
     const resolveMkt = async (
       type: 'BUYER_FAULT' | 'MERCHANT_AT_FAULT' | 'ORDER_CANCELLED_REFUND'
@@ -130,7 +144,7 @@ export default function DisputeModule() {
         return false;
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      fetchDisputes();
+      handleRefresh();
       setSelectedDispute(null);
       return true;
     };
@@ -158,9 +172,11 @@ export default function DisputeModule() {
         res = await rpcReleaseEscrow(dispute.escrow_id, dispute.id);
       }
     } else {
-      const targetStatus = action === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
       res = await supaQuery((c) =>
-        c.from('food_orders').update({ status: targetStatus }).eq('id', dispute.id)
+        c.rpc('resolve_food_order_dispute', {
+          p_order_id: dispute.id,
+          p_resolution_type: action, // 'RELEASE' or 'REFUND'
+        })
       );
     }
 
@@ -168,8 +184,10 @@ export default function DisputeModule() {
     else {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch (e) {}
-      fetchDisputes();
+      } catch (e) {
+        /* ignore */
+      }
+      handleRefresh();
       setSelectedDispute(null);
     }
   };

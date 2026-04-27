@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Animated, Image, StyleSheet } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Fonts } from '../../theme';
+import { Fonts, Radius } from '../../theme';
 
 interface FeaturedCardProps {
   title: any;
@@ -75,7 +75,7 @@ export function FeaturedCard({
 const styles = StyleSheet.create({
   featuredCard: {
     height: 180,
-    borderRadius: 24,
+    borderRadius: Radius.card,
     overflow: 'hidden',
     backgroundColor: '#101319',
   },

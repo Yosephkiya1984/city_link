@@ -23,6 +23,8 @@ import { t } from '../../utils/i18n';
 import { P2P_PIN_THRESHOLD_ETB } from '../../config';
 import { queueP2PTransfer } from '../../services/wallet.service';
 import { hasWalletPin, verifyWalletPin } from '../../services/walletPin';
+import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
+import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
 
 function useTheme() {
   const isDark = useSystemStore((s) => s.isDark);
@@ -45,6 +47,7 @@ export default function SendMoneyScreen() {
   const [loading, setLoading] = useState(false);
   const [pinModal, setPinModal] = useState(false);
   const [pinValue, setPinValue] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   async function handleSend() {
     const amt = parseFloat(amount);
@@ -123,9 +126,7 @@ export default function SendMoneyScreen() {
         created_at: new Date().toISOString(),
       });
 
-      const successStatus = res.status === 'completed' ? 'Completed' : 'Pending';
-      showToast(`Transfer ${successStatus}: ${fmtETB(amt, 0)} to ${phone}`, 'success');
-      navigation.goBack();
+      setShowSuccess(true);
     } catch (error: any) {
       console.error('P2P Transfer Error:', error);
       const msg =
@@ -355,6 +356,16 @@ export default function SendMoneyScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      <SuccessOverlay
+        visible={showSuccess}
+        title="Transfer Sent"
+        subtitle={`You have successfully sent ${fmtETB(parseFloat(amount) || 0, 0)} to ${phone}.`}
+        onClose={() => {
+          setShowSuccess(false);
+          navigation.goBack();
+        }}
+      />
+      <ProcessingOverlay visible={loading} message="Securing transfer..." />
     </View>
   );
 }

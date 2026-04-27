@@ -45,40 +45,54 @@ import {
   subscribeToAgentDispatches,
   uploadDeliveryProof,
   recordTelemetry,
+  UnifiedOrder,
+  OrderType,
 } from '../../services/delivery.service';
 import { marketplaceService } from '../../services/marketplace.service';
 import { subscribeToTable, unsubscribe } from '../../services/supabase';
 import { signOut } from '../../services/auth.service';
+import { fetchWalletData } from '../../services/wallet.service';
 
 const { width } = Dimensions.get('window');
 
-const T = {
-  bg: '#0a0e14',
-  surface: '#131920',
-  surfaceHigh: '#1c2330',
-  border: 'rgba(99,179,237,0.12)',
-  primary: '#63b3ed',
-  primaryDim: 'rgba(99,179,237,0.1)',
-  green: '#68d391',
-  greenDim: 'rgba(104,211,145,0.1)',
-  yellow: '#f6e05e',
-  yellowDim: 'rgba(246,224,94,0.1)',
-  red: '#fc8181',
-  redDim: 'rgba(252,129,129,0.1)',
-  text: '#e2e8f0',
-  textSub: '#8b949e',
-  card: '#161d27',
+const ADDIS_NOIR = {
+  bg: '#0B0D11',
+  surface: '#131720',
+  lift: '#1B2030',
+  rim: '#242B3D',
+  gold: '#D4AF37',
+  cyan: '#00F5FF',
+  emerald: '#10B981',
+  crimson: '#EF4444',
+  glass: 'rgba(255, 255, 255, 0.05)',
+  edge: 'rgba(255, 255, 255, 0.08)',
+  text: '#E2E8F0',
+  textSub: '#8B949E',
+  border: '#242B3D',
+  green: '#10B981',
+  greenDim: 'rgba(16, 185, 129, 0.12)',
+  red: '#EF4444',
+  redDim: 'rgba(239, 68, 68, 0.12)',
+  surfaceHigh: '#1B2030',
+  primary: '#22C97A',
+  primaryDim: 'rgba(34, 201, 122, 0.12)',
+  yellow: '#F0A830',
+  yellowDim: 'rgba(240, 168, 48, 0.12)',
+  amber: '#F0A830',
+  blue: '#3D8EF0',
+  blueDim: 'rgba(61, 142, 240, 0.12)',
 };
+const T = ADDIS_NOIR;
 
 function fmtETB(n: number) {
   return (n || 0).toLocaleString('en-ET');
 }
 function fmtTime(iso: string) {
-  if (!iso) return '—';
+  if (!iso) return '--:--';
   return new Date(iso).toLocaleTimeString('en-ET', { hour: '2-digit', minute: '2-digit' });
 }
 function fmtDate(iso: string) {
-  if (!iso) return '—';
+  if (!iso) return '---';
   return new Date(iso).toLocaleDateString('en-ET', { month: 'short', day: 'numeric' });
 }
 
@@ -128,8 +142,19 @@ function DispatchCard({
   const urgent = secs < 60;
 
   return (
-    <Animated.View style={[s.dispatchCard, { transform: [{ scale: pulse }] }]}>
-      <LinearGradient colors={['#1a2510', '#1f3a15']} style={s.dispatchGradient}>
+    <Animated.View
+      style={[
+        s.dispatchCard,
+        {
+          transform: [{ scale: pulse }],
+          backgroundColor: ADDIS_NOIR.surface,
+          borderRadius: 24,
+          borderWidth: 1,
+          borderColor: ADDIS_NOIR.edge,
+        },
+      ]}
+    >
+      <LinearGradient colors={['#131720', '#0B0D11']} style={s.dispatchGradient}>
         {/* Header */}
         <View style={s.dispatchHeader}>
           <View style={s.dispatchBadge}>
@@ -150,10 +175,14 @@ function DispatchCard({
           <View style={{ flex: 1 }}>
             <Text style={s.addressLabel}>PICKUP FROM</Text>
             <Text style={s.addressText}>
-              {order?.merchant?.business_name || order?.merchant?.full_name || 'Merchant'}
+              {order?.merchant?.business_name ||
+                order?.merchant?.merchant_name ||
+                order?.merchant?.full_name ||
+                'Merchant'}
             </Text>
             <Text style={s.addressSub}>
-              {order?.merchant?.subcity}, {order?.merchant?.woreda}
+              {order?.merchant?.subcity || order?.merchant?.address || 'Addis Ababa'},{' '}
+              {order?.merchant?.woreda || ''}
             </Text>
           </View>
         </View>
@@ -184,22 +213,33 @@ function DispatchCard({
           </View>
           <View style={s.earningsDivider} />
           <View>
-            <Text style={s.earningsLabel}>PRODUCT</Text>
+            <Text style={s.earningsLabel}>
+              {order?.order_type === 'FOOD' ? 'RESTAURANT' : 'PRODUCT'}
+            </Text>
             <Text style={s.earningsValue} numberOfLines={1}>
-              {order?.product_name || '—'}
+              {order?.display_name || order?.product_name || order?.restaurant_name || '—'}
             </Text>
           </View>
         </View>
 
         {/* Buttons */}
         <View style={s.dispatchBtns}>
-          <TouchableOpacity style={s.declineBtn} onPress={() => onDecline(dispatch)}>
-            <Ionicons name="close" size={20} color={T.red} />
-            <Text style={s.declineBtnText}>Decline</Text>
+          <TouchableOpacity
+            style={[
+              s.declineBtn,
+              { backgroundColor: 'transparent', borderColor: ADDIS_NOIR.rim, borderWidth: 1 },
+            ]}
+            onPress={() => onDecline(dispatch)}
+          >
+            <Ionicons name="close" size={20} color={ADDIS_NOIR.crimson} />
+            <Text style={[s.declineBtnText, { color: ADDIS_NOIR.crimson }]}>Decline</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.acceptBtn} onPress={() => onAccept(dispatch)}>
-            <Ionicons name="checkmark" size={20} color="#0a0e14" />
-            <Text style={s.acceptBtnText}>Accept Job</Text>
+          <TouchableOpacity
+            style={[s.acceptBtn, { backgroundColor: ADDIS_NOIR.gold }]}
+            onPress={() => onAccept(dispatch)}
+          >
+            <Ionicons name="checkmark" size={20} color={ADDIS_NOIR.bg} />
+            <Text style={[s.acceptBtnText, { color: ADDIS_NOIR.bg }]}>Accept Job</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -215,7 +255,7 @@ function ActiveJobCard({
   onEnterPin,
   onReject,
 }: {
-  job: any;
+  job: UnifiedOrder;
   onPickedUp: (j: any) => void;
   onArrived: (j: any) => void;
   onEnterPin: (j: any) => void;
@@ -271,19 +311,38 @@ function ActiveJobCard({
         </MapView>
       </View>
 
-      <LinearGradient colors={['#0d1b2a', '#0a1929']} style={s.activeJobGradient}>
+      <LinearGradient
+        colors={[ADDIS_NOIR.surface, ADDIS_NOIR.bg]}
+        style={[
+          s.activeJobGradient,
+          { borderRadius: 24, borderWidth: 1, borderColor: ADDIS_NOIR.edge },
+        ]}
+      >
         <View style={s.activeJobHeader}>
-          <View style={[s.statusPill, { backgroundColor: `${cfg.color}20` }]}>
+          <View
+            style={[
+              s.statusPill,
+              {
+                backgroundColor: `${cfg.color}20`,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: `${cfg.color}40`,
+              },
+            ]}
+          >
             <Ionicons name={cfg.icon || 'cube-outline'} size={14} color={cfg.color} />
-            <Text style={[s.statusPillText, { color: cfg.color }]}>{cfg.label}</Text>
+            <Text style={[s.statusPillText, { color: cfg.color, fontWeight: '800' }]}>
+              {cfg.label}
+            </Text>
           </View>
           <Text style={s.activeJobTime}>{fmtTime(job.created_at)}</Text>
         </View>
 
-        <Text style={s.activeJobProduct}>{job.product_name}</Text>
+        <Text style={s.activeJobProduct}>{job.display_name}</Text>
         <Text style={s.activeJobEarning}>
           Your pay:{' '}
           <Text style={{ color: T.green }}>ETB {fmtETB(Math.floor((job.total || 0) * 0.12))}</Text>
+          <Text style={{ fontSize: 10, color: T.textSub }}> ({job.order_type})</Text>
         </Text>
 
         <View style={s.addressRow}>
@@ -360,12 +419,19 @@ function ActiveJobCard({
             <TouchableOpacity
               style={[
                 s.actionBtn,
-                { backgroundColor: 'transparent', borderWidth: 1, borderColor: T.red },
+                {
+                  backgroundColor: 'transparent',
+                  borderWidth: 1,
+                  borderColor: ADDIS_NOIR.crimson,
+                  borderRadius: 16,
+                },
               ]}
               onPress={() => onReject(job)}
             >
-              <Ionicons name="alert-circle-outline" size={18} color={T.red} />
-              <Text style={[s.actionBtnText, { color: T.red }]}>Unable to Deliver</Text>
+              <Ionicons name="alert-circle-outline" size={18} color={ADDIS_NOIR.crimson} />
+              <Text style={[s.actionBtnText, { color: ADDIS_NOIR.crimson }]}>
+                Unable to Deliver
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -379,14 +445,14 @@ export default function DeliveryAgentDashboard() {
   const navigation = useNavigation();
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
-  const balance = useWalletStore((s) => s.balance);
+  const { balance, setBalance } = useWalletStore();
 
   const [tab, setTab] = useState('home'); // home | history
   const [agentProfile, setAgentProfile] = useState<any>(null);
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
   const [dispatches, setDispatches] = useState<any[]>([]);
-  const [activeJobs, setActiveJobs] = useState<any[]>([]);
+  const [activeJobs, setActiveJobs] = useState<UnifiedOrder[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -405,6 +471,8 @@ export default function DeliveryAgentDashboard() {
   const [pickupPinInput, setPickupPinInput] = useState('');
   const [submittingPickupPin, setSubmittingPickupPin] = useState(false);
 
+  const [showWorkID, setShowWorkID] = useState(false);
+
   // Proof of Delivery (POD) State
   const [showCamera, setShowCamera] = useState(false);
   const [arrivedJob, setArrivedJob] = useState<any>(null);
@@ -415,7 +483,7 @@ export default function DeliveryAgentDashboard() {
   const locationInterval = useRef<any>(null);
   const dispatchSub = useRef<any>(null);
   const jobsSub = useRef<any>(null);
-  const activeJobsRef = useRef<any[]>([]);
+  const activeJobsRef = useRef<UnifiedOrder[]>([]);
 
   useEffect(() => {
     activeJobsRef.current = activeJobs;
@@ -492,7 +560,7 @@ export default function DeliveryAgentDashboard() {
             { backgroundColor: value.length === maxLength ? T.green : T.surfaceHigh },
             confirmLoading && { opacity: 0.7 },
           ]}
-          onPress={onConfirm}
+          onPress={() => onConfirm()}
           disabled={value.length < maxLength || confirmLoading}
         >
           {confirmLoading ? (
@@ -528,17 +596,21 @@ export default function DeliveryAgentDashboard() {
     setActiveJobs(jobs);
     setHistory(hist);
 
-    // Compute today's earnings from history
+    // 🛡️ Wallet Refresh
+    const wallet = await fetchWalletData(currentUser.id);
+    if (wallet) {
+      setBalance(wallet.balance);
+    }
+
+    // Compute today's earnings from history using actual agent_fee
     const today = new Date().toDateString();
     const todayTotal = hist
       .filter((h: any) => new Date(h.delivered_at).toDateString() === today)
-      .reduce((sum: number, h: any) => sum + Math.floor((h.total || 0) * 0.12), 0);
+      .reduce((sum: number, h: any) => sum + (Number(h.agent_fee) || 0), 0);
     setTodayEarnings(todayTotal);
 
-    if (jobs.length === 0) {
-      const pending = await fetchPendingDispatches(currentUser.id);
-      setDispatches(pending);
-    }
+    const pending = await fetchPendingDispatches(currentUser.id);
+    setDispatches(pending);
   }, [currentUser?.id]);
 
   useEffect(() => {
@@ -564,50 +636,79 @@ export default function DeliveryAgentDashboard() {
     return () => {
       unsubscribe(dispatchSub.current);
       unsubscribe(jobsSub.current);
-      if (locationInterval.current) clearInterval(locationInterval.current);
+      // Removed locationInterval cleanup here, handled in dedicated effect
     };
   }, [loadDashboard, currentUser?.id]);
+
+  // â”€â”€ Location Tracking Watcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    if (!currentUser?.id || !isOnline) {
+      if (locationInterval.current) {
+        clearInterval(locationInterval.current);
+        locationInterval.current = null;
+      }
+      return;
+    }
+
+    // Agent is online. Start tracking if not already started.
+    if (!locationInterval.current) {
+      locationInterval.current = setInterval(async () => {
+        let l = await getCurrentLocation();
+        if (!l) {
+          // GPS Fallback to keep heartbeat alive
+          l = { lat: 9.0192, lng: 38.7619 };
+        }
+        updateAgentLocation(currentUser.id, l.lat, l.lng);
+        if (activeJobsRef.current.length > 0) {
+          const active = activeJobsRef.current[0];
+          recordTelemetry(currentUser.id, active.id, l.lat, l.lng, active.order_type);
+        }
+      }, 15000);
+      
+      // Immediate ping on mount/resume
+      getCurrentLocation().then((l) => {
+        const loc = l || { lat: 9.0192, lng: 38.7619 };
+        updateAgentLocation(currentUser.id, loc.lat, loc.lng);
+      });
+    }
+
+    return () => {
+      if (locationInterval.current) {
+        clearInterval(locationInterval.current);
+        locationInterval.current = null;
+      }
+    };
+  }, [isOnline, currentUser?.id]);
 
   // â”€â”€ Online Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleToggleOnline = async (val: boolean) => {
     if (!currentUser?.id) return;
+    
+    if (agentProfile?.agent_status !== 'APPROVED') {
+      showToast('Account verification required to go online.', 'error');
+      return;
+    }
+
     setTogglingOnline(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      let lat = null,
-        lng = null;
+      let lat = 9.0192,
+        lng = 38.7619;
       if (val) {
         const loc = await getCurrentLocation();
-        if (!loc) {
-          showToast('Could not get your location. Check GPS settings.', 'error');
-          setTogglingOnline(false);
-          return;
+        if (loc) {
+          lat = loc.lat;
+          lng = loc.lng;
+        } else {
+          showToast('GPS unavailable. Using fallback location.', 'info');
         }
-        lat = loc.lat;
-        lng = loc.lng;
-
-        // Start background GPS pings
-        locationInterval.current = setInterval(async () => {
-          const l = await getCurrentLocation();
-          if (l) {
-            updateAgentLocation(currentUser.id, l.lat, l.lng);
-            // If there's at least one active job, record a breadcrumb for the first one
-            if (activeJobsRef.current.length > 0) {
-              recordTelemetry(currentUser.id, activeJobsRef.current[0].id, l.lat, l.lng);
-            }
-          }
-        }, 15000); // Higher frequency for World-Class tracking
-      } else {
-        if (locationInterval.current) {
-          clearInterval(locationInterval.current);
-          locationInterval.current = null;
-        }
+        // Interval is now handled by the Location Tracking Watcher useEffect
       }
 
       await setAgentOnlineStatus(currentUser.id, val, lat, lng);
       setIsOnline(val);
       showToast(
-        val ? 'ðŸŸ¢ You are now ONLINE â€” orders will come to you!' : 'ðŸ”´ You are now OFFLINE',
+        val ? 'You are now ONLINE — orders will come to you!' : 'You are now OFFLINE',
         val ? 'success' : 'info'
       );
     } catch (e) {
@@ -628,7 +729,11 @@ export default function DeliveryAgentDashboard() {
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const { ok, error } = await acceptDeliveryJob(dispatch.order_id, currentUser.id);
+    const { ok, error } = await acceptDeliveryJob(
+      dispatch.order_id,
+      currentUser.id,
+      dispatch.order_type || 'MARKETPLACE'
+    );
     if (!ok) {
       if (error?.includes('blocked')) {
         // Refresh profile to get the block info
@@ -723,13 +828,22 @@ export default function DeliveryAgentDashboard() {
       const { ok, error } = await uploadDeliveryProof(arrivedJob.id, photo.base64);
       if (!ok) throw new Error(error);
 
-      await markOrderDeliveredByAgent(arrivedJob.id, currentUser.id);
+      const markRes = await markOrderDeliveredByAgent(arrivedJob.id, currentUser.id, arrivedJob.order_type);
+      if (!markRes.data?.ok) throw new Error(markRes.data?.error || 'Failed to update delivery status');
+
       setShowCamera(false);
+      
+      // 🛡️ FIX: Auto-open the PIN modal after proof upload for smoother UX
+      const jobToPin = arrivedJob;
       setArrivedJob(null);
+      
       showToast('Proof uploaded! Ask buyer for PIN.', 'success');
+      setPinInput('');
+      setPinPromptJob(jobToPin); // Automatically trigger the PIN entry keypad
+      
       loadDashboard();
     } catch (e: any) {
-      showToast('Failed to upload proof. Try again.', 'error');
+      showToast(e.message || 'Failed to upload proof. Try again.', 'error');
     } finally {
       setCapturing(false);
     }
@@ -742,16 +856,17 @@ export default function DeliveryAgentDashboard() {
   };
 
   const handleConfirmWithPin = async () => {
-    if (!pinPromptJob || !currentUser?.id) return;
-    if (pinInput.trim().length < 4) {
-      showToast('Please enter a 4-digit PIN', 'error');
+    const requiredLen = pinPromptJob?.order_type === 'MARKETPLACE' ? 6 : 4;
+    if (pinInput.trim().length < requiredLen) {
+      showToast(`Please enter a ${requiredLen}-digit PIN`, 'error');
       return;
     }
     setSubmittingPin(true);
     const res = await confirmDeliveryWithPin(
       (pinPromptJob as any).id,
       pinInput.trim(),
-      currentUser.id
+      currentUser.id,
+      (pinPromptJob as any).order_type
     );
     setSubmittingPin(false);
 
@@ -844,11 +959,10 @@ export default function DeliveryAgentDashboard() {
         <View style={s.headerRight}>
           <TouchableOpacity
             style={s.switchBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              const currentUser = useAuthStore.getState().currentUser;
-              useAuthStore.getState().setCurrentUser({ ...currentUser, role: 'citizen' } as any);
-            }}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                useAuthStore.getState().setUiMode('citizen');
+              }}
           >
             <Ionicons name="repeat-outline" size={20} color={T.primary} />
             <Text style={{ color: T.primary, fontSize: 10, fontWeight: '800', marginTop: 2 }}>
@@ -935,6 +1049,68 @@ export default function DeliveryAgentDashboard() {
               </View>
             )}
 
+        {/* Status & Online Toggle */}
+        <View style={s.topBar}>
+          <View>
+            <Text style={s.greeting}>
+              {agentProfile?.agent_status === 'APPROVED' ? 'READY TO WORK' : 'PENDING APPROVAL'}
+            </Text>
+            <Text style={s.agentName}>
+              {currentUser?.full_name || 'Agent'} 
+              {agentProfile?.agent_status === 'APPROVED' && (
+                <Ionicons name="checkmark-circle" size={14} color={T.primary} />
+              )}
+            </Text>
+          </View>
+          <View style={s.onlineToggleRow}>
+            <View style={s.onlineInfo}>
+              <Text style={[s.onlineText, { color: isOnline ? T.primary : T.textSub }]}>
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
+              </Text>
+              {isOnline && <View style={s.pulseDot} />}
+            </View>
+            <Switch
+              value={isOnline}
+              onValueChange={handleToggleOnline}
+              disabled={togglingOnline || agentProfile?.agent_status !== 'APPROVED'}
+              trackColor={{ false: T.surfaceHigh, true: T.primaryDim }}
+              thumbColor={isOnline ? T.primary : T.textSub}
+            />
+          </View>
+        </View>
+
+        {/* Compliance Banner */}
+        {agentProfile?.agent_status !== 'APPROVED' && (
+          <TouchableOpacity 
+            style={s.complianceBanner}
+            onPress={() => {
+              // Robust cross-stack navigation to the standardized identity portal
+              (navigation.getParent() || navigation).navigate('FaydaIdentityPortal' as any);
+            }}
+          >
+            <View style={s.complianceIconBox}>
+              <Ionicons name="shield-half-outline" size={20} color={T.red} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.complianceTitle}>COMPLIANCE LOCK ACTIVE</Text>
+              <Text style={s.complianceSub}>Verify your Professional Permit to accept jobs.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={T.red} />
+          </TouchableOpacity>
+        )}
+
+        {/* Quick Actions */}
+        <View style={s.quickActions}>
+          <TouchableOpacity style={s.actionPill} onPress={() => setShowWorkID(true)}>
+            <Ionicons name="card-outline" size={18} color={T.gold} />
+            <Text style={s.actionPillText}>WORK ID</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.actionPill} onPress={() => loadDashboard()}>
+            <Ionicons name="refresh" size={18} color={T.blue} />
+            <Text style={s.actionPillText}>REFRESH</Text>
+          </TouchableOpacity>
+        </View>
+
             {/* Stats Row */}
             <View style={s.statsRow}>
               {[
@@ -965,96 +1141,129 @@ export default function DeliveryAgentDashboard() {
               ))}
             </View>
 
-            {/* Online Toggle */}
-            <View style={[s.onlineCard, isOnline && s.onlineCardActive]}>
-              <View style={s.onlineDot(isOnline)} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.onlineTitle}>
-                  {isOnline ? 'ðŸŸ¢ You are ONLINE' : 'ðŸ”´ You are OFFLINE'}
-                </Text>
-                <Text style={s.onlineSub}>
-                  {isOnline
-                    ? 'You are visible to orders within 5km (Requires >500 ETB collateral)'
-                    : 'Toggle on to start receiving delivery jobs (Requires >500 ETB collateral)'}
-                </Text>
-              </View>
-              {togglingOnline ? (
-                <ActivityIndicator size="small" color={T.primary} />
-              ) : (
-                <Switch
-                  value={isOnline}
-                  onValueChange={handleToggleOnline}
-                  trackColor={{ false: T.surfaceHigh, true: T.green + '55' }}
-                  thumbColor={isOnline ? T.green : T.textSub}
-                />
-              )}
-            </View>
-
-            {/* Pending Dispatch */}
-            {dispatches.map((d) => (
-              <DispatchCard
-                key={d.order_id}
-                dispatch={d}
-                onAccept={handleAccept}
-                onDecline={handleDecline}
-              />
-            ))}
-
-            {/* Active Jobs */}
-            {activeJobs.length > 0 && (
-              <View style={{ gap: 16 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: -8,
-                  }}
-                >
-                  <Text style={{ color: T.text, fontSize: 13, fontWeight: '800' }}>
-                    ACTIVE ASSIGNMENTS ({activeJobs.length})
+            {agentProfile?.agent_status !== 'APPROVED' ? (
+              <View style={[s.lockdownCard, { marginTop: 10 }]}>
+                <LinearGradient colors={['#242B3D', '#131720']} style={s.lockdownGradient}>
+                  <View style={s.lockdownIconBox}>
+                    <Ionicons name="lock-closed" size={32} color={T.gold} />
+                  </View>
+                  <Text style={s.lockdownTitle}>ACCOUNT UNDER REVIEW</Text>
+                  <Text style={s.lockdownText}>
+                    The Ministry of Transport and CityLink are currently vetting your Professional Permit and Vehicle Plates.
                   </Text>
-                  <Ionicons name="list-outline" size={16} color={T.textSub} />
+                  
+                  <View style={s.lockdownStepRow}>
+                    <Ionicons name="checkmark-circle" size={18} color={T.green} />
+                    <Text style={s.lockdownStepText}>Fayda Identity Verified</Text>
+                  </View>
+                  <View style={s.lockdownStepRow}>
+                    <Ionicons name="time" size={18} color={T.yellow} />
+                    <Text style={s.lockdownStepText}>License Verification (In Progress)</Text>
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={[s.actionBtn, { backgroundColor: T.gold, marginTop: 20 }]}
+                    onPress={() => setShowWorkID(true)}
+                  >
+                    <Ionicons name="card-outline" size={18} color={T.bg} />
+                    <Text style={[s.actionBtnText, { color: T.bg }]}>VIEW PENDING PERMIT</Text>
+                  </TouchableOpacity>
+                </LinearGradient>
+              </View>
+            ) : (
+              <>
+                {/* Online Toggle */}
+                <View style={[s.onlineCard, isOnline && s.onlineCardActive]}>
+                  <View style={s.onlineDot(isOnline)} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.onlineTitle}>
+                      {isOnline ? 'You are ONLINE' : 'You are OFFLINE'}
+                    </Text>
+                    <Text style={s.onlineSub}>
+                      {isOnline
+                        ? 'You are visible to orders within 5km'
+                        : 'Toggle on to start receiving delivery jobs'}
+                    </Text>
+                  </View>
+                  {togglingOnline ? (
+                    <ActivityIndicator size="small" color={T.primary} />
+                  ) : (
+                    <Switch
+                      value={isOnline}
+                      onValueChange={handleToggleOnline}
+                      trackColor={{ false: T.surfaceHigh, true: T.green + '55' }}
+                      thumbColor={isOnline ? T.green : T.textSub}
+                    />
+                  )}
                 </View>
-                {activeJobs.map((job) => (
-                  <ActiveJobCard
-                    key={job.id}
-                    job={job}
-                    onPickedUp={handleEnterPickupPin}
-                    onArrived={handleArrived}
-                    onEnterPin={handleEnterPin}
-                    onReject={setRejectionJob}
+
+                {/* Pending Dispatch */}
+                {dispatches?.map((d) => (
+                  <DispatchCard
+                    key={d.order_id}
+                    dispatch={d}
+                    onAccept={handleAccept}
+                    onDecline={handleDecline}
                   />
                 ))}
-              </View>
-            )}
 
-            {/* Empty state */}
-            {activeJobs.length === 0 && dispatches.length === 0 && (
-              <View style={s.emptyState}>
-                <Ionicons name="bicycle-outline" size={52} color={T.textSub} />
-                <Text style={s.emptyTitle}>
-                  {isOnline ? 'Waiting for orders...' : 'Go online to receive jobs'}
-                </Text>
-                <Text style={s.emptyBody}>
-                  {isOnline
-                    ? "When a nearby merchant ships an order, you'll be alerted here."
-                    : 'Toggle the switch above and CityLink will match you to orders within 5km.'}
-                </Text>
-              </View>
+                {/* Active Jobs */}
+                {activeJobs.length > 0 && (
+                  <View style={{ gap: 16 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: -8,
+                      }}
+                    >
+                      <Text style={{ color: T.text, fontSize: 13, fontWeight: '800' }}>
+                        ACTIVE ASSIGNMENTS ({activeJobs.length})
+                      </Text>
+                      <Ionicons name="list-outline" size={16} color={T.textSub} />
+                    </View>
+                    {activeJobs?.map((job) => (
+                      <ActiveJobCard
+                        key={job.id}
+                        job={job}
+                        onPickedUp={handleEnterPickupPin}
+                        onArrived={handleArrived}
+                        onEnterPin={handleEnterPin}
+                        onReject={setRejectionJob}
+                      />
+                    ))}
+                  </View>
+                )}
+
+                {/* Empty state */}
+                {activeJobs.length === 0 && dispatches.length === 0 && (
+                  <View style={s.emptyState}>
+                    <Ionicons name="bicycle-outline" size={52} color={T.textSub} />
+                    <Text style={s.emptyTitle}>
+                      {isOnline ? 'Waiting for orders...' : 'Go online to receive jobs'}
+                    </Text>
+                    <Text style={s.emptyBody}>
+                      {isOnline
+                        ? "When a nearby merchant ships an order, you'll be alerted here."
+                        : 'Toggle the switch above and CityLink will match you to orders within 5km.'}
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </>
         )}
 
         {tab === 'history' &&
-          (history.length === 0 ? (
+          (history?.length === 0 ? (
             <View style={s.emptyState}>
               <Ionicons name="time-outline" size={52} color={T.textSub} />
               <Text style={s.emptyTitle}>No deliveries yet</Text>
               <Text style={s.emptyBody}>Your completed delivery history will appear here.</Text>
             </View>
           ) : (
-            history.map((h, i) => (
+            history?.map((h, i) => (
               <View key={h.id || i} style={s.historyCard}>
                 <View style={s.historyLeft}>
                   <Ionicons name="checkmark-circle" size={24} color={T.green} />
@@ -1076,7 +1285,43 @@ export default function DeliveryAgentDashboard() {
         <View style={{ height: 30 }} />
       </ScrollView>
 
-      {/* â•â• PIN Entry Modal â•â• */}
+      {/* ══ Pickup PIN Entry Modal ══ */}
+      <Modal visible={!!pickupPinJob} animationType="fade" transparent statusBarTranslucent>
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Text style={{ fontSize: 18, fontWeight: '800', color: T.text }}>Confirm Pickup</Text>
+              <TouchableOpacity
+                onPress={() => setPickupPinJob(null)}
+                disabled={submittingPickupPin}
+              >
+                <Ionicons name="close" size={22} color={T.textSub} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 14, color: T.textSub, marginBottom: 20, lineHeight: 20 }}>
+              Ask the merchant for the 6-digit Pickup PIN to confirm you have the package.
+            </Text>
+
+            <NumericKeypad
+              value={pickupPinInput}
+              setValue={setPickupPinInput}
+              maxLength={6}
+              onConfirm={() => handleConfirmPickupPin()}
+              confirmLoading={submittingPickupPin}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ══ PIN Entry Modal ══ */}
       <Modal visible={!!pinPromptJob} animationType="fade" transparent statusBarTranslucent>
         <View style={s.modalOverlay}>
           <View style={s.modalSheet}>
@@ -1104,8 +1349,8 @@ export default function DeliveryAgentDashboard() {
             <NumericKeypad
               value={pinInput}
               setValue={setPinInput}
-              maxLength={4}
-              onConfirm={handleConfirmWithPin}
+              maxLength={pinPromptJob?.order_type === 'MARKETPLACE' ? 6 : 4}
+              onConfirm={() => handleConfirmWithPin()}
               confirmLoading={submittingPin}
             />
 
@@ -1189,7 +1434,7 @@ export default function DeliveryAgentDashboard() {
 
             <TouchableOpacity
               style={[s.actionBtn, { marginTop: 20, backgroundColor: T.red }]}
-              onPress={handleRejectOrder}
+              onPress={() => handleRejectOrder()}
               disabled={submittingRejection}
             >
               {submittingRejection ? (
@@ -1219,7 +1464,7 @@ export default function DeliveryAgentDashboard() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={s.shutterBtn}
-                  onPress={handleTakePODPhoto}
+                  onPress={() => handleTakePODPhoto()}
                   disabled={capturing}
                 >
                   {capturing ? <ActivityIndicator color="#000" /> : <View style={s.shutterInner} />}
@@ -1599,7 +1844,6 @@ const _s = StyleSheet.create({
     borderColor: T.border,
     backgroundColor: T.surface,
   },
-  reasonLabel: { color: T.text, fontSize: 13, fontWeight: '600' },
   rejectionInput: {
     backgroundColor: T.bg,
     borderRadius: 12,
@@ -1611,6 +1855,103 @@ const _s = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.border,
   },
+
+  // Compliance & Top Bar
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: T.surface,
+  },
+  agentName: { color: T.text, fontSize: 18, fontWeight: '900', marginTop: 2, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  onlineToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  onlineInfo: { alignItems: 'flex-end' },
+  onlineText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  pulseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: T.primary, marginTop: 4 },
+
+  complianceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    margin: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    gap: 12,
+  },
+  complianceIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  complianceTitle: { color: T.red, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  complianceSub: { color: T.textSub, fontSize: 11, marginTop: 2 },
+
+  quickActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 20,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: T.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: T.edge,
+    gap: 8,
+  },
+  actionPillText: { color: T.text, fontSize: 11, fontWeight: '800' },
+
+  // Work ID Modal
+  workIdScroll: { padding: 20 },
+  workIdCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  workIdGradient: { padding: 24 },
+  workIdHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+  workIdSeal: { alignItems: 'center' },
+  workIdSealText: { color: T.gold, fontSize: 10, fontWeight: '900', marginTop: 4, letterSpacing: 1 },
+  workIdChip: { width: 40, height: 30, borderRadius: 6, backgroundColor: 'rgba(212, 175, 55, 0.2)', borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.4)' },
+  
+  workIdPhotoContainer: { alignItems: 'center', marginBottom: 20 },
+  workIdPhoto: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: T.gold, backgroundColor: T.surface },
+  workIdVerifiedBadge: { position: 'absolute', bottom: 0, right: -5, backgroundColor: T.primary, borderRadius: 12, padding: 2 },
+  
+  workIdInfo: { alignItems: 'center', gap: 4 },
+  workIdName: { color: '#fff', fontSize: 20, fontWeight: '900', textAlign: 'center' },
+  workIdRole: { color: T.gold, fontSize: 12, fontWeight: '800', letterSpacing: 2 },
+  
+  workIdDetails: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  workIdDetailItem: { alignItems: 'center' },
+  workIdDetailLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginBottom: 4 },
+  workIdDetailValue: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  
+  workIdQrContainer: { alignItems: 'center', marginTop: 24 },
+  workIdQr: { width: 80, height: 80, backgroundColor: '#fff', borderRadius: 8, padding: 8, alignItems: 'center', justifyContent: 'center' },
+  workIdQrText: { color: 'rgba(255,255,255,0.4)', fontSize: 9, marginTop: 12, textAlign: 'center' },
+
+  // Lockdown Styles
+  lockdownCard: { borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: T.rim },
+  lockdownGradient: { padding: 32, alignItems: 'center' },
+  lockdownIconBox: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(212, 175, 55, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  lockdownTitle: { color: T.gold, fontSize: 18, fontWeight: '900', letterSpacing: 1, marginBottom: 12, textAlign: 'center' },
+  lockdownText: { color: T.textSub, fontSize: 13, lineHeight: 20, textAlign: 'center', marginBottom: 24 },
+  lockdownStepRow: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', marginBottom: 12, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 12 },
+  lockdownStepText: { color: T.text, fontSize: 13, fontWeight: '600' },
 }) as any;
 
 // Dynamic style helper (cannot live inside StyleSheet.create)

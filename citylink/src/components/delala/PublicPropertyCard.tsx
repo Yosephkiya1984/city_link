@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from './constants';
 import { fmtETB } from '../../utils';
+import DefaultIcon from '../../../assets/icon.png';
 
 interface PublicPropertyCardProps {
   property: any;
@@ -49,7 +50,7 @@ const PublicPropertyCard = memo(
             <Image
               source={{ uri: property.image || 'https://via.placeholder.com/300' }}
               style={styles.propertyCardImage}
-              defaultSource={require('../../../assets/icon.png')}
+              defaultSource={DefaultIcon}
             />
             <View style={styles.propertyCardFeatures}>
               {property.features?.slice(0, 2).map((feature: any, index: number) => (
@@ -89,7 +90,7 @@ const PublicPropertyCard = memo(
                   <Image
                     source={{ uri: property.broker.image }}
                     style={styles.brokerImage}
-                    defaultSource={require('../../../assets/icon.png')}
+                    defaultSource={DefaultIcon}
                   />
                 ) : (
                   <View style={styles.brokerPlaceholder}>

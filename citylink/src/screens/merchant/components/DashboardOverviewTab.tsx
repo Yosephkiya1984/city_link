@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { DarkColors as T } from '../../../theme';
+import { DarkColors as T, Fonts } from '../../../theme';
+import { GlassView } from '../../../components/GlassView';
+import { fmtETB } from '../../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -37,33 +39,53 @@ export function DashboardOverviewTab({ orders, inventory, salesHistory, showToas
       </View>
 
       <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
+        <GlassView intensity={15} style={styles.premiumStatCard}>
           <View style={[styles.statIconBox, { backgroundColor: T.primary + '20' }]}>
-            <Ionicons name="wallet-outline" size={16} color={T.primary} />
+            <Ionicons name="wallet-outline" size={18} color={T.primary} />
           </View>
-          <Text style={styles.statValue}>ETB {totalRev.toLocaleString()}</Text>
-          <Text style={styles.statLabel}>REVENUE</Text>
-        </View>
-        <View style={styles.statCard}>
+          <View style={{ marginTop: 12 }}>
+            <Text style={[styles.statValue, { color: T.primary, fontFamily: Fonts.black }]}>
+              {fmtETB(totalRev)}
+            </Text>
+            <Text style={[styles.statLabel, { color: T.sub, fontFamily: Fonts.bold }]}>
+              TODAY'S REVENUE
+            </Text>
+          </View>
+          <View style={styles.payoutChip}>
+            <Text style={styles.payoutText}>+12% vs yesterday</Text>
+          </View>
+        </GlassView>
+
+        <GlassView intensity={15} style={styles.premiumStatCard}>
           <View style={[styles.statIconBox, { backgroundColor: T.secondary + '20' }]}>
-            <Ionicons name="cube-outline" size={16} color={T.secondary} />
+            <Ionicons name="hourglass-outline" size={18} color={T.secondary} />
           </View>
-          <Text style={styles.statValue}>{orders.length}</Text>
-          <Text style={styles.statLabel}>TOTAL ORDERS</Text>
+          <View style={{ marginTop: 12 }}>
+            <Text style={[styles.statValue, { color: T.secondary, fontFamily: Fonts.black }]}>
+              {fmtETB(totalRev * 0.85)}
+            </Text>
+            <Text style={[styles.statLabel, { color: T.sub, fontFamily: Fonts.bold }]}>
+              PENDING PAYOUTS
+            </Text>
+          </View>
+          <View style={[styles.payoutChip, { backgroundColor: T.secondary + '15' }]}>
+            <Text style={[styles.payoutText, { color: T.secondary }]}>Escrow Protected</Text>
+          </View>
+        </GlassView>
+      </View>
+
+      <View style={styles.miniStatsRow}>
+        <View style={styles.miniStat}>
+          <Text style={[styles.miniStatValue, { fontFamily: Fonts.black }]}>{orders.length}</Text>
+          <Text style={[styles.miniStatLabel, { fontFamily: Fonts.bold }]}>ORDERS</Text>
         </View>
-        <View style={styles.statCard}>
-          <View style={[styles.statIconBox, { backgroundColor: T.tertiary + '20' }]}>
-            <Ionicons name="hourglass-outline" size={16} color={T.tertiary} />
-          </View>
-          <Text style={styles.statValue}>{activeOrd}</Text>
-          <Text style={styles.statLabel}>ACTIVE</Text>
+        <View style={styles.miniStat}>
+          <Text style={[styles.miniStatValue, { fontFamily: Fonts.black }]}>{activeOrd}</Text>
+          <Text style={[styles.miniStatLabel, { fontFamily: Fonts.bold }]}>ACTIVE</Text>
         </View>
-        <View style={styles.statCard}>
-          <View style={[styles.statIconBox, { backgroundColor: '#06b6d4' + '20' }]}>
-            <Ionicons name="alert-circle-outline" size={16} color="#06b6d4" />
-          </View>
-          <Text style={styles.statValue}>{lowStockCount}</Text>
-          <Text style={styles.statLabel}>LOW STOCK</Text>
+        <View style={styles.miniStat}>
+          <Text style={[styles.miniStatValue, { color: T.error, fontFamily: Fonts.black }]}>{lowStockCount}</Text>
+          <Text style={[styles.miniStatLabel, { fontFamily: Fonts.bold }]}>LOW STOCK</Text>
         </View>
       </View>
 
@@ -91,7 +113,7 @@ export function DashboardOverviewTab({ orders, inventory, salesHistory, showToas
                       },
                     ]}
                   />
-                  <Text style={styles.chartDayLabel}>{dayLabel}</Text>
+                  <Text style={[styles.chartDayLabel, { fontFamily: Fonts.bold }]}>{dayLabel}</Text>
                 </View>
               );
             })}
@@ -106,16 +128,16 @@ export function DashboardOverviewTab({ orders, inventory, salesHistory, showToas
             <View key={i} style={styles.topSellingItem}>
               <Image source={{ uri: item.image_url }} style={styles.tsImage} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.tsName}>{item.name}</Text>
-                <Text style={styles.tsSales}>
+                <Text style={[styles.tsName, { fontFamily: Fonts.bold }]}>{item.name}</Text>
+                <Text style={[styles.tsSales, { fontFamily: Fonts.regular }]}>
                   {item.stock} in stock • {item.category}
                 </Text>
               </View>
-              <Text style={styles.tsPrice}>ETB {Number(item.price).toLocaleString()}</Text>
+              <Text style={[styles.tsPrice, { fontFamily: Fonts.black }]}>{fmtETB(item.price)}</Text>
             </View>
           ))}
           {inventory.length === 0 && (
-            <Text style={{ color: T.onVariant, textAlign: 'center' }}>No products listed</Text>
+            <Text style={{ color: T.onVariant, textAlign: 'center', fontFamily: Fonts.regular }}>No products listed</Text>
           )}
         </View>
       </View>

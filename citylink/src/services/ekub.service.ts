@@ -88,52 +88,16 @@ export async function contributeToEkub(userId: string, ekubId: string, roundNumb
 }
 
 /**
- * performEkubDraw — Organiser runs the draw with auditable seed logic.
+ * performEkubDraw — Organiser runs the draw (Now atomic server-side).
  */
-export async function performEkubDraw(
-  ekubId: string,
-  roundNumber: number,
-  eligibleMemberIds: string[],
-  potAmount: number
-) {
-  const ts = Date.now();
-  const sortedIds = [...eligibleMemberIds].sort();
-  const rawSeed = `${ekubId}-${ts}-${sortedIds.join(',')}`;
-
-  let seedHash: string;
-  try {
-    seedHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawSeed);
-  } catch (e) {
-    console.error('CRITICAL: Crypto digest failed for draw audit trail', e);
-    throw new Error('Audit Integrity Violation: Could not generate auditable draw seed.');
-  }
-
-  // Selection logic (Deterministic index based on hash)
-  const hashInt = parseInt(seedHash.slice(0, 8), 16);
-  const winnerIndex = isNaN(hashInt)
-    ? Math.floor(Math.random() * eligibleMemberIds.length)
-    : hashInt % eligibleMemberIds.length;
-  const winnerId = eligibleMemberIds[winnerIndex];
-
-  // Fetch real winner name
-  const { data: user } = await supaQuery<{ full_name: string }>((c) =>
-    c.from('profiles').select('full_name').eq('id', winnerId).single()
+export async function performEkubDraw(ekubId: string, roundNumber: number, potAmount: number) {
+  return supaQuery<{ ok: boolean; draw_id: string; winner_name: string; error?: string }>((c) =>
+    c.rpc('execute_ekub_draw_atomic', {
+      p_ekub_id: ekubId,
+      p_round_number: roundNumber,
+      p_pot_amount: potAmount,
+    })
   );
-
-  const drawData: Partial<EkubDraw> = {
-    id: uid(),
-    ekub_id: ekubId,
-    round_number: roundNumber,
-    status: 'AWAITING_CONSENT',
-    winner_id: winnerId,
-    winner_name: user?.full_name || 'Selected Winner',
-    pot_amount: potAmount,
-    seed_hash: seedHash,
-    consent_signed: false,
-    created_at: new Date().toISOString(),
-  };
-
-  return supaQuery<EkubDraw>((c) => c.from('ekub_draws').insert(drawData).select().single());
 }
 
 /**

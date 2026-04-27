@@ -4,14 +4,13 @@
 export const Config = {
   supaUrl: (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim(),
   supaKey: (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim(),
-  chapaKey: process.env.EXPO_PUBLIC_CHAPA_KEY || '',
-  adminCode: process.env.EXPO_PUBLIC_ADMIN_CODE || '',
-  // AI proxy — Supabase Edge Function URL (see src/services/ai.js for setup guide)
-  // Set to actual URL for live Claude integration.
+  // adminCode is intentionally removed — admin authorization is enforced server-side
+  // via auth.uid() role checks inside SECURITY DEFINER RPCs (admin_approve_merchant, etc.).
+  // Never read admin credentials from the client bundle.
   aiProxyUrl: process.env.EXPO_PUBLIC_AI_PROXY_URL || 'OFFLINE_MODE',
   devMode: process.env.EXPO_PUBLIC_DEV_MODE === 'true' || false,
-  otpBypass: process.env.EXPO_PUBLIC_OTP_BYPASS === 'true', // Explicit opt-in only
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null, // Optional: Error tracking
+
   govAuthBaseUrl: process.env.EXPO_PUBLIC_GOV_AUTH_BASE_URL || 'https://api.citylink.gov.et',
 };
 
@@ -137,7 +136,35 @@ export const FAYDA_DB: Record<
     }
   : {};
 
-// Exchange rates (demo — replace with live API)
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE FLAGS
+// Use these to gate incomplete/stub features in production builds.
+// Set to true only when the backing service is fully implemented.
+// ─────────────────────────────────────────────────────────────────────────────
+export const FEATURE_FLAGS = {
+  /**
+   * liveExchangeRates: Set to true only when a live NBE/forex API is integrated.
+   * While false, the exchange rate UI widget MUST be hidden entirely.
+   * Showing stale hardcoded rates to users making financial decisions is misleading.
+   */
+  liveExchangeRates: false,
+
+  /**
+   * cloudBackup: Set to true only when backupService is rewritten with AES-256-GCM
+   * and cloud save is implemented via Supabase Storage. Currently disabled.
+   */
+  cloudBackup: false,
+
+  /**
+   * faydaMockKyc: Set to true only in development/staging builds.
+   * Never enable in production — requires fayda_mock_enabled = true in app_config.
+   */
+  faydaMockKyc: __DEV__,
+};
+
+// Exchange rates (DEMO ONLY — hardcoded values, NOT for production use)
+// These rates are stale. Only render this data when FEATURE_FLAGS.liveExchangeRates = true.
+// TODO: Integrate with National Bank of Ethiopia (NBE) forex API or a live provider.
 export const EXCHANGE_RATES = [
   { code: 'USD', name: 'US Dollar', flag: '🇺🇸', buy: 56.2, sell: 57.1 },
   { code: 'EUR', name: 'Euro', flag: '🇪🇺', buy: 61.4, sell: 62.3 },

@@ -21,7 +21,7 @@ import { flattenUser } from './profile.service';
 export interface QueryResult<T> {
   data: T | null;
   error: string | null;
-  count?: number;
+  count?: number | null;
 }
 
 // ── Engine Definition ─────────────────────────────────────────────────────────
@@ -30,11 +30,11 @@ export const DataEngine = {
   // ── Profiles & Users ──
 
   profiles: {
-    get: async (id: string) => {
-      const res = await supaQuery<any>((c) =>
+    get: async (id: string): Promise<QueryResult<User>> => {
+      const res = await supaQuery<User & { merchants: any }>((c) =>
         c.from('profiles').select('*, merchants(*)').eq('id', id).maybeSingle()
       );
-      return { ...res, data: flattenUser(res.data) } as any; // Cast for engine compatibility
+      return { data: flattenUser(res.data as any), error: res.error, count: res.count };
     },
 
     update: (id: string, updates: Partial<User>) =>
@@ -67,9 +67,9 @@ export const DataEngine = {
           .from('products')
           .select('*, merchant:profiles(id, full_name, merchants(business_name, merchant_type))');
         if (category && category !== 'All') {
-          return q.eq('category', category) as any;
+          return q.eq('category', category);
         }
-        return q as any;
+        return q;
       });
     },
 

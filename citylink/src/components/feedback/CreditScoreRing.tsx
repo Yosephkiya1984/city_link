@@ -1,74 +1,102 @@
-import React from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
-import { Svg, Path, Circle } from 'react-native-svg';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { 
+  Canvas, 
+  Path, 
+  Skia, 
+  vec,
+  SweepGradient,
+  Circle,
+  Group
+} from '@shopify/react-native-skia';
+import { useDerivedValue, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { useTheme } from '../../hooks/useTheme';
-import { Fonts, FontSize } from '../../theme';
+import { Fonts, Radius } from '../../theme';
+import { CreditService } from '../../services/credit.service';
+import { MotiView } from 'moti';
 
 interface CreditScoreRingProps {
   score?: number;
   maxScore?: number;
-  animValue: Animated.Value;
 }
 
-export function CreditScoreRing({ score = 742, maxScore = 850, animValue }: CreditScoreRingProps) {
+export function CreditScoreRing({ score = 742, maxScore = 850 }: CreditScoreRingProps) {
   const C = useTheme();
-  const percentage = (score / maxScore) * 100;
-  const radius = 35;
-  const stroke = 5;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const percentage = ((score - 300) / (maxScore - 300)); // 0 to 1
+  
+  // Reanimated values for smooth Skia interaction
+  const progress = useSharedValue(0);
+  
+  useEffect(() => {
+    progress.value = withTiming(percentage, {
+      duration: 1500,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
+    });
+  }, [percentage]);
 
-  const getScoreTier = (s: number) => {
-    const clamped = Math.max(300, Math.min(s, maxScore));
-    if (clamped >= 800) return { tier: 'Superior', color: '#59de9b' };
-    if (clamped >= 740) return { tier: 'Very Good', color: '#4ade80' };
-    if (clamped >= 670) return { tier: 'Good', color: C.primary };
-    if (clamped >= 580) return { tier: 'Fair', color: C.amber || '#fbbf24' };
-    return { tier: 'Poor', color: C.red || '#f87171' };
-  };
-  const tier = getScoreTier(score);
+  const radius = 40;
+  const strokeWidth = 8;
+  const center = vec(50, 50);
+  
+  const category = CreditService.getCategory(score);
+
+  // Create the path for the ring
+  const path = useDerivedValue(() => {
+    const p = Skia.Path.Make();
+    p.addCircle(center.x, center.y, radius);
+    return p;
+  });
 
   return (
-    <Animated.View
+    <MotiView
+      from={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', damping: 15, delay: 200 }}
       style={[
         styles.statsCard,
         {
           backgroundColor: C.surface,
-          borderColor: C.edge2,
-          opacity: animValue,
-          transform: [{ scale: animValue }],
+          borderColor: C.edge,
         },
       ]}
     >
       <View style={styles.creditRing}>
-        <Svg width={90} height={90} viewBox="0 0 100 100">
-          <Circle
-            cx="50"
-            cy="50"
-            r={radius}
-            fill="none"
-            stroke="rgba(255,255,255,0.05)"
-            strokeWidth={stroke}
-          />
-          <Path
-            d={`M 50,50 m 0,-${radius} a ${radius},${radius} 0 1,1 0,${radius * 2} a ${radius},${radius} 0 1,1 0,-${radius * 2}`}
-            fill="none"
-            stroke={tier.color}
-            strokeWidth={stroke}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-          />
-        </Svg>
+        <Canvas style={{ width: 100, height: 100 }}>
+          <Group>
+            {/* Background Circle */}
+            <Circle
+              cx={center.x}
+              cy={center.y}
+              r={radius}
+              color={C.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}
+              style="stroke"
+              strokeWidth={strokeWidth}
+            />
+            {/* Animated Progress Path */}
+            <Path
+              path={path}
+              color={category.color}
+              style="stroke"
+              strokeWidth={strokeWidth}
+              strokeCap="round"
+              start={0}
+              end={progress}
+            />
+          </Group>
+        </Canvas>
         <View style={styles.creditLabelCenter}>
           <Text style={[styles.scoreText, { color: C.text }]}>{score}</Text>
         </View>
       </View>
+      
       <View style={styles.creditTextContainer}>
         <Text style={[styles.creditTitle, { color: C.sub }]}>CREDIT SCORE</Text>
-        <Text style={[styles.creditStatus, { color: tier.color }]}>{tier.tier}</Text>
+        <Text style={[styles.creditStatus, { color: category.color }]}>{category.label}</Text>
+        <Text style={[styles.creditDesc, { color: C.hint }]} numberOfLines={1}>
+          Top {Math.max(1, 100 - Math.floor(percentage * 100))}% of users
+        </Text>
       </View>
-    </Animated.View>
+    </MotiView>
   );
 }
 
@@ -78,7 +106,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 24,
+    borderRadius: Radius.card,
     borderWidth: 1,
   },
   creditRing: {
@@ -90,8 +118,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   scoreText: {
-    fontSize: 20,
-    fontFamily: Fonts.black,
+    fontSize: 22,
+    fontFamily: Fonts.headline,
   },
   creditTextContainer: {
     marginLeft: 16,
@@ -99,12 +127,17 @@ const styles = StyleSheet.create({
   },
   creditTitle: {
     fontSize: 10,
-    fontFamily: Fonts.black,
-    letterSpacing: 1,
+    fontFamily: Fonts.bold,
+    letterSpacing: 1.5,
   },
   creditStatus: {
-    fontSize: 16,
-    fontFamily: Fonts.black,
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    marginTop: 1,
+  },
+  creditDesc: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
     marginTop: 2,
   },
 });

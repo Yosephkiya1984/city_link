@@ -2,126 +2,141 @@
 // High-end Obsidian/Mint design language for super-app command centers.
 
 export const Colors = {
-  // ── Addis Noir Light Elements
-  ink: '#FDFDFC',
+  // ── Addis Noir Light Elements (HTML Demo Parity)
+  ink: '#F5F7FA',
   surface: '#FFFFFF',
-  surfaceHigh: '#F5F5F7',
-  lift: '#F7F8F9',
-  top: '#EAEDF0',
-  rim: '#EDF0F2',
-  overlay: '#E2E8F0',
-  hint: '#C7C7CC',
+  surfaceHigh: '#ECEEF2',
+  lift: '#ECEEF2',
+  top: '#E0E3EA',
+  rim: '#E0E3EA',
+  overlay: 'rgba(255, 255, 255, 0.88)',
+  hint: 'rgba(20, 30, 50, 0.35)',
 
-  // ── Addis Noir Palette (Ethiopian Modernism)
-  primary: '#00A86B', // Ethiopian Modern Green
-  primaryL: '#E8F7F0',
-  primaryD: '#008454',
-  primaryGlow: 'rgba(0,168,107,0.08)',
-  primaryB: 'rgba(0,168,107,0.15)',
-  primaryGrad: ['#00C980', '#00A86B', '#008454'],
+  // ── Addis Noir Palette
+  primary: '#22C97A', // HTML Demo Green
+  primaryL: 'rgba(34, 201, 122, 0.12)',
+  primaryD: '#1BA363',
+  primaryGlow: 'rgba(34, 201, 122, 0.08)',
+  primaryB: 'rgba(34, 201, 122, 0.25)',
+  primaryGrad: ['#22C97A', '#1BA363'],
 
-  // ── Ethiopian Gold (Secondary Accent)
-  gold: '#F5B800',
-  goldL: '#FFEFB2',
-  goldD: '#C49300',
+  // ── Accents
+  gold: '#D4A520',
+  amber: '#F0A830', // HTML Demo Amber
+  amberDim: 'rgba(240, 168, 48, 0.12)',
+  amberL: 'rgba(240, 168, 48, 0.12)',
+  amberB: 'rgba(240, 168, 48, 0.25)',
+  blue: '#3D8EF0', // HTML Demo Blue
+  blueDim: 'rgba(61, 142, 240, 0.12)',
+  blueL: 'rgba(61, 142, 240, 0.12)',
+  red: '#EF4444', // HTML Demo Red
+  redDim: 'rgba(239, 68, 68, 0.12)',
+  redL: 'rgba(239, 68, 68, 0.12)',
+  purple: '#9D60F8', // HTML Demo Purple
+  purpleL: 'rgba(157, 96, 248, 0.12)',
+  teal: '#22D4D4', // HTML Demo Teal
+  tealL: 'rgba(34, 212, 212, 0.12)',
 
-  secondary: '#F5B800',
-  tertiary: '#ffb4aa',
-  success: '#00A86B',
-  warning: '#F5B800',
-  error: '#E8312A',
-  onSurface: '#1c1c1e',
-  onVariant: '#3C3C43',
+  secondary: '#F0A830',
+  tertiary: '#3D8EF0', // HTML Demo Blue
+  success: '#22C97A',
+  warning: '#F0A830',
+  error: '#EF4444',
+  onSurface: '#0F1520',
+  onVariant: '#5C6B82',
 
-  // ── Status Palette
-  green: '#00A86B',
-  greenL: 'rgba(0,168,107,0.15)',
-  greenB: 'rgba(0,168,107,0.3)',
-  red: '#E8312A',
-  redL: 'rgba(232,49,42,0.15)',
-  redB: 'rgba(232,49,42,0.3)',
-  amber: '#F5B800',
-  amberL: 'rgba(245,184,0,0.15)',
-  amberB: 'rgba(245,184,0,0.3)',
-  blue: '#007AFF',
-  blueL: '#007AFF20',
+  // Status Palette (Aliases for convenience)
+  green: '#22C97A',
+  greenL: 'rgba(34, 201, 122, 0.12)',
+  greenB: 'rgba(34, 201, 122, 0.25)',
+  greenDim: 'rgba(34, 201, 122, 0.12)',
+  yellow: '#F0A830',
+  yellowDim: 'rgba(240, 168, 48, 0.12)',
+  border: '#E0E3EA',
+  bg: '#F5F7FA',
+  primaryLow: 'rgba(34, 201, 122, 0.12)',
 
-  orange: '#FF9500',
-  purple: '#AF52DE',
-  purpleL: '#AF52DE20',
-  teal: '#5AC8FA',
+  glass: 'rgba(0, 0, 0, 0.02)',
+  glass2: 'rgba(0, 0, 0, 0.05)',
+  edge: 'rgba(0, 0, 0, 0.08)',
+  edge2: 'rgba(0, 0, 0, 0.13)',
 
-  // ── Glass & Borders
-  glass: 'rgba(0,0,0,0.012)',
-  glass2: 'rgba(0,0,0,0.038)',
-  edge: 'rgba(0,0,0,0.035)',
-  edge2: 'rgba(0,0,0,0.075)',
-  edgeBright: 'rgba(0,0,0,0.14)',
-
-  // ── Typography
-  text: '#000000',
-  textSoft: '#3C3C43',
-  sub: '#8E8E93',
-
+  text: '#0F1520',
+  textSoft: '#5C6B82',
+  textSub: '#5C6B82',
+  sub: '#5C6B82',
   white: '#FFFFFF',
   black: '#000000',
 };
 
-// ── Obsidian Dark Mode (Premium Admin) ───────────────────────────────────────────
+// ── Obsidian Dark Mode (Premium HTML Demo Parity) ───────────────────────────────────────────
 export const DarkColors = {
-  ink: '#080B10', // Addis Noir background
-  surface: '#11141B', // Noir surface
-  surfaceHigh: '#1F242D', // Higher elevation noir
-  lift: '#161922', // Low-elevation noir
-  top: '#1C1F27', // High-elevation noir
-  rim: '#242730', // Noir border accent
-  overlay: 'rgba(8, 11, 16, 0.85)', // Noir glass
+  ink: '#000000', // True Noir
+  surface: '#121212', // Stitch Surface
+  surfaceHigh: '#1E1E1E', 
+  lift: '#1E1E1E',
+  top: '#242424', 
+  rim: '#242424',
+  overlay: 'rgba(0, 0, 0, 0.88)',
 
-  primary: '#00A86B', // Ethiopian Modern Green
-  primaryL: 'rgba(0,168,107,0.15)',
-  primaryD: '#008454',
-  primaryGlow: 'rgba(0,168,107,0.2)',
-  primaryB: 'rgba(0,168,107,0.35)',
-  primaryGrad: ['#00A86B', '#007D4F'],
+  primary: '#22C97A',
+  primaryL: 'rgba(34, 201, 122, 0.12)',
+  primaryD: '#1BA363',
+  primaryGlow: 'rgba(34, 201, 122, 0.15)',
+  primaryB: 'rgba(34, 201, 122, 0.25)',
+  primaryGrad: ['#22C97A', '#1BA363'],
 
-  secondary: '#F5B800', // Ethiopian Gold
-  tertiary: '#ffb4aa',
-  success: '#00A86B',
-  warning: '#F5B800',
-  error: '#E8312A',
-  onSurface: '#E1E2EA',
-  onVariant: '#BCCABE',
+  secondary: '#F0A830',
+  tertiary: '#3D8EF0',
+  success: '#22C97A',
+  warning: '#F0A830',
+  error: '#EF4444',
+  onSurface: '#E8EDF5',
+  onVariant: '#8A95AA',
 
   // ── Status Palette
-  green: '#00A86B',
-  greenL: 'rgba(0,168,107,0.2)',
-  greenB: 'rgba(0,168,107,0.4)',
-  red: '#E8312A',
-  redL: 'rgba(232,49,42,0.2)',
-  redB: 'rgba(232,49,42,0.4)',
-  amber: '#F5B800',
-  amberL: 'rgba(245,184,0,0.2)',
-  amberB: 'rgba(245,184,0,0.4)',
-  blue: '#007AFF',
-  blueL: '#007AFF20',
-  orange: '#FF9500',
-  purple: '#AF52DE',
-  purpleL: '#AF52DE20',
-  teal: '#5AC8FA',
+  green: '#22C97A',
+  greenL: 'rgba(34, 201, 122, 0.12)',
+  greenB: 'rgba(34, 201, 122, 0.25)',
+  greenDim: 'rgba(34, 201, 122, 0.12)',
+  red: '#EF4444',
+  redL: 'rgba(239, 68, 68, 0.12)',
+  redDim: 'rgba(239, 68, 68, 0.12)',
+  amber: '#F0A830',
+  amberL: 'rgba(240, 168, 48, 0.12)',
+  amberDim: 'rgba(240, 168, 48, 0.12)',
+  amberB: 'rgba(240, 168, 48, 0.25)',
+  yellow: '#F0A830',
+  yellowDim: 'rgba(240, 168, 48, 0.12)',
+  blue: '#3D8EF0',
+  blueL: 'rgba(61, 142, 240, 0.12)',
+  blueDim: 'rgba(61, 142, 240, 0.12)',
+  purple: '#9D60F8',
+  purpleL: 'rgba(157, 96, 248, 0.12)',
+  teal: '#22D4D4',
+  tealL: 'rgba(34, 212, 212, 0.12)',
 
-  glass: 'rgba(255,255,255,0.02)',
-  glass2: 'rgba(255,255,255,0.06)',
-  edge: 'rgba(255,255,255,0.05)',
-  edge2: 'rgba(255,255,255,0.1)',
-  edgeBright: 'rgba(255,255,255,0.2)',
+  border: '#242B3D',
+  bg: '#0B0D11',
+  primaryLow: 'rgba(34, 201, 122, 0.12)',
+  textSub: '#8A95AA',
 
-  text: '#FFFFFF',
-  textSoft: '#E1E2EA',
-  sub: '#9CA3AF',
-  hint: '#6B7280',
+  glass: 'rgba(255, 255, 255, 0.04)',
+  glass2: 'rgba(255, 255, 255, 0.08)',
+  edge: 'rgba(255, 255, 255, 0.07)',
+  edge2: 'rgba(255, 255, 255, 0.13)',
+
+  text: '#E8EDF5',
+  textSoft: '#8A95AA',
+  sub: '#8A95AA',
+  hint: 'rgba(200, 210, 230, 0.38)',
 
   white: '#FFFFFF',
   black: '#000000',
+
+  // ── Addis Noir Gradients
+  noirGrad: ['#A855F7', '#3B82F6'] as const, // Purple to Blue
+  liquidGrad: ['#22C97A', '#059669'] as const, // Green for Finance
 };
 
 // ── Shared Design Tokens ─────────────────────────────────────────────────────
@@ -131,11 +146,11 @@ export const Fonts = {
   bold: 'Inter_700Bold',
   black: 'Inter_900Black',
 
-  // Premium Admin Fonts
-  headline: 'SpaceGrotesk_700Bold',
-  body: 'Manrope_500Medium',
-  label: 'Manrope_700Bold',
-  mono: 'Manrope_500Medium', // Fallback to Manrope for mono text
+  // Gold Standard Fonts (Mapping to best available)
+  headline: 'SpaceGrotesk_700Bold', // Nearest to Cabinet Grotesk
+  body: 'Inter_400Regular', // Nearest to Instrument Sans
+  label: 'Inter_600SemiBold',
+  mono: 'JetBrainsMono_500Medium',
 };
 
 export const FontSize = {
@@ -151,6 +166,7 @@ export const FontSize = {
 };
 
 export const Radius = {
+  card: 24, // Addis Noir Standard
   '3xl': 28,
   '2xl': 20,
   xl: 16,
@@ -201,14 +217,14 @@ export const Shadow = {
     elevation: 12,
   },
   primary: {
-    shadowColor: '#59de9b',
+    shadowColor: '#22C97A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 6,
   },
   glow: {
-    shadowColor: '#59de9b',
+    shadowColor: '#22C97A',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 15,

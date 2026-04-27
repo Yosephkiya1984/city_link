@@ -26,17 +26,22 @@ import {
   TransactionItem,
   useTheme,
 } from '../../components';
+import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
+import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
+import { LegalReceipt } from '../../components/shared/LegalReceipt';
+import { Transaction } from '../../types/domain_types';
 
 // â”€â”€ State & Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { useAuthStore } from '../../store/AuthStore';
 import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { Radius, Shadow, Fonts, FontSize, Spacing } from '../../theme';
-import { fmtETB, uid, t, getPhoneProvider } from '../../utils';
+import { fmtETB, t, getPhoneProvider } from '../../utils';
 import { CHAPA_CHANNELS } from '../../config';
 
 // â”€â”€ Domain Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import * as WalletService from '../../services/wallet.service';
+import PaymentService from '../../services/payment.service';
 import { useServiceAccess } from '../../services/serviceAccess';
 
 export default function WalletScreen() {
@@ -49,7 +54,6 @@ export default function WalletScreen() {
   const setBalance = useWalletStore((s) => s.setBalance);
   const transactions = useWalletStore((s) => s.transactions);
   const setTransactions = useWalletStore((s) => s.setTransactions);
-  const addTransaction = useWalletStore((s) => s.addTransaction);
   const showToast = useSystemStore((s) => s.showToast);
   const { guardServiceAccess } = useServiceAccess();
 
@@ -61,6 +65,8 @@ export default function WalletScreen() {
   const [selectedProvider, setSelectedProvider] = useState('telebirr');
   const [walletLimit, setWalletLimit] = useState(100);
   const [hasManuallySelected, setHasManuallySelected] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   // â”€â”€ Verification Effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
@@ -125,27 +131,26 @@ export default function WalletScreen() {
 
     setLoading(true);
     try {
-      // Logic for top-up through WalletService
-      const success = await WalletService.processTopup(currentUser.id, amt, selectedProvider);
-      if (success) {
-        setBalance(balance + amt);
-        addTransaction({
-          id: uid(),
-          wallet_id: `${currentUser.id}-wallet`,
-          user_id: currentUser.id,
-          amount: amt,
-          type: 'credit',
-          category: 'topup',
-          description: `Top-up via ${selectedProvider.toUpperCase()}`,
-          status: 'completed',
-          created_at: new Date().toISOString(),
-        });
-        showToast(`Successfully added ${fmtETB(amt, 0)} ✨`, 'success');
+      const initRes = await PaymentService.initialize({
+        amount: amt,
+        description: `Wallet Top-up via ${selectedProvider.toUpperCase()}`,
+        channel: selectedProvider,
+        phone: currentUser.phone || '',
+        name: currentUser.full_name || 'CityLink User',
+      });
+
+      if (initRes.status === 'success') {
+        setShowSuccess(true);
         setTopupModal(false);
-        setAmount('');
+        // We DO NOT clear amount here so the success message can show it
+        
+        // Polling fallback (optional, as Realtime is primary)
+        setTimeout(() => fetchWallet(), 10000);
+      } else {
+        showToast(initRes.message || 'Payment initialization failed', 'error');
       }
     } catch (error) {
-      showToast('Top-up failed. Please try again.', 'error');
+      showToast('Payment system unavailable. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -226,7 +231,14 @@ export default function WalletScreen() {
               </Text>
             </View>
           ) : (
-            transactions.map((tx, i) => <TransactionItem key={tx.id || i} tx={tx} index={i} />)
+            transactions.map((tx, i) => (
+              <TransactionItem
+                key={tx.id || i}
+                tx={tx}
+                index={i}
+                onPress={() => setSelectedTx(tx)}
+              />
+            ))
           )}
         </View>
       </ScrollView>
@@ -330,6 +342,36 @@ export default function WalletScreen() {
           />
         </View>
       </Modal>
+
+      <SuccessOverlay
+        visible={showSuccess}
+        title="Top-up Initiated"
+        subtitle={`Your top-up of ${fmtETB(parseFloat(amount) || 0, 0)} ETB is being processed via ${selectedProvider}.`}
+        onClose={() => {
+          setShowSuccess(false);
+          setAmount('');
+        }}
+      />
+
+      <ProcessingOverlay visible={loading} message="Processing your top-up..." />
+
+      {/* RECEIPT MODAL */}
+      {selectedTx && (
+        <LegalReceipt
+          visible={!!selectedTx}
+          onClose={() => setSelectedTx(null)}
+          merchantName="CityLink Services"
+          merchantTIN="0000000000"
+          transactionId={selectedTx.reference_id || selectedTx.idempotency_key || selectedTx.id}
+          date={selectedTx.created_at}
+          amount={Number(selectedTx.amount)}
+          paymentMethod="WALLET"
+          title={selectedTx.type === 'credit' ? 'CREDIT RECEIPT' : 'DEBIT RECEIPT'}
+          items={[
+            { label: selectedTx.description || selectedTx.category, value: Number(selectedTx.amount) },
+          ]}
+        />
+      )}
     </View>
   );
 }

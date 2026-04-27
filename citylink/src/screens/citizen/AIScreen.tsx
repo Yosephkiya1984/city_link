@@ -145,7 +145,7 @@ export default function AIScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar
-        title="ðŸ¤– CityLink AI"
+        title="🤖 CityLink AI"
         right={
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
@@ -324,7 +324,7 @@ export default function AIScreen() {
                     marginTop: 2,
                   }}
                 >
-                  <Text style={{ fontSize: 14 }}>ðŸ¤–</Text>
+                  <Text style={{ fontSize: 14 }}>🤖</Text>
                 </View>
               )}
               <View style={{ maxWidth: '78%' }}>
@@ -368,7 +368,7 @@ export default function AIScreen() {
           {loading && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 36 }}>
               <ActivityIndicator size="small" color={C.green} />
-              <Text style={{ color: C.sub, fontSize: FontSize.md }}>Thinkingâ€¦</Text>
+              <Text style={{ color: C.sub, fontSize: FontSize.md }}>Thinking…</Text>
             </View>
           )}
         </ScrollView>
@@ -445,7 +445,7 @@ export default function AIScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Ask anything about Addisâ€¦"
+            placeholder="Ask anything about Addis…"
             placeholderTextColor={C.sub}
             multiline
             onSubmitEditing={() => handleSend()}
@@ -478,7 +478,7 @@ export default function AIScreen() {
             }}
           >
             <Text style={{ fontSize: 18, color: !input.trim() || loading ? C.sub : '#040A05' }}>
-              â†‘
+              ↑
             </Text>
           </TouchableOpacity>
         </View>

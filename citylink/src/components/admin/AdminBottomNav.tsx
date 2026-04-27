@@ -39,7 +39,9 @@ export default function AdminBottomNav({ activeTab, onTabChange }: AdminBottomNa
     if (id === 'logout') {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      } catch (e) {}
+      } catch (e) {
+        /* ignore */
+      }
 
       if (Platform.OS === 'web') {
         if (window.confirm('Are you sure you want to exit the admin portal?')) {

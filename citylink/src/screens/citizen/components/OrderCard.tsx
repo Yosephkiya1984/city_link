@@ -14,6 +14,7 @@ import {
   verifyWalletPin,
   verifyWalletPinAndGetHash,
   getCurrentPinHash,
+  hasWalletPin,
 } from '../../../services/walletPin';
 import { useAuthStore } from '../../../store/AuthStore';
 import { useSystemStore } from '../../../store/SystemStore';
@@ -154,6 +155,13 @@ export const OrderCard = ({
     }
 
     // 2. Fallback to Wallet PIN Modal
+    const hasPin = await hasWalletPin(user?.id || '');
+    if (!hasPin) {
+      // 🛡️ User hasn't set up a wallet PIN. 
+      // Allow reveal via session-auth only (RPC handles this).
+      return executeReveal();
+    }
+    
     setShowPinModal(true);
   };
 

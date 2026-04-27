@@ -10,6 +10,7 @@ import { Transaction } from '../../types/domain_types';
 interface TransactionItemProps {
   tx: Transaction;
   index: number;
+  onPress?: () => void;
 }
 
 const TX_ICONS = {
@@ -26,7 +27,7 @@ const TX_ICONS = {
   default: 'cash',
 };
 
-export function TransactionItem({ tx, index }: TransactionItemProps) {
+export function TransactionItem({ tx, index, onPress }: TransactionItemProps) {
   const C = useTheme();
   const [animValue] = useState(new Animated.Value(0));
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -55,7 +56,9 @@ export function TransactionItem({ tx, index }: TransactionItemProps) {
     }).start();
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (_) {}
+    } catch (_) {
+      /* ignore */
+    }
   };
 
   const handlePressOut = () => {
@@ -85,6 +88,7 @@ export function TransactionItem({ tx, index }: TransactionItemProps) {
       <TouchableOpacity
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
+        onPress={onPress}
         activeOpacity={0.8}
         style={{
           backgroundColor: C.surface,
@@ -131,38 +135,42 @@ export function TransactionItem({ tx, index }: TransactionItemProps) {
             </Text>
           </View>
 
-          <View style={{ alignItems: 'flex-end' }}>
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
             <Text
               style={{
                 color: iconColor,
                 fontSize: FontSize.lg,
                 fontFamily: Fonts.black,
-                marginBottom: 2,
               }}
             >
               {isCredit ? '+' : '-'}
               {fmtETB(tx.amount, 0)}
             </Text>
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                backgroundColor: iconColor + '15',
-                borderRadius: Radius.full,
-                borderWidth: 1,
-                borderColor: iconColor + '30',
-              }}
-            >
-              <Text
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View
                 style={{
-                  color: iconColor,
-                  fontSize: FontSize.xs,
-                  fontFamily: Fonts.bold,
-                  textTransform: 'uppercase',
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  backgroundColor: iconColor + '15',
+                  borderRadius: Radius.full,
+                  borderWidth: 1,
+                  borderColor: iconColor + '30',
                 }}
               >
-                {tx.category}
-              </Text>
+                <Text
+                  style={{
+                    color: iconColor,
+                    fontSize: FontSize.xs,
+                    fontFamily: Fonts.bold,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {tx.category}
+                </Text>
+              </View>
+              {onPress && (
+                <Ionicons name="receipt-outline" size={14} color={C.hint} />
+              )}
             </View>
           </View>
         </View>

@@ -19,8 +19,13 @@ export const clearAllStores = async () => {
     // 2. Physical storage wipe (Generic items)
     const keys = await AsyncStorage.getAllKeys();
     const citylinkKeys = keys.filter((k) => k.startsWith('citylink-'));
-    if (citylinkKeys.length > 0) {
-      await AsyncStorage.multiRemove(citylinkKeys);
+
+    // Explicitly clear non-prefixed sensitive keys
+    const extraKeys = ['has_seen_onboarding', 'is_first_launch', 'fayda_temp_data'];
+    const toRemove = [...citylinkKeys, ...extraKeys];
+
+    if (toRemove.length > 0) {
+      await AsyncStorage.multiRemove(toRemove);
     }
 
     console.log('[StoreUtils] All stores cleared successfully.');

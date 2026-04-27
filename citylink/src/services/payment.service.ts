@@ -3,6 +3,7 @@ import { supaQuery } from './supabase';
 import { getSession } from './auth.service';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import * as Crypto from 'expo-crypto';
 
 export interface ChapaInitResponse {
   status: 'success' | 'error';
@@ -55,7 +56,9 @@ export async function initialize({
     return { status: 'error', message: 'Please sign in to make payments.' };
   }
 
-  const txRef = `CL-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
+  // Use cryptographically secure UUID
+  const txRef = `CL-${Date.now()}-${Crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+  console.log('[Payment] Generated txRef:', txRef);
   const callbackUrl = Linking.createURL('payment-callback', { scheme: 'citylink' });
 
   try {
@@ -72,17 +75,20 @@ export async function initialize({
         first_name: name.split(' ')[0] || 'User',
         last_name: name.split(' ')[1] || 'CityLink',
         tx_ref: txRef,
-        callback_url: callbackUrl,
-        return_url: callbackUrl,
+        callback_url: `${supaUrl}/functions/v1/chapa-payment/webhook`,
+        return_url: `${supaUrl}/functions/v1/chapa-payment/success?redirect=${encodeURIComponent(callbackUrl)}`,
         customization: {
-          title: 'CityLink Wallet Top-up',
+          title: 'Wallet Top-up',
           description,
+        },
+        meta: {
+          user_id: session.user.id,
         },
       }),
     });
 
     const data: ChapaInitResponse = await res.json();
-
+    console.log('[Payment] Init Response Body:', JSON.stringify(data, null, 2));
     if (data.status === 'success' && data.data?.checkout_url) {
       // Open real Chapa checkout
       await WebBrowser.openBrowserAsync(data.data.checkout_url);
@@ -93,7 +99,7 @@ export async function initialize({
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[Payment] Init Error:', msg);
-    return { status: 'error', message: msg };
+    return { status: 'error', message: `Chapa Init Error: ${msg}` };
   }
 }
 

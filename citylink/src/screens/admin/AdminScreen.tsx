@@ -2,16 +2,17 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Platform,
   Dimensions,
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
+import { useNavigation } from '@react-navigation/native';
 import { fetchPendingMerchants } from '../../services/admin.service';
 import { fetchProfile } from '../../services/profile.service';
 import { User } from '../../types';
@@ -34,6 +35,15 @@ export default function AdminScreen() {
   const theme = useTheme();
   const currentUser = useAuthStore((s) => s.currentUser);
   const resetStore = useAuthStore((s) => s.reset);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const GOV_ROLES = ['admin', 'minister', 'inspector', 'station'];
+    if (currentUser && !GOV_ROLES.includes(currentUser.role || '')) {
+      Alert.alert('Unauthorized Access', 'This console is restricted to government officials.');
+      navigation.goBack();
+    }
+  }, [currentUser, navigation]);
 
   // Responsive State
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
@@ -55,16 +65,27 @@ export default function AdminScreen() {
 
   const loadData = useCallback(async () => {
     if (activeTab === 'merchants') {
-      setLoadingMerchants(true);
       const { data } = await fetchPendingMerchants();
-      if (data) setPendingMerchants(data);
-      setLoadingMerchants(false);
+      return data || [];
     }
+    return [];
   }, [activeTab]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let ignore = false;
+    if (activeTab === 'merchants') {
+      setLoadingMerchants(true);
+      loadData().then((data) => {
+        if (!ignore) {
+          setPendingMerchants(data);
+          setLoadingMerchants(false);
+        }
+      });
+    }
+    return () => {
+      ignore = true;
+    };
+  }, [activeTab, loadData]);
 
   const handleTabChange = async (tabId: AdminTab | string) => {
     if (tabId === 'logout') {

@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SupabaseStorageAdapter } from './storage.adapter';
 import { Config } from '../config';
 
 // ── Client Initialization ─────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ export function getClient(): SupabaseClient | null {
   try {
     const options = {
       auth: {
-        storage: AsyncStorage,
+        storage: SupabaseStorageAdapter,
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
@@ -119,15 +119,3 @@ export default {
   supaQuery,
   getClient,
 };
-
-/** @deprecated Use getClient() directly. This getter exists only for backward compatibility. */
-export const supabase = new Proxy({} as NonNullable<ReturnType<typeof getClient>>, {
-  get(_target, prop) {
-    const client = getClient();
-    if (!client) {
-      console.warn(`[CityLink] supabase.${String(prop)} called but no client available.`);
-      return undefined;
-    }
-    return (client as unknown as Record<string, unknown>)[prop as string];
-  },
-});

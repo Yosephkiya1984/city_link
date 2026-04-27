@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, Animated, TouchableOpacity } from 'react-native';
 import { Radius, Shadow } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
+import { GlassView } from '../GlassView';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -42,38 +43,37 @@ export function GlassCard({
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
       <TouchableOpacity
         onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         activeOpacity={0.8}
-        style={[
-          {
-            backgroundColor: blur ? C.surface + 'CC' : C.surface,
-            borderRadius: Radius['2xl'],
-            borderWidth: 1,
-            borderColor: accentColor ? accentColor + '40' : C.edge2,
-            ...Shadow.xl,
-            overflow: 'hidden',
-          },
-          style,
-        ]}
       >
-        {glow && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 2,
-              backgroundColor: accentColor || C.primary,
-              opacity: 0.8,
-            }}
-          />
-        )}
-        {children}
+        <GlassView
+          intensity={blur ? 35 : 0}
+          borderRadius={Radius['2xl']}
+          borderColor={accentColor ? accentColor + '40' : C.edge2}
+          style={{
+            ...Shadow.xl,
+            minHeight: 40,
+          }}
+        >
+          {glow && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 2,
+                backgroundColor: accentColor || C.primary,
+                opacity: 0.8,
+              }}
+            />
+          )}
+          <View style={{ padding: 0 }}>{children}</View>
+        </GlassView>
       </TouchableOpacity>
     </Animated.View>
   );

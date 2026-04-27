@@ -1,6 +1,6 @@
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { supabase } from '../../../services/supabase';
+import { getClient } from '../../../services/supabase';
 import {
   marketplaceService,
   insertProduct,
@@ -98,7 +98,7 @@ export function useShopActions({
         images_json: [] as string[],
       };
       const res = await insertProduct(productData);
-      if (res.error) showToast('Failed to list product', 'error');
+      if (res.error) showToast(`Failed to list product: ${res.error}`, 'error');
       else showToast('Product listed!', 'success');
     }
 
@@ -270,14 +270,7 @@ export function useShopActions({
         onPress: async () => {
           setLoading(true);
           try {
-            await supabase
-              .from('delivery_dispatches')
-              .update({ status: 'SUPERSEDED' })
-              .eq('order_id', order.id);
-            await supabase
-              .from('marketplace_orders')
-              .update({ status: 'SHIPPED', dispatch_expires_at: null })
-              .eq('id', order.id);
+            await marketplaceService.selfDeliverOrder(order.id, currentUser.id);
             showToast('Switched to self-delivery', 'success');
             loadData();
           } catch (e) {
@@ -296,12 +289,8 @@ export function useShopActions({
       return;
     }
     setSubmittingPin(true);
-    const { confirmDeliveryWithPin } = require('../../../services/delivery.service');
-    const { ok, error } = await confirmDeliveryWithPin(
-      pinPromptOrder.id,
-      pinInput.trim(),
-      null
-    );
+    const { confirmDeliveryWithPin } = await import('../../../services/delivery.service');
+    const { ok, error } = await confirmDeliveryWithPin(pinPromptOrder.id, pinInput.trim(), null);
     setSubmittingPin(false);
 
     if (!ok) {
@@ -325,7 +314,9 @@ export function useShopActions({
     const threadId = `${id1}-${id2}`;
 
     try {
-      const { data: existing } = await supabase
+      const client = getClient();
+      if (!client) throw new Error('Database client not initialized');
+      const { data: existing } = await client
         .from('message_threads')
         .select('thread_id')
         .eq('thread_id', threadId)

@@ -12,6 +12,7 @@ export * from './ui/SearchBar';
 export * from './ui/ChipBar';
 export * from './ui/ServiceTile';
 export * from './ui/TabBar';
+export * from './GlassView';
 
 // ── Re-exports: Layout ────────────────────────────────────────────────────────
 export * from './layout/Card';
@@ -33,3 +34,4 @@ export * from './feedback/TransactionChart';
 export * from './feedback/CreditScoreRing';
 export { default as OfflineBanner } from './OfflineBanner';
 export { default as ErrorBoundary } from './EnhancedErrorBoundary';
+export * from './shared/LegalReceipt';
