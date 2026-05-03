@@ -19,7 +19,7 @@ import { Colors, DarkColors, FontSize, Spacing, Radius, Shadow, Fonts } from '..
 interface TopBarProps {
   title?: string;
   showBack?: boolean;
-  right?: any;
+  right?: React.ReactNode;
   minimal?: boolean;
   showProfile?: boolean;
 }

@@ -3,8 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { T } from './constants';
-import { fmtETB } from '../../utils';
+import { fmtETB, t } from '../../utils';
 import { useMarketStore } from '../../store/MarketStore';
+import { useSystemStore } from '../../store/SystemStore';
 
 interface HeaderProps {
   balance: number;
@@ -16,15 +17,21 @@ import { Fonts } from '../../theme';
 
 const MarketplaceHeader = memo(({ balance, name }: HeaderProps) => {
   const navigation = useNavigation();
-  const firstName = name?.split(' ')[0] || 'Shopper';
+  const lang = useSystemStore((s) => s.lang);
+  const firstName = name?.split(' ')[0] || t('shopper');
   const cartItemsCount = useMarketStore((s) => s.cartItems.length);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t('good_morning_name', { name: firstName });
+    if (hour < 17) return t('good_afternoon_name', { name: firstName });
+    return t('good_evening_name', { name: firstName });
+  };
 
   return (
     <GlassView intensity={20} style={styles.header}>
       <View>
-        <Text style={[styles.headerGreeting, { fontFamily: Fonts.label }]}>
-          Hello, {firstName} 👋
-        </Text>
+        <Text style={[styles.headerGreeting, { fontFamily: Fonts.label }]}>{getGreeting()}</Text>
         <Text style={[styles.headerTitle, { fontFamily: Fonts.headline }]}>
           CityLink <Text style={{ color: T.primary }}>Market</Text>
         </Text>

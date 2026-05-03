@@ -8,7 +8,7 @@ interface BiometricState {
   isBiometricsEnabled: boolean;
   biometryType: LocalAuthentication.AuthenticationType[];
   isLocked: boolean;
-  
+
   // Actions
   checkSupport: () => Promise<void>;
   setBiometricsEnabled: (enabled: boolean) => Promise<void>;
@@ -28,10 +28,10 @@ export const useBiometricStore = create<BiometricState>()(
         const hasHardware = await LocalAuthentication.hasHardwareAsync();
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
         const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
-        
-        set({ 
+
+        set({
           isBiometricsSupported: hasHardware && isEnrolled,
-          biometryType: types 
+          biometryType: types,
         });
       },
 
@@ -45,7 +45,7 @@ export const useBiometricStore = create<BiometricState>()(
 
       authenticate: async (reason: string = 'Authenticate to continue') => {
         const { isBiometricsEnabled, isBiometricsSupported } = get();
-        
+
         if (!isBiometricsSupported || !isBiometricsEnabled) {
           return true; // Fallback to PIN if enabled, but for now just pass through
         }
@@ -60,7 +60,7 @@ export const useBiometricStore = create<BiometricState>()(
         if (result.success) {
           set({ isLocked: false });
         }
-        
+
         return result.success;
       },
     }),

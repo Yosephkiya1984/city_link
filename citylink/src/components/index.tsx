@@ -12,6 +12,9 @@ export * from './ui/SearchBar';
 export * from './ui/ChipBar';
 export * from './ui/ServiceTile';
 export * from './ui/TabBar';
+export * from './ui/Screen';
+export * from './ui/Typography';
+export * from './ui/Surface';
 export * from './GlassView';
 
 // ── Re-exports: Layout ────────────────────────────────────────────────────────
@@ -35,3 +38,8 @@ export * from './feedback/CreditScoreRing';
 export { default as OfflineBanner } from './OfflineBanner';
 export { default as ErrorBoundary } from './EnhancedErrorBoundary';
 export * from './shared/LegalReceipt';
+
+// ── Re-exports: Auth & Security ──────────────────────────────────────────────
+export * from './auth/FaydaVerificationModal';
+export * from './auth/BiometricLockScreen';
+export * from './WalletPinModal';

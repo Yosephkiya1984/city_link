@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  View,
-  StyleSheet,
-  StatusBar,
-  Platform,
-  Dimensions,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, StyleSheet, StatusBar, Platform, Dimensions, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/AuthStore';
@@ -30,6 +22,7 @@ import UserModule from '../../components/admin/UserModule';
 import AuditModule from '../../components/admin/AuditModule';
 import SystemModule from '../../components/admin/SystemModule';
 import DeliveryAgentModule from '../../components/admin/DeliveryAgentModule';
+import FinanceModule from '../../components/admin/FinanceModule';
 
 export default function AdminScreen() {
   const theme = useTheme();
@@ -118,6 +111,8 @@ export default function AdminScreen() {
         return <UserModule />;
       case 'logs':
         return <AuditModule />;
+      case 'finance':
+        return <FinanceModule />;
       case 'systems':
         return <SystemModule />;
       default:

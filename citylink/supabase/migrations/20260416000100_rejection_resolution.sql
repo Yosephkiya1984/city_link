@@ -101,6 +101,21 @@ CREATE OR REPLACE FUNCTION public.resolve_marketplace_dispute(p_order_id text, p
    UPDATE public.marketplace_orders SET status = v_order_status, updated_at = now() WHERE id = v_order.id;
    UPDATE public.disputes SET status = 'CLOSED', resolution_path = p_resolution_type WHERE order_id = v_order.id;
  
+   -- 🛡️ Mandatory Audit Log
+   INSERT INTO public.audit_logs (event_type, actor_id, resource_id, severity, details)
+   VALUES (
+     'DISPUTE_RESOLUTION',
+     auth.uid(),
+     p_order_id,
+     'medium',
+     jsonb_build_object(
+       'order_type', 'marketplace',
+       'resolution', p_resolution_type,
+       'buyer_refunded', v_buyer_refund,
+       'merchant_id', v_order.merchant_id
+     )
+   );
+
    RETURN json_build_object('ok', true, 'resolution', p_resolution_type, 'buyer_refunded', v_buyer_refund, 'status', v_order_status);
  END;
  $function$;

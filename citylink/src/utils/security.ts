@@ -2,26 +2,15 @@ import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import CryptoJS from 'crypto-js';
 
-// Polyfill for Expo Go compatibility: crypto-js will crash if it tries to use native crypto APIs
-// that aren't bundled. This ensures AES can safely generate IVs using standard Math.random.
-CryptoJS.lib.WordArray.random = function (nBytes: number) {
-  const words: number[] = [];
-  for (let i = 0; i < nBytes; i += 4) {
-    words.push((Math.random() * 0x100000000) | 0);
-  }
-  return CryptoJS.lib.WordArray.create(words, nBytes);
-};
-
-const KEY_NAME = 'cl_p2p_aes_key_v2'; // Bumped to v2 — old v1 keys were PRNG-derived and are untrusted
+const KEY_NAME = 'cl_p2p_aes_key_v3'; // Bumped to v3 — v1/v2 were insecure or format-incompatible
 
 /**
- * World-Class Security Utilities (Expo Go Compatible)
- * Implements AES encryption using crypto-js for cross-platform stability.
+ * World-Class Security Utilities
+ * Implements AES-256-CBC encryption using crypto-js with native CSPRNG entropy.
  */
 export const SecurityUtils = {
   /**
-   * getEncryptionKey — Retrieves or initializes a unique CSPRNG-derived key for this device.
-   * Uses expo-crypto's getRandomBytesAsync (256-bit entropy) instead of Math.random().
+   * getEncryptionKey — Retrieves or initializes a unique 256-bit key for this device.
    */
   getEncryptionKey: async (): Promise<string> => {
     try {
@@ -33,40 +22,50 @@ export const SecurityUtils = {
       }
 
       if (!key) {
-        try {
-          const randomBytes = await Crypto.getRandomBytesAsync(32);
-          key = Array.from(randomBytes)
-            .map((b) => b.toString(16).padStart(2, '0'))
-            .join('');
-        } catch (err) {
-          console.warn(
-            '[SecurityUtils] Native crypto unavailable, falling back to PRNG generation:',
-            err
-          );
-          key = 'fallback_v2_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        }
-        
+        // Generate 256-bit (32-byte) key using native entropy
+        const randomBytes = await Crypto.getRandomBytesAsync(32);
+        key = Array.from(randomBytes)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+
         try {
           await SecureStore.setItemAsync(KEY_NAME, key);
         } catch (e) {
           console.warn('[SecurityUtils] SecureStore.setItemAsync failed:', e);
         }
       }
-      return key || 'ultimate_fallback_key_v2';
+      return key;
     } catch (criticalErr) {
       console.error('[SecurityUtils] Critical failure in getEncryptionKey:', criticalErr);
-      return 'emergency_key_v2';
+      throw new Error('SECURE_KEY_INITIALIZATION_FAILED');
     }
   },
 
   /**
-   * encrypt — AES encryption.
+   * encrypt — AES encryption with unique IV per call.
+   * Format: iv_hex + ":" + ciphertext
    */
   encrypt: async (text: string): Promise<string> => {
     try {
       if (!text) return '';
-      const key = await SecurityUtils.getEncryptionKey();
-      return CryptoJS.AES.encrypt(text, key).toString();
+      const keyHex = await SecurityUtils.getEncryptionKey();
+
+      // Generate unique 128-bit IV (16 bytes)
+      const ivBytes = await Crypto.getRandomBytesAsync(16);
+      const ivHex = Array.from(ivBytes)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      const key = CryptoJS.enc.Hex.parse(keyHex);
+      const iv = CryptoJS.enc.Hex.parse(ivHex);
+
+      const encrypted = CryptoJS.AES.encrypt(text, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      });
+
+      return `${ivHex}:${encrypted.toString()}`;
     } catch (err) {
       console.error('[SecurityUtils] Encryption failed:', err);
       throw new Error('FAILED_TO_ENCRYPT');
@@ -74,15 +73,37 @@ export const SecurityUtils = {
   },
 
   /**
-   * decrypt — Decrypts content using the stored device key.
+   * decrypt — Decrypts content using the stored device key and embedded IV.
    */
   decrypt: async (payload: string): Promise<string> => {
     try {
       if (!payload) return '';
-      const key = await SecurityUtils.getEncryptionKey();
-      const bytes = CryptoJS.AES.decrypt(payload, key);
+
+      const parts = payload.split(':');
+      if (parts.length !== 2) {
+        console.warn('[SecurityUtils] Invalid payload format (missing IV separator)');
+        return '[INVALID_FORMAT]';
+      }
+
+      const [ivHex, ciphertext] = parts;
+      const keyHex = await SecurityUtils.getEncryptionKey();
+
+      const key = CryptoJS.enc.Hex.parse(keyHex);
+      const iv = CryptoJS.enc.Hex.parse(ivHex);
+
+      const bytes = CryptoJS.AES.decrypt(ciphertext, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      });
+
       const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-      return decrypted || '[CORRUPTED_DATA]';
+      if (!decrypted) {
+        console.warn('[SecurityUtils] Decryption resulted in empty string (possible key mismatch)');
+        return '[DECRYPTION_FAILED]';
+      }
+
+      return decrypted;
     } catch (err) {
       console.error('[SecurityUtils] Decryption failed:', err);
       return '[DECRYPTION_ERROR]';

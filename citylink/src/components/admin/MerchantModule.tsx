@@ -113,7 +113,11 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
       <View
         style={[
           styles.card,
-          { backgroundColor: theme.surface, borderColor: isExpanded ? theme.primary : theme.rim, padding: isMobile ? 16 : 20 },
+          {
+            backgroundColor: theme.surface,
+            borderColor: isExpanded ? theme.primary : theme.rim,
+            padding: isMobile ? 16 : 20,
+          },
         ]}
       >
         <View style={styles.cardHeader}>
@@ -128,7 +132,9 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
                 },
               ]}
             >
-              <Text style={{ color: theme.primary, fontWeight: '800', fontSize: isMobile ? 16 : 18 }}>
+              <Text
+                style={{ color: theme.primary, fontWeight: '800', fontSize: isMobile ? 16 : 18 }}
+              >
                 {item.business_name?.[0] || 'B'}
               </Text>
             </View>
@@ -153,19 +159,38 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
               </Text>
             </View>
           </View>
-          <View style={[styles.statusPill, { backgroundColor: isVerified ? theme.green + '12' : theme.amber + '12' }]}>
-            <Text style={{ color: isVerified ? theme.green : theme.amber, fontSize: 9, fontWeight: '800' }}>
+          <View
+            style={[
+              styles.statusPill,
+              { backgroundColor: isVerified ? theme.green + '12' : theme.amber + '12' },
+            ]}
+          >
+            <Text
+              style={{
+                color: isVerified ? theme.green : theme.amber,
+                fontSize: 9,
+                fontWeight: '800',
+              }}
+            >
               {isVerified ? 'APPROVED' : 'PENDING'}
             </Text>
           </View>
         </View>
 
         <View
-          style={[styles.divider, { backgroundColor: theme.rim, marginVertical: isMobile ? 12 : 16 }]}
+          style={[
+            styles.divider,
+            { backgroundColor: theme.rim, marginVertical: isMobile ? 12 : 16 },
+          ]}
         />
 
         <View style={isMobile ? styles.detailsStack : styles.detailsGrid}>
-          <DetailItem label="TIN" value={item.tin || 'N/A'} icon="card-outline" isMobile={isMobile} />
+          <DetailItem
+            label="TIN"
+            value={item.tin || 'N/A'}
+            icon="card-outline"
+            isMobile={isMobile}
+          />
           <DetailItem
             label="License"
             value={item.license_no || 'N/A'}
@@ -176,32 +201,50 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
 
         {isExpanded && (
           <View style={styles.dossierContainer}>
-            <Text style={[styles.dossierTitle, { color: theme.primary }]}>VERIFICATION DOSSIER</Text>
-            
+            <Text style={[styles.dossierTitle, { color: theme.primary }]}>
+              VERIFICATION DOSSIER
+            </Text>
+
             <View style={styles.docRow}>
-              <View style={[styles.docPreview, { backgroundColor: theme.lift, borderColor: theme.rim }]}>
+              <View
+                style={[styles.docPreview, { backgroundColor: theme.lift, borderColor: theme.rim }]}
+              >
                 <Ionicons name="document-attach" size={24} color={theme.sub} />
-                <Text style={{ color: theme.textSoft, fontSize: 10, marginTop: 4 }}>TIN_CERTIFICATE.PDF</Text>
+                <Text style={{ color: theme.textSoft, fontSize: 10, marginTop: 4 }}>
+                  TIN_CERTIFICATE.PDF
+                </Text>
                 <TouchableOpacity style={[styles.viewDocBtn, { backgroundColor: theme.rim }]}>
                   <Text style={{ color: theme.text, fontSize: 9, fontWeight: '700' }}>VIEW</Text>
                 </TouchableOpacity>
               </View>
-              <View style={[styles.docPreview, { backgroundColor: theme.lift, borderColor: theme.rim }]}>
+              <View
+                style={[styles.docPreview, { backgroundColor: theme.lift, borderColor: theme.rim }]}
+              >
                 <Ionicons name="ribbon" size={24} color={theme.sub} />
-                <Text style={{ color: theme.textSoft, fontSize: 10, marginTop: 4 }}>TRADE_LICENSE.JPG</Text>
+                <Text style={{ color: theme.textSoft, fontSize: 10, marginTop: 4 }}>
+                  TRADE_LICENSE.JPG
+                </Text>
                 <TouchableOpacity style={[styles.viewDocBtn, { backgroundColor: theme.rim }]}>
                   <Text style={{ color: theme.text, fontSize: 9, fontWeight: '700' }}>VIEW</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={[styles.complianceBox, { backgroundColor: theme.amber + '08', borderColor: theme.amber + '20' }]}>
+            <View
+              style={[
+                styles.complianceBox,
+                { backgroundColor: theme.amber + '08', borderColor: theme.amber + '20' },
+              ]}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Ionicons name="shield-checkmark" size={14} color={theme.amber} />
-                <Text style={{ color: theme.amber, fontSize: 11, fontFamily: Fonts.bold }}>GOVERNMENT RISK ASSESSMENT</Text>
+                <Text style={{ color: theme.amber, fontSize: 11, fontFamily: Fonts.bold }}>
+                  GOVERNMENT RISK ASSESSMENT
+                </Text>
               </View>
               <Text style={{ color: theme.sub, fontSize: 11, marginTop: 4 }}>
-                TIN format validated. Business license expiry checked (Valid until 2027). KYC integrity: HIGH.
+                TIN format validated. Business license expiry checked (Valid until 2027). KYC
+                integrity: HIGH.
               </Text>
             </View>
           </View>
@@ -212,18 +255,33 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
             onPress={() => toggleExpand(item.id)}
             style={[styles.dossierBtn, { borderColor: theme.rim, height: isMobile ? 40 : 44 }]}
           >
-            <Text style={{ color: theme.textSoft, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>
+            <Text
+              style={{
+                color: theme.textSoft,
+                fontFamily: Fonts.label,
+                fontSize: isMobile ? 12 : 14,
+              }}
+            >
               {isExpanded ? 'Hide Dossier' : 'Inspect Docs'}
             </Text>
           </TouchableOpacity>
-          
+
           {!isVerified && (
             <>
               <TouchableOpacity
                 onPress={() => handleReject(item.id, item.business_name || 'Merchant')}
-                style={[styles.rejectBtn, { borderColor: theme.red + '30', height: isMobile ? 40 : 44 }]}
+                style={[
+                  styles.rejectBtn,
+                  { borderColor: theme.red + '30', height: isMobile ? 40 : 44 },
+                ]}
               >
-                <Text style={{ color: theme.red, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>
+                <Text
+                  style={{
+                    color: theme.red,
+                    fontFamily: Fonts.label,
+                    fontSize: isMobile ? 12 : 14,
+                  }}
+                >
                   Reject
                 </Text>
               </TouchableOpacity>
@@ -234,7 +292,13 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
                   { backgroundColor: theme.primary, height: isMobile ? 40 : 44 },
                 ]}
               >
-                <Text style={{ color: theme.ink, fontFamily: Fonts.label, fontSize: isMobile ? 12 : 14 }}>
+                <Text
+                  style={{
+                    color: theme.ink,
+                    fontFamily: Fonts.label,
+                    fontSize: isMobile ? 12 : 14,
+                  }}
+                >
                   Approve
                 </Text>
               </TouchableOpacity>
@@ -419,5 +483,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

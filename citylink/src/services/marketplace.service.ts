@@ -3,150 +3,44 @@ import { uid } from '../utils';
 import { decode } from 'base64-arraybuffer';
 import { Product, MarketplaceOrder, Dispute, MerchantMetrics } from '../types';
 
-// ── Configuration ─────────────────────────────────────────────────────────────
-const PRODUCT_COLS = '*, merchant:profiles(id, full_name)';
-
-/**
- * Type for product joined with merchant info from Supabase
- */
-interface ProductWithMerchant extends Product {
-  merchant?:
-    | {
-        id: string;
-        full_name: string;
-        business_name: string;
-        merchant_name: string;
-      }
-    | {
-        id: string;
-        full_name: string;
-        business_name: string;
-        merchant_name: string;
-      }[];
-}
-
-// Helper to map relational result to existing flat structure for backward compatibility
-const mapProductMerchant = (p: ProductWithMerchant): Product => {
-  if (!p) return p;
-  const rawMerchant = p.merchant;
-  const merchant = Array.isArray(rawMerchant) ? rawMerchant[0] : rawMerchant;
-
-  return {
-    ...p,
-    business_name: merchant?.business_name,
-    merchant_name: merchant?.merchant_name || merchant?.full_name,
-  };
-};
+import { MarketplaceApi, ProductWithMerchant } from '../modules/marketplace';
 
 // —— Products ——————————————————————————————————————————————————————————————————
 
 export async function fetchProducts(limit: number = 50) {
-  const res = await supaQuery<ProductWithMerchant[]>((c) =>
-    c
-      .from('products')
-      .select(PRODUCT_COLS)
-      .eq('status', 'active')
-      .gt('stock', 0)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-  );
-  return { ...res, data: res.data?.map(mapProductMerchant) || [] };
+  return MarketplaceApi.fetchProducts(limit);
 }
 
 export async function searchProducts(query: string, limit: number = 40) {
-  if (!query?.trim()) return fetchProducts(limit);
-
-  // Use secure server-side search function.
-  // No client-side fallback is permitted to ensure security and SQL injection resistance.
-  const res = await supaQuery<ProductWithMerchant[]>((c) =>
-    c.rpc('search_products_secure', {
-      p_query: query.trim(),
-      p_limit: limit,
-      p_offset: 0,
-    })
-  );
-
-  return { ...res, data: res.data?.map(mapProductMerchant) || [] };
+  return MarketplaceApi.searchProducts(query, limit);
 }
 
 export async function fetchProductsByCategory(category: string, limit: number = 40) {
-  if (!category || category === 'All') return fetchProducts(limit);
-  const res = await supaQuery<ProductWithMerchant[]>((c) =>
-    c
-      .from('products')
-      .select(PRODUCT_COLS)
-      .eq('status', 'active')
-      .gt('stock', 0)
-      .ilike('category', category)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-  );
-  return { ...res, data: res.data?.map(mapProductMerchant) || [] };
+  return MarketplaceApi.fetchProductsByCategory(category, limit);
 }
 
 export async function fetchProductById(productId: string) {
-  return supaQuery<ProductWithMerchant>((c) =>
-    c.from('products').select(PRODUCT_COLS).eq('id', productId).maybeSingle()
-  );
+  return MarketplaceApi.fetchProductById(productId);
 }
 
 export async function fetchMerchantInventory(merchantId: string) {
-  return supaQuery<Product[]>((c) =>
-    c
-      .from('products')
-      .select('*')
-      .eq('merchant_id', merchantId)
-      .neq('status', 'removed')
-      .order('created_at', { ascending: false })
-  );
+  return MarketplaceApi.fetchMerchantInventory(merchantId);
 }
 
 export async function insertProduct(product: Partial<Product>) {
-  const productId = product.id || uid();
-
-  // Construct clean payload for database
-  const payload: any = {
-    id: productId,
-    merchant_id: product.merchant_id,
-    name: product.name || product.title,
-    title: product.title || product.name,
-    price: product.price,
-    category: product.category,
-    stock: product.stock,
-    description: product.description,
-    status: product.status || 'active',
-    condition: product.condition || 'new',
-    image_url: product.image_url || product.image,
-    images_json: product.images_json || [],
-    created_at: new Date().toISOString(),
-  };
-
-  // Remove any undefined fields to avoid overwriting defaults with null
-  Object.keys(payload).forEach((key) => {
-    if (payload[key] === undefined) delete payload[key];
-  });
-
-  return supaQuery<Product>((c) => c.from('products').insert(payload).select().single());
+  return MarketplaceApi.insertProduct(product);
 }
 
-export async function updateProduct(productId: string, updates: Partial<Product>) {
-  return supaQuery<Product>((c) =>
-    c
-      .from('products')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', productId)
-      .select()
-      .single()
-  );
+export async function updateProduct(
+  productId: string,
+  merchantId: string,
+  updates: Partial<Product>
+) {
+  return MarketplaceApi.updateProduct(productId, merchantId, updates);
 }
 
-export async function deleteProduct(productId: string) {
-  return supaQuery<void>((c) =>
-    c
-      .from('products')
-      .update({ status: 'removed', updated_at: new Date().toISOString() })
-      .eq('id', productId)
-  );
+export async function deleteProduct(productId: string, merchantId: string) {
+  return MarketplaceApi.deleteProduct(productId, merchantId);
 }
 
 export async function uploadProductImage(imageData: {
@@ -231,14 +125,17 @@ export async function executeMarketplacePurchase({
   qty,
   address,
   deliveryFee = 0,
+  idempotencyKey,
 }: {
   product: Product;
   buyerId: string;
   qty: number;
   address: string;
   deliveryFee?: number;
+  idempotencyKey?: string;
 }) {
   const merchantId = product.merchant_id;
+  const iKey = idempotencyKey || `purchase-${uid()}`;
 
   const res = await supaQuery<{ ok: boolean; order_id: string; total: number; error?: string }>(
     (c) =>
@@ -250,6 +147,7 @@ export async function executeMarketplacePurchase({
         p_shipping_address: address,
         p_delivery_fee: deliveryFee,
         p_expected_price: product.price,
+        p_idempotency_key: iKey,
       })
   );
 
@@ -381,11 +279,12 @@ export async function rpcReleaseEscrow(escrowId: string, orderId: string) {
   return releaseMarketplaceEscrow(orderId, escrowId);
 }
 
-export async function rpcCancelAndRefundOrder(orderId: string, reason: string) {
+export async function rpcCancelAndRefundOrder(orderId: string, userId: string, reason: string) {
   return supaQuery<{ ok: boolean; error?: string }>((c) =>
     c.rpc('cancel_and_refund_marketplace_order', {
       p_order_id: orderId,
-      p_reason: reason,
+      p_user_id:  userId,
+      p_reason:   reason,
     })
   );
 }
@@ -528,12 +427,12 @@ export const marketplaceService = {
     return data || [];
   },
 
-  updateProduct: async (productId: string, updates: Partial<Product>) => {
-    return updateProduct(productId, updates);
+  updateProduct: async (productId: string, merchantId: string, updates: Partial<Product>) => {
+    return updateProduct(productId, merchantId, updates);
   },
 
-  deleteProduct: async (productId: string) => {
-    return deleteProduct(productId);
+  deleteProduct: async (productId: string, merchantId: string) => {
+    return deleteProduct(productId, merchantId);
   },
 
   shipOrder: async (
@@ -579,11 +478,12 @@ export const marketplaceService = {
     };
   },
 
-  cancelOrder: async (orderId: string, reason: string) => {
+  cancelOrder: async (orderId: string, userId: string, reason: string) => {
     const { data, error } = await supaQuery<{ ok: boolean; error?: string }>((c) =>
       c.rpc('cancel_and_refund_marketplace_order', {
         p_order_id: orderId,
-        p_reason: reason || 'cancelled_by_merchant',
+        p_user_id:  userId,
+        p_reason:   reason || 'cancelled_by_merchant',
       })
     );
     if (error) return { success: false, error };
@@ -638,12 +538,15 @@ export const marketplaceService = {
   },
 
   revealOrderPin: async (orderId: string, walletPinHash?: string) => {
-    return supaQuery<{ ok: boolean; delivery_pin: string; error?: string }>((c) =>
+    const res = await supaQuery<{ ok: boolean; delivery_pin: string; error?: string }[]>((c) =>
       c.rpc('reveal_marketplace_order_pin', {
         p_order_id: orderId,
         p_wallet_pin_hash: walletPinHash,
       })
     );
+    // RPC returns TABLE → Supabase gives us an array; pick first row
+    const row = Array.isArray(res.data) ? res.data[0] : res.data;
+    return { ...res, data: row ?? null };
   },
 
   selfDeliverOrder: async (orderId: string, merchantId: string) => {
@@ -656,8 +559,52 @@ export const marketplaceService = {
     if (res.error) throw res.error;
     return { success: true };
   },
+
+  checkoutCart: async (
+    buyerId: string,
+    items: { product_id: string; qty: number; expected_price: number }[],
+    shippingAddress: string,
+    deliveryFee: number = 0,
+    idempotencyKey?: string
+  ) => {
+    return MarketplaceApi.checkoutCart(
+      buyerId,
+      items,
+      shippingAddress,
+      deliveryFee,
+      idempotencyKey
+    );
+  },
+
+  calculateDeliveryFees: async (buyerId: string, merchantIds: string[]) => {
+    return MarketplaceApi.calculateDeliveryFees(buyerId, merchantIds);
+  },
 };
 
 export async function revealMarketplaceOrderPin(orderId: string, walletPinHash?: string) {
   return marketplaceService.revealOrderPin(orderId, walletPinHash);
+}
+
+/**
+ * fetchRestaurantStock — fetches inventory stock for a merchant.
+ */
+export async function fetchRestaurantStock(merchantId: string) {
+  return supaQuery<any[]>((c) =>
+    c
+      .from('restaurant_stock')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .order('item_name', { ascending: true })
+  );
+}
+
+/**
+ * updateRestaurantStock — updates or creates a stock item.
+ */
+export async function updateRestaurantStock(stock: any) {
+  return supaQuery<any>((c) => c.from('restaurant_stock').upsert(stock).select().single());
+}
+
+export async function fetchLowStockAlerts(merchantId: string) {
+  return MarketplaceApi.fetchLowStockAlerts(merchantId);
 }

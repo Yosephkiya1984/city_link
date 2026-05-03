@@ -9,6 +9,12 @@ import { User } from '../types';
 export type AuthFlow = 'welcome' | 'login' | 'register' | 'otp' | 'success';
 export type AuthMode = 'citizen' | 'merchant' | 'gov';
 
+import { DEV_BYPASS_ACCOUNTS } from '../config';
+
+// ─── Authentication Flow Hook ───────────────────────────────────────────────
+// This hook manages the state and logic for the onboarding and login process.
+// It relies on AuthService for Supabase Auth and ProfileService for DB profiles.
+
 export function useAuthFlow() {
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
 
@@ -62,6 +68,9 @@ export function useAuthFlow() {
     try {
       const isEmail = phone.includes('@');
       const normalized = isEmail ? phone.trim().toLowerCase() : normalizePhone(phone);
+
+      // Dev-mode bypass check is handled by Supabase for registered test numbers.
+
       const { user, error: verifyErr } = await AuthService.verifyOtp(normalized, otp);
       if (verifyErr) setError(verifyErr);
       else if (user) {
@@ -69,12 +78,10 @@ export function useAuthFlow() {
         setVerifiedPhone(normalized);
         const profileRes = await ProfileService.fetchProfile(user.id);
         const hasProfile = !!(profileRes.data && profileRes.data.full_name);
-        
+
         if (hasProfile) {
-          // If they have a profile, log them in immediately
           await setCurrentUser(profileRes.data);
         } else {
-          // No profile, force registration
           setFlow('register');
         }
       }
@@ -137,6 +144,19 @@ export function useAuthFlow() {
     }
   };
 
+  const handleFaydaVerify = async () => {
+    setLoading(true);
+    try {
+      // Stub for national ID verification
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return { success: true };
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     flow,
     setFlow,
@@ -173,6 +193,7 @@ export function useAuthFlow() {
     handleVerifyOtp,
     handleGovLogin,
     handleRegister,
+    handleFaydaVerify,
     setRegistrationIntent,
   };
 }

@@ -174,9 +174,8 @@ export async function logCreditEvent(
       created_at: new Date().toISOString(),
     });
 
-    // Recalculate and update credit score
-    const { score, tier } = await calculateCreditScore(userId);
-    await updateCreditScore(userId, score, tier);
+    // Recalculate credit score (the RPC handles the database update atomically)
+    await calculateCreditScore(userId);
   } catch (error) {
     console.error('Credit event logging error:', error);
   }

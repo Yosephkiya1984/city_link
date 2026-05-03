@@ -22,10 +22,10 @@ export function ServiceTile({ service, onPress, index }: any) {
   return (
     <MotiView
       from={{ opacity: 0, scale: 0.8, translateY: 20 }}
-      animate={{ 
-        opacity: 1, 
-        scale: pressed ? 0.94 : 1, 
-        translateY: 0 
+      animate={{
+        opacity: 1,
+        scale: pressed ? 0.94 : 1,
+        translateY: 0,
       }}
       transition={{
         type: 'spring',

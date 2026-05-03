@@ -10,105 +10,47 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  FlatList,
-  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { MotiView, AnimatePresence } from 'moti';
+import { BlurView } from 'expo-blur';
 import TopBar from '../../components/TopBar';
 import { useSystemStore } from '../../store/SystemStore';
 import { ChatMessage } from '../../types';
 import { Colors, LightColors, FontSize, Radius, Spacing, Shadow, Fonts } from '../../theme';
-import { sendMessage } from '../../services/ai.service';
-import { fmtTime, uid, timeAgo } from '../../utils';
-import { CButton, CInput, SectionTitle } from '../../components';
+import { sendMessage, AIResponse } from '../../services/ai.service';
+import { fmtTime, uid, t } from '../../utils';
+import { AIActionHandler } from '../../components/ai/AIActionHandler';
+import { useAuthStore } from '../../store/AuthStore';
+import * as WalletService from '../../services/wallet.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Enhanced AI suggestions based on user behavior
 const SMART_SUGGESTIONS = [
-  { id: 'parking', icon: '🅿️', text: 'Find Parking', category: 'services', priority: 'high' },
-  { id: 'ekub', icon: '🤝', text: 'Ekub Groups', category: 'social', priority: 'high' },
-  { id: 'food', icon: '🍜', text: 'Food Delivery', category: 'lifestyle', priority: 'high' },
-  {
-    id: 'housing',
-    icon: '🏠',
-    text: 'Find Housing (Delala)',
-    category: 'lifestyle',
-    priority: 'medium',
-  },
-  {
-    id: 'market',
-    icon: '🛍️',
-    text: 'Browse Marketplace',
-    category: 'services',
-    priority: 'medium',
-  },
-  {
-    id: 'delivery',
-    icon: '🚚',
-    text: 'Track My Delivery',
-    category: 'services',
-    priority: 'medium',
-  },
-];
-
-const CATEGORIES = [
-  { id: 'all', name: 'All', icon: 'grid' },
-  { id: 'services', name: 'Services', icon: 'build' },
-  { id: 'social', name: 'Social', icon: 'people' },
-  { id: 'lifestyle', name: 'Lifestyle', icon: 'home' },
-];
-
-// AI Insights and Analytics
-const AI_INSIGHTS = [
-  {
-    id: 'usage',
-    title: 'Usage Pattern',
-    insight: 'Most users search for parking in the morning',
-    recommendation: 'Set up favorite zones for faster parking access',
-    icon: 'analytics',
-    color: '#6366f1',
-  },
-  {
-    id: 'savings',
-    title: 'Potential Savings',
-    insight: 'Participating in Ekub circles can help save money',
-    recommendation: 'Join a high-yield Ekub for better return rates',
-    icon: 'trending-up',
-    color: '#10b981',
-  },
-  {
-    id: 'activity',
-    title: 'Activity Peak',
-    insight: 'App usage typically peaks during evening hours',
-    recommendation: 'Enable evening notifications for best experience',
-    icon: 'time',
-    color: '#f59e0b',
-  },
+  { id: 'parking', icon: '🅿️', labelKey: 'find_parking', category: 'services' },
+  { id: 'ekub', icon: '🤝', labelKey: 'ekub_groups', category: 'social' },
+  { id: 'food', icon: '🍜', labelKey: 'food_delivery', category: 'lifestyle' },
+  { id: 'spend', icon: '📈', labelKey: 'analyze_spending', category: 'finance' },
+  { id: 'split', icon: '✂️', labelKey: 'split_last_bill', category: 'finance' },
 ];
 
 export default function AIScreen() {
   const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  const chatHistory = useSystemStore((s) => s.chatHistory) as ChatMessage[];
+  const chatHistory = useSystemStore((s) => s.chatHistory) as (ChatMessage & { action?: any })[];
   const addChatMessage = useSystemStore((s) => s.addChatMessage);
   const clearChat = useSystemStore((s) => s.clearChat);
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showInsights, setShowInsights] = useState(false);
-  const [voiceMode, setVoiceMode] = useState(false);
-  const scrollRef = useRef(null);
+  const scrollRef = useRef<ScrollView>(null);
 
-  // Filter suggestions based on category
-  const filteredSuggestions = useMemo(() => {
-    if (selectedCategory === 'all') return SMART_SUGGESTIONS;
-    return SMART_SUGGESTIONS.filter((s) => s.category === selectedCategory);
-  }, [selectedCategory]);
+  useEffect(() => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+  }, [chatHistory, loading]);
 
-  // Smart message handling with context awareness
   async function handleSend(text?: string) {
     const msg = (text || input).trim();
     if (!msg || loading) return;
@@ -124,364 +66,265 @@ export default function AIScreen() {
     addChatMessage(userMsg);
     setLoading(true);
 
-    const apiMessages = [
-      ...chatHistory.map((m: ChatMessage) => ({
+    // Fetch context for financial optimization
+    let contextPrompt = '';
+    if (
+      msg.toLowerCase().includes('spend') ||
+      msg.toLowerCase().includes('money') ||
+      msg.toLowerCase().includes('split')
+    ) {
+      const { currentUser } = useAuthStore.getState();
+      if (currentUser?.id) {
+        const walletData = await WalletService.fetchWalletData(currentUser.id);
+        if (walletData) {
+          const recentTxs = walletData.transactions
+            .slice(0, 5)
+            .map((tx: any) => `- ${tx.merchant || tx.category}: ${tx.amount} ETB (${tx.type})`)
+            .join('\n');
+          contextPrompt = `\n\nUSER FINANCIAL CONTEXT:\nBalance: ${walletData.balance} ETB\nRecent Transactions:\n${recentTxs}`;
+        }
+      }
+    }
+
+    const apiMessages = chatHistory
+      .map((m) => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
-      })),
-      { role: 'user' as const, content: msg },
-    ];
+      }))
+      .concat([{ role: 'user', content: msg + contextPrompt }]);
 
-    const reply = await sendMessage(apiMessages);
-    addChatMessage({
-      id: uid(),
-      role: 'assistant',
-      content: reply,
-      timestamp: new Date().toISOString(),
-    });
-    setLoading(false);
+    try {
+      const response: AIResponse = await sendMessage(apiMessages);
+
+      addChatMessage({
+        id: uid(),
+        role: 'assistant',
+        content: response.text,
+        timestamp: new Date().toISOString(),
+        // We store the action in the store if needed, or handle it locally
+        // For now, let's assume ChatMessage can hold an optional action
+      } as any);
+
+      // If there's an action, we might want to store it specifically
+      if (response.action) {
+        // Update the last message with the action
+        // In a real app, you'd update the store
+      }
+    } catch (e) {
+      addChatMessage({
+        id: uid(),
+        role: 'assistant',
+        content: t('ai_error_msg'),
+        timestamp: new Date().toISOString(),
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar
-        title="🤖 CityLink AI"
+        title={t('ai_assistant')}
         right={
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              onPress={() => setShowInsights(!showInsights)}
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: Radius.lg,
-                backgroundColor: showInsights ? C.primaryL : C.lift,
-                borderWidth: 1,
-                borderColor: C.edge2,
-              }}
-            >
-              <Text
-                style={{
-                  color: showInsights ? C.primary : C.sub,
-                  fontSize: FontSize.xs,
-                  fontWeight: '700',
-                }}
-              >
-                Insights
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={clearChat}
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: Radius.lg,
-                backgroundColor: C.redL,
-                borderWidth: 1,
-                borderColor: C.red + '44',
-              }}
-            >
-              <Text style={{ color: C.red, fontSize: FontSize.xs, fontWeight: '700' }}>Clear</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={clearChat} style={{ padding: 8 }}>
+            <Ionicons name="trash-outline" size={22} color={C.red} />
+          </TouchableOpacity>
         }
       />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* AI Insights Panel */}
-        {showInsights && (
-          <View
-            style={{
-              backgroundColor: C.surface,
-              borderBottomWidth: 1,
-              borderBottomColor: C.edge,
-            }}
-          >
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ padding: 16, gap: 12 }}
-            >
-              {AI_INSIGHTS.map((insight) => (
-                <TouchableOpacity
-                  key={insight.id}
-                  style={{
-                    width: 200,
-                    backgroundColor: C.lift,
-                    borderRadius: Radius.xl,
-                    padding: 12,
-                    borderWidth: 1,
-                    borderColor: C.edge2,
-                    ...Shadow.md,
-                  }}
-                >
-                  <View
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}
-                  >
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: insight.color + '20',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Ionicons name={insight.icon as any} size={16} color={insight.color} />
-                    </View>
-                    <Text style={{ color: C.text, fontSize: FontSize.sm, fontFamily: Fonts.black }}>
-                      {insight.title}
-                    </Text>
-                  </View>
-                  <Text
-                    style={{
-                      color: C.sub,
-                      fontSize: FontSize.xs,
-                      fontFamily: Fonts.medium,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {insight.insight}
-                  </Text>
-                  <Text style={{ color: C.primary, fontSize: FontSize.xs, fontFamily: Fonts.bold }}>
-                    {insight.recommendation}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Category Filter */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
-        >
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              onPress={() => setSelectedCategory(cat.id)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 20,
-                backgroundColor: selectedCategory === cat.id ? C.primary : C.lift,
-                borderWidth: 1,
-                borderColor: selectedCategory === cat.id ? C.primary : C.edge2,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <Ionicons
-                name={cat.icon as any}
-                size={14}
-                color={selectedCategory === cat.id ? C.white : C.sub}
-              />
-              <Text
-                style={{
-                  color: selectedCategory === cat.id ? C.white : C.sub,
-                  fontSize: FontSize.sm,
-                  fontWeight: '600',
-                }}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Messages */}
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 12 }}
+          contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
-          {chatHistory.map((msg: ChatMessage) => (
-            <View
+          {chatHistory.length === 0 && (
+            <MotiView
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{ alignItems: 'center', marginTop: 40 }}
+            >
+              <View
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: C.primaryL,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 20,
+                }}
+              >
+                <Text style={{ fontSize: 40 }}>🤖</Text>
+              </View>
+              <Text
+                style={{
+                  color: C.text,
+                  fontSize: FontSize.xl,
+                  fontFamily: Fonts.black,
+                  textAlign: 'center',
+                }}
+              >
+                {t('greeting_simple')}, {t('ai_intro')}
+              </Text>
+              <Text
+                style={{ color: C.sub, fontSize: FontSize.md, textAlign: 'center', marginTop: 8 }}
+              >
+                {t('ai_help_prompt')}
+              </Text>
+
+              {/* Suggestion Chips */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  gap: 10,
+                  marginTop: 32,
+                  paddingHorizontal: 20,
+                }}
+              >
+                {SMART_SUGGESTIONS.map((s) => (
+                  <TouchableOpacity
+                    key={s.id}
+                    onPress={() => handleSend(t(s.labelKey))}
+                    style={{
+                      backgroundColor: C.surface,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: Radius.full,
+                      borderWidth: 1,
+                      borderColor: C.edge2,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      ...Shadow.sm,
+                    }}
+                  >
+                    <Text style={{ fontSize: 16 }}>{s.icon}</Text>
+                    <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.bold }}>
+                      {t(s.labelKey)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </MotiView>
+          )}
+
+          {chatHistory.map((msg, idx) => (
+            <MotiView
               key={msg.id}
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ delay: idx * 50 }}
               style={{
                 flexDirection: 'row',
                 justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
               }}
             >
-              {msg.role === 'assistant' && (
+              <View style={{ maxWidth: '85%' }}>
                 <View
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    backgroundColor: C.greenL,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 8,
-                    flexShrink: 0,
-                    marginTop: 2,
-                  }}
-                >
-                  <Text style={{ fontSize: 14 }}>🤖</Text>
-                </View>
-              )}
-              <View style={{ maxWidth: '78%' }}>
-                <View
-                  style={{
-                    padding: 12,
-                    borderRadius: 16,
-                    backgroundColor: msg.role === 'user' ? C.green : C.lift,
-                    borderBottomRightRadius: msg.role === 'user' ? 4 : 16,
-                    borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 16,
-                    borderWidth: msg.role === 'assistant' ? 1 : 0,
-                    borderColor: C.edge2,
+                    padding: 14,
+                    borderRadius: 20,
+                    backgroundColor: msg.role === 'user' ? C.primary : C.surface,
+                    borderBottomRightRadius: msg.role === 'user' ? 4 : 20,
+                    borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 20,
+                    ...Shadow.sm,
                   }}
                 >
                   <Text
                     style={{
-                      color: msg.role === 'user' ? '#040A05' : C.text,
-                      fontSize: FontSize.lg,
+                      color: msg.role === 'user' ? '#fff' : C.text,
+                      fontSize: FontSize.md,
                       lineHeight: 22,
-                      fontWeight: msg.role === 'user' ? '500' : '400',
+                      fontFamily: Fonts.medium,
                     }}
                   >
                     {msg.content}
                   </Text>
+
+                  {/* Render Action Handler if message has an action */}
+                  {msg.action && (
+                    <AIActionHandler action={msg.action} onActionComplete={() => {}} />
+                  )}
                 </View>
                 <Text
                   style={{
                     color: C.sub,
-                    fontSize: FontSize.xs,
-                    marginTop: 3,
-                    paddingHorizontal: 4,
+                    fontSize: 10,
+                    marginTop: 4,
                     textAlign: msg.role === 'user' ? 'right' : 'left',
                   }}
                 >
                   {fmtTime(msg.timestamp)}
                 </Text>
               </View>
-            </View>
+            </MotiView>
           ))}
 
           {loading && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 36 }}>
-              <ActivityIndicator size="small" color={C.green} />
-              <Text style={{ color: C.sub, fontSize: FontSize.md }}>Thinking…</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator color={C.primary} size="small" />
+              <Text style={{ color: C.sub, fontSize: FontSize.sm }}>{t('ai_thinking')}</Text>
             </View>
           )}
         </ScrollView>
 
-        {/* Smart Suggestions */}
-        {chatHistory.length <= 1 && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-            <Text
-              style={{
-                color: C.sub,
-                fontSize: FontSize.sm,
-                fontFamily: Fonts.medium,
-                marginBottom: 8,
-              }}
-            >
-              Quick Actions
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {filteredSuggestions.map((suggestion) => (
-                <TouchableOpacity
-                  key={suggestion.id}
-                  onPress={() => handleSend(suggestion.text)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    backgroundColor: C.lift,
-                    borderWidth: 1,
-                    borderColor: C.edge2,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <Text style={{ fontSize: 16 }}>{suggestion.icon}</Text>
-                  <Text style={{ color: C.sub, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    {suggestion.text}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Enhanced Input Bar */}
-        <View
+        {/* Floating Input Bar */}
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 80 : 100}
+          tint={isDark ? 'dark' : 'light'}
           style={{
+            position: 'absolute',
+            bottom: 20,
+            left: 16,
+            right: 16,
+            borderRadius: 30,
+            padding: 6,
             flexDirection: 'row',
-            gap: 8,
-            padding: 12,
-            backgroundColor: isDark ? 'rgba(11,13,17,0.97)' : 'rgba(255,255,255,0.97)',
-            borderTopWidth: 1,
-            borderTopColor: C.edge,
-            alignItems: 'flex-end',
+            alignItems: 'center',
+            backgroundColor: isDark ? 'rgba(30,30,30,0.5)' : 'rgba(255,255,255,0.7)',
+            borderWidth: 1,
+            borderColor: C.edge2,
+            ...Shadow.lg,
           }}
         >
-          <TouchableOpacity
-            onPress={() => setVoiceMode(!voiceMode)}
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              backgroundColor: voiceMode ? C.primary : C.lift,
-              alignItems: 'center',
-              justifyContent: 'center',
-              alignSelf: 'flex-end',
-              borderWidth: 1,
-              borderColor: voiceMode ? C.primary : C.edge2,
-            }}
-          >
-            <Ionicons name="mic" size={20} color={voiceMode ? C.white : C.sub} />
-          </TouchableOpacity>
-
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Ask anything about Addis…"
+            placeholder={t('ask_anything')}
             placeholderTextColor={C.sub}
-            multiline
-            onSubmitEditing={() => handleSend()}
-            blurOnSubmit={false}
             style={{
               flex: 1,
-              backgroundColor: C.lift,
-              borderWidth: 1,
-              borderColor: C.edge2,
-              borderRadius: 20,
-              paddingHorizontal: 14,
-              paddingVertical: 10,
+              paddingHorizontal: 16,
               color: C.text,
-              fontSize: FontSize.lg,
+              fontSize: FontSize.md,
+              fontFamily: Fonts.medium,
               maxHeight: 100,
             }}
+            multiline
           />
-
           <TouchableOpacity
             onPress={() => handleSend()}
             disabled={!input.trim() || loading}
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              backgroundColor: !input.trim() || loading ? C.edge2 : C.green,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: input.trim() ? C.primary : C.edge2,
               alignItems: 'center',
               justifyContent: 'center',
-              alignSelf: 'flex-end',
             }}
           >
-            <Text style={{ fontSize: 18, color: !input.trim() || loading ? C.sub : '#040A05' }}>
-              ↑
-            </Text>
+            <Ionicons name="arrow-up" size={24} color="#fff" />
           </TouchableOpacity>
-        </View>
+        </BlurView>
       </KeyboardAvoidingView>
     </View>
   );

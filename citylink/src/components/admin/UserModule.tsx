@@ -14,6 +14,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, FontSize, Shadow } from '../../theme';
 import { supaQuery, getClient } from '../../services/supabase';
+import { t } from '../../utils/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -86,9 +87,11 @@ export default function UserModule() {
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}>
-                {item.full_name || 'Anonymous'}
+                {item.full_name || t('anonymous')}
               </Text>
-              <Text style={[styles.userId, { color: theme.sub }]}>{item.phone || 'No phone'}</Text>
+              <Text style={[styles.userId, { color: theme.sub }]}>
+                {item.phone || t('no_phone')}
+              </Text>
             </View>
             <View
               style={[
@@ -103,7 +106,7 @@ export default function UserModule() {
                   fontWeight: '700',
                 }}
               >
-                {item.role?.toUpperCase() || 'USER'}
+                {item.role ? t('role_' + item.role).toUpperCase() : t('role_citizen').toUpperCase()}
               </Text>
             </View>
           </View>
@@ -122,12 +125,12 @@ export default function UserModule() {
                 ]}
               />
               <Text style={[styles.statusText, { color: theme.textSoft }]}>
-                {item.kyc_status || 'PENDING'}
+                {item.kyc_status ? t(item.kyc_status.toLowerCase()) : t('pending').toUpperCase()}
               </Text>
             </View>
             <TouchableOpacity style={styles.actionBtn}>
               <Text style={{ color: theme.primary, fontSize: 12, fontFamily: Fonts.label }}>
-                MANAGE
+                {t('manage_btn').toUpperCase()}
               </Text>
               <Ionicons name="chevron-forward" size={14} color={theme.primary} />
             </TouchableOpacity>
@@ -156,9 +159,11 @@ export default function UserModule() {
           </View>
           <View>
             <Text style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}>
-              {item.full_name || 'Anonymous'}
+              {item.full_name || t('anonymous')}
             </Text>
-            <Text style={[styles.userId, { color: theme.sub }]}>ID: {item.id.slice(0, 8)}</Text>
+            <Text style={[styles.userId, { color: theme.sub }]}>
+              {t('id_label')}: {item.id.slice(0, 8)}
+            </Text>
           </View>
         </View>
         <View style={[styles.cell, { flex: 1.2 }]}>
@@ -178,7 +183,7 @@ export default function UserModule() {
                 fontWeight: '700',
               }}
             >
-              {item.role?.toUpperCase() || 'USER'}
+              {item.role ? t('role_' + item.role).toUpperCase() : t('role_citizen').toUpperCase()}
             </Text>
           </View>
         </View>
@@ -196,7 +201,7 @@ export default function UserModule() {
               ]}
             />
             <Text style={[styles.statusText, { color: theme.textSoft }]}>
-              {item.kyc_status || 'NONE'}
+              {item.kyc_status ? t(item.kyc_status.toLowerCase()) : t('none').toUpperCase()}
             </Text>
           </View>
         </View>
@@ -223,7 +228,7 @@ export default function UserModule() {
           >
             <Ionicons name="search-outline" size={18} color={theme.sub} />
             <TextInput
-              placeholder="Search directory..."
+              placeholder={t('search_directory')}
               placeholderTextColor={theme.sub}
               value={search}
               onChangeText={setSearch}
@@ -240,11 +245,13 @@ export default function UserModule() {
             { backgroundColor: theme.lift, borderBottomColor: theme.rim },
           ]}
         >
-          <Text style={[styles.headerCell, { flex: 2 }]}>IDENTITY / USER</Text>
-          <Text style={[styles.headerCell, { flex: 1.2 }]}>CONTACT</Text>
-          <Text style={[styles.headerCell, { flex: 1 }]}>ROLE</Text>
-          <Text style={[styles.headerCell, { flex: 1 }]}>KYC STATUS</Text>
-          <Text style={[styles.headerCell, { width: 80, textAlign: 'right' }]}>ACTIONS</Text>
+          <Text style={[styles.headerCell, { flex: 2 }]}>{t('identity_user_up')}</Text>
+          <Text style={[styles.headerCell, { flex: 1.2 }]}>{t('contact_up')}</Text>
+          <Text style={[styles.headerCell, { flex: 1 }]}>{t('role_up')}</Text>
+          <Text style={[styles.headerCell, { flex: 1 }]}>{t('kyc_status_up')}</Text>
+          <Text style={[styles.headerCell, { width: 80, textAlign: 'right' }]}>
+            {t('actions_up')}
+          </Text>
         </View>
       )}
 

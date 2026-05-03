@@ -24,6 +24,7 @@ import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Fonts, FontSize, Radius, Shadow } from '../../theme';
 import { subscribeToOrderStatus, calculateETA } from '../../services/delivery.service';
 import { unsubscribe } from '../../services/supabase';
+import { t } from '../../utils';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -91,19 +92,19 @@ export default function TrackOrderScreen() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'PAID':
-        return 'Ready for Dispatch';
+        return t('ready_dispatch');
       case 'DISPATCHING':
-        return 'Finding Agent';
+        return t('finding_agent');
       case 'AGENT_ASSIGNED':
-        return 'Agent en Route';
+        return t('agent_en_route');
       case 'SHIPPED':
-        return 'Picked Up';
+        return t('picked_up');
       case 'IN_TRANSIT':
-        return 'On the Way';
+        return t('on_the_way');
       case 'AWAITING_PIN':
-        return 'Arrived';
+        return t('arrived');
       case 'COMPLETED':
-        return 'Delivered';
+        return t('delivered');
       default:
         return status
           ? status
@@ -111,7 +112,7 @@ export default function TrackOrderScreen() {
               .split('_')
               .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
               .join(' ')
-          : 'Unknown Status';
+          : t('unknown_status');
     }
   };
 
@@ -146,7 +147,7 @@ export default function TrackOrderScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={C.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: C.text }]}>Track Order</Text>
+        <Text style={[styles.headerTitle, { color: C.text }]}>{t('track_order')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -205,8 +206,10 @@ export default function TrackOrderScreen() {
             </View>
             {eta && (
               <View style={styles.etaWrap}>
-                <Text style={[styles.etaVal, { color: C.primary }]}>{eta} min</Text>
-                <Text style={[styles.etaLab, { color: C.sub }]}>ETA</Text>
+                <Text style={[styles.etaVal, { color: C.primary }]}>
+                  {eta} {t('min')}
+                </Text>
+                <Text style={[styles.etaLab, { color: C.sub }]}>{t('eta')}</Text>
               </View>
             )}
           </View>
@@ -219,7 +222,7 @@ export default function TrackOrderScreen() {
                 <Ionicons name="person" size={20} color={C.sub} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.agentName, { color: C.text }]}>Verified CityLink Agent</Text>
+                <Text style={[styles.agentName, { color: C.text }]}>{t('verified_agent')}</Text>
                 <Text style={[styles.agentSub, { color: C.sub }]}>
                   ID: {order.agent_id.slice(0, 6)}
                 </Text>
@@ -231,9 +234,7 @@ export default function TrackOrderScreen() {
           ) : (
             <View style={styles.waitingRow}>
               <ActivityIndicator size="small" color={C.primary} />
-              <Text style={[styles.waitingText, { color: C.sub }]}>
-                Allocating nearest delivery agent...
-              </Text>
+              <Text style={[styles.waitingText, { color: C.sub }]}>{t('allocating_agent')}</Text>
             </View>
           )}
 
@@ -262,7 +263,7 @@ export default function TrackOrderScreen() {
             <View style={styles.podContainer}>
               <View style={styles.podHeader}>
                 <Ionicons name="camera-outline" size={14} color={C.sub} />
-                <Text style={[styles.podLabel, { color: C.sub }]}>Proof of Delivery</Text>
+                <Text style={[styles.podLabel, { color: C.sub }]}>{t('proof_of_delivery')}</Text>
               </View>
               <Image
                 source={{ uri: order.delivery_proof_url }}
@@ -276,7 +277,9 @@ export default function TrackOrderScreen() {
             style={[styles.closeBtn, { borderTopColor: C.edge }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={[styles.closeBtnText, { color: C.primary }]}>Minimize Tracking</Text>
+            <Text style={[styles.closeBtnText, { color: C.primary }]}>
+              {t('minimize_tracking')}
+            </Text>
           </TouchableOpacity>
         </BlurView>
       </View>

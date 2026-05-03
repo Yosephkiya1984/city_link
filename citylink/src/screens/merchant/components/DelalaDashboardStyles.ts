@@ -1,116 +1,200 @@
-import { StyleSheet } from 'react-native';
-import { DarkColors as T, Radius, Fonts } from '../../../theme';
+import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
+import { D, Radius, Fonts } from './StitchTheme';
+
+const { width } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: T.ink },
+  container: { flex: 1, backgroundColor: D.ink },
 
-  // Navbar
-  navBar: {
-    height: 70,
+  // Header
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 24) + 16,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    backgroundColor: D.ink,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: T.surface,
-    paddingTop: 10,
   },
-  brandBox: { flexDirection: 'row', alignItems: 'center' },
-  brandIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.md,
-    backgroundColor: '#F9731620',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  brandTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.black,
+    color: D.white,
+    letterSpacing: -0.5,
   },
-  brandName: { color: '#F97316', fontSize: 16, fontFamily: Fonts.black },
-  brandSubtitle: { color: T.sub, fontSize: 9, fontFamily: Fonts.bold, letterSpacing: 1, marginTop: 2 },
+  brandTag: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: D.gold,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
 
   // Tabs
-  tabScrollWrap: { borderBottomWidth: 1, borderBottomColor: T.edge, backgroundColor: T.surface },
-  tabScroller: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  tabItem: {
+  tabContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: T.lift,
+    marginBottom: 20,
+    gap: 8,
   },
-  tabItemActive: { backgroundColor: '#F9731620' },
-  tabItemTxt: { color: T.sub, fontSize: 13, fontFamily: Fonts.bold, marginLeft: 8 },
-  tabItemTxtActive: { color: '#F97316', fontFamily: Fonts.black },
-
-  // Stats
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24, padding: 16 },
-  statCard: {
-    flexBasis: '30%',
-    flexGrow: 1,
-    backgroundColor: T.surface,
+  tabItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: D.lift,
     borderWidth: 1,
-    borderColor: T.edge,
-    borderRadius: Radius.lg,
-    padding: 12,
-    alignItems: 'center',
+    borderColor: D.edge,
   },
-  statValue: { fontSize: 18, fontFamily: Fonts.black, color: T.text },
-  statLabel: {
-    fontSize: 9,
-    color: T.sub,
+  tabItemActive: {
+    backgroundColor: D.gold,
+    borderColor: D.gold,
+  },
+  tabText: {
+    fontSize: 13,
     fontFamily: Fonts.bold,
-    marginTop: 4,
-    textTransform: 'uppercase',
+    color: D.sub,
+  },
+  tabTextActive: {
+    color: D.ink,
   },
 
-  // Listing Cards
-  card: {
-    backgroundColor: T.surface,
-    borderWidth: 1,
-    borderColor: T.edge,
-    borderRadius: Radius.card,
-    padding: 16,
-    marginBottom: 12,
-    marginHorizontal: 16,
+  // Bento Stats
+  bentoContainer: {
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 24,
   },
-  propertyTitle: { color: T.text, fontSize: 16, fontFamily: Fonts.bold },
-  propertyPrice: { color: '#F97316', fontSize: 15, fontFamily: Fonts.black, marginTop: 4 },
-  propertyLoc: { color: T.sub, fontSize: 12, fontFamily: Fonts.regular, marginTop: 4 },
-
-  // Badges
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: Radius.sm, alignSelf: 'flex-start' },
-  badgeTxt: { fontSize: 9, fontFamily: Fonts.black, textTransform: 'uppercase' },
-
-  // Lead Cards
-  leadCard: {
+  bentoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: T.lift,
-    padding: 12,
-    borderRadius: Radius.md,
-    marginBottom: 8,
+    gap: 12,
   },
-  leadInfo: { flex: 1, marginLeft: 12 },
-  leadName: { color: T.text, fontSize: 14, fontFamily: Fonts.bold },
-  leadSub: { color: T.sub, fontSize: 11, fontFamily: Fonts.regular, marginTop: 2 },
-
-  // Forms
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center' },
-  modalContent: {
-    backgroundColor: T.surface,
-    margin: 20,
-    borderRadius: Radius.card,
-    padding: 24,
+  bentoCard: {
+    flex: 1,
+    backgroundColor: D.surface,
+    borderRadius: 24,
+    padding: 16,
     borderWidth: 1,
-    borderColor: T.edge,
-    maxHeight: '80%',
+    borderColor: D.edge,
   },
-  inputGroup: { marginBottom: 20 },
-  label: {
-    color: T.sub,
+  bentoLabel: {
     fontSize: 11,
     fontFamily: Fonts.bold,
+    color: D.sub,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  bentoValue: {
+    fontSize: 22,
+    fontFamily: Fonts.black,
+    color: D.white,
+    marginTop: 4,
+  },
+
+  // Listing Card (Premium)
+  listingCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: D.surface,
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: D.edge,
+  },
+  listingImage: {
+    width: '100%',
+    height: 180,
+    backgroundColor: D.lift,
+  },
+  listingInfo: {
+    padding: 20,
+  },
+  listingTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.black,
+    color: D.white,
+    marginBottom: 4,
+  },
+  listingPrice: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: D.gold,
+    marginBottom: 12,
+  },
+  listingStats: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: D.edge,
+  },
+  listingStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  listingStatText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+  },
+
+  // Lead / Enquiry Card
+  leadCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: D.surface,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: D.edge,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  leadAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: D.lift,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leadName: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: D.white,
+  },
+  leadListing: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: D.sub,
+    marginTop: 2,
+  },
+  leadTime: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: D.gold,
+    textTransform: 'uppercase',
+  },
+
+  // Actions
+  addBtn: {
+    backgroundColor: D.gold,
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    elevation: 8,
+    shadowColor: D.gold,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

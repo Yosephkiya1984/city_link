@@ -5,11 +5,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Fonts } from '../../../theme';
-import { fmtETB } from '../../../utils';
+import { fmtETB, t } from '../../../utils';
 import { useCountdown } from '../../../hooks/useCountdown';
 import { myOrdersStyles as styles } from '../MyOrdersScreen.styles';
+import { Surface } from '../../../components/ui/Surface';
+import { Typography } from '../../../components/ui/Typography';
 import { WalletPinModal } from '../../../components/WalletPinModal';
 import { revealMarketplaceOrderPin } from '../../../services/marketplace.service';
+import { revealFoodOrderPin } from '../../../services/food.service';
 import {
   verifyWalletPin,
   verifyWalletPinAndGetHash,
@@ -18,18 +21,19 @@ import {
 } from '../../../services/walletPin';
 import { useAuthStore } from '../../../store/AuthStore';
 import { useSystemStore } from '../../../store/SystemStore';
+import { MarketplaceOrder } from '../../../types';
 
 // ── Status Config ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  PAID: { icon: 'time-outline', label: 'READY FOR DISPATCH' },
-  DISPATCHING: { icon: 'search-outline', label: 'FINDING AGENT' },
-  AGENT_ASSIGNED: { icon: 'person-outline', label: 'AGENT EN ROUTE' },
-  SHIPPED: { icon: 'bicycle-outline', label: 'PICKED UP' },
-  IN_TRANSIT: { icon: 'bicycle-outline', label: 'ON THE WAY' },
-  AWAITING_PIN: { icon: 'home-outline', label: 'ARRIVED' },
-  DISPUTED: { icon: 'warning-outline', label: 'DISPUTED' },
-  COMPLETED: { icon: 'checkmark-circle-outline', label: 'COMPLETED' },
-  CANCELLED: { icon: 'close-circle-outline', label: 'CANCELLED' },
+  PAID: { icon: 'time-outline', label: () => t('ready_dispatch').toUpperCase() },
+  DISPATCHING: { icon: 'search-outline', label: () => t('finding_agent').toUpperCase() },
+  AGENT_ASSIGNED: { icon: 'person-outline', label: () => t('agent_en_route').toUpperCase() },
+  SHIPPED: { icon: 'bicycle-outline', label: () => t('picked_up').toUpperCase() },
+  IN_TRANSIT: { icon: 'bicycle-outline', label: () => t('on_the_way').toUpperCase() },
+  AWAITING_PIN: { icon: 'home-outline', label: () => t('arrived').toUpperCase() },
+  DISPUTED: { icon: 'warning-outline', label: () => t('disputed_up') },
+  COMPLETED: { icon: 'checkmark-circle-outline', label: () => t('completed_up') },
+  CANCELLED: { icon: 'close-circle-outline', label: () => t('cancelled_up') },
 };
 
 const getStatusStyle = (status: string, C: any) => {
@@ -62,37 +66,37 @@ const EscrowStatus = ({ order, C }: { order: any; C: any }) => {
   const config: Record<string, any> = {
     PAID: {
       icon: 'lock-closed',
-      text: 'Funds locked in escrow — safe until delivery',
+      text: t('funds_locked_escrow'),
       color: '#f59e0b',
     },
     DISPATCHING: {
       icon: 'search',
-      text: 'Searching for a nearby delivery partner',
+      text: t('searching_delivery_partner'),
       color: '#60a5fa',
     },
     AGENT_ASSIGNED: {
       icon: 'person',
-      text: 'Delivery agent assigned and heading to merchant',
+      text: t('agent_assigned_heading'),
       color: '#818cf8',
     },
     IN_TRANSIT: {
       icon: 'bicycle',
-      text: 'Agent has picked up your order and is on the way',
+      text: t('agent_picked_up_msg'),
       color: '#f59e0b',
     },
     AWAITING_PIN: {
       icon: 'home',
-      text: 'Agent is at your location — provide PIN to finish',
+      text: t('agent_arrived_msg'),
       color: '#10b981',
     },
-    SHIPPED: { icon: 'bicycle', text: 'Merchant has shipped the order', color: C.primary },
+    SHIPPED: { icon: 'bicycle', text: t('merchant_shipped_msg'), color: C.primary },
     COMPLETED: {
       icon: 'checkmark-circle',
-      text: 'Escrow released and order completed',
+      text: t('escrow_released_msg'),
       color: '#8b5cf6',
     },
-    DISPUTED: { icon: 'shield', text: 'Funds frozen — dispute under review', color: '#E8312A' },
-    CANCELLED: { icon: 'arrow-undo', text: 'Funds refunded to your wallet', color: '#64748b' },
+    DISPUTED: { icon: 'shield', text: t('funds_frozen_dispute'), color: '#E8312A' },
+    CANCELLED: { icon: 'arrow-undo', text: t('funds_refunded_wallet'), color: '#64748b' },
   };
   const c = config[order.status] || config['PAID'];
   return (
@@ -112,7 +116,14 @@ export const OrderCard = ({
   onCancel,
   onReject,
   navigation,
-}: any) => {
+}: {
+  order: MarketplaceOrder;
+  C: any;
+  onDispute: (order: MarketplaceOrder) => void;
+  onCancel?: (order: MarketplaceOrder) => void;
+  onReject?: (order: MarketplaceOrder) => void;
+  navigation: any;
+}) => {
   const [order, setOrder] = useState(initialOrder);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [isPinRevealed, setIsPinRevealed] = useState(false);
@@ -127,7 +138,7 @@ export const OrderCard = ({
   const statusConf =
     STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG['PAID'];
 
-  const TRACKER_STEPS = ['Paid', 'Dispatched', 'On Route', 'Arrived'];
+  const TRACKER_STEPS = [t('paid'), t('dispatched'), t('on_route'), t('arrived')];
 
   const handleRevealPress = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -143,8 +154,8 @@ export const OrderCard = ({
 
     if (hasHardware && isEnrolled) {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Verify identity to reveal Delivery PIN',
-        fallbackLabel: 'Use Wallet PIN',
+        promptMessage: t('verify_identity_reveal_pin'),
+        fallbackLabel: t('use_wallet_pin'),
         disableDeviceFallback: false,
       });
 
@@ -157,37 +168,39 @@ export const OrderCard = ({
     // 2. Fallback to Wallet PIN Modal
     const hasPin = await hasWalletPin(user?.id || '');
     if (!hasPin) {
-      // 🛡️ User hasn't set up a wallet PIN. 
+      // 🛡️ User hasn't set up a wallet PIN.
       // Allow reveal via session-auth only (RPC handles this).
       return executeReveal();
     }
-    
+
     setShowPinModal(true);
   };
 
   const executeReveal = async (walletPinHash?: string) => {
     setIsVerifying(true);
     try {
-      const res = await revealMarketplaceOrderPin(order.id, walletPinHash);
-      if (res.data?.ok) {
-        setOrder({ ...order, delivery_pin: res.data.delivery_pin });
+      const isFood = (order as any).type === 'food';
+      const revealFn = isFood ? revealFoodOrderPin : revealMarketplaceOrderPin;
+      
+      const res = await revealFn(order.id, walletPinHash);
+      if (res.data?.ok || (res as any).ok) {
+        const pin = (res as any).delivery_pin || (res as any).data?.delivery_pin;
+        setOrder({ ...order, delivery_pin: pin });
         setIsPinRevealed(true);
         setShowPinModal(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        const err = res.data?.error || 'Failed to reveal PIN';
+        const err = res.data?.error || t('verification_failed');
         setPinError(
-          err === 'rate_limit_exceeded'
-            ? 'Too many reveal attempts. Try again in 30 mins.'
-            : 'Verification failed'
+          err === 'rate_limit_exceeded' ? t('too_many_attempts_retry') : t('verification_failed')
         );
         if (err === 'rate_limit_exceeded') {
-          showToast('Security Lock: Too many reveal attempts', 'error');
+          showToast(t('security_lock_attempts'), 'error');
         }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err) {
-      setPinError('Service unavailable');
+      setPinError(t('verification_service_error'));
     } finally {
       setIsVerifying(false);
     }
@@ -205,43 +218,59 @@ export const OrderCard = ({
         // that the server already has stored in public.profiles.pin_hash.
         await executeReveal(hash);
       } else {
-        setPinError('Invalid Wallet PIN');
+        setPinError(t('invalid_wallet_pin'));
         setIsVerifying(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err) {
-      setPinError('Verification service error');
+      setPinError(t('verification_service_error'));
       setIsVerifying(false);
     }
   };
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        activeOpacity={0.9}
+      <Surface
+        variant="card"
+        padding={16}
         onPressIn={() =>
           Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true }).start()
         }
         onPressOut={() => Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }).start()}
-        style={[styles.card, { backgroundColor: C.surface, borderColor: C.edge }]}
+        style={{ marginBottom: 16 }}
       >
         <View style={styles.cardHeader}>
           <View style={[styles.orderIcon, { backgroundColor: statusStyle.bg }]}>
             <Ionicons
-              name={order.type === 'food' ? 'restaurant-outline' : 'bag-handle-outline'}
+              name={(order as any).type === 'food' ? 'restaurant-outline' : 'bag-handle-outline'}
               size={22}
               color={statusStyle.text}
             />
           </View>
           <View style={styles.headerText}>
             <Text style={[styles.productName, { color: C.text }]} numberOfLines={1}>
-              {order.type === 'food'
-                ? order.items?.[0]?.name || 'Food Order'
-                : order.product_name || 'Product'}
+              {(order as any).type === 'food'
+                ? (order as any).items?.[0]?.name || t('food_order')
+                : order.product_name || t('product')}
             </Text>
+            {order.merchant_name && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
+                <Ionicons
+                  name="storefront-outline"
+                  size={10}
+                  color={C.sub}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={{ fontSize: 11, fontFamily: Fonts.medium, color: C.sub }}>
+                  {t('sold_by', { name: order.merchant_name })}
+                </Text>
+              </View>
+            )}
             <Text style={[styles.orderId, { color: C.sub }]}>
               #{order.id?.slice(0, 8).toUpperCase()} ·{' '}
-              {order.type === 'food' ? `${order.items_count || 1} items` : `Qty ${order.qty || 1}`}
+              {(order as any).type === 'food'
+                ? `${(order as any).items_count || 1} ${t('items')}`
+                : `${t('qty')} ${order.qty || 1}`}
             </Text>
           </View>
           <View
@@ -251,7 +280,9 @@ export const OrderCard = ({
             ]}
           >
             <Ionicons name={statusConf.icon as any} size={11} color={statusStyle.text} />
-            <Text style={[styles.statusText, { color: statusStyle.text }]}>{statusConf.label}</Text>
+            <Text style={[styles.statusText, { color: statusStyle.text }]}>
+              {statusConf.label()}
+            </Text>
           </View>
         </View>
 
@@ -314,16 +345,16 @@ export const OrderCard = ({
             </View>
             <View style={styles.trackerLabels}>
               <Text style={[styles.trackerLabelText, { color: C.text, textAlign: 'left' }]}>
-                Paid
+                {t('paid')}
               </Text>
               <Text style={[styles.trackerLabelText, { color: C.text, textAlign: 'center' }]}>
-                Dispatched
+                {t('dispatched')}
               </Text>
               <Text style={[styles.trackerLabelText, { color: C.text, textAlign: 'center' }]}>
-                On Route
+                {t('on_route')}
               </Text>
               <Text style={[styles.trackerLabelText, { color: C.text, textAlign: 'right' }]}>
-                Arrived
+                {t('arrived')}
               </Text>
             </View>
 
@@ -336,8 +367,8 @@ export const OrderCard = ({
               <View style={{ flex: 1 }}>
                 <Text style={[styles.pinBoxTitle, { color: C.primary }]}>
                   {order.status === 'AWAITING_PIN'
-                    ? '⚠️ Agent arrived! Give PIN to driver:'
-                    : 'Delivery PIN (Shield protected)'}
+                    ? t('agent_arrived_give_pin')
+                    : t('delivery_pin_protected')}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                   <Text
@@ -390,7 +421,7 @@ export const OrderCard = ({
 
         <View style={styles.cardFooter}>
           <View>
-            <Text style={[styles.priceLabel, { color: C.sub }]}>TOTAL PAID</Text>
+            <Text style={[styles.priceLabel, { color: C.sub }]}>{t('total_paid')}</Text>
             <Text style={[styles.priceValue, { color: C.text }]}>ETB {fmtETB(order.total, 0)}</Text>
             <Text style={[styles.dateText, { color: C.sub }]}>
               {new Date(order.created_at).toLocaleDateString('en-US', {
@@ -410,14 +441,16 @@ export const OrderCard = ({
                   style={[styles.ghostBtn, { borderColor: '#E8312A50', marginRight: 8 }]}
                   onPress={() => onReject?.(order)}
                 >
-                  <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>Reject Delivery</Text>
+                  <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>
+                    {t('reject_delivery')}
+                  </Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 style={[styles.ghostBtn, { borderColor: '#E8312A50' }]}
                 onPress={() => onDispute(order)}
               >
-                <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>Dispute</Text>
+                <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>{t('dispute')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -429,7 +462,7 @@ export const OrderCard = ({
             >
               <Ionicons name={statusConf.icon as any} size={14} color={statusStyle.text} />
               <Text style={[styles.statusPillText, { color: statusStyle.text }]}>
-                {order.status === 'COMPLETED' ? 'Done' : order.status}
+                {order.status === 'COMPLETED' ? t('done') : order.status}
               </Text>
             </View>
           )}
@@ -443,7 +476,7 @@ export const OrderCard = ({
           error={pinError}
           C={C}
         />
-      </TouchableOpacity>
+      </Surface>
     </Animated.View>
   );
 };

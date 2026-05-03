@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, TextInput, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './constants';
+import { t } from '../../utils';
 
 interface SearchBarProps {
   value: string;
@@ -15,7 +16,7 @@ export const DelalaSearchBar = memo(({ value, onChangeText }: SearchBarProps) =>
       style={styles.searchInput}
       value={value}
       onChangeText={onChangeText}
-      placeholder="Search properties in Addis Ababa..."
+      placeholder={t('search_listings')}
       placeholderTextColor={COLORS.outline}
     />
   </View>
@@ -47,7 +48,7 @@ export const DelalaCategoryFilter = memo(
               selected === category && styles.activeCategoryChipText,
             ]}
           >
-            {category}
+            {t(category)}
           </Text>
         </TouchableOpacity>
       ))}

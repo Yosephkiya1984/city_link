@@ -178,7 +178,7 @@ export function useParking() {
     if (error || !data?.ok) {
       showToast(data?.error || 'Could not start parking session', 'error');
       setLoading(false);
-      return;
+      return false;
     }
 
     const session = {
@@ -214,6 +214,7 @@ export function useParking() {
     setConfirmModal(false);
     showToast(`Parking started at spot ${session.spot_number} 🅿️`, 'success');
     setLoading(false);
+    return true;
   }
 
   // ── End Parking ─────────────────────────────────────────────────────────
@@ -237,7 +238,7 @@ export function useParking() {
           'error'
         );
         setLoading(false);
-        return;
+        return false;
       }
 
       const finalBalance = res.data?.new_balance ?? balance - fare;
@@ -262,9 +263,11 @@ export function useParking() {
       setActiveParking(null);
       setElapsed(0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      return true;
     } catch (e) {
       console.error('🔧 handleEndParking crash:', e);
       showToast('Connection error finalizing session', 'error');
+      return false;
     } finally {
       setLoading(false);
     }

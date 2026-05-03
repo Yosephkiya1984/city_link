@@ -23,13 +23,13 @@ export const T = {
 };
 
 export const CATEGORIES = [
-  { id: 'All', name: 'All', icon: 'grid', color: '#40d991' },
-  { id: 'Electronics', name: 'Electronics', icon: 'phone-portrait', color: '#06b6d4' },
-  { id: 'Fashion', name: 'Fashion', icon: 'shirt', color: '#ec4899' },
-  { id: 'Food', name: 'Food', icon: 'restaurant', color: '#f59e0b' },
-  { id: 'Home', name: 'Home', icon: 'home', color: '#10b981' },
-  { id: 'Beauty', name: 'Beauty', icon: 'color-palette', color: '#8b5cf6' },
-  { id: 'Tech', name: 'Tech', icon: 'hardware-chip', color: '#3b82f6' },
+  { id: 'all', name: 'all', icon: 'grid', color: '#40d991' },
+  { id: 'electronics', name: 'electronics', icon: 'phone-portrait', color: '#06b6d4' },
+  { id: 'fashion', name: 'fashion', icon: 'shirt', color: '#ec4899' },
+  { id: 'food', name: 'food', icon: 'restaurant', color: '#f59e0b' },
+  { id: 'home', name: 'home', icon: 'home', color: '#10b981' },
+  { id: 'beauty', name: 'beauty', icon: 'color-palette', color: '#8b5cf6' },
+  { id: 'tech', name: 'tech', icon: 'hardware-chip', color: '#3b82f6' },
 ];
 
 export const getDimensions = () => Dimensions.get('window');

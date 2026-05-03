@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
+import { FlashList } from '../../components/common/SafeFlashList';
 
 // â”€â”€ Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import {
@@ -117,15 +118,15 @@ export default function WalletScreen() {
 
     const amt = parseFloat(amount);
     if (!amt || amt < 5) {
-      showToast('Minimum top-up is 5 ETB', 'error');
+      showToast(t('min_topup_error'), 'error');
       return;
     }
     if (!currentUser || !currentUser.id) {
-      showToast('User ID is missing', 'error');
+      showToast(t('auth_error'), 'error');
       return;
     }
     if (balance + amt > walletLimit) {
-      showToast(`Wallet limit reached. Please verify your ID for higher limits.`, 'error');
+      showToast(t('limit_reached_error'), 'error');
       return;
     }
 
@@ -143,14 +144,14 @@ export default function WalletScreen() {
         setShowSuccess(true);
         setTopupModal(false);
         // We DO NOT clear amount here so the success message can show it
-        
+
         // Polling fallback (optional, as Realtime is primary)
         setTimeout(() => fetchWallet(), 10000);
       } else {
-        showToast(initRes.message || 'Payment initialization failed', 'error');
+        showToast(t('payment_init_failed'), 'error');
       }
     } catch (error) {
-      showToast('Payment system unavailable. Please try again.', 'error');
+      showToast(t('system_unavailable'), 'error');
     } finally {
       setLoading(false);
     }
@@ -162,98 +163,105 @@ export default function WalletScreen() {
     phone: currentUser?.phone,
   });
 
+  const renderHeader = () => (
+    <>
+      <View style={styles.heroSection}>
+        <LinearGradient
+          colors={[C.primary, C.primaryB]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.walletCard}
+        >
+          <View style={styles.cardHeader}>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: walletLimit > 100 ? C.green : 'rgba(255,255,255,0.2)' },
+              ]}
+            >
+              <Text style={styles.badgeText}>
+                {walletLimit > 100 ? t('verified_status') : t('basic_status')}
+              </Text>
+            </View>
+            <Ionicons name="card-outline" size={24} color={C.white} />
+          </View>
+
+          <View style={styles.balanceRow}>
+            <View>
+              <Text style={styles.balanceLabel}>{t('available_balance')}</Text>
+              <Text style={styles.balanceAmount}>{fmtETB(balance, 0)}</Text>
+            </View>
+            <View style={styles.limitIndicator}>
+              <Text style={styles.limitText}>
+                {t('limit_label')} {fmtETB(walletLimit, 0)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity onPress={() => setTopupModal(true)} style={styles.primaryAction}>
+              <Ionicons name="add-circle" size={18} color={C.primary} />
+              <Text style={styles.primaryActionText}>{t('top_up')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setQrModal(true)} style={styles.secondaryAction}>
+              <Ionicons name="qr-code-outline" size={20} color={C.white} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => (navigation as any).navigate('SendMoney')}
+              style={styles.secondaryAction}
+            >
+              <Ionicons name="send" size={20} color={C.white} />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </View>
+
+      <View style={styles.chartSection}>
+        <TransactionChart transactions={transactions} />
+      </View>
+
+      <View style={styles.activitySection}>
+        <SectionTitle title={t('transactions')} action={t('filter')} />
+      </View>
+    </>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: C.ink }]}>
       <TopBar title={t('my_wallet')} />
-
-      <ScrollView
+      <FlashList
+        data={transactions}
+        keyExtractor={(item: any, index: number) => item.id || index.toString()}
+        estimatedItemSize={80}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.heroSection}>
-          <LinearGradient
-            colors={[C.primary, C.primaryB]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.walletCard}
-          >
-            <View style={styles.cardHeader}>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: walletLimit > 100 ? C.green : 'rgba(255,255,255,0.2)' },
-                ]}
-              >
-                <Text style={styles.badgeText}>{walletLimit > 100 ? 'Verified' : 'Basic'}</Text>
-              </View>
-              <Ionicons name="card-outline" size={24} color={C.white} />
-            </View>
-
-            <View style={styles.balanceRow}>
-              <View>
-                <Text style={styles.balanceLabel}>Available Balance</Text>
-                <Text style={styles.balanceAmount}>{fmtETB(balance, 0)}</Text>
-              </View>
-              <View style={styles.limitIndicator}>
-                <Text style={styles.limitText}>Limit: {fmtETB(walletLimit, 0)}</Text>
-              </View>
-            </View>
-
-            <View style={styles.actionRow}>
-              <TouchableOpacity onPress={() => setTopupModal(true)} style={styles.primaryAction}>
-                <Ionicons name="add-circle" size={18} color={C.primary} />
-                <Text style={styles.primaryActionText}>Top Up</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setQrModal(true)} style={styles.secondaryAction}>
-                <Ionicons name="qr-code-outline" size={20} color={C.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => (navigation as any).navigate('SendMoney')}
-                style={styles.secondaryAction}
-              >
-                <Ionicons name="send" size={20} color={C.white} />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </View>
-
-        <View style={styles.chartSection}>
-          <TransactionChart transactions={transactions} />
-        </View>
-
-        <View style={styles.activitySection}>
-          <SectionTitle title={t('transactions')} action={t('filter')} />
-          {transactions.length === 0 ? (
-            <View style={styles.emptyActivity}>
-              <Ionicons name="receipt-outline" size={48} color={C.hint} />
-              <Text style={{ color: C.sub, marginTop: 16, fontFamily: Fonts.medium }}>
-                {t('no_activity')}
-              </Text>
-            </View>
-          ) : (
-            transactions.map((tx, i) => (
-              <TransactionItem
-                key={tx.id || i}
-                tx={tx}
-                index={i}
-                onPress={() => setSelectedTx(tx)}
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
+        renderItem={({ item, index }: { item: any; index: number }) => (
+          <View style={{ paddingHorizontal: 16 }}>
+            <TransactionItem tx={item} index={index} onPress={() => setSelectedTx(item)} />
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyActivity}>
+            <Ionicons name="receipt-outline" size={48} color={C.hint} />
+            <Text style={{ color: C.sub, marginTop: 16, fontFamily: Fonts.medium }}>
+              {t('no_activity')}
+            </Text>
+          </View>
+        )}
+      />
 
       {/* QR MODAL */}
       <Modal visible={qrModal} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setQrModal(false)} />
         <View style={[styles.modalSheet, { backgroundColor: C.surface }]}>
-          <Text style={[styles.modalTitle, { color: C.text }]}>My Payment QR</Text>
+          <Text style={[styles.modalTitle, { color: C.text }]}>{t('my_payment_qr')}</Text>
           <View style={styles.qrContainer}>
             <QRCode value={qrData} size={200} />
           </View>
           <Text style={[styles.qrUser, { color: C.text }]}>{currentUser?.full_name}</Text>
           <CButton
-            title="Close"
+            title={t('close')}
             variant="secondary"
             onPress={() => setQrModal(false)}
             style={{ width: '100%' }}
@@ -269,7 +277,7 @@ export default function WalletScreen() {
 
           <View style={[styles.limitBox, { backgroundColor: C.surface, borderColor: C.edge2 }]}>
             <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>
-              Available Space
+              {t('available_space')}
             </Text>
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
               {fmtETB(walletLimit - balance, 0)}
@@ -277,7 +285,7 @@ export default function WalletScreen() {
           </View>
 
           <CInput
-            label="Amount (ETB)"
+            label={t('amount_etb')}
             value={amount}
             onChangeText={setAmount}
             placeholder="500"
@@ -286,7 +294,7 @@ export default function WalletScreen() {
 
           <View style={{ marginBottom: 24 }}>
             <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.bold, marginBottom: 12 }}>
-              Select Payment Channel
+              {t('select_channel')}
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {Object.entries(CHAPA_CHANNELS).map(([id, info]) => (
@@ -336,7 +344,7 @@ export default function WalletScreen() {
           </View>
 
           <CButton
-            title={loading ? 'Processing...' : 'Proceed to Payment'}
+            title={loading ? t('processing') : t('proceed_payment')}
             onPress={handleTopup}
             loading={loading}
           />
@@ -345,15 +353,18 @@ export default function WalletScreen() {
 
       <SuccessOverlay
         visible={showSuccess}
-        title="Top-up Initiated"
-        subtitle={`Your top-up of ${fmtETB(parseFloat(amount) || 0, 0)} ETB is being processed via ${selectedProvider}.`}
+        title={t('topup_initiated')}
+        subtitle={t('topup_desc', {
+          amount: fmtETB(parseFloat(amount) || 0, 0),
+          provider: selectedProvider,
+        })}
         onClose={() => {
           setShowSuccess(false);
           setAmount('');
         }}
       />
 
-      <ProcessingOverlay visible={loading} message="Processing your top-up..." />
+      <ProcessingOverlay visible={loading} message={t('topup_processing')} />
 
       {/* RECEIPT MODAL */}
       {selectedTx && (
@@ -368,7 +379,10 @@ export default function WalletScreen() {
           paymentMethod="WALLET"
           title={selectedTx.type === 'credit' ? 'CREDIT RECEIPT' : 'DEBIT RECEIPT'}
           items={[
-            { label: selectedTx.description || selectedTx.category, value: Number(selectedTx.amount) },
+            {
+              label: selectedTx.description || selectedTx.category,
+              value: Number(selectedTx.amount),
+            },
           ]}
         />
       )}

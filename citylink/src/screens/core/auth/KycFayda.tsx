@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Animated, StyleSheet, Image } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../../../theme';
 import { CButton, CInput } from '../../../components';
+import { useT } from '../../../utils/i18n';
 
 export const KycFayda = ({
   C,
@@ -24,6 +25,7 @@ export const KycFayda = ({
   onBiometricProceed,
   onComplete,
 }: any) => {
+  const t = useT();
   const renderStepIcon = (step: number) => {
     let iconName: any = 'document-text-outline';
     if (step === 2) iconName = 'chatbubble-ellipses-outline';
@@ -50,7 +52,7 @@ export const KycFayda = ({
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={C.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: C.text }]}>Fayda Digital ID</Text>
+        <Text style={[styles.title, { color: C.text }]}>{t('fayda_digital_id')}</Text>
       </View>
 
       <View style={styles.stepper}>
@@ -66,22 +68,20 @@ export const KycFayda = ({
       <View style={styles.content}>
         {kycStep === 1 && (
           <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { color: C.text }]}>Enter your FIN</Text>
-            <Text style={[styles.stepDesc, { color: C.sub }]}>
-              Enter your 12-digit Fayda Identification Number to link your identity.
-            </Text>
+            <Text style={[styles.stepTitle, { color: C.text }]}>{t('enter_fin')}</Text>
+            <Text style={[styles.stepDesc, { color: C.sub }]}>{t('enter_fin_desc')}</Text>
             <CInput
-              label="FIN Number"
+              label={t('fin_number_label')}
               value={faydaFIN}
               onChangeText={setFaydaFIN}
-              placeholder="1000 0000 0000 1"
+              placeholder="1000 0000 0000"
               iconName="card-outline"
               keyboardType="number-pad"
-              maxLength={13}
+              maxLength={12}
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <CButton
-              title="Verify FIN"
+              title={t('verify_fin')}
               onPress={onFINSubmit}
               loading={loading}
               style={{ marginTop: 24 }}
@@ -91,12 +91,10 @@ export const KycFayda = ({
 
         {kycStep === 2 && (
           <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { color: C.text }]}>Identity Verification</Text>
-            <Text style={[styles.stepDesc, { color: C.sub }]}>
-              A 6-digit confirmation code was sent to your Fayda-linked phone number.
-            </Text>
+            <Text style={[styles.stepTitle, { color: C.text }]}>{t('identity_verification')}</Text>
+            <Text style={[styles.stepDesc, { color: C.sub }]}>{t('otp_sent_msg')}</Text>
             <CInput
-              label="Confirmation Code"
+              label={t('confirmation_code_label')}
               value={faydaOTP}
               onChangeText={setFaydaOTP}
               placeholder="000000"
@@ -106,7 +104,7 @@ export const KycFayda = ({
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <CButton
-              title="Submit Code"
+              title={t('submit_code')}
               onPress={onOTPSubmit}
               loading={loading}
               style={{ marginTop: 24 }}
@@ -116,10 +114,8 @@ export const KycFayda = ({
 
         {kycStep === 3 && (
           <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { color: C.text }]}>Biometric Scan</Text>
-            <Text style={[styles.stepDesc, { color: C.sub }]}>
-              Place your thumb on the scanner or align your face for biometric authentication.
-            </Text>
+            <Text style={[styles.stepTitle, { color: C.text }]}>{t('biometric_scan')}</Text>
+            <Text style={[styles.stepDesc, { color: C.sub }]}>{t('biometric_scan_desc')}</Text>
 
             <TouchableOpacity
               style={[styles.scanTarget, { borderColor: biometricSimulated ? C.primary : C.edge }]}
@@ -131,12 +127,12 @@ export const KycFayda = ({
                 color={biometricSimulated ? C.primary : C.sub}
               />
               <Text style={[styles.scanText, { color: biometricSimulated ? C.primary : C.sub }]}>
-                {biometricSimulated ? 'Verification Successful' : 'Tap to Scan'}
+                {biometricSimulated ? t('verification_successful') : t('tap_to_scan')}
               </Text>
             </TouchableOpacity>
 
             <CButton
-              title="Proceed"
+              title={t('proceed')}
               onPress={onBiometricProceed}
               loading={loading}
               disabled={!biometricSimulated}
@@ -147,10 +143,8 @@ export const KycFayda = ({
 
         {kycStep === 4 && (
           <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { color: C.text }]}>Verification Complete</Text>
-            <Text style={[styles.stepDesc, { color: C.sub }]}>
-              Your identity has been successfully verified via National ID.
-            </Text>
+            <Text style={[styles.stepTitle, { color: C.text }]}>{t('verification_complete')}</Text>
+            <Text style={[styles.stepDesc, { color: C.sub }]}>{t('verified_national_id_msg')}</Text>
 
             <View
               style={[styles.successCard, { backgroundColor: C.surface, borderColor: C.primary }]}
@@ -158,14 +152,18 @@ export const KycFayda = ({
               <View style={styles.successHeader}>
                 <Ionicons name="checkmark-circle" size={40} color={C.primary} />
                 <View>
-                  <Text style={[styles.successTitle, { color: C.text }]}>Verified</Text>
-                  <Text style={[styles.successSubtitle, { color: C.sub }]}>Fayda Digital ID</Text>
+                  <Text style={[styles.successTitle, { color: C.text }]}>
+                    {t('verified_status')}
+                  </Text>
+                  <Text style={[styles.successSubtitle, { color: C.sub }]}>
+                    {t('fayda_digital_id')}
+                  </Text>
                 </View>
               </View>
             </View>
 
             <CButton
-              title="Start using CityLink"
+              title={t('start_using_citylink')}
               onPress={onComplete}
               loading={loading}
               style={{ marginTop: 24 }}

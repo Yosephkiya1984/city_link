@@ -29,4 +29,4 @@ export const COLORS = {
   'on-background': '#e1e2ea',
 };
 
-export const CATEGORIES = ['All', 'House Rent', 'House Sale', 'Car Sale', 'Office Space'];
+export const CATEGORIES = ['all', 'house_rent', 'house_sale', 'car_sale', 'office_space'];

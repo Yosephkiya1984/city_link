@@ -8,13 +8,13 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList } from '../../components/common/SafeFlashList';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useEkub } from '../../hooks/useEkub';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Shadow, Fonts, DarkColors as T } from '../../theme';
-import { fmtETB } from '../../utils';
+import { fmtETB, t } from '../../utils';
 
 // Modular Components
 import { COLORS } from '../../components/ekub/constants';
@@ -40,7 +40,7 @@ const EnhancedTopBar = React.memo(({ balance, C }: { balance: number; C: any }) 
   >
     <View style={styles.topBarLeft}>
       <Text style={[styles.brandName, { color: C.primary, fontFamily: Fonts.headline }]}>
-        EKUB POOL
+        {t('ekub_pool').toUpperCase()}
       </Text>
     </View>
     <View
@@ -49,7 +49,9 @@ const EnhancedTopBar = React.memo(({ balance, C }: { balance: number; C: any }) 
         { backgroundColor: C.ink, borderColor: C.edge, borderWidth: 1, borderRadius: Radius.card },
       ]}
     >
-      <Text style={[styles.balanceLabel, { color: C.sub, fontFamily: Fonts.bold }]}>LIQUIDITY</Text>
+      <Text style={[styles.balanceLabel, { color: C.sub, fontFamily: Fonts.bold }]}>
+        {t('liquidity').toUpperCase()}
+      </Text>
       <Text style={[styles.balanceAmount, { color: C.text, fontFamily: Fonts.headline }]}>
         {fmtETB(balance)}
       </Text>
@@ -120,7 +122,7 @@ export default function EkubScreen() {
               onPress={() => setActiveTab(tab)}
             >
               <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                {tab === 'browse' ? 'Browse' : tab === 'mine' ? 'My Circles' : 'Vouching'}
+                {tab === 'browse' ? t('browse') : tab === 'mine' ? t('my_circles') : t('vouching')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -150,10 +152,10 @@ export default function EkubScreen() {
 
         <Text style={[styles.sectionTitle, { color: C.text, fontFamily: Fonts.headline }]}>
           {activeTab === 'browse'
-            ? 'Available Circles'
+            ? t('available_circles')
             : activeTab === 'mine'
-              ? 'My Circles'
-              : 'Pending Vouches'}
+              ? t('my_circles')
+              : t('pending_vouches')}
         </Text>
       </View>
     ),
@@ -164,8 +166,8 @@ export default function EkubScreen() {
     () => (
       <View style={styles.emptyContainer}>
         <Ionicons name="leaf-outline" size={64} color={COLORS.outline} />
-        <Text style={styles.emptyTitle}>Nothing here yet</Text>
-        <Text style={styles.emptySubtitle}>Check back later for updates</Text>
+        <Text style={styles.emptyTitle}>{t('nothing_here_yet')}</Text>
+        <Text style={styles.emptySubtitle}>{t('check_back_later')}</Text>
       </View>
     ),
     []
@@ -176,10 +178,10 @@ export default function EkubScreen() {
       <StatusBar barStyle="light-content" backgroundColor={C.ink} />
       <EnhancedTopBar balance={balance} C={C} />
 
-      <FlashList
+      <FlashList<any>
         data={listData}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: any) => item.id}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={loading ? null : EmptyState}
         contentContainerStyle={styles.listContent}
@@ -205,7 +207,7 @@ export default function EkubScreen() {
         onClose={() => setShowSuccess(false)}
       />
 
-      <ProcessingOverlay visible={submitting} message="Processing request..." />
+      <ProcessingOverlay visible={submitting} message={t('processing_request')} />
     </View>
   );
 }
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
   },
   activeTab: { backgroundColor: T.primary },
   tabText: { fontSize: 13, fontFamily: Fonts.bold, color: 'rgba(255,255,255,0.4)' },
-  activeTabText: { color: '#FFFFFF' }, 
+  activeTabText: { color: '#FFFFFF' },
 
   bentoRow: { flexDirection: 'row', gap: 12, marginBottom: 32 },
   sectionTitle: { fontSize: 26, fontWeight: '900', marginBottom: 20, letterSpacing: -0.8 },

@@ -1,227 +1,206 @@
-import { StyleSheet, Dimensions } from 'react-native';
-import { DarkColors as T, Fonts, Radius } from '../../../theme';
+import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
+import { D, Radius, Fonts } from './StitchTheme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: T.ink },
+  container: { flex: 1, backgroundColor: D.ink },
 
-  // Header & NavBar
+  // Header
   header: {
-    paddingTop: 10,
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 24) + 16,
+    paddingHorizontal: 20,
     paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: T.edge,
+    backgroundColor: D.ink,
   },
-  navBar: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 24,
   },
-  brandBox: { flexDirection: 'row', alignItems: 'center' },
-  brandIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: T.primaryL,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: T.edge,
+  brandTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.black,
+    color: D.white,
+    letterSpacing: -0.5,
   },
-  brandName: { color: T.text, fontSize: 18, fontFamily: Fonts.bold, letterSpacing: 0.5 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: T.success, marginRight: 6 },
-  statusText: { color: T.textSoft, fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
-  logoutBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: T.redL,
-    alignItems: 'center',
-    justifyContent: 'center',
+  brandTag: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: D.gold,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-
-  // Revenue Dossier
-  dossierRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  dossierMain: {
-    flex: 1,
-    backgroundColor: T.surface,
-    padding: 20,
-    borderRadius: Radius.card,
-    borderWidth: 1,
-    borderColor: T.edge,
-  },
-  dossierLabel: { color: T.textSoft, fontSize: 10, fontFamily: Fonts.bold, letterSpacing: 1 },
-  dossierValue: { color: T.text, fontSize: 28, fontFamily: Fonts.bold, marginVertical: 4 },
-  fiscalRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  fiscalText: { color: T.success, fontSize: 10, fontWeight: '800' },
-  scanActionBtn: { width: 80, height: 80 },
-  scanActionGradient: {
-    flex: 1,
-    borderRadius: Radius.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: T.tertiary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-
-  // Lockdown Banner
-  lockdownBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: T.redL,
-    margin: 16,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: T.redDim,
-    gap: 12,
-  },
-  lockdownIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: T.redDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lockdownTitle: { color: T.red, fontSize: 13, fontFamily: Fonts.bold },
-  lockdownSub: { color: T.redL, fontSize: 11, marginTop: 2 },
 
   // Tabs
-  tabContainer: { marginVertical: 16 },
-  tabScroller: { paddingHorizontal: 16, gap: 10 },
-  tabPill: {
+  tabContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: T.surface,
-    borderWidth: 1,
-    borderColor: T.edge,
+    marginBottom: 20,
     gap: 8,
   },
-  tabPillActive: { backgroundColor: T.lift, borderColor: T.primary },
-  tabPillText: { color: T.textSoft, fontSize: 12, fontFamily: Fonts.bold },
-  tabPillTextActive: { color: T.primary },
-
-  // Occupancy Section
-  liveContainer: { paddingHorizontal: 16 },
-  occupancyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 4,
-  },
-  occupancyTitle: { color: T.textSoft, fontSize: 11, fontFamily: Fonts.bold, letterSpacing: 1 },
-  occupancySub: { color: T.text, fontSize: 16, fontFamily: Fonts.bold, marginTop: 2 },
-  occupancyPercentBox: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: T.tertiary + '20',
-    borderWidth: 1,
-    borderColor: T.tertiary + '30',
-  },
-  occupancyPercentText: { color: T.tertiary, fontSize: 12, fontFamily: Fonts.bold },
-
-  // Slot Grid
-  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  slotCard: {
-    width: (SCREEN_WIDTH - 62) / 4,
-    aspectRatio: 1,
+  tabItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
     borderRadius: 16,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: T.surface,
-  },
-  slotOccupied: { borderColor: T.red, backgroundColor: T.redL },
-  slotAvailable: { borderColor: T.success, backgroundColor: T.greenL },
-  slotName: { fontSize: 15, fontFamily: Fonts.bold },
-  slotOccupantPulse: {
-    position: 'absolute',
-    bottom: 8,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: T.red,
-  },
-
-  // Session List
-  sessionList: { paddingHorizontal: 16, gap: 12 },
-  sessionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: T.surface,
-    padding: 16,
-    borderRadius: Radius.card,
+    backgroundColor: D.lift,
     borderWidth: 1,
-    borderColor: T.edge,
+    borderColor: D.edge,
   },
-  sessionMain: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sessionIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: T.lift,
-    alignItems: 'center',
-    justifyContent: 'center',
+  tabItemActive: {
+    backgroundColor: D.gold,
+    borderColor: D.gold,
   },
-  sessionSpot: { color: T.text, fontSize: 14, fontFamily: Fonts.bold },
-  sessionPlate: { color: T.textSoft, fontSize: 11, marginTop: 2 },
-  sessionRight: { alignItems: 'flex-end' },
-  sessionFare: { color: T.primary, fontSize: 16, fontFamily: Fonts.bold },
-  sessionTime: { color: T.textSoft, fontSize: 10, marginTop: 4 },
+  tabText: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+  },
+  tabTextActive: {
+    color: D.ink,
+  },
 
-  // Legend
-  legend: {
+  // Live Summary Cards
+  bentoContainer: {
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 24,
+  },
+  bentoRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: T.surface,
-    borderRadius: Radius.card,
-    borderWidth: 1,
-    borderColor: T.edge,
+    gap: 12,
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendTxt: { color: T.textSoft, fontSize: 11, fontWeight: '700' },
-
-  // Modals
-  modalOverlay: {
+  bentoCard: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  detailCard: {
-    backgroundColor: T.surface,
-    borderRadius: 32,
-    padding: 24,
+    backgroundColor: D.surface,
+    borderRadius: 24,
+    padding: 16,
     borderWidth: 1,
-    borderColor: T.edge,
+    borderColor: D.edge,
   },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  detailLabel: { color: T.textSoft, fontSize: 12, fontWeight: '600' },
-  detailValue: { color: T.text, fontSize: 14, fontFamily: Fonts.bold },
+  bentoLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  bentoValue: {
+    fontSize: 22,
+    fontFamily: Fonts.black,
+    color: D.white,
+    marginTop: 4,
+  },
 
-  emptyState: { paddingVertical: 60, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { color: T.textSoft, marginTop: 12, fontSize: 14, fontWeight: '600' },
+  // Parking Spot Grid (World Class View)
+  spotGrid: {
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  spotCard: {
+    width: (width - 52) / 4,
+    aspectRatio: 0.8,
+    backgroundColor: D.surface,
+    borderRadius: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: D.edge,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  spotOccupied: {
+    backgroundColor: D.gold + '20',
+    borderColor: D.gold,
+  },
+  spotReserved: {
+    backgroundColor: D.primary + '20',
+    borderColor: D.primary,
+  },
+  spotLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.black,
+    color: D.white,
+  },
+  spotStatus: {
+    fontSize: 8,
+    fontFamily: Fonts.black,
+    textTransform: 'uppercase',
+  },
+
+  // Session Cards
+  sessionCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: D.surface,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: D.edge,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  vehicleIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: D.lift,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  plateNumber: {
+    fontSize: 16,
+    fontFamily: Fonts.black,
+    color: D.white,
+  },
+  duration: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: D.sub,
+    marginTop: 2,
+  },
+  amount: {
+    fontSize: 16,
+    fontFamily: Fonts.black,
+    color: D.primary,
+  },
+
+  // Finance
+  financeHero: {
+    marginHorizontal: 16,
+    padding: 24,
+    borderRadius: 32,
+    backgroundColor: D.surface,
+    borderWidth: 1,
+    borderColor: D.edge,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  financeTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
+  financeValue: {
+    fontSize: 42,
+    fontFamily: Fonts.black,
+    color: D.white,
+    marginVertical: 12,
+  },
+  withdrawAction: {
+    backgroundColor: D.gold,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 20,
+    marginTop: 8,
+  },
 });

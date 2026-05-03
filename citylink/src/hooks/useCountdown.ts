@@ -8,8 +8,8 @@ import { t } from '../utils/i18n';
 export function useCountdown(order: any) {
   const getTarget = () => {
     if (order.expires_at) return new Date(order.expires_at);
-    // Fallback: estimate 72h from creation
-    return new Date(new Date(order.created_at).getTime() + 72 * 3600 * 1000);
+    // Fallback: estimate 3h from creation (User requested 3h auto-cancel)
+    return new Date(new Date(order.created_at).getTime() + 3 * 3600 * 1000);
   };
 
   const [msLeft, setMsLeft] = useState(() => Math.max(0, getTarget().getTime() - Date.now()));

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { obfuscatePII } from '../privacy';
 
 // Performance monitoring context
 const PerformanceContext = createContext<any>(null);
@@ -108,7 +109,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
   // Track API call performance
   const trackApiCall = (endpoint: string, duration: number, success = true) => {
     const apiCall = {
-      endpoint,
+      endpoint: obfuscatePII(endpoint),
       duration,
       success,
       timestamp: Date.now(),

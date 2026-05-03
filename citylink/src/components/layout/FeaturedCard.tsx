@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Fonts, Radius } from '../../theme';
+import { t } from '../../utils/i18n';
 
 interface FeaturedCardProps {
   title: any;
@@ -59,7 +60,7 @@ export function FeaturedCard({
         />
         <View style={styles.featuredContent}>
           <View style={styles.featuredText}>
-            <Text style={styles.featuredTag}>NEW UPDATE</Text>
+            <Text style={styles.featuredTag}>{t('new_update')}</Text>
             <Text style={styles.featuredTitle}>{title}</Text>
             <Text style={styles.featuredDescription}>{description}</Text>
           </View>

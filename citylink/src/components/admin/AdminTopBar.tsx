@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 import { User } from '../../types';
+import { t } from '../../utils/i18n';
 
 interface AdminTopBarProps {
   title: string;
@@ -40,17 +41,21 @@ export default function AdminTopBar({ title, user }: AdminTopBarProps) {
 
   const handleProfilePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Account Operations', `Logged in as ${user?.full_name || 'Administrator'}`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          await resetStore();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      t('account_operations'),
+      `${t('logged_in_as')} ${user?.full_name || t('administrator')}`,
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('admin_sign_out'),
+          style: 'destructive',
+          onPress: async () => {
+            await resetStore();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleNotifyPress = () => {
@@ -88,7 +93,7 @@ export default function AdminTopBar({ title, user }: AdminTopBarProps) {
           <View style={styles.statusBox}>
             <View style={[styles.pulse, { backgroundColor: theme.primary }]} />
             <Text style={[styles.statusText, { color: theme.primary, fontFamily: Fonts.label }]}>
-              SYSTEM ACTIVE
+              {t('system_active')}
             </Text>
           </View>
         )}
@@ -99,7 +104,7 @@ export default function AdminTopBar({ title, user }: AdminTopBarProps) {
           <View style={[styles.searchBar, { backgroundColor: theme.rim }]}>
             <Ionicons name="search-outline" size={18} color={theme.sub} />
             <TextInput
-              placeholder="Search records..."
+              placeholder={t('search_records')}
               placeholderTextColor={theme.sub}
               style={[styles.searchInput, { color: theme.text, fontFamily: Fonts.body }]}
             />

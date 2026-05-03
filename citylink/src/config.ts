@@ -12,9 +12,25 @@ export const Config = {
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null, // Optional: Error tracking
 
   govAuthBaseUrl: process.env.EXPO_PUBLIC_GOV_AUTH_BASE_URL || 'https://api.citylink.gov.et',
+
+  // 🏛️ Fayda National ID Gateway (OIDC)
+  faydaBaseUrl: process.env.EXPO_PUBLIC_FAYDA_BASE_URL || 'https://id.et',
+  faydaClientId: process.env.EXPO_PUBLIC_FAYDA_CLIENT_ID || 'citylink_client_id',
+  faydaScope: 'openid profile kyc_basic',
 };
 
-/** One-time ETB credited on first successful citizen session (Goal §2). */
+// ─── Dev bypass accounts ────────────────────────────────────────────────────
+// Maps a normalized phone → expected profile role/merchant_type so the OTP
+// screen is skipped entirely for known test numbers.
+// ANY code entered is accepted; the real profile is fetched from the DB.
+export const DEV_BYPASS_ACCOUNTS: Record<string, { role: string; merchant_type?: string }> = {
+  '+251904030403': { role: 'citizen' },
+  '+251911178024': { role: 'merchant', merchant_type: 'shop' },
+  '+251922222222': { role: 'merchant', merchant_type: 'parking' },
+  '+251913162911': { role: 'merchant', merchant_type: 'ekub' },
+  '+251973477392': { role: 'merchant', merchant_type: 'delala' },
+  '+251900001111': { role: 'merchant', merchant_type: 'restaurant' },
+};
 export const WELCOME_BONUS_ETB = 5000;
 
 /** P2P transfers at or above this amount require wallet PIN (Goal §2). */
@@ -159,7 +175,13 @@ export const FEATURE_FLAGS = {
    * faydaMockKyc: Set to true only in development/staging builds.
    * Never enable in production — requires fayda_mock_enabled = true in app_config.
    */
-  faydaMockKyc: __DEV__,
+  faydaMockKyc: false, // Hardened: Explicitly disabled to prevent dev bypasses
+
+  /**
+   * faydaLiveHandshake: Set to true only when production OIDC credentials are provided.
+   * When false, the FaydaBridge will automatically fallback to simulator/mock mode.
+   */
+  faydaLiveHandshake: false,
 };
 
 // Exchange rates (DEMO ONLY — hardcoded values, NOT for production use)

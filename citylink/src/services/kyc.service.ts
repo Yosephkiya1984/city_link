@@ -32,8 +32,8 @@ export const KycService = {
    * verifyFin — Validates a 13-digit Fayda FIN against the registry.
    */
   verifyFin: async (fin: string): Promise<{ success: boolean; error?: string }> => {
-    if (!/^[0-9]{13}$/.test(fin)) {
-      return { success: false, error: 'Invalid Fayda ID format. Must be 13 digits.' };
+    if (!/^[0-9]{12}$/.test(fin)) {
+      return { success: false, error: 'Invalid Fayda ID format. Must be 12 digits.' };
     }
 
     // Production validation happens on server-side RPC
@@ -163,8 +163,8 @@ export const KycService = {
    * formatFaydaID — Formats ID for display (4-4-5).
    */
   formatFaydaID: (id: string): string => {
-    if (!id || id.length !== 13) return id;
-    return `${id.slice(0, 4)} ${id.slice(4, 8)} ${id.slice(8, 13)}`;
+    if (!id || id.length !== 12) return id;
+    return `${id.slice(0, 4)} ${id.slice(4, 8)} ${id.slice(8, 12)}`;
   },
 
   /**

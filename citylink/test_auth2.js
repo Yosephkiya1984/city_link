@@ -9,9 +9,9 @@ async function test() {
     password: 'password123',
     options: {
       data: {
-        phone: '+251999999992'
-      }
-    }
+        phone: '+251999999992',
+      },
+    },
   });
   console.log('signUp with options.data.phone:', data, error);
 }

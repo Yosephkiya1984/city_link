@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image, Animated, StyleSheet } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from './constants';
-import { fmtETB } from '../../utils';
+import { fmtETB, t } from '../../utils';
 import DefaultIcon from '../../../assets/icon.png';
 
 interface PublicPropertyCardProps {
@@ -65,7 +65,7 @@ const PublicPropertyCard = memo(
                   {feature === 'Video' && (
                     <Ionicons name="videocam" size={12} color={COLORS['on-primary']} />
                   )}
-                  <Text style={styles.featureBadgeText}>{feature}</Text>
+                  <Text style={styles.featureBadgeText}>{t(feature.toLowerCase())}</Text>
                 </View>
               ))}
             </View>
@@ -98,11 +98,13 @@ const PublicPropertyCard = memo(
                   </View>
                 )}
                 <View>
-                  <Text style={styles.brokerName}>{property.broker?.name || 'Pro Agent'}</Text>
+                  <Text style={styles.brokerName}>
+                    {property.broker?.name || t('agent_default')}
+                  </Text>
                   {property.broker?.verified && (
                     <View style={styles.verifiedBadge}>
                       <Ionicons name="checkmark" size={10} color={COLORS['on-primary']} />
-                      <Text style={styles.verifiedText}>Verified</Text>
+                      <Text style={styles.verifiedText}>{t('verified')}</Text>
                     </View>
                   )}
                 </View>
@@ -114,7 +116,7 @@ const PublicPropertyCard = memo(
                 accessibilityLabel="Send a message about this property"
                 accessibilityRole="button"
               >
-                <Text style={styles.messageButtonText}>Message</Text>
+                <Text style={styles.messageButtonText}>{t('negotiate')}</Text>
               </TouchableOpacity>
             </View>
           </View>

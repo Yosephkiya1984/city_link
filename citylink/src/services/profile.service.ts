@@ -30,12 +30,50 @@ export function flattenUser(data: User & { merchants?: any }): User | null {
 
 /**
  * fetchProfile — fetches a user's profile by their ID, joining with merchants.
+ * Uses a manual two-step fetch because there is no FK constraint between
+ * profiles.id and merchants.id, so Supabase's auto-join syntax returns null.
  */
 export async function fetchProfile(userId: string) {
-  const res = await supaQuery<User & { merchants: any }>((c) =>
-    c.from('profiles').select('*, merchants(*)').eq('id', userId).maybeSingle()
-  );
-  return { ...res, data: flattenUser(res.data as any) };
+  const client = getClient();
+  if (!client) return { data: null, error: 'No client' };
+
+  // Step 1: fetch the base profile
+  const { data: profileData, error: profileError } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError || !profileData) {
+    return { data: null, error: profileError?.message ?? 'Profile not found' };
+  }
+
+  // Step 2: fetch the merchant record if the user is a merchant
+  let merchantData: any = null;
+  if (profileData.role === 'merchant') {
+    const { data: mData } = await client
+      .from('merchants')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    merchantData = mData;
+  }
+
+  // Step 3: flatten into a single User object
+  const merged = merchantData
+    ? {
+        ...profileData,
+        business_name: merchantData.business_name,
+        merchant_type: merchantData.merchant_type,
+        merchant_status: merchantData.merchant_status,
+        tin: merchantData.tin,
+        license_no: merchantData.license_no,
+        trade_license: merchantData.trade_license,
+        merchant_details: merchantData.merchant_details,
+      }
+    : profileData;
+
+  return { data: merged as any, error: null };
 }
 
 /**
@@ -107,20 +145,27 @@ export async function loadSessionProfile(
   }
 
   if (!row && normalizedPhone) {
-    // Attempt lookup by normalized phone with merchant join
-    const r = await supaQuery<User & { merchants: any }>((c) =>
-      c.from('profiles').select('*, merchants(*)').eq('phone', normalizedPhone).maybeSingle()
-    );
-    if (r.data) row = flattenUser(r.data as any);
-    else {
-      // Fallback: search for variations
-      const alt = normalizedPhone.startsWith('+251')
-        ? '0' + normalizedPhone.slice(4)
-        : normalizedPhone;
-      const r2 = await supaQuery<User & { merchants: any }>((c) =>
-        c.from('profiles').select('*, merchants(*)').eq('phone', alt).maybeSingle()
+    // 🛡️ Comprehensive Phone Fallback Search
+    const variants = [
+      normalizedPhone,
+      normalizedPhone.startsWith('+') ? normalizedPhone.slice(1) : '+' + normalizedPhone,
+      normalizedPhone.startsWith('+251') ? '0' + normalizedPhone.slice(4) : normalizedPhone,
+      normalizedPhone.startsWith('251') ? '0' + normalizedPhone.slice(3) : normalizedPhone,
+      normalizedPhone.startsWith('0') ? '251' + normalizedPhone.slice(1) : normalizedPhone,
+      normalizedPhone.startsWith('0') ? '+251' + normalizedPhone.slice(1) : normalizedPhone,
+    ];
+
+    // Remove duplicates and try each
+    const uniqueVariants = Array.from(new Set(variants));
+
+    for (const v of uniqueVariants) {
+      const r = await supaQuery<User & { merchants: any }>((c) =>
+        c.from('profiles').select('*, merchants(*)').eq('phone', v).maybeSingle()
       );
-      if (r2.data) row = flattenUser(r2.data as any);
+      if (r.data) {
+        row = flattenUser(r.data as any);
+        break;
+      }
     }
   }
 
@@ -169,40 +214,14 @@ export async function registerMerchant(
     details?: any;
   }
 ) {
-  // Strict Validation
-  if (!merchantData.tin || !/^\d{10}$/.test(merchantData.tin)) {
-    return { data: null, error: 'Invalid TIN format. Must be exactly 10 digits.' };
-  }
-  if (!merchantData.license_no || merchantData.license_no.trim().length < 4) {
-    return { data: null, error: 'Invalid Trade License Number.' };
-  }
-  // 1. Ensure Profile exists with correct role and personal details
-  const pRes = await upsertProfile({
-    id: userId,
-    full_name: merchantData.full_name,
-    phone: merchantData.phone,
-    role: 'merchant',
-    kyc_status: 'PENDING', // By the book: start as pending
-  });
-  if (pRes.error) return pRes;
-
-  // 2. Upsert Merchant Table
-  return supaQuery((c) =>
-    c
-      .from('merchants')
-      .upsert(
-        {
-          id: userId,
-          business_name: merchantData.business_name,
-          merchant_type: merchantData.merchant_type,
-          merchant_status: 'PENDING', // By the book: start as pending
-          tin: merchantData.tin,
-          license_no: merchantData.license_no,
-          merchant_details: merchantData.details || {},
-        },
-        { onConflict: 'id' }
-      )
-      .select()
-      .single()
+  // Use atomic RPC for registration
+  return supaQuery<{ success: boolean; error?: string }>((c) =>
+    c.rpc('register_merchant_rpc', {
+      p_business_name: merchantData.business_name,
+      p_merchant_type: merchantData.merchant_type,
+      p_tin: merchantData.tin,
+      p_license_no: merchantData.license_no,
+      p_details: merchantData.details || {},
+    })
   );
 }

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TopBar from '../../components/TopBar';
 import { useSystemStore } from '../../store/SystemStore';
+import { useAuthStore } from '../../store/AuthStore';
 import { DarkColors as T, Radius, Fonts } from '../../theme';
 import { GlassView } from '../../components/GlassView';
 import { t } from '../../utils/i18n';
@@ -11,6 +12,7 @@ export default function LanguageScreen() {
   const lang = useSystemStore((s) => s.lang);
   const setLang = useSystemStore((s) => s.setLang);
   const showToast = useSystemStore((s) => s.showToast);
+  const { currentUser, setCurrentUser } = useAuthStore();
 
   const langs = [
     { code: 'en', label: 'English', sub: 'Universal' },
@@ -27,6 +29,9 @@ export default function LanguageScreen() {
             key={l.code}
             onPress={() => {
               setLang(l.code);
+              if (currentUser) {
+                setCurrentUser({ ...currentUser, language: l.code });
+              }
               showToast(t('lang_changed'), 'success');
             }}
           >

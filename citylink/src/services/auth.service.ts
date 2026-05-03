@@ -3,6 +3,7 @@ import { Config } from '../config';
 import { User as AppUser } from '../types';
 import { Session } from '@supabase/supabase-js';
 import { clearAllStores } from '../store/StoreUtils';
+import { uid } from '../utils';
 
 // Import and re-export auth-adjacent helpers so screens can import from one place
 import { checkPhoneExists, fetchProfile } from './profile.service';
@@ -40,9 +41,7 @@ export async function sendOtp(
   const client = getClient();
   if (!client) return { error: 'no-credentials', success: false };
 
-  const payload: any = isEmail 
-    ? { email: identifier } 
-    : { phone: identifier, channel: 'sms' };
+  const payload: any = isEmail ? { email: identifier } : { phone: identifier, channel: 'sms' };
 
   if (metadata) {
     payload.options = { data: metadata };

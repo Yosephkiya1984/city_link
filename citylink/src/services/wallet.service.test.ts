@@ -1,5 +1,4 @@
 import { fetchWalletData, processTopup, queueP2PTransfer } from './wallet.service';
-import { DataEngine } from './data.engine';
 import { SecurePersist } from '../store/SecurePersist';
 import { supaQuery } from './supabase';
 
@@ -23,14 +22,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(() => Promise.resolve()),
 }));
 
-jest.mock('./data.engine', () => ({
-  DataEngine: {
-    wallets: {
-      get: jest.fn(),
-      getTransactions: jest.fn(),
-    },
-  },
-}));
+// SecurePersist mock is defined below
 
 jest.mock('../store/SecurePersist', () => ({
   SecurePersist: {
@@ -50,8 +42,10 @@ describe('Wallet Service', () => {
     const mockTxs: any[] = [{ id: 't1', amount: 100, type: 'credit' }];
 
     it('should successfully fetch wallet data and cache it', async () => {
-      (DataEngine.wallets.get as jest.Mock).mockResolvedValue({ data: mockWallet, error: null });
-      (DataEngine.wallets.getTransactions as jest.Mock).mockResolvedValue({ data: mockTxs, error: null });
+      // Mock supaQuery for wallet and transactions
+      (supaQuery as jest.Mock)
+        .mockResolvedValueOnce({ data: mockWallet, error: null }) // wallet
+        .mockResolvedValueOnce({ data: mockTxs, error: null });    // transactions
 
       const result = await fetchWalletData(mockUserId);
 
@@ -61,13 +55,13 @@ describe('Wallet Service', () => {
         walletId: 'w1',
       });
       expect(SecurePersist.setItem).toHaveBeenCalledWith(
-        `wallet_cache_${mockUserId}`,
+        `wallet-cache-${mockUserId}`,
         JSON.stringify(result)
       );
     });
 
     it('should fallback to cache on error', async () => {
-      (DataEngine.wallets.get as jest.Mock).mockRejectedValue(new Error('Network error'));
+      (supaQuery as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
       (SecurePersist.getItem as jest.Mock).mockResolvedValue(
         JSON.stringify({ balance: 300, transactions: [], walletId: 'w1' })
       );

@@ -1,4 +1,5 @@
 import { supaQuery } from './supabase';
+import { obfuscatePII } from '../utils/privacy';
 
 /**
  * Analytics Service (Goal §23).
@@ -63,7 +64,8 @@ export async function fetchCityStats(): Promise<CityStats> {
         : 5 + Math.floor(Math.random() * 5);
     stats.systemLoad = load + '%';
   } catch (e: any) {
-    console.warn('[Analytics] Failed to fetch real stats, using demo defaults.', e?.message);
+    const safeError = obfuscatePII(e?.message || 'Unknown Error');
+    console.warn('[Analytics] Failed to fetch real stats, using demo defaults.', safeError);
     return {
       totalUsers: '1.2K',
       dailyRevenue: '4.8K ETB',
@@ -73,4 +75,18 @@ export async function fetchCityStats(): Promise<CityStats> {
   }
 
   return stats;
+}
+
+/**
+ * 🛡️ Securely track business events without leaking PII.
+ */
+export function trackEvent(name: string, properties: Record<string, any> = {}) {
+  const sanitizedProps = JSON.parse(obfuscatePII(properties));
+
+  // In production, this would send to a database or external sink
+  if (__DEV__) {
+    console.log(`[Analytics: ${name}]`, sanitizedProps);
+  }
+
+  // Future-proofing: Persist to analytics_events table
 }

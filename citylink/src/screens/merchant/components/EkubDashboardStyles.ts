@@ -1,103 +1,241 @@
-import { StyleSheet } from 'react-native';
-import { DarkColors as T } from '../../../theme';
+import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
+import { D, Radius, Fonts } from './StitchTheme';
+
+const { width } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: T.ink },
+  container: { flex: 1, backgroundColor: D.ink },
 
-  // Navbar
-  navBar: {
-    height: 70,
+  // Header
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 24) + 16,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    backgroundColor: D.ink,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: T.lift,
-    paddingTop: 10,
   },
-  brandBox: { flexDirection: 'row', alignItems: 'center' },
-  brandIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#00A86B20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  brandTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.black,
+    color: D.white,
+    letterSpacing: -0.5,
   },
-  brandName: { color: '#00A86B', fontSize: 16, fontWeight: '700' },
-  brandSubtitle: { color: T.sub, fontSize: 9, fontWeight: '700', letterSpacing: 1, marginTop: 2 },
-
-  // Tabs
-  tabScrollWrap: { borderBottomWidth: 1, borderBottomColor: T.edge, backgroundColor: T.lift },
-  tabScroller: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  tabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: T.surface,
-  },
-  tabItemActive: { backgroundColor: '#00A86B20' },
-  tabItemTxt: { color: T.sub, fontSize: 13, fontWeight: '600', marginLeft: 8 },
-  tabItemTxtActive: { color: '#00A86B', fontWeight: '700' },
-
-  // Stats
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24, padding: 16 },
-  statCard: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    backgroundColor: T.lift,
-    borderWidth: 1,
-    borderColor: T.edge,
-    borderRadius: 16,
-    padding: 16,
-  },
-  statIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  statValue: { fontSize: 22, fontWeight: '700', color: T.text, marginBottom: 2 },
-  statLabel: { fontSize: 11, color: T.sub, fontWeight: '600', textTransform: 'uppercase' },
-
-  // Circle Cards
-  card: {
-    backgroundColor: T.lift,
-    borderWidth: 1,
-    borderColor: T.edge,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    marginHorizontal: 16,
-  },
-  circleName: { color: T.text, fontSize: 16, fontWeight: '700' },
-  circleSub: { color: T.sub, fontSize: 12, marginTop: 2 },
-  potLabel: {
-    color: T.sub,
-    fontSize: 10,
-    fontWeight: '700',
+  brandTag: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: D.violet,
+    marginTop: 2,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  potValue: { color: '#00A86B', fontSize: 18, fontWeight: '800' },
 
-  // App Cards
-  appHeader: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: T.rim },
-  userName: { color: T.text, fontSize: 15, fontWeight: '700' },
-  appReason: { color: T.sub, fontSize: 13, fontStyle: 'italic', marginTop: 4 },
-
-  // Payout Cards
-  winnerName: { color: '#00A86B', fontSize: 14, fontWeight: '700', marginTop: 4 },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
+  // Tabs
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    gap: 8,
   },
-  statusTxt: { fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+  tabItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: D.lift,
+    borderWidth: 1,
+    borderColor: D.edge,
+  },
+  tabItemActive: {
+    backgroundColor: D.violet,
+    borderColor: D.violet,
+  },
+  tabText: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+  },
+  tabTextActive: {
+    color: D.white,
+  },
+
+  // Bento Summary
+  bentoContainer: {
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 24,
+  },
+  bentoRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bentoCard: {
+    flex: 1,
+    backgroundColor: D.surface,
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: D.edge,
+  },
+  bentoLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  bentoValue: {
+    fontSize: 20,
+    fontFamily: Fonts.black,
+    color: D.white,
+    marginTop: 4,
+  },
+
+  // Circle Card (Premium)
+  circleCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: D.surface,
+    borderRadius: 28,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: D.edge,
+  },
+  circleTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  circleTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.black,
+    color: D.white,
+  },
+  circleType: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: D.violet,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  circleProgress: {
+    height: 6,
+    backgroundColor: D.lift,
+    borderRadius: 3,
+    marginVertical: 16,
+    overflow: 'hidden',
+  },
+  circleProgressFill: {
+    height: '100%',
+    backgroundColor: D.violet,
+    borderRadius: 3,
+  },
+  circleStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  circleStatItem: {
+    flex: 1,
+  },
+  circleStatLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  circleStatValue: {
+    fontSize: 15,
+    fontFamily: Fonts.black,
+    color: D.white,
+  },
+
+  // Members / Applications
+  appCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: D.surface,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: D.edge,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  appAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: D.lift,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appName: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: D.white,
+  },
+  appDetails: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: D.sub,
+  },
+  appActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  approveBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: D.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rejectBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: D.red + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Draw View
+  drawHero: {
+    marginHorizontal: 16,
+    padding: 32,
+    borderRadius: 32,
+    backgroundColor: D.lift,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: D.violet + '40',
+  },
+  drawTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.black,
+    color: D.white,
+    marginBottom: 8,
+  },
+  drawTimer: {
+    fontSize: 48,
+    fontFamily: Fonts.mono,
+    color: D.violet,
+    marginVertical: 20,
+  },
+  drawBtn: {
+    backgroundColor: D.violet,
+    paddingHorizontal: 40,
+    paddingVertical: 18,
+    borderRadius: 20,
+  },
+  drawBtnText: {
+    fontSize: 16,
+    fontFamily: Fonts.black,
+    color: D.white,
+  },
 });

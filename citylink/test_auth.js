@@ -7,7 +7,7 @@ async function test() {
   const { data, error } = await client.auth.signUp({
     email: 'testxyz123@citylink.local',
     password: 'password123',
-    phone: '+251999999991'
+    phone: '+251999999991',
   });
   console.log('signUp:', data, error);
 }

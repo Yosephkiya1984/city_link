@@ -39,6 +39,8 @@ export interface UnifiedOrder {
   buyer?: { full_name?: string; phone?: string };
   display_name?: string; // Product name or Restaurant name
   shipping_address?: string;
+  destination_lat?: number;
+  destination_lng?: number;
 }
 
 import * as Location from 'expo-location';
@@ -114,7 +116,7 @@ export async function getCurrentLocation(): Promise<{ lat: number; lng: number }
     const req = await Location.requestForegroundPermissionsAsync();
     if (req.status !== 'granted') return null;
   }
-  
+
   try {
     // 1. Try to grab the last known position instantly so we never hang the ping
     const lastKnown = await Location.getLastKnownPositionAsync();
@@ -127,12 +129,12 @@ export async function getCurrentLocation(): Promise<{ lat: number; lng: number }
     // 2. If no last known, try current position with a strict 5-second timeout
     const locPromise = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-    
+
     const loc = await Promise.race([locPromise, timeoutPromise]);
     if (loc) {
       return { lat: loc.coords.latitude, lng: loc.coords.longitude };
     }
-    
+
     return null;
   } catch (err) {
     console.log('[Location] Failed to get location:', err);
@@ -183,36 +185,29 @@ export async function fetchAgentProfile(agentId: string) {
 export async function findNearbyAgents(
   merchantLat: number,
   merchantLng: number,
-  radiusKm = 10
+  radiusMeters = 5000
 ): Promise<DeliveryAgent[]> {
   if (!hasSupabase()) return [];
 
-  const heartbeatThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-
-  const { data, error } = await supaQuery<DeliveryAgent[]>((c) =>
-    c
-      .from('delivery_agents')
-      .select(`*, profile:profiles!delivery_agents_id_fkey(full_name, phone)`)
-      .eq('is_online', true)
-      .eq('agent_status', 'APPROVED')
-      .gt('location_updated_at', heartbeatThreshold)
-      .not('current_lat', 'is', null)
-      .not('current_lng', 'is', null)
+  const { data, error } = await supaQuery<any[]>((c) =>
+    c.rpc('get_nearby_agents', {
+      p_lat: merchantLat,
+      p_lng: merchantLng,
+      p_radius_meters: radiusMeters,
+    })
   );
 
   if (error || !data) return [];
 
-  return (data as (DeliveryAgent & { distanceKm?: number })[])
-    .map((a) => ({
-      ...a,
-      distanceKm:
-        a.current_lat && a.current_lng
-          ? haversine(merchantLat, merchantLng, a.current_lat, a.current_lng)
-          : radiusKm + 1,
-    }))
-    .filter((a) => (a.distanceKm || 0) <= radiusKm)
-    .sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0))
-    .slice(0, 10);
+  // Map RPC result back to DeliveryAgent type
+  return data.map((a) => ({
+    id: a.agent_id,
+    first_name: a.first_name,
+    last_name: a.last_name,
+    vehicle_type: a.vehicle_type,
+    current_status: a.current_status,
+    distance_meters: a.distance_meters,
+  })) as any[];
 }
 
 // ── Dispatch Job ──────────────────────────────────────────────────────────────
@@ -385,6 +380,7 @@ export async function confirmDeliveryWithPin(
 // ── Proof of Delivery (POD) ───────────────────────────────────────────────────
 export async function uploadDeliveryProof(
   orderId: string,
+  agentId: string,
   base64Image: string,
   orderType: 'FOOD' | 'MARKETPLACE' = 'MARKETPLACE'
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
@@ -412,6 +408,7 @@ export async function uploadDeliveryProof(
         .from(table)
         .update({ delivery_proof_url: publicUrl, updated_at: new Date().toISOString() })
         .eq('id', orderId)
+        .eq('agent_id', agentId)
     );
 
     if (updateError) throw updateError;
@@ -472,7 +469,7 @@ export async function recordTelemetry(
 // ── Fetch Pending Dispatches for Agent ────────────────────────────────────────
 export async function fetchPendingDispatches(agentId: string): Promise<DeliveryDispatch[]> {
   if (!hasSupabase()) return [];
-  
+
   // 1. Fetch the dispatches first
   const { data: dispatches, error } = await supaQuery<any[]>((c) =>
     c
@@ -488,20 +485,21 @@ export async function fetchPendingDispatches(agentId: string): Promise<DeliveryD
 
   // 2. Fetch order details for each type
   const marketplaceIds = dispatches
-    .filter(d => d.order_type === 'MARKETPLACE' || !d.order_type)
-    .map(d => d.order_id);
-    
-  const foodIds = dispatches
-    .filter(d => d.order_type === 'FOOD')
-    .map(d => d.order_id);
+    .filter((d) => d.order_type === 'MARKETPLACE' || !d.order_type)
+    .map((d) => d.order_id);
+
+  const foodIds = dispatches.filter((d) => d.order_type === 'FOOD').map((d) => d.order_id);
 
   let marketplaceOrders: any[] = [];
   let foodOrders: any[] = [];
 
   if (marketplaceIds.length > 0) {
     const { data } = await supaQuery<any[]>((c) =>
-      c.from('marketplace_orders')
-        .select(`*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, business_name, subcity)`)
+      c
+        .from('marketplace_orders')
+        .select(
+          `*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, business_name, subcity)`
+        )
         .in('id', marketplaceIds)
     );
     marketplaceOrders = data || [];
@@ -509,30 +507,39 @@ export async function fetchPendingDispatches(agentId: string): Promise<DeliveryD
 
   if (foodIds.length > 0) {
     const { data } = await supaQuery<any[]>((c) =>
-      c.from('food_orders')
-        .select(`*, merchant:profiles!food_orders_merchant_id_fkey(full_name, business_name, subcity)`)
+      c
+        .from('food_orders')
+        .select(
+          `*, merchant:profiles!food_orders_merchant_id_fkey(full_name, business_name, subcity)`
+        )
         .in('id', foodIds)
     );
     foodOrders = data || [];
   }
 
   // 3. Merge details back to dispatches
-  return dispatches.map(d => {
-    let orderDetails = null;
-    if (d.order_type === 'FOOD') {
-      orderDetails = foodOrders.find(o => o.id === d.order_id);
-    } else {
-      orderDetails = marketplaceOrders.find(o => o.id === d.order_id);
-    }
+  return dispatches
+    .map((d) => {
+      let orderDetails = null;
+      if (d.order_type === 'FOOD') {
+        orderDetails = foodOrders.find((o) => o.id === d.order_id);
+      } else {
+        orderDetails = marketplaceOrders.find((o) => o.id === d.order_id);
+      }
 
-    return {
-      ...d,
-      order: orderDetails ? {
-        ...orderDetails,
-        merchant: Array.isArray(orderDetails.merchant) ? orderDetails.merchant[0] : orderDetails.merchant
-      } : null
-    };
-  }).filter(d => d.order !== null) as DeliveryDispatch[];
+      return {
+        ...d,
+        order: orderDetails
+          ? {
+              ...orderDetails,
+              merchant: Array.isArray(orderDetails.merchant)
+                ? orderDetails.merchant[0]
+                : orderDetails.merchant,
+            }
+          : null,
+      };
+    })
+    .filter((d) => d.order !== null) as DeliveryDispatch[];
 }
 
 // ── Fetch Active Job for Agent ────────────────────────────────────────────────
@@ -545,7 +552,7 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
       c
         .from('marketplace_orders')
         .select(
-          `*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, business_name, subcity, woreda), buyer:profiles!marketplace_orders_buyer_id_fkey(full_name, phone)`
+          `*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, business_name, subcity, woreda, latitude, longitude), buyer:profiles!marketplace_orders_buyer_id_fkey(full_name, phone)`
         )
         .eq('agent_id', agentId)
         .in('status', ['AGENT_ASSIGNED', 'SHIPPED', 'IN_TRANSIT', 'AWAITING_PIN'])
@@ -554,7 +561,7 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
       c
         .from('food_orders')
         .select(
-          `*, merchant:profiles!food_orders_merchant_id_fkey(full_name, business_name, subcity, woreda), buyer:profiles!food_orders_citizen_id_fkey(full_name, phone)`
+          `*, merchant:profiles!food_orders_merchant_id_fkey(full_name, business_name, subcity, woreda, latitude, longitude), buyer:profiles!food_orders_citizen_id_fkey(full_name, phone)`
         )
         .eq('agent_id', agentId)
         .in('status', ['AGENT_ASSIGNED', 'SHIPPED', 'IN_TRANSIT', 'AWAITING_PIN'])
@@ -565,26 +572,52 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
 
   if (marketRes.data) {
     unified.push(
-      ...marketRes.data.map((o: any) => ({
-        ...o,
+      ...marketRes.data.map((m: any) => ({
+        ...m,
         order_type: 'MARKETPLACE' as const,
-        display_name: o.product_name,
-        buyer_id: o.buyer_id,
-        merchant: Array.isArray(o.merchant) ? o.merchant[0] : o.merchant,
-        buyer: Array.isArray(o.buyer) ? o.buyer[0] : o.buyer,
+        display_name: m.product_name,
+        buyer_id: m.buyer_id,
+        merchant: Array.isArray(m.merchant)
+          ? {
+              ...m.merchant[0],
+              lat: (m.merchant[0] as any).latitude,
+              lng: (m.merchant[0] as any).longitude,
+            }
+          : {
+              ...(m.merchant as any),
+              lat: (m.merchant as any)?.latitude,
+              lng: (m.merchant as any)?.longitude,
+            },
+        buyer: Array.isArray(m.buyer) ? m.buyer[0] : m.buyer,
+        shipping_address: m.shipping_address,
+        destination_lat: m.destination_lat,
+        destination_lng: m.destination_lng,
       }))
     );
   }
 
   if (foodRes.data) {
     unified.push(
-      ...foodRes.data.map((o: any) => ({
-        ...o,
+      ...foodRes.data.map((f: any) => ({
+        ...f,
         order_type: 'FOOD' as const,
-        display_name: o.restaurant_name,
-        buyer_id: o.citizen_id,
-        merchant: Array.isArray(o.merchant) ? o.merchant[0] : o.merchant,
-        buyer: Array.isArray(o.buyer) ? o.buyer[0] : o.buyer,
+        display_name: f.restaurant_name,
+        buyer_id: f.citizen_id,
+        merchant: Array.isArray(f.merchant)
+          ? {
+              ...f.merchant[0],
+              lat: (f.merchant[0] as any).latitude,
+              lng: (f.merchant[0] as any).longitude,
+            }
+          : {
+              ...(f.merchant as any),
+              lat: (f.merchant as any)?.latitude,
+              lng: (f.merchant as any)?.longitude,
+            },
+        buyer: Array.isArray(f.buyer) ? f.buyer[0] : f.buyer,
+        shipping_address: f.shipping_address,
+        destination_lat: f.destination_lat,
+        destination_lng: f.destination_lng,
       }))
     );
   }
@@ -595,17 +628,16 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
 }
 
 // ── Fetch Agent Delivery History ──────────────────────────────────────────────
-export async function fetchAgentHistory(
-  agentId: string,
-  limit = 20
-): Promise<any[]> {
+export async function fetchAgentHistory(agentId: string, limit = 20): Promise<any[]> {
   if (!hasSupabase()) return [];
-  
+
   const [marketRes, foodRes] = await Promise.all([
     supaQuery<any[]>((c) =>
       c
         .from('marketplace_orders')
-        .select(`id, product_name, total, agent_fee, status, delivered_at, merchant:profiles!marketplace_orders_merchant_id_fkey(business_name)`)
+        .select(
+          `id, product_name, total, agent_fee, status, delivered_at, merchant:profiles!marketplace_orders_merchant_id_fkey(business_name)`
+        )
         .eq('agent_id', agentId)
         .eq('status', 'COMPLETED')
         .order('delivered_at', { ascending: false })
@@ -614,20 +646,32 @@ export async function fetchAgentHistory(
     supaQuery<any[]>((c) =>
       c
         .from('food_orders')
-        .select(`id, restaurant_name, total, agent_fee, status, delivered_at, merchant:profiles!food_orders_merchant_id_fkey(business_name)`)
+        .select(
+          `id, restaurant_name, total, agent_fee, status, delivered_at, merchant:profiles!food_orders_merchant_id_fkey(business_name)`
+        )
         .eq('agent_id', agentId)
         .eq('status', 'COMPLETED')
         .order('delivered_at', { ascending: false })
         .limit(limit)
-    )
+    ),
   ]);
 
   const unified = [
-    ...(marketRes.data || []).map(o => ({ ...o, display_name: o.product_name, order_type: 'MARKETPLACE' })),
-    ...(foodRes.data || []).map(o => ({ ...o, display_name: o.restaurant_name, order_type: 'FOOD' }))
+    ...(marketRes.data || []).map((o) => ({
+      ...o,
+      display_name: o.product_name,
+      order_type: 'MARKETPLACE',
+    })),
+    ...(foodRes.data || []).map((o) => ({
+      ...o,
+      display_name: o.restaurant_name,
+      order_type: 'FOOD',
+    })),
   ];
 
-  return unified.sort((a, b) => new Date(b.delivered_at).getTime() - new Date(a.delivered_at).getTime()).slice(0, limit);
+  return unified
+    .sort((a, b) => new Date(b.delivered_at).getTime() - new Date(a.delivered_at).getTime())
+    .slice(0, limit);
 }
 
 // ── Subscribe to Dispatches (Agent Dashboard) ─────────────────────────────────

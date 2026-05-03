@@ -40,12 +40,12 @@ export function QRScannerScreen() {
               marginBottom: 12,
             }}
           >
-            {t('Camera Permission Required')}
+            {t('camera_perm_required')}
           </Text>
           <Text style={{ color: C.sub, textAlign: 'center', marginBottom: 24 }}>
-            {t('CityLink needs access to your camera to scan peer-to-peer ETB QR codes.')}
+            {t('camera_perm_desc')}
           </Text>
-          <CButton title={t('Allow Camera Access')} onPress={requestPermission} />
+          <CButton title={t('allow_camera')} onPress={requestPermission} />
         </View>
       </View>
     );
@@ -58,21 +58,21 @@ export function QRScannerScreen() {
     try {
       const payload = JSON.parse(data);
       if (payload.type === 'profile' && payload.phone) {
-        showToast(t('QR Scanned! Redirecting...'), 'success');
+        showToast(t('qr_scanned_success'), 'success');
         navigation.navigate('SendMoney', { autoFillPhone: payload.phone });
       } else {
-        showToast(t('Invalid CityLink QR Code'), 'error');
+        showToast(t('invalid_qr'), 'error');
         setTimeout(() => setScanned(false), 2000); // Reset after 2s if invalid
       }
     } catch (error) {
-      showToast(t('Unrecognized QR Format'), 'error');
+      showToast(t('unrecognized_qr'), 'error');
       setTimeout(() => setScanned(false), 2000);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar title="📷 Scan to Pay" />
+      <TopBar title={t('scan_to_pay')} />
 
       <View style={{ flex: 1 }}>
         <CameraView
@@ -108,11 +108,11 @@ export function QRScannerScreen() {
             }}
           >
             <Text style={{ color: '#fff', fontSize: FontSize.lg, fontWeight: '600' }}>
-              {t('Align QR code within the frame to send ETB')}
+              {t('align_qr_desc')}
             </Text>
             {scanned && (
               <CButton
-                title={t('Tap to Scan Again')}
+                title={t('scan_again')}
                 onPress={() => setScanned(false)}
                 style={{ marginTop: 24 }}
               />

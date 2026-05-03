@@ -15,6 +15,7 @@ import { Colors, DarkColors, Fonts } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { KycFayda } from './auth/KycFayda';
 import { KycService } from '../../services/kyc.service';
+import { useT } from '../../utils/i18n';
 
 export default function PendingVerificationScreen({ navigation }: any) {
   const isDark = useSystemStore((s) => s.isDark);
@@ -24,6 +25,7 @@ export default function PendingVerificationScreen({ navigation }: any) {
   const resetSystem = useSystemStore((s) => s.reset);
   const currentUser = useAuthStore((s) => s.currentUser);
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
+  const t = useT();
 
   // KYC Flow State
   const [showKyc, setShowKyc] = useState(false);
@@ -139,17 +141,18 @@ export default function PendingVerificationScreen({ navigation }: any) {
         color={C.primary}
         style={{ marginBottom: 24 }}
       />
-      <Text style={[styles.title, { color: C.text }]}>Verification Pending</Text>
+      <Text style={[styles.title, { color: C.text }]}>{t('verification_pending')}</Text>
       <Text style={[styles.subtitle, { color: C.sub }]}>
-        Your account ({currentUser?.role}) is currently awaiting verification. Please complete KYC
-        or wait for an administrator to approve your account.
+        {t('pending_verification_desc', {
+          role: currentUser?.role ? t('role_' + currentUser.role) : '',
+        })}
       </Text>
 
       <TouchableOpacity
         style={[styles.btn, { backgroundColor: C.primary, marginBottom: 16 }]}
         onPress={() => setShowKyc(true)}
       >
-        <Text style={[styles.btnText, { color: C.ink }]}>Verify with Fayda ID</Text>
+        <Text style={[styles.btnText, { color: C.ink }]}>{t('verify_fayda_btn')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -197,7 +200,7 @@ export default function PendingVerificationScreen({ navigation }: any) {
         {statusLoading ? (
           <ActivityIndicator color={C.text} />
         ) : (
-          <Text style={[styles.btnText, { color: C.text }]}>Check Status</Text>
+          <Text style={[styles.btnText, { color: C.text }]}>{t('check_status')}</Text>
         )}
       </TouchableOpacity>
 
@@ -205,7 +208,7 @@ export default function PendingVerificationScreen({ navigation }: any) {
         style={[styles.btn, { backgroundColor: 'transparent' }]}
         onPress={handleSignOut}
       >
-        <Text style={[styles.btnText, { color: C.sub }]}>Sign Out</Text>
+        <Text style={[styles.btnText, { color: C.sub }]}>{t('sign_out')}</Text>
       </TouchableOpacity>
     </View>
   );

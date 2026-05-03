@@ -60,9 +60,12 @@ export const SecurePersist = {
     const raw = await AsyncStorage.getItem(fullKey);
     if (raw) {
       const decrypted = await SecurityUtils.decrypt(raw);
-      if (decrypted && decrypted !== '[DECRYPTION_ERROR]' && decrypted !== '[CORRUPTED_DATA]') {
+      if (decrypted && !['[DECRYPTION_ERROR]', '[CORRUPTED_DATA]', '[DECRYPTION_FAILED]', '[INVALID_FORMAT]'].includes(decrypted)) {
         return decrypted;
       }
+      // If decryption fails, the data is likely corrupted or key mismatch — clear it
+      console.warn(`[SecurePersist] Decryption failed for key "${key}", clearing...`);
+      await SecurePersist.deleteItem(key);
       return null;
     }
     return null;
@@ -122,6 +125,11 @@ export const SecurePersist = {
       if (decrypted && decrypted !== '[DECRYPTION_ERROR]' && decrypted !== '[CORRUPTED_DATA]') {
         return JSON.parse(decrypted);
       }
+      // Fallback if not encrypted yet, or clear if corrupted
+      if (decrypted === '[DECRYPTION_ERROR]') {
+        await AsyncStorage.removeItem('citylink-wallet-transactions');
+        return [];
+      }
       return JSON.parse(res);
     } catch {
       return [];
@@ -142,6 +150,55 @@ export const SecurePersist = {
       return res ? JSON.parse(res) : null;
     } catch {
       return null;
+    }
+  },
+
+  // 🛡️ Offline Orders Persistence
+  saveOfflineOrders: async (orders: any[]): Promise<void> => {
+    const raw = JSON.stringify(orders);
+    const encrypted = await SecurityUtils.encrypt(raw);
+    await AsyncStorage.setItem('citylink-offline-orders', encrypted);
+  },
+  loadOfflineOrders: async (): Promise<any[]> => {
+    try {
+      const res = await AsyncStorage.getItem('citylink-offline-orders');
+      if (!res) return [];
+
+      const decrypted = await SecurityUtils.decrypt(res);
+      if (decrypted && decrypted !== '[DECRYPTION_ERROR]' && decrypted !== '[CORRUPTED_DATA]') {
+        return JSON.parse(decrypted);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * clearAll — Hard wipe of all CityLink persistent data.
+   */
+  clearAll: async (): Promise<void> => {
+    // 1. Delete known items from SecureStore
+    const secureKeys = [
+      'citylink-current-user',
+      'citylink-wallet-balance',
+      'citylink-kyc-data',
+      'citylink-kyc-status',
+      'citylink-active-parking',
+    ];
+    for (const key of secureKeys) {
+      try {
+        await SecureStore.deleteItemAsync(key);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // 2. Clear AsyncStorage entries
+    const keys = await AsyncStorage.getAllKeys();
+    const toRemove = keys.filter((k) => k.startsWith('citylink-') || k.includes('wallet-cache'));
+    if (toRemove.length > 0) {
+      await AsyncStorage.multiRemove(toRemove);
     }
   },
 };

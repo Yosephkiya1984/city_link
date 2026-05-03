@@ -1,14 +1,25 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { DarkColors as T, Fonts } from '../../../theme';
+import { D, Radius, Fonts, Spacing } from './StitchTheme';
 import { GlassView } from '../../../components/GlassView';
+import { Typography, Surface, SectionTitle } from '../../../components';
 import { fmtETB } from '../../../utils';
+import { t } from '../../../utils/i18n';
 
 const { width } = Dimensions.get('window');
 
 // We use any types temporarily until Epic 2 (Strict Mode) covers UI components.
-export function DashboardOverviewTab({ orders, inventory, salesHistory, showToast, styles }: any) {
+export function DashboardOverviewTab({
+  orders = [],
+  inventory = [],
+  tables = [],
+  reservations = [],
+  salesHistory = { curve: [], raw: [], labels: [] },
+  showToast,
+  styles,
+  t,
+}: any) {
   const revenueStatuses = ['PAID', 'SHIPPED', 'COMPLETED'];
   const totalRev = orders
     .filter((o: any) => revenueStatuses.includes(o.status))
@@ -20,6 +31,8 @@ export function DashboardOverviewTab({ orders, inventory, salesHistory, showToas
     )
   ).length;
   const lowStockCount = inventory.filter((p: any) => p.stock <= 5).length;
+  const activeTables = tables.filter((t: any) => t.status !== 'free').length;
+  const pendingReservations = reservations.filter((r: any) => r.status === 'PENDING').length;
 
   const salesCurve = salesHistory.curve || [];
 
@@ -27,72 +40,91 @@ export function DashboardOverviewTab({ orders, inventory, salesHistory, showToas
     <View style={styles.tabContent}>
       <View style={styles.headerTitleRow}>
         <View>
-          <Text style={styles.pageTitle}>Dashboard</Text>
-          <Text style={styles.pageSubtitle}>Sales analytics overview</Text>
+          <Typography variant="h1">{t('dashboard')}</Typography>
+          <Typography variant="body" color="sub">
+            {t('sales_analytics_overview')}
+          </Typography>
         </View>
         <TouchableOpacity
           style={styles.iconButtonOutlined}
-          onPress={() => showToast('Report downloaded to device', 'success')}
+          onPress={() => showToast(t('report_downloaded'), 'success')}
         >
-          <Ionicons name="download-outline" size={20} color={T.onSurface} />
+          <Ionicons name="download-outline" size={20} color={D.text} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.statsGrid}>
-        <GlassView intensity={15} style={styles.premiumStatCard}>
-          <View style={[styles.statIconBox, { backgroundColor: T.primary + '20' }]}>
-            <Ionicons name="wallet-outline" size={18} color={T.primary} />
+        <Surface variant="lift" style={[styles.premiumStatCard, { backgroundColor: D.primary + '08' }]}>
+          <View style={[styles.statIconBox, { backgroundColor: D.primary + '15' }]}>
+            <Ionicons name="restaurant" size={18} color={D.primary} />
           </View>
-          <View style={{ marginTop: 12 }}>
-            <Text style={[styles.statValue, { color: T.primary, fontFamily: Fonts.black }]}>
-              {fmtETB(totalRev)}
-            </Text>
-            <Text style={[styles.statLabel, { color: T.sub, fontFamily: Fonts.bold }]}>
-              TODAY'S REVENUE
-            </Text>
+          <View style={{ marginTop: Spacing.sm }}>
+            <Typography variant="h1" color="primary">
+              {activeTables} / {tables.length}
+            </Typography>
+            <Typography variant="hint" color="sub" style={{ letterSpacing: 1 }}>
+              ACTIVE TABLES
+            </Typography>
           </View>
-          <View style={styles.payoutChip}>
-            <Text style={styles.payoutText}>+12% vs yesterday</Text>
-          </View>
-        </GlassView>
+          <Surface variant="flat" style={styles.payoutChip}>
+            <Typography variant="hint" color="primary" style={{ fontSize: 10 }}>
+              {tables.length - activeTables} Free
+            </Typography>
+          </Surface>
+        </Surface>
 
-        <GlassView intensity={15} style={styles.premiumStatCard}>
-          <View style={[styles.statIconBox, { backgroundColor: T.secondary + '20' }]}>
-            <Ionicons name="hourglass-outline" size={18} color={T.secondary} />
+        <Surface variant="lift" style={[styles.premiumStatCard, { backgroundColor: D.secondary + '08' }]}>
+          <View style={[styles.statIconBox, { backgroundColor: D.secondary + '15' }]}>
+            <Ionicons name="calendar" size={18} color={D.secondary} />
           </View>
-          <View style={{ marginTop: 12 }}>
-            <Text style={[styles.statValue, { color: T.secondary, fontFamily: Fonts.black }]}>
-              {fmtETB(totalRev * 0.85)}
-            </Text>
-            <Text style={[styles.statLabel, { color: T.sub, fontFamily: Fonts.bold }]}>
-              PENDING PAYOUTS
-            </Text>
+          <View style={{ marginTop: Spacing.sm }}>
+            <Typography variant="h1" style={{ color: D.secondary }}>
+              {pendingReservations}
+            </Typography>
+            <Typography variant="hint" color="sub" style={{ letterSpacing: 1 }}>
+              NEW RESERVATIONS
+            </Typography>
           </View>
-          <View style={[styles.payoutChip, { backgroundColor: T.secondary + '15' }]}>
-            <Text style={[styles.payoutText, { color: T.secondary }]}>Escrow Protected</Text>
-          </View>
-        </GlassView>
+          <Surface
+            variant="flat"
+            style={[styles.payoutChip, { backgroundColor: D.secondary + '10' }]}
+          >
+            <Typography variant="hint" style={{ color: D.secondary, fontSize: 10 }}>
+              {reservations.length} Total
+            </Typography>
+          </Surface>
+        </Surface>
       </View>
 
-      <View style={styles.miniStatsRow}>
+      <Surface variant="outline" style={styles.miniStatsRow}>
         <View style={styles.miniStat}>
-          <Text style={[styles.miniStatValue, { fontFamily: Fonts.black }]}>{orders.length}</Text>
-          <Text style={[styles.miniStatLabel, { fontFamily: Fonts.bold }]}>ORDERS</Text>
+          <Typography variant="h2">{orders.length}</Typography>
+          <Typography variant="hint" color="sub" style={{ letterSpacing: 1 }}>
+            {t('orders_up')}
+          </Typography>
         </View>
         <View style={styles.miniStat}>
-          <Text style={[styles.miniStatValue, { fontFamily: Fonts.black }]}>{activeOrd}</Text>
-          <Text style={[styles.miniStatLabel, { fontFamily: Fonts.bold }]}>ACTIVE</Text>
+          <Typography variant="h2">{activeOrd}</Typography>
+          <Typography variant="hint" color="sub" style={{ letterSpacing: 1 }}>
+            {t('active_up')}
+          </Typography>
         </View>
         <View style={styles.miniStat}>
-          <Text style={[styles.miniStatValue, { color: T.error, fontFamily: Fonts.black }]}>{lowStockCount}</Text>
-          <Text style={[styles.miniStatLabel, { fontFamily: Fonts.bold }]}>LOW STOCK</Text>
+          <Typography variant="h2" color="red">
+            {lowStockCount}
+          </Typography>
+          <Typography variant="hint" color="sub" style={{ letterSpacing: 1 }}>
+            {t('low_stock_up')}
+          </Typography>
         </View>
-      </View>
+      </Surface>
 
-      <View style={styles.chartContainer}>
+      <Surface variant="flat" style={styles.chartContainer}>
         <View style={styles.chartHeader}>
-          <Text style={styles.cardTitle}>Sales Trend</Text>
-          <Text style={styles.pageSubtitle}>Daily volume for last 7 days</Text>
+          <Typography variant="h3">{t('sales_trend')}</Typography>
+          <Typography variant="hint" color="sub">
+            {t('daily_volume_7d')}
+          </Typography>
         </View>
         <View style={styles.chartGraphArea}>
           <View style={styles.chartBars}>
@@ -108,39 +140,57 @@ export function DashboardOverviewTab({ orders, inventory, salesHistory, showToas
                       styles.chartBarLine,
                       {
                         height: `${Math.max(val * 100, 8)}%`,
-                        backgroundColor: val > 0.5 ? T.primary : T.primary + '80',
-                        borderRadius: 4,
+                        backgroundColor: val > 0.5 ? D.primary : D.primary + '50',
+                        borderRadius: Radius.sm,
                       },
                     ]}
                   />
-                  <Text style={[styles.chartDayLabel, { fontFamily: Fonts.bold }]}>{dayLabel}</Text>
+                  <Typography
+                    variant="hint"
+                    style={{
+                      color: D.sub,
+                      fontSize: 8,
+                      marginTop: 8,
+                      textTransform: 'uppercase',
+                      position: 'absolute',
+                      bottom: -20,
+                    }}
+                  >
+                    {dayLabel}
+                  </Typography>
                 </View>
               );
             })}
           </View>
         </View>
-      </View>
+      </Surface>
 
-      <View style={styles.topSellingContainer}>
-        <Text style={styles.cardTitle}>Top Products</Text>
+      <Surface variant="flat" style={styles.topSellingContainer}>
+        <Typography variant="h3" style={{ marginBottom: Spacing.md }}>
+          {t('top_products')}
+        </Typography>
         <View style={styles.topSellingList}>
           {inventory.slice(0, 3).map((item: any, i: any) => (
             <View key={i} style={styles.topSellingItem}>
               <Image source={{ uri: item.image_url }} style={styles.tsImage} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.tsName, { fontFamily: Fonts.bold }]}>{item.name}</Text>
-                <Text style={[styles.tsSales, { fontFamily: Fonts.regular }]}>
-                  {item.stock} in stock • {item.category}
-                </Text>
+                <Typography variant="title">{item.name}</Typography>
+                <Typography variant="hint" color="sub">
+                  {item.stock} {t('in_stock')} • {item.category}
+                </Typography>
               </View>
-              <Text style={[styles.tsPrice, { fontFamily: Fonts.black }]}>{fmtETB(item.price)}</Text>
+              <Typography variant="title" color="primary">
+                {fmtETB(item.price)}
+              </Typography>
             </View>
           ))}
           {inventory.length === 0 && (
-            <Text style={{ color: T.onVariant, textAlign: 'center', fontFamily: Fonts.regular }}>No products listed</Text>
+            <Typography variant="body" color="sub" style={{ textAlign: 'center' }}>
+              {t('no_products_listed')}
+            </Typography>
           )}
         </View>
-      </View>
+      </Surface>
     </View>
   );
 }

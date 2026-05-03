@@ -36,7 +36,7 @@ export function LegalReceipt({
   amount,
   paymentMethod,
   items,
-  title = 'FISCAL RECEIPT'
+  title = 'FISCAL RECEIPT',
 }: LegalReceiptProps) {
   const C = useTheme();
 
@@ -80,14 +80,18 @@ export function LegalReceipt({
             {/* Header */}
             <View style={styles.header}>
               <View style={[styles.iconBox, { backgroundColor: C.primary + '20' }]}>
-                <Ionicons name="checkmark-seal" size={32} color={C.primary} />
+                <Ionicons name="checkmark-circle" size={32} color={C.primary} />
               </View>
               <Text style={[styles.title, { color: C.text }]}>{title}</Text>
-              <Text style={[styles.subtitle, { color: C.sub }]}>Government Compliant Digital Document</Text>
+              <Text style={[styles.subtitle, { color: C.sub }]}>
+                Government Compliant Digital Document
+              </Text>
             </View>
 
             {/* Receipt Body */}
-            <View style={[styles.receiptPaper, { backgroundColor: C.surface, borderColor: C.edge }]}>
+            <View
+              style={[styles.receiptPaper, { backgroundColor: C.surface, borderColor: C.edge }]}
+            >
               <View style={styles.merchantInfo}>
                 <Text style={[styles.merchantName, { color: C.text }]}>{merchantName}</Text>
                 <Text style={[styles.tinText, { color: C.sub }]}>TIN: {merchantTIN}</Text>
@@ -105,8 +109,17 @@ export function LegalReceipt({
               </View>
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, { color: C.sub }]}>Method</Text>
-                <Text style={[styles.infoValue, { color: paymentMethod === 'WALLET' ? C.primary : Colors.gold }]}>
-                  {paymentMethod === 'WALLET' ? 'DIGITAL WALLET' : paymentMethod === 'BANK_TRANSFER' ? 'BANK TRANSFER' : 'CASH PAYMENT'}
+                <Text
+                  style={[
+                    styles.infoValue,
+                    { color: paymentMethod === 'WALLET' ? C.primary : Colors.gold },
+                  ]}
+                >
+                  {paymentMethod === 'WALLET'
+                    ? 'DIGITAL WALLET'
+                    : paymentMethod === 'BANK_TRANSFER'
+                      ? 'BANK TRANSFER'
+                      : 'CASH PAYMENT'}
                 </Text>
               </View>
 
@@ -132,7 +145,9 @@ export function LegalReceipt({
                 </View>
                 <View style={[styles.summaryRow, { marginTop: 8 }]}>
                   <Text style={[styles.finalTotalLabel, { color: C.text }]}>TOTAL</Text>
-                  <Text style={[styles.finalTotalValue, { color: C.primary }]}>{fmtETB(amount)}</Text>
+                  <Text style={[styles.finalTotalValue, { color: C.primary }]}>
+                    {fmtETB(amount)}
+                  </Text>
                 </View>
               </View>
 
@@ -158,17 +173,8 @@ export function LegalReceipt({
           </ScrollView>
 
           <View style={styles.actions}>
-            <CButton
-              title="Share"
-              onPress={handleShare}
-              variant="outline"
-              style={{ flex: 1 }}
-            />
-            <CButton
-              title="Done"
-              onPress={onClose}
-              style={{ flex: 1, marginLeft: 12 }}
-            />
+            <CButton title="Share" onPress={handleShare} variant="outline" style={{ flex: 1 }} />
+            <CButton title="Done" onPress={onClose} style={{ flex: 1, marginLeft: 12 }} />
           </View>
         </GlassView>
       </View>
@@ -184,7 +190,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   container: {
-    borderRadius: Radius.xxl,
+    borderRadius: Radius['2xl'],
     overflow: 'hidden',
     maxHeight: '90%',
   },
@@ -335,5 +341,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 20,
     backgroundColor: 'rgba(255,255,255,0.05)',
-  }
+  },
 });

@@ -40,7 +40,9 @@ export const SuccessOverlay: React.FC<SuccessOverlayProps> = ({
         >
           <View style={styles.animationContainer}>
             <LottieView
-              source={{ uri: 'https://lottie.host/81b29a67-1601-443b-8211-7360214878a8/fTf4DqR3Rk.json' }}
+              source={{
+                uri: 'https://lottie.host/81b29a67-1601-443b-8211-7360214878a8/fTf4DqR3Rk.json',
+              }}
               autoPlay
               loop={false}
               style={styles.skottie}

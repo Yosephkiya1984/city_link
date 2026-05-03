@@ -11,7 +11,7 @@ import {
   StatusBar,
   TextInput,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList } from '../../components/common/SafeFlashList';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
@@ -200,10 +200,10 @@ export default function ChatInboxScreen({ navigation }: { navigation: any }) {
           <ActivityIndicator color={T.primary} />
         </View>
       ) : (
-        <FlashList
+        <FlashList<any>
           data={filteredThreads}
           renderItem={renderItem}
-          keyExtractor={(item) => item.thread_id}
+          keyExtractor={(item: any) => item.thread_id}
           contentContainerStyle={styles.listContent}
           keyboardDismissMode="on-drag"
           estimatedItemSize={92}

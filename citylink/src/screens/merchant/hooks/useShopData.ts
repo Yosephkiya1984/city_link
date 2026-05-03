@@ -53,11 +53,9 @@ export function useShopData(): ShopData {
     setLoading(true);
 
     const client = getClient();
-    const { data: wallet } = client ? await client
-      .from('wallets')
-      .select('id, balance')
-      .eq('user_id', currentUser.id)
-      .single() : { data: null };
+    const { data: wallet } = client
+      ? await client.from('wallets').select('id, balance').eq('user_id', currentUser.id).single()
+      : { data: null };
 
     const [ordRes, invRes, txRes, salesRes, disputes] = await Promise.all([
       fetchMarketplaceOrdersByMerchant(currentUser.id),

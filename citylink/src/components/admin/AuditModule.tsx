@@ -28,7 +28,12 @@ export default function AuditModule() {
   const [auditMode, setAuditMode] = useState<'system' | 'fiscal'>('system');
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ sensitive: 0, integrity: 'VERIFIED', nationalVat: 42890, cashRatio: '14%' });
+  const [stats, setStats] = useState({
+    sensitive: 0,
+    integrity: 'VERIFIED',
+    nationalVat: 42890,
+    cashRatio: '14%',
+  });
 
   const fetchLogsData = async () => {
     // Simulated: In a real app, 'fiscal' mode would query the unified ledger
@@ -38,7 +43,10 @@ export default function AuditModule() {
 
     if (error) {
       console.error('[AuditModule] Failed to fetch logs:', error);
-      return { logs: [], stats: { sensitive: 0, integrity: 'ERROR', nationalVat: 0, cashRatio: '0%' } };
+      return {
+        logs: [],
+        stats: { sensitive: 0, integrity: 'ERROR', nationalVat: 0, cashRatio: '0%' },
+      };
     }
 
     const combined = (data || []).map((l) => ({
@@ -55,7 +63,7 @@ export default function AuditModule() {
       stats: {
         sensitive: combined.filter((l) => l.severity === 'high').length,
         integrity: 'VERIFIED' as const,
-        nationalVat: 42890.50,
+        nationalVat: 42890.5,
         cashRatio: '14.2%',
       },
     };
@@ -65,7 +73,7 @@ export default function AuditModule() {
     setLoading(true);
     const data = await fetchLogsData();
     setLogs(data.logs);
-    setStats(prev => ({ ...prev, ...data.stats }));
+    setStats((prev) => ({ ...prev, ...data.stats }));
     setLoading(false);
   };
 
@@ -74,7 +82,7 @@ export default function AuditModule() {
     fetchLogsData().then((data) => {
       if (!ignore) {
         setLogs(data.logs);
-        setStats(prev => ({ ...prev, ...data.stats }));
+        setStats((prev) => ({ ...prev, ...data.stats }));
         setLoading(false);
       }
     });
@@ -94,7 +102,7 @@ export default function AuditModule() {
             {auditMode === 'system' ? 'Security Audit Logs' : 'National Fiscal Ledger'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.sub }]}>
-            {auditMode === 'system' 
+            {auditMode === 'system'
               ? 'Immutable event stream for administrative compliance'
               : 'Unified city-wide reconciliation of cash and digital flows'}
           </Text>
@@ -106,25 +114,52 @@ export default function AuditModule() {
               {loading ? 'SYNCING...' : 'LIVE FEED'}
             </Text>
           </View>
-          
-          <View style={{ flexDirection: 'row', backgroundColor: theme.lift, borderRadius: 8, padding: 2 }}>
-            <TouchableOpacity 
+
+          <View
+            style={{
+              flexDirection: 'row',
+              backgroundColor: theme.lift,
+              borderRadius: 8,
+              padding: 2,
+            }}
+          >
+            <TouchableOpacity
               onPress={() => setAuditMode('system')}
-              style={{ 
-                paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
-                backgroundColor: auditMode === 'system' ? theme.rim : 'transparent'
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
+                backgroundColor: auditMode === 'system' ? theme.rim : 'transparent',
               }}
             >
-              <Text style={{ color: auditMode === 'system' ? theme.text : theme.sub, fontSize: 10, fontWeight: '800' }}>SYSTEM</Text>
+              <Text
+                style={{
+                  color: auditMode === 'system' ? theme.text : theme.sub,
+                  fontSize: 10,
+                  fontWeight: '800',
+                }}
+              >
+                SYSTEM
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setAuditMode('fiscal')}
-              style={{ 
-                paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
-                backgroundColor: auditMode === 'fiscal' ? theme.rim : 'transparent'
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
+                backgroundColor: auditMode === 'fiscal' ? theme.rim : 'transparent',
               }}
             >
-              <Text style={{ color: auditMode === 'fiscal' ? theme.text : theme.sub, fontSize: 10, fontWeight: '800' }}>FISCAL</Text>
+              <Text
+                style={{
+                  color: auditMode === 'fiscal' ? theme.text : theme.sub,
+                  fontSize: 10,
+                  fontWeight: '800',
+                }}
+              >
+                FISCAL
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -202,17 +237,17 @@ export default function AuditModule() {
       {/* Security/Fiscal Summary Cards */}
       <View style={styles.summaryGrid}>
         <SummaryCard
-          label={auditMode === 'system' ? "Sensitive Events" : "National VAT Yield"}
+          label={auditMode === 'system' ? 'Sensitive Events' : 'National VAT Yield'}
           value={auditMode === 'system' ? stats.sensitive.toString() : fmtETB(stats.nationalVat)}
-          sub={auditMode === 'system' ? "Escalated for review" : "Projected Monthly Revenue"}
-          icon={auditMode === 'system' ? "shield-alert-outline" : "bank-outline"}
+          sub={auditMode === 'system' ? 'Escalated for review' : 'Projected Monthly Revenue'}
+          icon={auditMode === 'system' ? 'shield-alert-outline' : 'bank-outline'}
           color={auditMode === 'system' ? theme.amber : theme.primary}
         />
         <SummaryCard
-          label={auditMode === 'system' ? "Node Integrity" : "Cash-to-Digital Ratio"}
+          label={auditMode === 'system' ? 'Node Integrity' : 'Cash-to-Digital Ratio'}
           value={auditMode === 'system' ? stats.integrity : stats.cashRatio}
-          sub={auditMode === 'system' ? "Shard clusters healthy" : "Real-time market transition"}
-          icon={auditMode === 'system' ? "database-check-outline" : "chart-donut"}
+          sub={auditMode === 'system' ? 'Shard clusters healthy' : 'Real-time market transition'}
+          icon={auditMode === 'system' ? 'database-check-outline' : 'chart-donut'}
           color={theme.green}
         />
       </View>

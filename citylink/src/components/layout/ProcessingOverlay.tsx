@@ -19,7 +19,9 @@ export const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({
       <View style={styles.container}>
         <View style={styles.animationContainer}>
           <LottieView
-            source={{ uri: 'https://lottie.host/dfb71891-628d-4a1e-8798-89c5643a6d4d/6f8Hj3T7oT.json' }}
+            source={{
+              uri: 'https://lottie.host/dfb71891-628d-4a1e-8798-89c5643a6d4d/6f8Hj3T7oT.json',
+            }}
             autoPlay
             loop
             style={styles.skottie}

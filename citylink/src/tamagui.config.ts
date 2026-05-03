@@ -43,17 +43,17 @@ const tokens = createTokens({
   },
   color: {
     primary: '#0F52BA', // Sapphire Blue
-    ink: '#050505',     // True Pitch Black
+    ink: '#050505', // True Pitch Black
     surface: '#111111', // Slightly elevated black
-    lift: '#1A1A1A',    // Floating element black
+    lift: '#1A1A1A', // Floating element black
     edge: 'rgba(255, 255, 255, 0.05)', // Subtle borders
     edge2: 'rgba(255, 255, 255, 0.1)', // Slightly visible borders
     text: '#FFFFFF',
     sub: 'rgba(255, 255, 255, 0.6)',
     hint: 'rgba(255, 255, 255, 0.3)',
-    gold: '#D4AF37',    // Premium accents
-    red: '#FF3B30',     // Destructive/Alerts
-    green: '#34C759',   // Success
+    gold: '#D4AF37', // Premium accents
+    red: '#FF3B30', // Destructive/Alerts
+    green: '#34C759', // Success
   },
   zIndex: {
     0: 0,

@@ -18,7 +18,7 @@ export function BiometricLockScreen() {
         duration: 300,
         useNativeDriver: true,
       }).start();
-      
+
       // Auto-trigger authentication
       handleAuthenticate();
     }
@@ -41,21 +41,19 @@ export function BiometricLockScreen() {
         <View style={[styles.container, { backgroundColor: 'transparent' }]}>
           <View style={styles.content}>
             <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
-              <Ionicons 
-                name={biometryType.includes(1) ? "scan" : "finger-print"} 
-                size={64} 
-                color={theme.primary} 
+              <Ionicons
+                name={biometryType.includes(1) ? 'scan' : 'finger-print'}
+                size={64}
+                color={theme.primary}
               />
             </View>
-            
-            <Text style={[styles.title, { color: theme.text }]}>
-              App Locked
-            </Text>
+
+            <Text style={[styles.title, { color: theme.text }]}>App Locked</Text>
             <Text style={[styles.subtitle, { color: theme.sub }]}>
               Please authenticate to access your account
             </Text>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.button, { backgroundColor: theme.primary }]}
               onPress={handleAuthenticate}
             >

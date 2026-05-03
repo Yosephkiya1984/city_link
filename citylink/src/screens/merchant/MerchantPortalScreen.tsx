@@ -11,7 +11,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,7 +22,7 @@ import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
-import { t } from '../../utils/i18n';
+import { useT } from '../../utils/i18n';
 import * as ProfileService from '../../services/profile.service';
 
 // Import only Core 6 merchant dashboards
@@ -37,30 +37,33 @@ import {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MerchantPortalScreen() {
+  const t = useT();
   const navigation = useNavigation();
+  const route = useRoute();
+  
   const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
   const currentUser = useAuthStore((s) => s.currentUser);
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
   const showToast = useSystemStore((s) => s.showToast);
-  const resetAuth = useAuthStore((s) => s.reset);
-  const resetWallet = useWalletStore((s) => s.reset);
-  const resetSystem = useSystemStore((s) => s.reset);
-  // Wallet state not used here directly, but Dashboards may use it.
 
-  const logout = () => {
+  const routeParams = route.params as any;
+  const isStaffMode = routeParams?.staffMode;
+  const staffRole = routeParams?.staffRole;
+  const staffMerchantType = routeParams?.merchantType;
+
+  const logout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    showToast('Logged out successfully', 'success');
-    resetAuth();
-    resetWallet();
-    resetSystem();
-
-    // The root navigator will automatically switch to Auth screen
-    // because we called resetAuth() above.
+    showToast(t('logged_out_msg'), 'success');
+    // Use the canonical AuthStore signOut — this wipes SecurePersist, resets uiMode,
+    // and clears all domain stores atomically. Do NOT call individual resets here
+    // as they skip SecurePersist, causing ghost sessions and the SECURE GATEWAY loop.
+    await useAuthStore.getState().signOut();
   };
 
-  const merchantType =
-    (currentUser as any)?.merchant_type || (currentUser as any)?.merchant_details?.merchant_type;
+  const merchantType = isStaffMode 
+    ? staffMerchantType 
+    : ((currentUser as any)?.merchant_type || (currentUser as any)?.merchant_details?.merchant_type);
   const normalizedType = merchantType?.toLowerCase();
 
   // Handle unknown merchant type toast in useEffect
@@ -80,11 +83,17 @@ export default function MerchantPortalScreen() {
 
     async function checkAndRefresh() {
       if (!currentUser) return;
+      
+      if (isStaffMode) {
+        console.log('[MerchantPortal] Operating in Staff Mode for type:', merchantType);
+        return;
+      }
 
-      console.log(
-        '[MerchantPortal] Identity Check:',
-        { id: currentUser?.id, type: merchantType, status: currentUser?.merchant_status }
-      );
+      console.log('[MerchantPortal] Identity Check:', {
+        id: currentUser?.id,
+        type: merchantType,
+        status: currentUser?.merchant_status,
+      });
 
       if (!normalizedType || !knownTypes.includes(normalizedType)) {
         console.log('⚠️ Unknown or missing merchant type. Attempting profile refresh...');
@@ -102,9 +111,9 @@ export default function MerchantPortalScreen() {
         }
 
         console.log('❌ Still missing or unknown merchant type after refresh.');
-        if (currentUser.role !== 'merchant') {
+        if (currentUser.role !== 'merchant' && !isStaffMode) {
           showToast(
-            `Account Type Not Supported: ${merchantType || 'Unknown'}. Contact support.`,
+            `${t('unsupported_account_type_err')}: ${merchantType || 'Unknown'}.`,
             'warning'
           );
         } else {
@@ -123,7 +132,7 @@ export default function MerchantPortalScreen() {
       case 'restaurant':
       case 'cafe':
       case 'food':
-        return <RestaurantDashboard />;
+        return <RestaurantDashboard staffMode={isStaffMode} staffRole={staffRole} />;
       case 'parking':
         return <ParkingDashboard />;
       case 'shop':
@@ -156,14 +165,13 @@ export default function MerchantPortalScreen() {
           >
             <Ionicons name="lock-closed-outline" size={64} color={C.primary} />
             <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.bold, marginTop: 16 }}>
-              Dashboard Unavailable
+              {t('dashboard_unavailable_title')}
             </Text>
             <Text style={{ color: C.sub, textAlign: 'center', marginTop: 8 }}>
-              This account type is not part of the Core 6 production network. Please contact your
-              administrator.
+              {t('merchant_type_not_production_msg')}
             </Text>
             <CButton
-              title="Logout"
+              title={t('logout_btn')}
               onPress={logout}
               variant="outline"
               style={{ marginTop: 32, width: '100%' }}
@@ -194,10 +202,10 @@ export default function MerchantPortalScreen() {
             letterSpacing: 1,
           }}
         >
-          SECURE GATEWAY
+          {t('secure_gateway_label').toUpperCase()}
         </Text>
         <Text style={{ color: C.sub, fontSize: 12, marginTop: 8 }}>
-          Hydrating merchant session...
+          {t('hydrating_session_msg')}
         </Text>
       </View>
     );

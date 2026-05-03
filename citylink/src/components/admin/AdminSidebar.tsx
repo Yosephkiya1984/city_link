@@ -18,12 +18,15 @@ import * as Haptics from 'expo-haptics';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IS_TABLET = SCREEN_WIDTH > 768;
 
+import { t } from '../../utils/i18n';
+
 export type AdminTab =
   | 'overview'
   | 'merchants'
   | 'drivers'
   | 'disputes'
   | 'users'
+  | 'finance'
   | 'logs'
   | 'systems';
 
@@ -44,18 +47,29 @@ export default function AdminSidebar({
   const resetStore = useAuthStore((s) => s.reset);
 
   const navItems = [
-    { id: 'overview', label: 'Monitor', icon: 'grid-outline', mIcon: 'view-dashboard-outline' },
+    {
+      id: 'overview',
+      label: t('admin_monitor'),
+      icon: 'grid-outline',
+      mIcon: 'view-dashboard-outline',
+    },
     {
       id: 'merchants',
-      label: 'Shops',
+      label: t('admin_shops'),
       icon: 'checkmark-circle-outline',
       mIcon: 'store-search-outline',
     },
-    { id: 'drivers', label: 'Agents', icon: 'bicycle-outline', mIcon: 'moped-outline' },
-    { id: 'disputes', label: 'Disputes', icon: 'hammer-outline', mIcon: 'gavel' },
-    { id: 'users', label: 'Identities', icon: 'people-outline', mIcon: 'account-group-outline' },
-    { id: 'logs', label: 'Audit', icon: 'list-outline', mIcon: 'database-search' },
-    { id: 'systems', label: 'Nodes', icon: 'settings-outline', mIcon: 'cog-outline' },
+    { id: 'drivers', label: t('admin_agents'), icon: 'bicycle-outline', mIcon: 'moped-outline' },
+    { id: 'disputes', label: t('admin_disputes'), icon: 'hammer-outline', mIcon: 'gavel' },
+    {
+      id: 'users',
+      label: t('admin_identities'),
+      icon: 'people-outline',
+      mIcon: 'account-group-outline',
+    },
+    { id: 'finance', label: t('admin_finance'), icon: 'wallet-outline', mIcon: 'cash-register' },
+    { id: 'logs', label: t('admin_audit'), icon: 'list-outline', mIcon: 'database-search' },
+    { id: 'systems', label: t('admin_nodes'), icon: 'settings-outline', mIcon: 'cog-outline' },
   ];
 
   const handleLogout = () => {
@@ -66,7 +80,7 @@ export default function AdminSidebar({
     }
 
     if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to exit the admin portal?')) {
+      if (window.confirm(t('admin_sign_out_confirm'))) {
         resetStore().then(() => {
           try {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -78,10 +92,10 @@ export default function AdminSidebar({
       return;
     }
 
-    Alert.alert('Sign Out', 'Are you sure you want to exit the admin portal?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('admin_sign_out'), t('admin_sign_out_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t('admin_sign_out'),
         style: 'destructive',
         onPress: async () => {
           await resetStore();
@@ -201,9 +215,9 @@ export default function AdminSidebar({
               style={[styles.userName, { color: theme.text, fontFamily: Fonts.label }]}
               numberOfLines={1}
             >
-              Admin
+              {t('role_admin')}
             </Text>
-            <Text style={[styles.userRole, { color: theme.sub }]}>Super User</Text>
+            <Text style={[styles.userRole, { color: theme.sub }]}>{t('admin_nodes')}</Text>
           </View>
         )}
         <TouchableOpacity

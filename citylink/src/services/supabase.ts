@@ -33,6 +33,15 @@ export function getClient(): SupabaseClient | null {
     };
 
     _client = createClient(url, key, options);
+
+    if (__DEV__) {
+      const originalRpc = _client.rpc.bind(_client);
+      (_client as any).rpc = async (fnName: string, args?: any, opts?: any) => {
+        console.log(`[RPC Trace] ${fnName}`, args ? Object.keys(args) : 'no args');
+        return originalRpc(fnName, args, opts);
+      };
+    }
+
     return _client;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

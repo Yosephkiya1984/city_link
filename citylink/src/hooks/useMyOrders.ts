@@ -107,7 +107,7 @@ export function useMyOrders() {
         style: 'destructive',
         onPress: async () => {
           try {
-            const res = await rpcCancelAndRefundOrder(order.id, 'buyer_cancellation');
+            const res = await rpcCancelAndRefundOrder(order.id, user?.id || '', 'buyer_cancellation');
             if (res.error) throw res.error;
             showToast('Order cancelled and refunded', 'success');
             // Real-time will handle state update, but we can optimistically filter

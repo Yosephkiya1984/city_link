@@ -49,12 +49,12 @@ export const ServiceAccessUtils = {
   checkAccess: async (service: string = 'general'): Promise<boolean> => {
     const user = useAuthStore.getState().currentUser;
     if (!user) return false;
-    
+
     // Core check: must be verified for financial operations
     if (['payment', 'transfer', 'withdrawal'].includes(service)) {
       return user.kyc_status === 'VERIFIED';
     }
-    
+
     return true;
   },
   validateRequirements: async (): Promise<ServiceRequirement[]> => {

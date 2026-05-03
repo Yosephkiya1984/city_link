@@ -22,17 +22,10 @@ import { CButton, Card, SectionTitle, CInput, CSelect } from '../../components';
 import { fmtETB, uid } from '../../utils';
 import { useTheme } from '../../hooks/useTheme';
 import * as ProfileService from '../../services/profile.service';
-
-const MERCHANT_TYPES = [
-  { value: 'retail', label: '🛍️ Retail / Shop' },
-  { value: 'restaurant', label: '🍽️ Restaurant / Cafe' },
-  { value: 'delala', label: '🤝 Broker / Delala' },
-  { value: 'ekub', label: '👥 Ekub Organiser' },
-  { value: 'parking', label: '🅿️ Parking Operator' },
-  { value: 'delivery', label: '🚚 Delivery Service' },
-];
+import { useT } from '../../utils/i18n';
 
 export default function BecomeMerchantScreen() {
+  const t = useT();
   const C = useTheme();
   const navigation = useNavigation();
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
@@ -44,13 +37,22 @@ export default function BecomeMerchantScreen() {
   const [tin, setTin] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const MERCHANT_TYPES = [
+    { value: 'retail', label: `🛍️ ${t('retail_label')}` },
+    { value: 'restaurant', label: `🍽️ ${t('restaurant_label')}` },
+    { value: 'delala', label: `🤝 ${t('delala_label')}` },
+    { value: 'ekub', label: `👥 ${t('ekub_label')}` },
+    { value: 'parking', label: `🅿️ ${t('parking_label')}` },
+    { value: 'delivery', label: `🚚 ${t('delivery_label')}` },
+  ];
+
   async function handleApply() {
     if (!businessName) {
-      showToast('Enter business name', 'error');
+      showToast(t('enter_business_name_err'), 'error');
       return;
     }
     if (!tin) {
-      showToast('Enter TIN number (Required by NBE)', 'error');
+      showToast(t('enter_tin_err'), 'error');
       return;
     }
 
@@ -58,7 +60,7 @@ export default function BecomeMerchantScreen() {
     try {
       const sessionUser = useAuthStore.getState().currentUser;
       if (!sessionUser || !sessionUser.id) {
-        showToast('Session expired, please login again', 'error');
+        showToast(t('session_expired_err'), 'error');
         setLoading(false);
         return;
       }
@@ -87,7 +89,7 @@ export default function BecomeMerchantScreen() {
       setLoading(false);
       setStep(3);
     } catch (e: any) {
-      showToast(e.message || 'Registration failed', 'error');
+      showToast(e.message || t('registration_failed_err'), 'error');
       setLoading(false);
     }
   }
@@ -95,7 +97,7 @@ export default function BecomeMerchantScreen() {
   if (step === 3) {
     return (
       <View style={{ flex: 1, backgroundColor: C.ink }}>
-        <TopBar title="Success" />
+        <TopBar title={t('success_label')} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 }}>
           <View
             style={{
@@ -121,7 +123,7 @@ export default function BecomeMerchantScreen() {
               letterSpacing: -1,
             }}
           >
-            You're a Merchant!
+            {t('youre_a_merchant_title')}
           </Text>
           <Text
             style={{
@@ -133,13 +135,12 @@ export default function BecomeMerchantScreen() {
               lineHeight: 24,
             }}
           >
-            Welcome to the CityLink economic network. Your merchant portal is now active and ready
-            for business.
+            {t('merchant_portal_active_msg')}
           </Text>
           <CButton
-            title="Enter Merchant Portal"
+            title={t('enter_merchant_portal_btn')}
             onPress={() => {
-              showToast('Welcome to the Merchant Network!', 'success');
+              showToast(t('welcome_merchant_msg'), 'success');
               (navigation as any).reset({
                 index: 0,
                 routes: [{ name: 'MerchantRoot' }],
@@ -154,13 +155,13 @@ export default function BecomeMerchantScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar title="Join Merchant Network" />
+      <TopBar title={t('join_merchant_network_title')} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 60 }}>
         <View style={{ marginBottom: 40 }}>
           <Text
             style={{ color: C.text, fontSize: 36, fontFamily: Fonts.headline, letterSpacing: -1.5 }}
           >
-            Grow with{'\n'}CityLink
+            {t('grow_with_citylink_title').replace(' ', '\n')}
           </Text>
           <Text
             style={{
@@ -171,8 +172,7 @@ export default function BecomeMerchantScreen() {
               lineHeight: 24,
             }}
           >
-            Register your business, start receiving digital payments, and reach the entire city
-            instantly.
+            {t('merchant_reg_desc')}
           </Text>
         </View>
 
@@ -190,7 +190,7 @@ export default function BecomeMerchantScreen() {
                 }}
               >
                 <Text style={{ color: C.primary, fontSize: 20, fontFamily: Fonts.headline }}>
-                  0% Processing Fees
+                  {t('zero_fees_title')}
                 </Text>
                 <Text
                   style={{
@@ -201,7 +201,7 @@ export default function BecomeMerchantScreen() {
                     opacity: 0.8,
                   }}
                 >
-                  Pay nothing on your first 10,000 ETB in sales. We grow when you grow.
+                  {t('zero_fees_desc')}
                 </Text>
               </View>
               <View
@@ -215,7 +215,7 @@ export default function BecomeMerchantScreen() {
                 }}
               >
                 <Text style={{ color: C.primary, fontSize: 20, fontFamily: Fonts.headline }}>
-                  Instant Settlements
+                  {t('instant_settlements_title')}
                 </Text>
                 <Text
                   style={{
@@ -226,12 +226,12 @@ export default function BecomeMerchantScreen() {
                     opacity: 0.8,
                   }}
                 >
-                  Funds move directly from user to your wallet instantly. No waiting periods.
+                  {t('instant_settlements_desc')}
                 </Text>
               </View>
             </View>
             <CButton
-              title="Start Application"
+              title={t('start_application_btn')}
               onPress={() => setStep(2)}
               style={{ borderRadius: Radius['2xl'] }}
             />
@@ -239,23 +239,23 @@ export default function BecomeMerchantScreen() {
         ) : (
           <Card style={{ padding: 24 }}>
             <CInput
-              label="Business Legal Name"
+              label={t('business_legal_name_label')}
               value={businessName}
               onChangeText={setBusinessName}
-              placeholder="e.g. Bole Coffee Shop"
+              placeholder={t('business_name_placeholder')}
               iconName="business-outline"
             />
             <CSelect
-              label="Business Type"
+              label={t('business_type_label')}
               value={type}
               onValueChange={setType}
               options={MERCHANT_TYPES}
             />
             <CInput
-              label="TIN Number"
+              label={t('tin_number_label')}
               value={tin}
               onChangeText={setTin}
-              placeholder="10 Digits"
+              placeholder={t('tin_placeholder')}
               keyboardType="numeric"
               iconName="document-text-outline"
             />
@@ -263,16 +263,16 @@ export default function BecomeMerchantScreen() {
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24, alignItems: 'center' }}>
               <Ionicons name="shield-checkmark" size={16} color={C.green} />
               <Text style={{ color: C.sub, fontSize: 11, fontFamily: Fonts.medium }}>
-                Encrypted under Ethiopian Cyber Security Laws.
+                {t('cyber_security_compliance_msg')}
               </Text>
             </View>
             <CButton
-              title={loading ? 'Submitting...' : 'Apply Now'}
+              title={loading ? t('submitting_label') : t('apply_now_btn')}
               onPress={handleApply}
               loading={loading}
             />
             <CButton
-              title="Back"
+              title={t('back_btn')}
               onPress={() => setStep(1)}
               variant="ghost"
               style={{ marginTop: 8 }}

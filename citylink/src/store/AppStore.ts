@@ -2,6 +2,7 @@ import { useAuthStore } from './AuthStore';
 import { useWalletStore } from './WalletStore';
 import { useMarketStore } from './MarketStore';
 import { useSystemStore } from './SystemStore';
+import { clearAllStores } from './StoreUtils';
 
 /**
  * Global store utilities.
@@ -15,3 +16,6 @@ import { useSystemStore } from './SystemStore';
 
 // Re-export domain stores for unified entry point
 export { useAuthStore, useWalletStore, useMarketStore, useSystemStore };
+
+// Centralized Reset
+export const resetAllStores = clearAllStores;

@@ -4,11 +4,15 @@ import { useAuthStore } from '../../../store/AuthStore';
 import { useSystemStore } from '../../../store/SystemStore';
 import { useWalletStore } from '../../../store/WalletStore';
 import { useNavigation } from '@react-navigation/native';
-import { updateSessionStatus, finalizeParkingSessionLegal } from '../../../services/parking.service';
+import {
+  updateSessionStatus,
+  finalizeParkingSessionLegal,
+} from '../../../services/parking.service';
 
 export function useParkingActions(data: any) {
   const { loadData } = data;
   const navigation = useNavigation();
+  const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
   const resetAuth = useAuthStore((s) => s.reset);
   const resetWallet = useWalletStore((s) => s.reset);
@@ -23,7 +27,8 @@ export function useParkingActions(data: any) {
     setActionLoading(true);
 
     try {
-      const result = await updateSessionStatus(sessionId, newStatus);
+      if (!currentUser?.id) return;
+      const result = await updateSessionStatus(sessionId, currentUser.id, newStatus);
       if (!result.error) {
         showToast(`Session ${newStatus.toLowerCase()}`, 'success');
         loadData();
@@ -39,8 +44,8 @@ export function useParkingActions(data: any) {
   };
 
   const onFinalizeSession = async (
-    sessionId: string, 
-    method: 'WALLET' | 'CASH' | 'BANK_TRANSFER', 
+    sessionId: string,
+    method: 'WALLET' | 'CASH' | 'BANK_TRANSFER',
     amount: number
   ) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -74,7 +79,11 @@ export function useParkingActions(data: any) {
     resetAuth();
     resetWallet();
     resetSystem();
-    (navigation as any).replace('Auth');
+  };
+
+  const onWithdraw = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    showToast('Withdrawal feature coming soon', 'info');
   };
 
   return {
@@ -82,6 +91,7 @@ export function useParkingActions(data: any) {
     onUpdateSession,
     onFinalizeSession,
     onLogout,
+    onWithdraw,
     showSessionDetail,
     setShowSessionDetail,
     selectedSession,

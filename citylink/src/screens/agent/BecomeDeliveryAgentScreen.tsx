@@ -25,6 +25,7 @@ import {
   requestLocationPermission,
   fetchAgentProfile,
 } from '../../services/delivery.service';
+import { t } from '../../utils/i18n';
 import { VEHICLE_TYPES, SUBCITIES } from '../../config';
 
 const { width } = Dimensions.get('window');
@@ -60,19 +61,19 @@ export default function BecomeDeliveryAgentScreen() {
 
   const handleSubmit = async () => {
     if (!currentUser?.id) {
-      showToast('Please sign in to apply', 'error');
+      showToast(t('session_expired_err'), 'error');
       return;
     }
     if (!vehicleType) {
-      showToast('Select a vehicle type', 'error');
+      showToast(t('vehicle_type_label'), 'error');
       return;
     }
     if (!licenseNumber || licenseNumber.trim().length < 5) {
-      showToast('Enter a valid license / ID number', 'error');
+      showToast(t('enter_tin_err'), 'error');
       return;
     }
     if (needsPlate && !plateNumber.trim()) {
-      showToast('Enter your vehicle plate number', 'error');
+      showToast(t('plate_number_label'), 'error');
       return;
     }
 
@@ -81,10 +82,7 @@ export default function BecomeDeliveryAgentScreen() {
       // 1. Ask for location permission
       const granted = await requestLocationPermission();
       if (!granted) {
-        Alert.alert(
-          'Location Required',
-          'CityLink Delivery needs your location to dispatch orders to you. Please enable location access.'
-        );
+        Alert.alert(t('location_access_req'), t('match_orders_radius_msg'));
         setLoading(false);
         return;
       }
@@ -100,22 +98,18 @@ export default function BecomeDeliveryAgentScreen() {
           plateNumber: plateNumber.trim(),
           licenseNumber: licenseNumber.trim(),
         });
-        if (error) throw new Error(typeof error === 'string' ? error : 'Registration failed');
+        if (error)
+          throw new Error(typeof error === 'string' ? error : t('registration_failed_err'));
       }
 
       // 4. Update local state to route to delivery dashboard
       setCurrentUser({ ...currentUser, role: 'delivery_agent' });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast(
-        existing
-          ? 'Welcome back! Redirecting to your dashboard.'
-          : "Application submitted! You'll be notified once approved.",
-        'success'
-      );
+      showToast(existing ? t('welcome_back') : t('application_review_info'), 'success');
       navigation.goBack();
     } catch (e: any) {
-      showToast(e?.message || 'Registration failed', 'error');
+      showToast(e?.message || t('registration_failed_err'), 'error');
     } finally {
       setLoading(false);
     }
@@ -129,8 +123,8 @@ export default function BecomeDeliveryAgentScreen() {
           <Ionicons name="arrow-back" size={22} color={T.text} />
         </TouchableOpacity>
         <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>Become a Delivery Agent</Text>
-          <Text style={s.headerSub}>Set your own schedule Â· Earn on every delivery</Text>
+          <Text style={s.headerTitle}>{t('become_agent_title')}</Text>
+          <Text style={s.headerSub}>{t('earn_money_agent')}</Text>
         </View>
       </LinearGradient>
 
@@ -143,20 +137,18 @@ export default function BecomeDeliveryAgentScreen() {
         <LinearGradient colors={['#1a2a1a', '#1f3a1f']} style={s.earningsBanner}>
           <Ionicons name="cash-outline" size={28} color={T.green} />
           <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={s.earningsTitle}>Earn 12% per delivery</Text>
-            <Text style={s.earningsSub}>
-              On a 500 ETB order, you earn 60 ETB straight to your CityLink Wallet
-            </Text>
+            <Text style={s.earningsTitle}>{t('earn_per_delivery_msg')}</Text>
+            <Text style={s.earningsSub}>{t('earn_example_msg')}</Text>
           </View>
         </LinearGradient>
 
         {/* Requirements */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Requirements</Text>
+          <Text style={s.sectionTitle}>{t('requirements_label')}</Text>
           {[
-            { icon: 'shield-checkmark', text: 'Fayda KYC Verified (already done âœ“)', ok: true },
-            { icon: 'card-outline', text: "Valid Driver's License or National ID", ok: null },
-            { icon: 'location-outline', text: 'Location access (GPS)', ok: null },
+            { icon: 'shield-checkmark', text: `${t('verified_merchant')} (✓)`, ok: true },
+            { icon: 'card-outline', text: t('valid_license_req'), ok: null },
+            { icon: 'location-outline', text: t('location_access_req'), ok: null },
           ].map((r, i) => (
             <View key={i} style={s.reqRow}>
               <Ionicons name={r.icon as any} size={18} color={r.ok ? T.green : T.textSub} />
@@ -168,7 +160,7 @@ export default function BecomeDeliveryAgentScreen() {
 
         {/* Vehicle Type */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Your Vehicle Type</Text>
+          <Text style={s.sectionTitle}>{t('vehicle_type_label')}</Text>
           <View style={s.vehicleGrid}>
             {VEHICLE_TYPES.map((v) => (
               <TouchableOpacity
@@ -181,7 +173,7 @@ export default function BecomeDeliveryAgentScreen() {
               >
                 <Text style={s.vehicleEmoji}>{v.label.split(' ')[0]}</Text>
                 <Text style={[s.vehicleLabel, vehicleType === v.value && { color: T.primary }]}>
-                  {v.label.substring(v.label.indexOf(' ') + 1)}
+                  {t(v.value + '_label')}
                 </Text>
                 {vehicleType === v.value && (
                   <View style={s.vehicleCheck}>
@@ -195,10 +187,10 @@ export default function BecomeDeliveryAgentScreen() {
 
         {/* License & Plate */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>License & Vehicle Details</Text>
+          <Text style={s.sectionTitle}>{t('license_details_label')}</Text>
 
           <View style={s.inputGroup}>
-            <Text style={s.label}>Driver's License / National ID Number *</Text>
+            <Text style={s.label}>{t('license_id_label')} *</Text>
             <View style={s.inputWrap}>
               <Ionicons name="card-outline" size={18} color={T.textSub} style={s.inputIcon} />
               <TextInput
@@ -214,7 +206,7 @@ export default function BecomeDeliveryAgentScreen() {
 
           {needsPlate && (
             <View style={s.inputGroup}>
-              <Text style={s.label}>Vehicle Plate Number *</Text>
+              <Text style={s.label}>{t('plate_number_label')} *</Text>
               <View style={s.inputWrap}>
                 <Ionicons name="car-outline" size={18} color={T.textSub} style={s.inputIcon} />
                 <TextInput
@@ -233,10 +225,7 @@ export default function BecomeDeliveryAgentScreen() {
         {/* Info box */}
         <View style={s.infoBox}>
           <Ionicons name="information-circle-outline" size={18} color={T.primary} />
-          <Text style={s.infoText}>
-            Your application will be reviewed by the CityLink admin team within 24 hours. You'll
-            receive a notification once approved and can start accepting deliveries immediately.
-          </Text>
+          <Text style={s.infoText}>{t('application_review_info')}</Text>
         </View>
 
         {/* Submit */}
@@ -255,7 +244,7 @@ export default function BecomeDeliveryAgentScreen() {
                 color="#0d1117"
                 style={{ marginRight: 8 }}
               />
-              <Text style={s.submitText}>Apply Now</Text>
+              <Text style={s.submitText}>{t('apply_now_btn')}</Text>
             </>
           )}
         </TouchableOpacity>

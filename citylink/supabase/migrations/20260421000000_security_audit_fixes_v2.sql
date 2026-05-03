@@ -13,7 +13,12 @@ BEGIN
             pg_get_function_identity_arguments(p.oid) AS function_args
         FROM pg_proc p
         JOIN pg_namespace n ON p.pronamespace = n.oid
-        WHERE n.nspname = 'public'
+        -- Exclude functions that belong to an extension (like postgis)
+        LEFT JOIN pg_depend d ON d.objid = p.oid AND d.deptype = 'e'
+        WHERE n.nspname = 'public' 
+          AND d.objid IS NULL
+          -- Exclude C and internal functions just in case
+          AND p.prolang IN (SELECT oid FROM pg_language WHERE lanname IN ('sql', 'plpgsql'))
     LOOP
         EXECUTE format('ALTER FUNCTION %I.%I(%s) SET search_path = public, pg_temp', 
                        func_record.schema_name, 
@@ -113,3 +118,40 @@ CREATE POLICY notifications_insert_self ON public.notifications
 -- 5. Final Cleanup
 DROP INDEX IF EXISTS public.idx_chat_msgs_user;
 DROP INDEX IF EXISTS public.idx_delala_listings_status;
+
+-- 6. Protect Sensitive Columns in profiles
+-- Ensure sec_pin and pin_hash are not easily selectable if not needed
+-- Actually, postgrest doesn't allow column level select policies natively without views,
+-- but we can ensure the update policy prevents updating them directly without RPCs
+-- We already have the profiles_self_update with_check
+
+-- 7. Harden Marketplace Orders policies
+DROP POLICY IF EXISTS marketplace_orders_update ON public.marketplace_orders;
+CREATE POLICY marketplace_orders_update ON public.marketplace_orders
+    FOR UPDATE TO authenticated
+    USING (is_admin() OR buyer_id = auth.uid() OR merchant_id = auth.uid() OR agent_id = auth.uid())
+    WITH CHECK (
+        (is_admin()) OR 
+        (buyer_id = auth.uid() AND status IN ('pending', 'cancelled')) OR
+        (merchant_id = auth.uid()) OR
+        (agent_id = auth.uid())
+    );
+
+-- 8. Harden Wallets
+-- Users should only be able to see their own wallet and not update balance directly
+DROP POLICY IF EXISTS wallets_select ON public.wallets;
+CREATE POLICY wallets_select ON public.wallets
+    FOR SELECT TO authenticated
+    USING (user_id = auth.uid() OR is_admin());
+
+DROP POLICY IF EXISTS wallets_update ON public.wallets;
+CREATE POLICY wallets_update ON public.wallets
+    FOR UPDATE TO authenticated
+    USING (is_admin())
+    WITH CHECK (is_admin());
+
+DROP POLICY IF EXISTS wallets_insert ON public.wallets;
+CREATE POLICY wallets_insert ON public.wallets
+    FOR INSERT TO authenticated
+    WITH CHECK (is_admin() OR (user_id = auth.uid() AND balance = 0));
+

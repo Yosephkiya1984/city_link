@@ -14,10 +14,11 @@ export default function DevPortalScreen() {
   const navigation = useNavigation<any>();
   const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
-  
+
   const { currentUser, setUiMode, uiMode, signOut } = useAuthStore();
   const { balance, setBalance, addTransaction } = useWalletStore();
-  const { showToast, toggleTheme, lang, setLang, addNotification, setPendingP2PClaim } = useSystemStore();
+  const { showToast, toggleTheme, lang, setLang, addNotification, setPendingP2PClaim } =
+    useSystemStore();
 
   const [activeTab, setActiveTab] = useState<'nav' | 'mocks' | 'state'>('nav');
 
@@ -111,32 +112,32 @@ export default function DevPortalScreen() {
 
       <SectionTitle title="Role Simulation" />
       <View style={styles.row}>
-        <CButton 
-          title="Citizen" 
-          onPress={() => setUiMode('citizen')} 
+        <CButton
+          title="Citizen"
+          onPress={() => setUiMode('citizen')}
           variant={uiMode === 'citizen' ? 'primary' : 'outline'}
           style={{ flex: 1 }}
           size="sm"
         />
-        <CButton 
-          title="Merchant" 
-          onPress={() => setUiMode('merchant')} 
+        <CButton
+          title="Merchant"
+          onPress={() => setUiMode('merchant')}
           variant={uiMode === 'merchant' ? 'primary' : 'outline'}
           style={{ flex: 1, marginLeft: 8 }}
           size="sm"
         />
       </View>
       <View style={[styles.row, { marginTop: 8 }]}>
-        <CButton 
-          title="Agent" 
-          onPress={() => setUiMode('agent')} 
+        <CButton
+          title="Agent"
+          onPress={() => setUiMode('agent')}
           variant={uiMode === 'agent' ? 'primary' : 'outline'}
           style={{ flex: 1 }}
           size="sm"
         />
-        <CButton 
-          title="Admin" 
-          onPress={() => setUiMode('admin')} 
+        <CButton
+          title="Admin"
+          onPress={() => setUiMode('admin')}
           variant={uiMode === 'admin' ? 'primary' : 'outline'}
           style={{ flex: 1, marginLeft: 8 }}
           size="sm"
@@ -145,76 +146,95 @@ export default function DevPortalScreen() {
     </View>
   );
 
-
   const renderMocksTab = () => (
     <View style={styles.tabContent}>
       <SectionTitle title="Wallet & Finance" />
       <View style={[styles.card, { backgroundColor: C.surface, borderColor: C.edge }]}>
         <Text style={[styles.cardTitle, { color: C.text }]}>Balance: {fmtETB(balance)}</Text>
         <View style={styles.row}>
-          <CButton title="+1000 ETB" onPress={() => setBalance(balance + 1000)} size="sm" style={{ flex: 1 }} />
-          <CButton title="-500 ETB" onPress={() => setBalance(Math.max(0, balance - 500))} size="sm" style={{ flex: 1, marginLeft: 8 }} variant="outline" />
+          <CButton
+            title="+1000 ETB"
+            onPress={() => setBalance(balance + 1000)}
+            size="sm"
+            style={{ flex: 1 }}
+          />
+          <CButton
+            title="-500 ETB"
+            onPress={() => setBalance(Math.max(0, balance - 500))}
+            size="sm"
+            style={{ flex: 1, marginLeft: 8 }}
+            variant="outline"
+          />
         </View>
-        <CButton 
-          title="Mock P2P Claim Alert" 
+        <CButton
+          title="Mock P2P Claim Alert"
           onPress={() => {
             setPendingP2PClaim({
               id: 'dev-p2p-' + Date.now(),
               sender_id: 'mock-user-1',
               recipient_id: currentUser?.id || 'me',
-              amount: 450.50,
+              amount: 450.5,
               note: 'Payment for Marketplace Order #123',
               status: 'PENDING',
-              created_at: new Date().toISOString()
+              created_at: new Date().toISOString(),
             });
             showToast('Mock P2P claim triggered!', 'success');
-          }} 
-          size="sm" 
-          style={{ marginTop: 8 }} 
+          }}
+          size="sm"
+          style={{ marginTop: 8 }}
           variant="secondary"
         />
       </View>
 
       <SectionTitle title="System Interaction Mocks" />
       <View style={styles.row}>
-        <CButton 
-          title="Mock Order Notif" 
-          onPress={() => addNotification({
-            id: 'notif-' + Date.now(),
-            title: 'New Order Received!',
-            content: 'Order #MKP-992 from John Doe is awaiting preparation.',
-            type: 'order',
-            read: false,
-            created_at: new Date().toISOString()
-          })} 
+        <CButton
+          title="Mock Order Notif"
+          onPress={() =>
+            addNotification({
+              id: 'notif-' + Date.now(),
+              user_id: currentUser?.id || 'dev',
+              title: 'New Order Received!',
+              message: 'Order #MKP-992 from John Doe is awaiting preparation.',
+              type: 'order',
+              read: false,
+              created_at: new Date().toISOString(),
+            })
+          }
           style={{ flex: 1 }}
           size="sm"
         />
-        <CButton 
-          title="Mock Security Notif" 
-          onPress={() => addNotification({
-            id: 'notif-sec-' + Date.now(),
-            title: 'Security Alert',
-            content: 'New login detected from Addis Ababa.',
-            type: 'security',
-            read: false,
-            created_at: new Date().toISOString()
-          })} 
+        <CButton
+          title="Mock Security Notif"
+          onPress={() =>
+            addNotification({
+              id: 'notif-sec-' + Date.now(),
+              user_id: currentUser?.id || 'dev',
+              title: 'Security Alert',
+              message: 'New login detected from Addis Ababa.',
+              type: 'security',
+              read: false,
+              created_at: new Date().toISOString(),
+            })
+          }
           variant="outline"
           style={{ flex: 1, marginLeft: 8 }}
           size="sm"
         />
       </View>
-      <CButton 
-        title="Mock System Broadcast" 
-        onPress={() => addNotification({
-          id: 'notif-sys-' + Date.now(),
-          title: 'System Maintenance',
-          content: 'Scheduled maintenance tonight at 2:00 AM.',
-          type: 'general',
-          read: false,
-          created_at: new Date().toISOString()
-        })} 
+      <CButton
+        title="Mock System Broadcast"
+        onPress={() =>
+          addNotification({
+            id: 'notif-sys-' + Date.now(),
+            user_id: currentUser?.id || 'dev',
+            title: 'System Maintenance',
+            message: 'Scheduled maintenance tonight at 2:00 AM.',
+            type: 'general',
+            read: false,
+            created_at: new Date().toISOString(),
+          })
+        }
         variant="ghost"
         style={{ marginTop: 8 }}
         size="sm"
@@ -226,7 +246,9 @@ export default function DevPortalScreen() {
     <View style={styles.tabContent}>
       <SectionTitle title="App State" />
       <View style={[styles.card, { backgroundColor: C.surface, borderColor: C.edge }]}>
-        <Text style={[styles.stateRow, { color: C.text }]}>User: {currentUser?.full_name || 'Guest'}</Text>
+        <Text style={[styles.stateRow, { color: C.text }]}>
+          User: {currentUser?.full_name || 'Guest'}
+        </Text>
         <Text style={[styles.stateRow, { color: C.text }]}>Role: {currentUser?.role || 'N/A'}</Text>
         <Text style={[styles.stateRow, { color: C.text }]}>UI Mode: {uiMode}</Text>
         <Text style={[styles.stateRow, { color: C.text }]}>Language: {lang}</Text>
@@ -235,13 +257,20 @@ export default function DevPortalScreen() {
 
       <SectionTitle title="System Actions" />
       <View style={styles.row}>
-        <Text style={{ color: C.text, flex: 1, fontSize: 16, fontFamily: Fonts.bold }}>Dark Mode</Text>
+        <Text style={{ color: C.text, flex: 1, fontSize: 16, fontFamily: Fonts.bold }}>
+          Dark Mode
+        </Text>
         <Switch value={isDark} onValueChange={() => toggleTheme()} />
       </View>
-      
-      <CButton 
-        title="Logout (Mock)" 
-        onPress={() => Alert.alert('Logout', 'Are you sure?', [{ text: 'Cancel' }, { text: 'Logout', onPress: signOut }])} 
+
+      <CButton
+        title="Logout (Mock)"
+        onPress={() =>
+          Alert.alert('Logout', 'Are you sure?', [
+            { text: 'Cancel' },
+            { text: 'Logout', onPress: signOut },
+          ])
+        }
         variant="outline"
         style={{ marginTop: 24, borderColor: Colors.red }}
         textStyle={{ color: Colors.red }}
@@ -252,19 +281,24 @@ export default function DevPortalScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar title="🛠️ Dev Portal" showBack />
-      
+
       <View style={[styles.tabBar, { borderBottomColor: C.edge }]}>
         {(['nav', 'mocks', 'state'] as const).map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
-            style={[styles.tab, activeTab === tab && { borderBottomColor: C.primary, borderBottomWidth: 3 }]}
+            style={[
+              styles.tab,
+              activeTab === tab && { borderBottomColor: C.primary, borderBottomWidth: 3 },
+            ]}
           >
-            <Text style={[
-              styles.tabLabel, 
-              { color: activeTab === tab ? C.primary : C.sub },
-              activeTab === tab && { fontFamily: Fonts.black }
-            ]}>
+            <Text
+              style={[
+                styles.tabLabel,
+                { color: activeTab === tab ? C.primary : C.sub },
+                activeTab === tab && { fontFamily: Fonts.black },
+              ]}
+            >
               {tab.toUpperCase()}
             </Text>
           </TouchableOpacity>
@@ -353,5 +387,5 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
     borderTopWidth: 1,
-  }
+  },
 });

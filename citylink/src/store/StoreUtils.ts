@@ -3,6 +3,7 @@ import { useWalletStore } from './WalletStore';
 import { useMarketStore } from './MarketStore';
 import { useSystemStore } from './SystemStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SecurePersist } from './SecurePersist';
 
 /**
  * Coordinated Reset
@@ -16,16 +17,13 @@ export const clearAllStores = async () => {
     useMarketStore.getState().reset();
     useSystemStore.getState().reset();
 
-    // 2. Physical storage wipe (Generic items)
-    const keys = await AsyncStorage.getAllKeys();
-    const citylinkKeys = keys.filter((k) => k.startsWith('citylink-'));
+    // 2. Physical storage wipe (Hardened)
+    await SecurePersist.clearAll();
 
-    // Explicitly clear non-prefixed sensitive keys
+    // Explicitly clear non-prefixed sensitive keys if they survived
     const extraKeys = ['has_seen_onboarding', 'is_first_launch', 'fayda_temp_data'];
-    const toRemove = [...citylinkKeys, ...extraKeys];
-
-    if (toRemove.length > 0) {
-      await AsyncStorage.multiRemove(toRemove);
+    if (extraKeys.length > 0) {
+      await AsyncStorage.multiRemove(extraKeys).catch(() => {});
     }
 
     console.log('[StoreUtils] All stores cleared successfully.');

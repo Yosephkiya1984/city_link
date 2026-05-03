@@ -1,376 +1,235 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
   StatusBar,
   Image,
-  StyleSheet,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MotiView, AnimatePresence } from 'moti';
+import * as Haptics from 'expo-haptics';
+
 import { useEkubData } from './hooks/useEkubData';
 import { useEkubActions } from './hooks/useEkubActions';
-import { DarkColors as T, Radius, FontSize, Fonts } from '../../theme';
+import { useAuthStore } from '../../store/AuthStore';
+import { D, Radius, Fonts } from './components/StitchTheme';
 import { fmtETB } from '../../utils';
-import { CButton } from '../../components';
 import { styles } from './components/EkubDashboardStyles';
+import { useT } from '../../utils/i18n';
 
-const ADDIS_NOIR = {
-  ink: '#0B0D11',
-  surface: '#131720',
-  lift: '#1B2030',
-  rim: '#242B3D',
-  gold: '#00A86B', // Ekub Green
-  cyan: '#00F5FF',
-  glass: 'rgba(255, 255, 255, 0.05)',
-  edge: 'rgba(255, 255, 255, 0.08)',
-};
+const { width } = Dimensions.get('window');
 
 export default function EkubDashboard() {
+  const t = useT();
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const [activeTab, setActiveTab] = useState<'circles' | 'apps' | 'draws' | 'ledger'>('circles');
+
   const data = useEkubData();
   const actions = useEkubActions(data);
-  const [activeTab, setActiveTab] = useState<'circles' | 'apps' | 'draws'>('circles');
 
   const { circles, pendingApps, activeDraws, loading, refreshing, loadData } = data;
-  const { onApproveApp, onRunDraw, onReleasePayout } = actions;
+  const { onApproveApp, onRunDraw } = actions;
+
+  const totalPool = useMemo(
+    () => circles.reduce((acc, c) => acc + c.contribution_amount * c.max_participants, 0),
+    [circles]
+  );
+  const activeMembers = useMemo(
+    () => circles.reduce((acc, c) => acc + (c.current_participants || 0), 0),
+    [circles]
+  );
+
+  const renderCircles = () => (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={D.violet} />
+      }
+    >
+      <View style={styles.bentoContainer}>
+        <View style={styles.bentoRow}>
+          <MotiView
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={styles.bentoCard}
+          >
+            <Text style={styles.bentoLabel}>{t('total_pool_value')}</Text>
+            <Text style={styles.bentoValue}>{fmtETB(totalPool)}</Text>
+          </MotiView>
+          <MotiView
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 100 }}
+            style={styles.bentoCard}
+          >
+            <Text style={styles.bentoLabel}>{t('active_members')}</Text>
+            <Text style={[styles.bentoValue, { color: D.violet }]}>{activeMembers}</Text>
+          </MotiView>
+        </View>
+      </View>
+
+      {circles.length === 0 ? (
+        <View style={{ padding: 40, alignItems: 'center' }}>
+          <Ionicons name="people-outline" size={64} color={D.lift} />
+          <Text style={{ color: D.sub, marginTop: 16, fontFamily: Fonts.bold }}>
+            {t('no_circles_created')}
+          </Text>
+        </View>
+      ) : (
+        circles.map((c, i) => (
+          <MotiView
+            key={c.id}
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 200 + i * 100 }}
+            style={styles.circleCard}
+          >
+            <View style={styles.circleTop}>
+              <View>
+                <Text style={styles.circleTitle}>{c.name}</Text>
+                <Text style={styles.circleType}>{c.cycle_period || 'Weekly'}</Text>
+              </View>
+              <Ionicons name="shield-checkmark" size={24} color={D.violet} />
+            </View>
+
+            <View style={styles.circleProgress}>
+              <View
+                style={[
+                  styles.circleProgressFill,
+                  { width: `${(c.current_participants / c.max_participants) * 100}%` },
+                ]}
+              />
+            </View>
+
+            <View style={styles.circleStats}>
+              <View style={styles.circleStatItem}>
+                <Text style={styles.circleStatLabel}>{t('contribution')}</Text>
+                <Text style={styles.circleStatValue}>{fmtETB(c.contribution_amount)}</Text>
+              </View>
+              <View style={styles.circleStatItem}>
+                <Text style={styles.circleStatLabel}>{t('members')}</Text>
+                <Text style={styles.circleStatValue}>
+                  {c.current_participants} / {c.max_participants}
+                </Text>
+              </View>
+              <View style={[styles.circleStatItem, { alignItems: 'flex-end' }]}>
+                <Text style={styles.circleStatLabel}>{t('next_draw')}</Text>
+                <Text style={[styles.circleStatValue, { color: D.gold }]}>FRI, 10:00</Text>
+              </View>
+            </View>
+          </MotiView>
+        ))
+      )}
+    </ScrollView>
+  );
+
+  const renderApps = () => (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      {pendingApps.length === 0 ? (
+        <View style={{ padding: 60, alignItems: 'center' }}>
+          <Ionicons name="mail-outline" size={48} color={D.lift} />
+          <Text style={{ color: D.sub, marginTop: 16, fontFamily: Fonts.bold }}>
+            {t('no_pending_applications')}
+          </Text>
+        </View>
+      ) : (
+        pendingApps.map((app, i) => (
+          <MotiView
+            key={app.id}
+            from={{ opacity: 0, translateX: -20 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ delay: i * 50 }}
+            style={styles.appCard}
+          >
+            <View style={styles.appAvatar}>
+              <Ionicons name="person" size={20} color={D.sub} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.appName}>{app.user_name || 'Anonymous'}</Text>
+              <Text style={styles.appDetails}>
+                {app.ekub_name} • {fmtETB(app.amount)}
+              </Text>
+            </View>
+            <View style={styles.appActions}>
+              <TouchableOpacity
+                style={styles.approveBtn}
+                onPress={() => onApproveApp(app.ekub_id, app.user_id, 'ACTIVE')}
+              >
+                <Ionicons name="checkmark" size={20} color={D.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.rejectBtn}
+                onPress={() => onApproveApp(app.ekub_id, app.user_id, 'REJECTED')}
+              >
+                <Ionicons name="close" size={20} color={D.red} />
+              </TouchableOpacity>
+            </View>
+          </MotiView>
+        ))
+      )}
+    </ScrollView>
+  );
+
+  const renderDraws = () => (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 20 }}>
+      <MotiView
+        from={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        style={styles.drawHero}
+      >
+        <Ionicons name="sparkles" size={48} color={D.violet} style={{ marginBottom: 16 }} />
+        <Text style={styles.drawTitle}>{t('next_lucky_draw')}</Text>
+        <Text style={styles.drawTimer}>04:22:15</Text>
+        <TouchableOpacity style={styles.drawBtn} onPress={() => onRunDraw(circles[0])}>
+          <Text style={styles.drawBtnText}>{t('trigger_early_draw')}</Text>
+        </TouchableOpacity>
+      </MotiView>
+    </ScrollView>
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <SafeAreaView style={{ backgroundColor: T.lift }}>
-        <View style={styles.navBar}>
-          <View style={styles.brandBox}>
-            <View style={styles.brandIcon}>
-              <Ionicons name="people" size={20} color="#00A86B" />
-            </View>
-            <View>
-              <Text style={styles.brandName}>C-EKUB</Text>
-              <Text style={styles.brandSubtitle}>SAVINGS MANAGER</Text>
-            </View>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.brandTitle}>Ekub Admin</Text>
+            <Text style={styles.brandTag}>{t('community_wealth_management')}</Text>
           </View>
-          <TouchableOpacity style={{ padding: 8 }} onPress={loadData}>
-            <Ionicons name="refresh" size={22} color={T.sub} />
+          <TouchableOpacity style={{ padding: 8 }}>
+            <Ionicons name="add-circle" size={32} color={D.violet} />
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-
-      <View style={styles.tabScrollWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScroller}
-        >
-          {(['circles', 'apps', 'draws'] as const).map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-            >
-              <Ionicons
-                name={tab === 'circles' ? 'layers' : tab === 'apps' ? 'person-add' : 'cash'}
-                size={16}
-                color={activeTab === tab ? '#00A86B' : T.sub}
-              />
-              <Text style={[styles.tabItemTxt, activeTab === tab && styles.tabItemTxtActive]}>
-                {tab.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#00A86B" />
-        }
-      >
-        {loading && !refreshing ? (
-          <ActivityIndicator color="#00A86B" style={{ marginTop: 40 }} />
-        ) : (
-          <View style={{ paddingBottom: 100 }}>
-            {activeTab === 'circles' && (
-              <View style={{ paddingTop: 16 }}>
-                {circles.length === 0 ? (
-                  <EmptyState text="No managed circles yet" icon="layers-outline" />
-                ) : (
-                  circles.map((c) => (
-                    <View
-                      key={c.id}
-                      style={{
-                        backgroundColor: ADDIS_NOIR.surface,
-                        marginHorizontal: 16,
-                        marginBottom: 16,
-                        padding: 20,
-                        borderRadius: 24,
-                        borderWidth: 1,
-                        borderColor: ADDIS_NOIR.edge,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          marginBottom: 16,
-                        }}
-                      >
-                        <View>
-                          <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '800' }}>
-                            {c.name}
-                          </Text>
-                          <Text
-                            style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 4 }}
-                          >
-                            Round {c.current_round} • {c.frequency}
-                          </Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text
-                            style={{
-                              color: 'rgba(255,255,255,0.4)',
-                              fontSize: 10,
-                              fontWeight: '700',
-                            }}
-                          >
-                            Total Pot
-                          </Text>
-                          <Text style={{ color: ADDIS_NOIR.gold, fontSize: 18, fontWeight: '800' }}>
-                            {fmtETB(c.pot_balance)}
-                          </Text>
-                        </View>
-                      </View>
-                      <CButton
-                        title="Initiate Round Draw"
-                        size="sm"
-                        onPress={() => onRunDraw(c)}
-                        style={{ backgroundColor: ADDIS_NOIR.gold }}
-                      />
-                    </View>
-                  ))
-                )}
-              </View>
-            )}
+      <View style={styles.tabContainer}>
+        {(['circles', 'apps', 'draws', 'ledger'] as const).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => {
+              setActiveTab(tab);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {t(tab)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-            {activeTab === 'apps' && (
-              <View style={{ paddingTop: 16 }}>
-                {pendingApps.length === 0 ? (
-                  <EmptyState text="No pending applications" icon="people-outline" />
-                ) : (
-                  pendingApps.map((app) => (
-                    <View
-                      key={`${app.ekub_id}-${app.user_id}`}
-                      style={{
-                        backgroundColor: ADDIS_NOIR.surface,
-                        marginHorizontal: 16,
-                        marginBottom: 16,
-                        padding: 20,
-                        borderRadius: 24,
-                        borderWidth: 1,
-                        borderColor: ADDIS_NOIR.edge,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 12,
-                          marginBottom: 12,
-                        }}
-                      >
-                        <View
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 20,
-                            backgroundColor: ADDIS_NOIR.lift,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Ionicons name="person" size={20} color={ADDIS_NOIR.gold} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800' }}>
-                            {app.profile?.full_name}
-                          </Text>
-                          <Text style={{ color: ADDIS_NOIR.gold, fontSize: 11, fontWeight: '700' }}>
-                            {app.ekubs?.name}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text
-                        style={{
-                          color: 'rgba(255,255,255,0.6)',
-                          fontSize: 13,
-                          fontStyle: 'italic',
-                          marginBottom: 16,
-                        }}
-                      >
-                        &quot;{app.application_reason || 'I want to join this circle.'}&quot;
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <CButton
-                          title="Reject"
-                          variant="ghost"
-                          size="sm"
-                          style={{ flex: 1 }}
-                          onPress={() => onApproveApp(app.ekub_id, app.user_id, 'REJECTED')}
-                        />
-                        <CButton
-                          title="Approve"
-                          size="sm"
-                          style={{ flex: 2, backgroundColor: ADDIS_NOIR.gold }}
-                          onPress={() => onApproveApp(app.ekub_id, app.user_id, 'ACTIVE')}
-                        />
-                      </View>
-                    </View>
-                  ))
-                )}
-              </View>
-            )}
-
-            {activeTab === 'draws' && (
-              <View style={{ paddingTop: 16 }}>
-                {activeDraws.length === 0 ? (
-                  <EmptyState text="No pending payouts" icon="cash-outline" />
-                ) : (
-                  activeDraws.map((draw) => (
-                    <PayoutCard
-                      key={draw.id}
-                      draw={draw}
-                      onRelease={() => onReleasePayout(draw.id)}
-                    />
-                  ))
-                )}
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
+      <AnimatePresence exitBeforeEnter>
+        <View style={{ flex: 1 }}>
+          {activeTab === 'circles' && renderCircles()}
+          {activeTab === 'apps' && renderApps()}
+          {activeTab === 'draws' && renderDraws()}
+        </View>
+      </AnimatePresence>
     </View>
   );
 }
-
-const CircleCard = ({ circle, onRunDraw }: any) => (
-  <View style={styles.card}>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-      <View>
-        <Text style={styles.circleName}>{circle.name}</Text>
-        <Text style={styles.circleSub}>
-          Round {circle.current_round} • {circle.frequency}
-        </Text>
-      </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={styles.potLabel}>Total Pot</Text>
-        <Text style={styles.potValue}>{fmtETB(circle.pot_balance)}</Text>
-      </View>
-    </View>
-    <CButton
-      title="Initiate Round Draw"
-      variant="outline"
-      size="sm"
-      onPress={onRunDraw}
-      style={{ borderColor: '#00A86B', backgroundColor: 'transparent' }}
-    />
-  </View>
-);
-
-const AppReviewCard = ({ app, onReview }: any) => (
-  <View style={styles.card}>
-    <View style={styles.appHeader}>
-      {app.profile?.profile_image ? (
-        <Image source={{ uri: app.profile.profile_image }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-          <Ionicons name="person" size={20} color={T.sub} />
-        </View>
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.userName}>{app.profile?.full_name}</Text>
-        <Text style={{ color: '#00A86B', fontSize: 11, fontWeight: '700' }}>{app.ekubs?.name}</Text>
-      </View>
-    </View>
-    <Text style={styles.appReason}>
-      &quot;{app.application_reason || 'I want to join this circle.'}&quot;
-    </Text>
-    <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-      <CButton
-        title="Reject"
-        variant="ghost"
-        size="sm"
-        style={{ flex: 1 }}
-        onPress={() => onReview('REJECTED')}
-      />
-      <CButton
-        title="Approve Member"
-        size="sm"
-        style={{ flex: 2, backgroundColor: '#00A86B' }}
-        onPress={() => onReview('ACTIVE')}
-      />
-    </View>
-  </View>
-);
-
-const PayoutCard = ({ draw, onRelease }: any) => {
-  const needsConsent = draw.status === 'AWAITING_CONSENT';
-
-  return (
-    <View style={styles.card}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-        <View>
-          <Text style={styles.circleName}>Payout Pending</Text>
-          <Text style={styles.circleSub}>
-            {draw.ekubs?.name} • Round {draw.round_number}
-          </Text>
-          <Text style={styles.winnerName}>Winner: {draw.winner_name}</Text>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text
-            style={[
-              styles.statusBadge,
-              { backgroundColor: needsConsent ? '#F5B80020' : '#00A86B20' },
-            ]}
-          >
-            <Text style={[styles.statusTxt, { color: needsConsent ? '#F5B800' : '#00A86B' }]}>
-              {draw.status}
-            </Text>
-          </Text>
-          <Text style={[styles.potValue, { fontSize: 16, marginTop: 8 }]}>
-            {fmtETB(draw.pot_amount)}
-          </Text>
-        </View>
-      </View>
-      <CButton
-        title="Release Pot to Winner"
-        disabled={needsConsent}
-        size="sm"
-        onPress={onRelease}
-        style={{ backgroundColor: needsConsent ? T.rim : '#00A86B' }}
-      />
-      {needsConsent && (
-        <Text
-          style={{
-            color: T.sub,
-            fontSize: 10,
-            textAlign: 'center',
-            marginTop: 8,
-            fontStyle: 'italic',
-          }}
-        >
-          Waiting for winner to sign payout consent...
-        </Text>
-      )}
-    </View>
-  );
-};
-
-const EmptyState = ({ text, icon }: { text: string; icon: any }) => (
-  <View style={{ padding: 60, alignItems: 'center' }}>
-    <Ionicons name={icon} size={48} color={T.rim} />
-    <Text style={{ color: T.sub, marginTop: 16, fontWeight: '600' }}>{text}</Text>
-  </View>
-);

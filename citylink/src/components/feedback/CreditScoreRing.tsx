@@ -1,14 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { 
-  Canvas, 
-  Path, 
-  Skia, 
-  vec,
-  SweepGradient,
-  Circle,
-  Group
-} from '@shopify/react-native-skia';
+import { Canvas, Path, Skia, vec, SweepGradient, Circle, Group } from '@shopify/react-native-skia';
 import { useDerivedValue, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { useTheme } from '../../hooks/useTheme';
 import { Fonts, Radius } from '../../theme';
@@ -22,11 +14,11 @@ interface CreditScoreRingProps {
 
 export function CreditScoreRing({ score = 742, maxScore = 850 }: CreditScoreRingProps) {
   const C = useTheme();
-  const percentage = ((score - 300) / (maxScore - 300)); // 0 to 1
-  
+  const percentage = (score - 300) / (maxScore - 300); // 0 to 1
+
   // Reanimated values for smooth Skia interaction
   const progress = useSharedValue(0);
-  
+
   useEffect(() => {
     progress.value = withTiming(percentage, {
       duration: 1500,
@@ -37,7 +29,7 @@ export function CreditScoreRing({ score = 742, maxScore = 850 }: CreditScoreRing
   const radius = 40;
   const strokeWidth = 8;
   const center = vec(50, 50);
-  
+
   const category = CreditService.getCategory(score);
 
   // Create the path for the ring
@@ -88,7 +80,7 @@ export function CreditScoreRing({ score = 742, maxScore = 850 }: CreditScoreRing
           <Text style={[styles.scoreText, { color: C.text }]}>{score}</Text>
         </View>
       </View>
-      
+
       <View style={styles.creditTextContainer}>
         <Text style={[styles.creditTitle, { color: C.sub }]}>CREDIT SCORE</Text>
         <Text style={[styles.creditStatus, { color: category.color }]}>{category.label}</Text>

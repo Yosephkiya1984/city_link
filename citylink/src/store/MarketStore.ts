@@ -3,46 +3,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import CryptoJS from 'crypto-js';
+import * as Crypto from 'expo-crypto';
 import { Product } from '../types';
 
-const MARKET_ENCRYPTION_KEY_NAME = 'citylink-market-encryption-key';
-let cachedEncryptionKey: string | null = null;
-let initializing: Promise<string> | null = null;
-
-async function getEncryptionKey(): Promise<string> {
-  if (cachedEncryptionKey) {
-    return cachedEncryptionKey;
-  }
-
-  if (initializing) {
-    return initializing;
-  }
-
-  initializing = (async () => {
-    try {
-      const storedKey = await SecureStore.getItemAsync(MARKET_ENCRYPTION_KEY_NAME);
-      if (storedKey) {
-        cachedEncryptionKey = storedKey;
-        return storedKey;
-      }
-
-      const generatedKey = CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Base64);
-      await SecureStore.setItemAsync(MARKET_ENCRYPTION_KEY_NAME, generatedKey);
-      cachedEncryptionKey = generatedKey;
-      return generatedKey;
-    } catch (error) {
-      console.error('Failed to load market encryption key:', error);
-      throw new Error('MARKET_ENCRYPTION_KEY_UNAVAILABLE');
-    }
-  })();
-
-  try {
-    return await initializing;
-  } finally {
-    initializing = null;
-  }
-}
-
+import { SecurityUtils } from '../utils/security';
 interface CartItem {
   product: Product;
   quantity: number;
@@ -56,34 +20,26 @@ const encryptedStorage = {
       const encrypted = await AsyncStorage.getItem(name);
       if (!encrypted) return null;
 
-      const key = await getEncryptionKey();
-
-      try {
-        const bytes = CryptoJS.AES.decrypt(encrypted, key);
-        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-
-        if (!decrypted) {
-          // If decryption fails, clear corrupted data
-          await AsyncStorage.removeItem(name);
-          return null;
-        }
-
-        return decrypted;
-      } catch (decryptError) {
-        console.error('Decryption integrity failure:', decryptError);
+      const decrypted = await SecurityUtils.decrypt(encrypted);
+      if (
+        !decrypted ||
+        decrypted === '[INVALID_FORMAT]' ||
+        decrypted === '[DECRYPTION_FAILED]' ||
+        decrypted === '[DECRYPTION_ERROR]'
+      ) {
         await AsyncStorage.removeItem(name);
         return null;
       }
+
+      return decrypted;
     } catch (error) {
-      console.error('Failed to get encrypted data or key:', error);
-      // Do not remove data on key retrieval or other transient errors
+      console.error('Failed to get encrypted data:', error);
       return null;
     }
   },
   setItem: async (name: string, value: string): Promise<void> => {
     try {
-      const key = await getEncryptionKey();
-      const encrypted = CryptoJS.AES.encrypt(value, key).toString();
+      const encrypted = await SecurityUtils.encrypt(value);
       await AsyncStorage.setItem(name, encrypted);
     } catch (error) {
       console.error('Failed to encrypt market store data:', error);
@@ -111,6 +67,7 @@ export interface MarketState {
   getCartItemsByMerchant: () => Record<string, CartItem[]>;
   isInCart: (productId: string) => boolean;
   getCartItemQuantity: (productId: string) => number;
+  getUniqueMerchantCount: () => number;
   reset: () => void;
 }
 
@@ -229,6 +186,12 @@ export const useMarketStore = create<MarketState>()(
         const { cartItems } = get();
         const item = cartItems.find((item) => item.product.id === productId);
         return item ? item.quantity : 0;
+      },
+
+      getUniqueMerchantCount: () => {
+        const { cartItems } = get();
+        const merchants = new Set(cartItems.map((i) => i.product.merchant_id));
+        return merchants.size;
       },
 
       reset: () => set({ products: [], favorites: [], cartItems: [] }),

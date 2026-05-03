@@ -168,9 +168,7 @@ export function TransactionItem({ tx, index, onPress }: TransactionItemProps) {
                   {tx.category}
                 </Text>
               </View>
-              {onPress && (
-                <Ionicons name="receipt-outline" size={14} color={C.hint} />
-              )}
+              {onPress && <Ionicons name="receipt-outline" size={14} color={C.hint} />}
             </View>
           </View>
         </View>

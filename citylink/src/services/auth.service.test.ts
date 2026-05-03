@@ -1,8 +1,21 @@
-import AsyncStorageMock from '@react-native-async-storage/async-storage/jest/async-storage-mock';
+const mockAsyncStorage = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  mergeItem: jest.fn(),
+  clear: jest.fn(),
+  getAllKeys: jest.fn(),
+  flushGetRequests: jest.fn(),
+  multiGet: jest.fn(),
+  multiSet: jest.fn(),
+  multiRemove: jest.fn(),
+  multiMerge: jest.fn(),
+};
+
+jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
+
 import { sendOtp, verifyOtp } from './auth.service';
 import { getClient } from './supabase';
-
-jest.mock('@react-native-async-storage/async-storage', () => AsyncStorageMock);
 jest.mock('expo-crypto', () => ({
   randomUUID: () => '00000000-0000-4000-8000-000000000000',
 }));

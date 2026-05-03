@@ -2,6 +2,8 @@ import React, { memo } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { T } from './constants';
+import { t } from '../../utils';
+import { useSystemStore } from '../../store/SystemStore';
 
 interface SearchBarProps {
   value: string;
@@ -10,30 +12,33 @@ interface SearchBarProps {
   onSubmit?: () => void;
 }
 
-const MarketplaceSearchBar = memo(({ value, onChangeText, onClear, onSubmit }: SearchBarProps) => (
-  <View style={styles.searchWrap}>
-    <Ionicons name="search" size={18} color={T.textSub} style={styles.searchIcon} />
-    <TextInput
-      style={styles.searchInput}
-      placeholder="Search products..."
-      placeholderTextColor={T.textSub}
-      value={value}
-      onChangeText={onChangeText}
-      returnKeyType="search"
-      onSubmitEditing={onSubmit}
-    />
-    {value.length > 0 && (
-      <TouchableOpacity
-        onPress={onClear}
-        style={styles.clearBtn}
-        accessibilityLabel="Clear search text"
-        accessibilityRole="button"
-      >
-        <Ionicons name="close-circle" size={18} color={T.textSub} />
-      </TouchableOpacity>
-    )}
-  </View>
-));
+const MarketplaceSearchBar = memo(({ value, onChangeText, onClear, onSubmit }: SearchBarProps) => {
+  const lang = useSystemStore((s) => s.lang);
+  return (
+    <View style={styles.searchWrap}>
+      <Ionicons name="search" size={18} color={T.textSub} style={styles.searchIcon} />
+      <TextInput
+        style={styles.searchInput}
+        placeholder={t('search_products')}
+        placeholderTextColor={T.textSub}
+        value={value}
+        onChangeText={onChangeText}
+        returnKeyType="search"
+        onSubmitEditing={onSubmit}
+      />
+      {value.length > 0 && (
+        <TouchableOpacity
+          onPress={onClear}
+          style={styles.clearBtn}
+          accessibilityLabel="Clear search text"
+          accessibilityRole="button"
+        >
+          <Ionicons name="close-circle" size={18} color={T.textSub} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
 
 export default MarketplaceSearchBar;
 

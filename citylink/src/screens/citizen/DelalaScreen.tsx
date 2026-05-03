@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList } from '../../components/common/SafeFlashList';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +16,7 @@ import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { hasSupabase } from '../../services/supabase';
 import { fetchChatThreads } from '../../services/chat.service';
+import { t } from '../../utils';
 
 // Modular Components
 import { COLORS, CATEGORIES } from '../../components/delala/constants';
@@ -81,8 +82,8 @@ export default function DelalaScreen() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
-  const [activeScreen, setActiveScreen] = useState('Listings');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeScreen, setActiveScreen] = useState('listings');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -113,24 +114,24 @@ export default function DelalaScreen() {
   // Unified Filtered Data
   const filteredData = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    if (activeScreen === 'Listings') {
+    if (activeScreen === 'listings') {
       return PUBLIC_LISTINGS.filter(
         (p) =>
-          (selectedCategory === 'All' || p.category === selectedCategory) &&
+          (selectedCategory === 'all' || p.category === selectedCategory) &&
           (p.title.toLowerCase().includes(q) || p.location.toLowerCase().includes(q))
       );
     }
-    if (activeScreen === 'Inventory') {
+    if (activeScreen === 'inventory') {
       return PRIVATE_INVENTORY.filter(
         (p) =>
-          (selectedCategory === 'All' || p.category === selectedCategory) &&
+          (selectedCategory === 'all' || p.category === selectedCategory) &&
           (p.title.toLowerCase().includes(q) || p.location.toLowerCase().includes(q))
       );
     }
     return threads.filter((t) => {
       const isUserA = t.user_a_id === currentUser?.id;
       const other = isUserA ? t.user_b : t.user_a;
-      const name = (other?.business_name || other?.full_name || 'Agent').toLowerCase();
+      const name = (other?.business_name || other?.full_name || t('agent_default')).toLowerCase();
       return name.includes(q);
     });
   }, [activeScreen, selectedCategory, searchQuery, threads, currentUser?.id]);
@@ -139,7 +140,7 @@ export default function DelalaScreen() {
   const handleNegotiate = useCallback(
     (property: any) => {
       if (!currentUser?.id) {
-        showToast('Please login to negotiate', 'error');
+        showToast(t('negotiate_login'), 'error');
         return;
       }
       const agentId = property.poster_id || property.agent_id || 'mock-id';
@@ -173,10 +174,10 @@ export default function DelalaScreen() {
   // Rendering
   const renderItem = useCallback(
     ({ item }: { item: any }) => {
-      if (activeScreen === 'Listings') {
+      if (activeScreen === 'listings') {
         return <PublicPropertyCard property={item} onPress={() => handleNegotiate(item)} />;
       }
-      if (activeScreen === 'Inventory') {
+      if (activeScreen === 'inventory') {
         return (
           <InventoryPropertyCard property={item} onPress={() => {}} onNegotiate={handleNegotiate} />
         );
@@ -196,7 +197,7 @@ export default function DelalaScreen() {
     () => (
       <View style={styles.listHeader}>
         <DelalaSearchBar value={searchQuery} onChangeText={setSearchQuery} />
-        {activeScreen !== 'Messages' && (
+        {activeScreen !== 'messages' && (
           <DelalaCategoryFilter
             categories={CATEGORIES}
             selected={selectedCategory}
@@ -204,7 +205,7 @@ export default function DelalaScreen() {
           />
         )}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{activeScreen}</Text>
+          <Text style={styles.sectionTitle}>{t(activeScreen)}</Text>
           {loading && <ActivityIndicator size="small" color={COLORS.primary} />}
         </View>
       </View>
@@ -216,7 +217,9 @@ export default function DelalaScreen() {
     () => (
       <View style={styles.emptyContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={COLORS.outline} />
-        <Text style={styles.emptyText}>No results found in {activeScreen}</Text>
+        <Text style={styles.emptyText}>
+          {t('no_results')} {t(activeScreen)}
+        </Text>
       </View>
     ),
     [activeScreen]
@@ -232,10 +235,10 @@ export default function DelalaScreen() {
         userImage="https://lh3.googleusercontent.com/aida-public/AB6AXuCHwmA-YZrrtVyhsk4Sr6u9lf6Bw1m9DgQVeF-DP5u8cb6eFFQuO00EF6s24Cf2c7x_AtxYSPsYUgSthpfi6v8JgXryKaiTUqYV6kgiW8ErWBEuyDdcIxbutNP9Y2vOgOTEOEYI9gywt2ofFAxE1eYEYcN5SMsHEtkkU-OP9DLXBZopRhZDNmkUIqxAPwlCh_mXstEN5oVynZpzJdrdhUjjZsLAx0OBjkYFbnXAh_PQhQqM8Y8HRL7FC8kHGArKfe9d7l8Hnyym2JVU"
       />
 
-      <FlashList
+      <FlashList<any>
         data={filteredData}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id || item.thread_id}
+        renderItem={({ item }: { item: any }) => renderItem({ item })}
+        keyExtractor={(item: any) => item.id || item.thread_id}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={EmptyState}
         contentContainerStyle={styles.listContent}

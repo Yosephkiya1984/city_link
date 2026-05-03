@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from './constants';
+import { t } from '../../utils';
 
 interface MessageThreadProps {
   thread: any;
@@ -66,29 +67,28 @@ const MessageThread = memo(({ thread, onPress, currentUser }: MessageThreadProps
                   <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
                 )}
               </View>
-              <Text style={styles.propertyReference}>Negotiation Thread</Text>
+              <Text style={styles.propertyReference}>{t('negotiation_thread')}</Text>
             </View>
           </View>
 
           <View style={styles.messageThreadMeta}>
             <Text style={styles.lastMessageTime}>
               {(() => {
-                if (!thread.last_ts) return 'Active';
                 const d = new Date(thread.last_ts);
-                return isNaN(d.getTime()) ? 'Active' : d.toLocaleDateString();
+                return isNaN(d.getTime()) ? t('active') : d.toLocaleDateString();
               })()}
             </Text>
           </View>
         </View>
 
         <Text style={styles.lastMessage} numberOfLines={2}>
-          {thread.last_msg || 'No messages yet'}
+          {thread.last_msg || t('no_messages_yet')}
         </Text>
 
         {thread.status === 'agreed' && (
           <View style={styles.agreementBadge}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS['on-primary']} />
-            <Text style={styles.agreementText}>Agreement Reached</Text>
+            <Text style={styles.agreementText}>{t('agreement_reached')}</Text>
           </View>
         )}
       </TouchableOpacity>

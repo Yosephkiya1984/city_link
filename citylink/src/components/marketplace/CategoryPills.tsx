@@ -6,59 +6,66 @@ import { MotiView, MotiText } from 'moti';
 import { MotiPressable } from 'moti/interactions';
 import { T, CATEGORIES } from './constants';
 import { Fonts, Radius } from '../../theme';
+import { t } from '../../utils';
+import { useSystemStore } from '../../store/SystemStore';
 
 interface CategoryPillsProps {
   selected: string;
   onSelect: (catId: string) => void;
 }
 
-const CategoryPills = memo(({ selected, onSelect }: CategoryPillsProps) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={styles.pillRow}
-    contentContainerStyle={{ paddingRight: 20, gap: 10 }}
-  >
-    {CATEGORIES.map((cat: any) => {
-      const active = selected === cat.id;
-      return (
-        <MotiPressable
-          key={cat.id}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onSelect(cat.id);
-          }}
-          animate={({ hovered, pressed }) => {
-            'worklet';
-            return {
-              scale: pressed ? 0.95 : hovered ? 1.05 : 1,
-            };
-          }}
-        >
-          <MotiView
-            animate={{
-              backgroundColor: active ? cat.color + '22' : T.surface,
-              borderColor: active ? cat.color + '60' : T.border,
+const CategoryPills = memo(({ selected, onSelect }: CategoryPillsProps) => {
+  const lang = useSystemStore((s) => s.lang);
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.pillRow}
+      contentContainerStyle={{ paddingRight: 20, gap: 10 }}
+    >
+      {CATEGORIES.map((cat: any) => {
+        const active = selected === cat.id;
+        return (
+          <MotiPressable
+            key={cat.id}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(cat.id);
             }}
-            transition={{ type: 'timing', duration: 250 }}
-            style={styles.pill}
+            animate={({ hovered, pressed }) => {
+              'worklet';
+              return {
+                scale: pressed ? 0.95 : hovered ? 1.05 : 1,
+              };
+            }}
           >
-            <Ionicons name={cat.icon as any} size={14} color={active ? cat.color : T.textSub} />
-            <MotiText
+            <MotiView
               animate={{
-                color: active ? cat.color : T.textSub,
-                fontWeight: active ? '700' : '600',
+                backgroundColor: active ? cat.color + '22' : T.surface,
+                borderColor: active ? cat.color + '60' : T.border,
               }}
-              style={styles.pillText}
+              transition={{ type: 'timing', duration: 250 }}
+              style={styles.pill}
             >
-              {cat.name}
-            </MotiText>
-          </MotiView>
-        </MotiPressable>
-      );
-    })}
-  </ScrollView>
-));
+              <Ionicons name={cat.icon as any} size={14} color={active ? cat.color : T.textSub} />
+              <MotiText
+                animate={
+                  {
+                    color: active ? cat.color : T.textSub,
+                    fontWeight: active ? '700' : '600',
+                  } as any
+                }
+                style={styles.pillText}
+              >
+                {t(cat.name)}
+              </MotiText>
+            </MotiView>
+          </MotiPressable>
+        );
+      })}
+    </ScrollView>
+  );
+});
 
 export default CategoryPills;
 

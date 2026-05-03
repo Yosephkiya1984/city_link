@@ -171,6 +171,7 @@ export interface User {
   onboarded?: boolean;
   pin_hash?: string;
   avatar_url?: string;
+  language?: string;
   merchant_details?: MerchantDetails;
 
   // 🏛️ Legacy/Flattened compatibility fields
@@ -181,6 +182,9 @@ export interface User {
   license_no?: string;
   trade_license?: string;
   merchant_status?: string;
+
+  // 🪪 Fayda National ID
+  fayda_id?: string;
 }
 
 export interface AuthState {
@@ -334,9 +338,12 @@ export interface PropertyListing {
   status: 'ACTIVE' | 'NEGOTIATING' | 'AGREED' | 'FAILED';
   deal_status?: string;
   broker?: string;
+  image_url?: string;
   images: string[];
   images_json?: string[];
   video_url?: string;
+  type?: string;
+  views?: number;
   created_at?: string;
   updated_at?: string;
   negotiations?: { merchant: string; offer: number }[]; // Join mapping
@@ -431,6 +438,7 @@ export interface MarketplaceOrder {
     | 'SHIPPED'
     | 'IN_TRANSIT'
     | 'AWAITING_PIN'
+    | 'SELF_DELIVERY'
     | 'COMPLETED'
     | 'DISPUTED'
     | 'CANCELLED'
@@ -440,10 +448,16 @@ export interface MarketplaceOrder {
   agent_fee?: number;
   platform_fee?: number;
   shipping_address?: string;
+  merchant_name?: string;
   merchant_confirmed_pickup?: boolean;
   agent_confirmed_pickup?: boolean;
+  type?: 'product' | 'food';
+  items?: any[];
+  items_count?: number;
   created_at: string;
   updated_at: string;
+  destination_lat?: number;
+  destination_lng?: number;
   buyer?: { full_name?: string; phone?: string } | { full_name?: string; phone?: string }[];
   merchant?:
     | { business_name?: string; merchant_name?: string; subcity?: string; woreda?: string }
@@ -562,6 +576,8 @@ export interface FoodOrder {
   total: number;
   status: 'NEW' | 'PREPARING' | 'READY' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
   delivery_pin?: string;
+  destination_lat?: number;
+  destination_lng?: number;
   created_at: string;
 }
 

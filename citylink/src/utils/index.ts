@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
-import { t } from './i18n';
-export { t };
+import { t, useT } from './i18n';
+export { t, useT };
 
 // ── ID generation (crypto-safe UUID v4) ──────────────────────────────────────
 export function uid() {
@@ -70,21 +70,21 @@ export function isValidEthPhone(phone: string): boolean {
 
 export function normalizePhone(phone: string): string {
   if (!phone) return '';
-  let cleaned = phone.replace(/\s/g, '').replace(/\+/g, '');
-  
+  const cleaned = phone.replace(/\s/g, '').replace(/^\+/, '');
+
   // If it starts with 07, 08, 09 -> replace with 251...
   if (/^0[789]/.test(cleaned)) {
-    return '251' + cleaned.slice(1);
+    return '+251' + cleaned.slice(1);
   }
-  
-  // If it starts with 251... -> keep as is
+
+  // If it starts with 251... -> keep as is with +
   if (/^251[789]/.test(cleaned)) {
-    return cleaned;
+    return '+' + cleaned;
   }
-  
+
   // If it's just the 9 digits (e.g. 911...) -> add 251
   if (/^[789]\d{8}$/.test(cleaned)) {
-    return '251' + cleaned;
+    return '+251' + cleaned;
   }
 
   return cleaned; // Default fallback

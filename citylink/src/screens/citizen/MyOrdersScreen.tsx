@@ -84,12 +84,12 @@ export default function MyOrdersScreen() {
       <View style={[styles.summaryRow, { backgroundColor: C.surface, borderBottomColor: C.edge }]}>
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryNum, { color: C.text }]}>{activeOrders.length}</Text>
-          <Text style={[styles.summaryLabel, { color: C.sub }]}>Active</Text>
+          <Text style={[styles.summaryLabel, { color: C.sub }]}>{t('active')}</Text>
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: C.edge }]} />
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryNum, { color: C.text }]}>{historyOrders.length}</Text>
-          <Text style={[styles.summaryLabel, { color: C.sub }]}>Completed</Text>
+          <Text style={[styles.summaryLabel, { color: C.sub }]}>{t('completed')}</Text>
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: C.edge }]} />
         <View style={styles.summaryItem}>
@@ -100,7 +100,7 @@ export default function MyOrdersScreen() {
               0
             )}
           </Text>
-          <Text style={[styles.summaryLabel, { color: C.sub }]}>Total Spent</Text>
+          <Text style={[styles.summaryLabel, { color: C.sub }]}>{t('total_spent')}</Text>
         </View>
       </View>
 
@@ -122,8 +122,8 @@ export default function MyOrdersScreen() {
               >
                 <Text style={[styles.segmentText, { color: isActive ? C.text : C.sub }]}>
                   {tabKey === 'active'
-                    ? `ACTIVE (${activeOrders.length})`
-                    : `HISTORY (${historyOrders.length})`}
+                    ? `${t('active_up')} (${activeOrders.length})`
+                    : `${t('history_up')} (${historyOrders.length})`}
                 </Text>
               </TouchableOpacity>
             );
@@ -156,12 +156,10 @@ export default function MyOrdersScreen() {
                 style={{ marginBottom: 16 }}
               />
               <Text style={[styles.emptyStateTitle, { color: C.text }]}>
-                {tab === 'active' ? 'No Active Orders' : 'No Order History'}
+                {tab === 'active' ? t('no_active_orders') : t('no_order_history')}
               </Text>
               <Text style={[styles.emptyStateSub, { color: C.sub }]}>
-                {tab === 'active'
-                  ? 'Browse the marketplace and make your first purchase!'
-                  : 'Your completed orders will appear here.'}
+                {tab === 'active' ? t('browse_marketplace_msg') : t('completed_orders_will_appear')}
               </Text>
             </View>
           ) : (
@@ -196,7 +194,7 @@ export default function MyOrdersScreen() {
               }}
             >
               <Text style={{ fontFamily: Fonts.black, fontSize: 18, color: C.text }}>
-                ⚠️ Raise Dispute
+                ⚠️ {t('raise_dispute')}
               </Text>
               <TouchableOpacity onPress={() => setPromptConfig(null)} disabled={submitting}>
                 <Ionicons name="close" size={22} color={C.sub} />
@@ -211,11 +209,11 @@ export default function MyOrdersScreen() {
                 lineHeight: 20,
               }}
             >
-              Describe your issue clearly. Escrow funds will be frozen until resolved.
+              {t('dispute_desc')}
             </Text>
             <TextInput
               style={[styles.modalInput, { backgroundColor: C.lift, color: C.text }]}
-              placeholder="e.g. Item not delivered, wrong item..."
+              placeholder={t('dispute_placeholder')}
               placeholderTextColor={C.sub}
               value={promptInput}
               onChangeText={setPromptInput}
@@ -229,7 +227,7 @@ export default function MyOrdersScreen() {
                 onPress={() => setPromptConfig(null)}
                 disabled={submitting}
               >
-                <Text style={{ color: C.sub, fontFamily: Fonts.bold }}>Cancel</Text>
+                <Text style={{ color: C.sub, fontFamily: Fonts.bold }}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -243,7 +241,9 @@ export default function MyOrdersScreen() {
                 {submitting ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={{ color: '#fff', fontFamily: Fonts.bold }}>Submit Dispute</Text>
+                  <Text style={{ color: '#fff', fontFamily: Fonts.bold }}>
+                    {t('submit_dispute')}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

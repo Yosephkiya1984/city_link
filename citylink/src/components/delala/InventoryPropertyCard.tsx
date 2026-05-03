@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image, Animated, StyleSheet } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { COLORS } from './constants';
-import { fmtETB } from '../../utils';
+import { fmtETB, t } from '../../utils';
 import DefaultIcon from '../../../assets/icon.png';
 import { PropertyListing } from '../../types';
 
@@ -69,7 +69,7 @@ const InventoryPropertyCard = memo(
             <View
               style={[styles.statusBadge, { backgroundColor: getStatusColor(property.status) }]}
             >
-              <Text style={styles.statusBadgeText}>{property.status}</Text>
+              <Text style={styles.statusBadgeText}>{t(property.status.toLowerCase())}</Text>
             </View>
           </View>
 
@@ -88,7 +88,7 @@ const InventoryPropertyCard = memo(
 
             {property.negotiations && property.negotiations.length > 0 && (
               <View style={styles.negotiationSection}>
-                <Text style={styles.negotiationTitle}>Active Negotiations</Text>
+                <Text style={styles.negotiationTitle}>{t('active_negotiations')}</Text>
                 {property.negotiations.map((negotiation: any, index: number) => (
                   <View
                     key={negotiation.id ? negotiation.id : `${negotiation.merchant}-${index}`}
@@ -109,7 +109,7 @@ const InventoryPropertyCard = memo(
                 accessibilityRole="button"
               >
                 <Ionicons name="create" size={16} color={COLORS['on-surface']} />
-                <Text style={styles.editButtonText}>Edit</Text>
+                <Text style={styles.editButtonText}>{t('edit')}</Text>
               </TouchableOpacity>
 
               {property.negotiations && property.negotiations.length > 0 ? (
@@ -120,7 +120,7 @@ const InventoryPropertyCard = memo(
                   accessibilityRole="button"
                 >
                   <Ionicons name="chatbubble" size={16} color={COLORS['on-primary']} />
-                  <Text style={styles.negotiateButtonText}>View Chat</Text>
+                  <Text style={styles.negotiateButtonText}>{t('view_chat')}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -130,7 +130,7 @@ const InventoryPropertyCard = memo(
                   accessibilityRole="button"
                 >
                   <Ionicons name="add-circle" size={16} color={COLORS['on-primary']} />
-                  <Text style={styles.negotiateButtonText}>Find Delala</Text>
+                  <Text style={styles.negotiateButtonText}>{t('find_delala')}</Text>
                 </TouchableOpacity>
               )}
             </View>

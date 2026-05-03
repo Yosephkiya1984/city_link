@@ -22,21 +22,52 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setCurrentUser: async (user) => {
     const isVerified = !!(user?.fayda_verified || user?.kyc_status === 'VERIFIED');
-    // Auto-set UI mode based on role if not already set, but default to citizen for agents
-    let initialMode: AuthState['uiMode'] = 'citizen';
-    if (user?.role === 'admin') initialMode = 'admin';
-    if (user?.role === 'merchant') initialMode = 'merchant';
-    if (user?.role === 'delivery_agent') initialMode = 'agent';
+    // Auto-set UI mode based on role
+    let roleMode: AuthState['uiMode'] = 'citizen';
+    if (user?.role === 'admin') roleMode = 'admin';
+    if (user?.role === 'merchant') roleMode = 'merchant';
+    // Even if role is delivery_agent, we land on 'citizen' mode first (User request)
+    // if (user?.role === 'delivery_agent') roleMode = 'agent';
 
-    // Only force the UI mode if we don't have a user yet (initial login)
-    // This prevents background syncs from kicking an agent back to Agent mode when they are browsing the Marketplace.
     const currentMode = get().uiMode;
     const isFirstLogin = !get().currentUser;
-    const uiMode = isFirstLogin ? initialMode : currentMode;
-    
-    console.log('[AuthStore] setCurrentUser. Role:', user?.role, 'currentMode:', currentMode, 'isFirstLogin:', isFirstLogin, 'setting uiMode to:', uiMode);
-    
+
+    // 🛡️ ROUTING FIX: Always enforce the role-derived mode on first login.
+    // On subsequent calls (background syncs), only update mode if the role demands
+    // an upgrade (e.g., citizen → merchant), never a demotion.
+    let uiMode: AuthState['uiMode'];
+    if (isFirstLogin) {
+      // First login: always set mode from role
+      uiMode = roleMode;
+    } else if (roleMode === 'merchant' || roleMode === 'admin') {
+      // Background sync for a privileged user: enforce the correct mode
+      uiMode = roleMode;
+    } else {
+      // Background sync for citizen/agent: preserve current browsing mode
+      uiMode = currentMode;
+    }
+
+    // 🛡️ FIX (LOOP-PREVENTION): Skip update if user data and uiMode haven't changed
+    const current = get().currentUser;
+    const isSameUser = current?.id === user?.id && JSON.stringify(current) === JSON.stringify(user);
+
+    if (!isFirstLogin && isSameUser && currentMode === uiMode) {
+      return;
+    }
+
+    console.log(
+      '[AuthStore] setCurrentUser. Role:',
+      user?.role,
+      'currentMode:',
+      currentMode,
+      'isFirstLogin:',
+      isFirstLogin,
+      'setting uiMode to:',
+      uiMode
+    );
+
     set({ currentUser: user, isAuthenticated: !!user, isVerified, uiMode });
+
     await SecurePersist.saveUser(user);
   },
 
@@ -54,12 +85,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Validate the live Supabase session before trusting the local store.
     // A locally-stored user whose server session has expired/been revoked must be cleared.
+    let session: any = null;
     try {
       const { getSession } = await import('../services/auth.service');
-      const session = await getSession();
+      session = await getSession();
       if (!session || session.user.id !== user.id) {
         // Server session is dead or belongs to a different user — clear local state
-        set({ currentUser: null, isAuthenticated: false, isVerified: false });
+        set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
         await SecurePersist.saveUser(null);
         return;
       }
@@ -67,8 +99,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Network unavailable — allow offline hydration but mark as unverified
     }
 
-    const isVerified = !!(user?.fayda_verified || user?.kyc_status === 'VERIFIED');
-    set({ currentUser: user, isAuthenticated: !!user, isVerified });
+    // 🛡️ REFRESH PROFILE: Ensure we have the latest metadata (roles, status) from the DB
+    try {
+      if (session) {
+        const { loadSessionProfile } = await import('../services/profile.service');
+        const refreshed = await loadSessionProfile(session.user as any, session.user.phone || '');
+        if (refreshed?.profile) {
+          const isV = !!(
+            refreshed.profile.fayda_verified || refreshed.profile.kyc_status === 'VERIFIED'
+          );
+
+          // 🛡️ IDENTITY SYNC: If refreshed profile ID differs from current auth ID (phone fallback match),
+          // we MUST use the profile ID for data consistency across the app.
+          if (refreshed.profile.id !== session.user.id) {
+            console.log(
+              '[AuthStore] Identity fragmentation detected. Mapping auth ID',
+              session.user.id,
+              'to profile ID',
+              refreshed.profile.id
+            );
+          }
+
+          set({ currentUser: refreshed.profile, isVerified: isV });
+          await SecurePersist.saveUser(refreshed.profile);
+        }
+      }
+    } catch (e) {
+      console.warn('[AuthStore] Profile refresh failed, using cached data:', e);
+    }
+
+    const finalUser = get().currentUser || user;
+    const isVerified = !!(finalUser?.fayda_verified || finalUser?.kyc_status === 'VERIFIED');
+
+    // 🛡️ ROUTING FIX: Restore correct uiMode on session hydration from role
+    let restoredMode: AuthState['uiMode'] = 'citizen';
+    if (finalUser?.role === 'admin') restoredMode = 'admin';
+    if (finalUser?.role === 'merchant') restoredMode = 'merchant';
+    set({ currentUser: finalUser, isAuthenticated: !!finalUser, isVerified, uiMode: restoredMode });
   },
 
   signOut: async () => {
@@ -79,8 +146,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.warn('[AuthStore] auth.service signOut failed:', e);
     }
 
-    // Clear Zustand store and SecurePersist for Auth
-    set({ currentUser: null, isAuthenticated: false, isVerified: false });
+    // Clear Zustand store and SecurePersist for Auth — also reset uiMode to prevent ghost merchant sessions
+    set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
     await SecurePersist.saveUser(null);
 
     // Dynamically import StoreUtils to avoid circular dependency, then wipe everything
@@ -93,7 +160,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   reset: async () => {
-    set({ currentUser: null, isAuthenticated: false, isVerified: false });
+    set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
     await SecurePersist.saveUser(null);
   },
 }));

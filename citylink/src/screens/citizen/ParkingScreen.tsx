@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'react-native';
 import { Fonts } from '../../theme';
-import { fmtETB } from '../../utils';
+import { fmtETB, t } from '../../utils';
 import {
   useParking,
   formatElapsed,
@@ -20,7 +20,7 @@ import {
   ParkingLotLocal,
 } from '../../hooks/useParking';
 import { parkingStyles as styles } from './ParkingScreen.styles';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList } from '../../components/common/SafeFlashList';
 import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
 import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
 import { useTheme } from '../../hooks/useTheme';
@@ -57,9 +57,9 @@ export default function ParkingScreen() {
   const onParkingStart = async () => {
     const success = await handleStartParking();
     if (success) {
-      setSuccessMsg({ 
-        title: 'Parking Reserved', 
-        sub: `Spot ${selectedSpot?.number} at ${selectedLot?.name} is ready for you.` 
+      setSuccessMsg({
+        title: t('parking_reserved'),
+        sub: t('parking_reserved_desc', { spot: selectedSpot?.number, lot: selectedLot?.name }),
       });
       setShowSuccess(true);
     }
@@ -68,9 +68,9 @@ export default function ParkingScreen() {
   const onParkingEnd = async () => {
     const success = await handleEndParking();
     if (success) {
-      setSuccessMsg({ 
-        title: 'Session Ended', 
-        sub: 'Payment processed successfully. Safe travels!' 
+      setSuccessMsg({
+        title: t('session_ended'),
+        sub: t('session_ended_desc'),
       });
       setShowSuccess(true);
     }
@@ -79,24 +79,24 @@ export default function ParkingScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* 🏙️ Addis Hotspot Map Header */}
       <View style={styles.mapHeader}>
         <LinearGradient colors={['rgba(11,13,17,0.8)', 'transparent']} style={styles.mapGradient} />
         <View style={styles.mapMeta}>
           <View style={styles.hotspotBadge}>
             <View style={styles.pulseDot} />
-            <Text style={styles.hotspotText}>LIVE: BOLE HOTSPOT</Text>
+            <Text style={styles.hotspotText}>{t('live_hotspot', { district: 'BOLE' })}</Text>
           </View>
-          <Text style={styles.mapTitle}>Smart Park Addis</Text>
+          <Text style={styles.mapTitle}>{t('smart_park_addis')}</Text>
         </View>
         <View style={styles.headerWallet}>
-          <Text style={styles.walletLabel}>BALANCE</Text>
+          <Text style={styles.walletLabel}>{t('balance_up')}</Text>
           <Text style={styles.walletValue}>{fmtETB(balance)}</Text>
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -109,8 +109,10 @@ export default function ParkingScreen() {
                 <View style={styles.cockpitBrand}>
                   <Ionicons name="car-sport" size={24} color="#FFF" />
                   <View>
-                    <Text style={styles.cockpitTitle}>CURRENTLY PARKED</Text>
-                    <Text style={styles.cockpitSub}>{activeParking.spot_number} · {(activeParking as any).lot_name}</Text>
+                    <Text style={styles.cockpitTitle}>{t('currently_parked')}</Text>
+                    <Text style={styles.cockpitSub}>
+                      {activeParking.spot_number} · {(activeParking as any).lot_name}
+                    </Text>
                   </View>
                 </View>
                 <TouchableOpacity style={styles.cockpitQrBtn} onPress={() => setQrModal(true)}>
@@ -121,16 +123,16 @@ export default function ParkingScreen() {
               <View style={styles.cockpitMain}>
                 <View style={styles.timerBlock}>
                   <Text style={styles.timerVal}>{formatElapsed(elapsed)}</Text>
-                  <Text style={styles.timerLabel}>DURATION</Text>
+                  <Text style={styles.timerLabel}>{t('duration')}</Text>
                 </View>
                 <View style={styles.fareBlock}>
                   <Text style={styles.fareVal}>{fmtETB(getCurrentFare())}</Text>
-                  <Text style={styles.fareLabel}>TOTAL FARE</Text>
+                  <Text style={styles.fareLabel}>{t('total_fare')}</Text>
                 </View>
               </View>
 
               <TouchableOpacity style={styles.cockpitEndBtn} onPress={onParkingEnd}>
-                <Text style={styles.cockpitEndText}>END SESSION & PAY</Text>
+                <Text style={styles.cockpitEndText}>{t('end_session_pay')}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#0B0D11" />
               </TouchableOpacity>
             </LinearGradient>
@@ -139,9 +141,9 @@ export default function ParkingScreen() {
 
         {/* 🅿️ Available Hotspots */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>NEAREST FACILITIES</Text>
+          <Text style={styles.sectionTitle}>{t('nearest_facilities')}</Text>
           <View style={styles.filterChip}>
-            <Text style={styles.filterText}>ALL DISTRICTS</Text>
+            <Text style={styles.filterText}>{t('all_districts')}</Text>
             <Ionicons name="chevron-down" size={12} color="rgba(255,255,255,0.4)" />
           </View>
         </View>
@@ -150,7 +152,7 @@ export default function ParkingScreen() {
           <FlashList
             data={lots}
             estimatedItemSize={120}
-            renderItem={({ item: lot }) => (
+            renderItem={({ item: lot }: any) => (
               <LotCard
                 lot={lot}
                 isExpanded={selectedLot?.id === lot.id}
@@ -159,11 +161,11 @@ export default function ParkingScreen() {
                 onSpotPress={handleSpotPress}
               />
             )}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item: any) => item.id}
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
           />
         </View>
-        
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -171,15 +173,16 @@ export default function ParkingScreen() {
       <Modal visible={confirmModal} transparent animationType="slide">
         <Pressable style={styles.modalOverlay} onPress={() => setConfirmModal(false)} />
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Confirm Booking</Text>
+          <Text style={styles.modalTitle}>{t('confirm_booking')}</Text>
           {selectedLot && selectedSpot && (
             <>
               <Text style={styles.modalSubtitle}>
-                {selectedLot.name} · Spot <Text style={{ color: ADDIS_NOIR.gold }}>{selectedSpot.number}</Text>
+                {selectedLot.name} · Spot{' '}
+                <Text style={{ color: ADDIS_NOIR.gold }}>{selectedSpot.number}</Text>
               </Text>
               <View style={styles.modalInfo}>
-                <Row label="Hourly Rate" value={`${selectedLot.rate_per_hour} ETB`} />
-                <Row label="Current Balance" value={`${fmtETB(balance)} ETB`} />
+                <Row label={t('hourly_rate')} value={`${selectedLot.rate_per_hour} ETB`} />
+                <Row label={t('current_balance')} value={`${fmtETB(balance)} ETB`} />
               </View>
               <TouchableOpacity
                 style={styles.modalButton}
@@ -187,11 +190,11 @@ export default function ParkingScreen() {
                 disabled={loading}
               >
                 <Text style={styles.modalButtonText}>
-                  {loading ? 'RESERVING…' : '🅿️ START PARKING'}
+                  {loading ? t('reserving') : `🅿️ ${t('start_parking')}`}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setConfirmModal(false)}>
-                <Text style={styles.cancelButtonText}>CANCEL</Text>
+                <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -205,19 +208,21 @@ export default function ParkingScreen() {
         onClose={() => setShowSuccess(false)}
       />
 
-      <ProcessingOverlay visible={loading} message="Securing reservation..." />
+      <ProcessingOverlay visible={loading} message={t('securing_transfer')} />
 
       {/* 📱 QR Modal */}
       <Modal visible={qrModal} transparent animationType="slide">
         <Pressable style={styles.modalOverlay} onPress={() => setQrModal(false)} />
         <View style={styles.qrModalContent}>
           <View style={styles.qrCard}>
-            <Text style={styles.qrTitle}>FACILITY ACCESS CODE</Text>
-            <Text style={styles.qrCode}>{(activeParking as any)?.qr_token?.toUpperCase() || 'REF-8291'}</Text>
+            <Text style={styles.qrTitle}>{t('facility_access_code')}</Text>
+            <Text style={styles.qrCode}>
+              {(activeParking as any)?.qr_token?.toUpperCase() || 'REF-8291'}
+            </Text>
           </View>
-          <Text style={styles.qrDescription}>Show this code to the Addis Smart Park attendant at the gate for secure entry/exit.</Text>
+          <Text style={styles.qrDescription}>{t('qr_desc')}</Text>
           <TouchableOpacity style={styles.cancelButton} onPress={() => setQrModal(false)}>
-            <Text style={styles.cancelButtonText}>CLOSE PORTAL</Text>
+            <Text style={styles.cancelButtonText}>{t('close_portal')}</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -254,7 +259,7 @@ function LotCard({
           </View>
           <View style={styles.lotPricing}>
             <Text style={styles.priceAmount}>{lot.rate_per_hour} ETB</Text>
-            <Text style={styles.priceLabel}>per hour</Text>
+            <Text style={styles.priceLabel}>{t('per_hour')}</Text>
           </View>
         </View>
         <View style={styles.availabilityBar}>
@@ -264,14 +269,14 @@ function LotCard({
             />
           </View>
           <Text style={styles.availabilityText}>
-            {available}/{lot.total_spots} free
+            {available}/{lot.total_spots} {t('free')}
           </Text>
         </View>
       </View>
 
       {isExpanded && (
         <View style={styles.spotSelection}>
-          <Text style={styles.spotSelectionTitle}>Select a spot</Text>
+          <Text style={styles.spotSelectionTitle}>{t('select_spot')}</Text>
           <View style={styles.spotGrid}>
             {lot.spots.slice(0, 40).map((spot) => {
               const isSelected = selectedSpot?.id === spot.id;
@@ -301,9 +306,9 @@ function LotCard({
             })}
           </View>
           <View style={styles.spotLegend}>
-            <LegendDot color="#59de9b" label="Available" />
-            <LegendDot color="#59de9b" label="Selected" />
-            <LegendDot color="#ff5a4c" label="Occupied" />
+            <LegendDot color="#59de9b" label={t('available')} />
+            <LegendDot color="#59de9b" label={t('selected')} />
+            <LegendDot color="#ff5a4c" label={t('occupied')} />
           </View>
         </View>
       )}

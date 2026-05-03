@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { COLORS } from './constants';
 import { GlassView } from '../GlassView';
 import { Fonts } from '../../theme';
+import { t } from '../../utils';
 import DefaultIcon from '../../../assets/icon.png';
 
 interface EnhancedTopBarProps {
@@ -20,7 +21,7 @@ const DelalaTopBar = memo(({ activeScreen, onScreenChange, userImage }: Enhanced
 
       <View style={styles.topBarRight}>
         <View style={styles.navLinks}>
-          {['Listings', 'Inventory', 'Messages'].map((screen) => (
+          {['listings', 'inventory', 'messages'].map((screen) => (
             <TouchableOpacity
               key={screen}
               onPress={() => onScreenChange(screen)}
@@ -29,7 +30,7 @@ const DelalaTopBar = memo(({ activeScreen, onScreenChange, userImage }: Enhanced
               <Text
                 style={[styles.navLinkText, activeScreen === screen && styles.activeNavLinkText]}
               >
-                {screen}
+                {t(screen)}
               </Text>
             </TouchableOpacity>
           ))}

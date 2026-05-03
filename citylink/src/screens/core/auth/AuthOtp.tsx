@@ -13,10 +13,11 @@ export const AuthOtp = ({
   setOtp,
   loading,
   error,
-  devOtp,
   onBack,
   onVerify,
   onResend,
+  devOtp,
+  t,
 }: any) => {
   return (
     <Animated.View
@@ -26,14 +27,14 @@ export const AuthOtp = ({
         <Ionicons name="arrow-back" size={24} color={C.text} />
       </TouchableOpacity>
 
-      <Text style={[styles.title, { color: C.text }]}>Security Check</Text>
+      <Text style={[styles.title, { color: C.text }]}>{t('security_check')}</Text>
       <Text style={[styles.subtitle, { color: C.sub }]}>
-        Enter the secure code sent to {phone}
+        {t('enter_code_msg', { phone: phone || '' })}
       </Text>
 
       <View style={styles.form}>
         <CInput
-          label="Verification Code"
+          label={t('verification_code')}
           value={otp}
           onChangeText={setOtp}
           placeholder="00000000"
@@ -42,14 +43,6 @@ export const AuthOtp = ({
           maxLength={8}
         />
 
-        {__DEV__ && devOtp ? (
-          <View style={[styles.devHint, { backgroundColor: C.surface, borderColor: C.primary }]}>
-            <Text style={[styles.devHintText, { color: C.primary }]}>
-              [Dev Mode] Code: {devOtp}
-            </Text>
-          </View>
-        ) : null}
-
         {error ? (
           <View style={[styles.errorBox, { backgroundColor: 'rgba(255,100,100,0.1)' }]}>
             <Text style={styles.errorText}>{error}</Text>
@@ -57,7 +50,7 @@ export const AuthOtp = ({
         ) : null}
 
         <CButton
-          title={loading ? '' : 'Verify & Continue'}
+          title={loading ? '' : t('verify_continue')}
           onPress={onVerify}
           loading={loading}
           disabled={loading}
@@ -70,7 +63,7 @@ export const AuthOtp = ({
           disabled={!onResend || loading}
         >
           <Text style={[styles.resendText, { color: !onResend || loading ? C.edge : C.primary }]}>
-            Didn't receive code? Resend
+            {t('didnt_receive_code')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -105,17 +98,7 @@ const styles = StyleSheet.create({
   form: {
     gap: 20,
   },
-  devHint: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-  },
-  devHintText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-  },
+
   errorBox: {
     padding: 12,
     borderRadius: 12,

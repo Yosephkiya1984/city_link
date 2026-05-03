@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet, ScrollView } from 'react-native';
+import { YStack } from 'tamagui';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../../../theme';
-import { CButton, CInput, CSelect } from '../../../components';
+import { CButton, CInput, CSelect, FaydaVerificationModal } from '../../../components';
 import { SUBCITIES, MERCHANT_TYPES } from '../../../config';
 
 export interface AuthRegisterProps {
@@ -31,6 +32,8 @@ export interface AuthRegisterProps {
   error: string | null;
   onBack: () => void;
   onRegister: () => void;
+  onFaydaVerify: (profile: any) => void;
+  t: (key: string) => string;
 }
 
 export const AuthRegister = ({
@@ -59,7 +62,16 @@ export const AuthRegister = ({
   error,
   onBack,
   onRegister,
+  onFaydaVerify,
+  t,
 }: AuthRegisterProps) => {
+  const [isFaydaModalVisible, setIsFaydaModalVisible] = React.useState(false);
+  const [faydaIdInput, setFaydaIdInput] = React.useState('');
+
+  const handleFaydaSuccess = (profile: any) => {
+    setIsFaydaModalVisible(false);
+    onFaydaVerify(profile);
+  };
   return (
     <Animated.View
       style={[styles.screen, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
@@ -68,7 +80,7 @@ export const AuthRegister = ({
         <TouchableOpacity style={[styles.backButton, { borderColor: C.edge }]} onPress={onBack}>
           <Ionicons name="chevron-back" size={24} color={C.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: C.text }]}>Create Account</Text>
+        <Text style={[styles.title, { color: C.text }]}>{t('create_account')}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -78,7 +90,7 @@ export const AuthRegister = ({
             onPress={() => setUserType('citizen')}
           >
             <Text style={[styles.typeText, { color: userType === 'citizen' ? C.ink : C.sub }]}>
-              Citizen
+              {t('citizen')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -86,22 +98,56 @@ export const AuthRegister = ({
             onPress={() => setUserType('merchant')}
           >
             <Text style={[styles.typeText, { color: userType === 'merchant' ? C.ink : C.sub }]}>
-              Merchant
+              {t('merchant')}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.form}>
           <CInput
-            label="Full Name"
+            label={t('full_name')}
             value={fullName}
             onChangeText={setFullName}
-            placeholder="John Doe"
+            placeholder={t('name_placeholder')}
             iconName="person-outline"
           />
 
+          {userType === 'citizen' && (
+            <YStack gap="$3" marginBottom="$4">
+              <View style={styles.faydaContainer}>
+                <CInput
+                  label={t('national_id_label')}
+                  value={faydaIdInput}
+                  onChangeText={setFaydaIdInput}
+                  placeholder="1000 0000 0000"
+                  iconName="id-card-outline"
+                  keyboardType="number-pad"
+                  maxLength={12}
+                />
+                <TouchableOpacity
+                  style={[styles.faydaVerifyBtn, { backgroundColor: C.primary }]}
+                  onPress={() => setIsFaydaModalVisible(true)}
+                  disabled={faydaIdInput.length < 12}
+                >
+                  <Ionicons name="shield-checkmark" size={18} color={C.ink} />
+                  <Text style={[styles.faydaVerifyText, { color: C.ink }]}>{t('verify')}</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={{ fontSize: 11, color: C.sub, textAlign: 'center' }}>
+                {t('fayda_verify_desc')}
+              </Text>
+            </YStack>
+          )}
+
+          <FaydaVerificationModal
+            isVisible={isFaydaModalVisible}
+            faydaId={faydaIdInput}
+            onSuccess={handleFaydaSuccess}
+            onCancel={() => setIsFaydaModalVisible(false)}
+          />
+
           <CInput
-            label="Phone Number"
+            label={t('phone_number')}
             value={phone}
             onChangeText={setPhone}
             placeholder="+251 9XX XXX XXX"
@@ -112,49 +158,49 @@ export const AuthRegister = ({
           {userType === 'merchant' && (
             <View style={{ gap: 20 }}>
               <CSelect
-                label="Business Category"
+                label={t('business_category')}
                 value={merchantType}
                 onValueChange={setMerchantType}
                 options={MERCHANT_TYPES}
               />
 
               <CInput
-                label="Business Name"
+                label={t('business_name')}
                 value={businessName}
                 onChangeText={setBusinessName}
-                placeholder="Business Name"
+                placeholder={t('business_name_field_placeholder')}
                 iconName="business-outline"
               />
 
               <CInput
-                label="TIN Number"
+                label={t('tin_number')}
                 value={tin}
                 onChangeText={setTin}
-                placeholder="123456789"
+                placeholder={t('tin_field_placeholder')}
                 iconName="card-outline"
                 keyboardType="number-pad"
               />
 
               <CInput
-                label="Trade License No."
+                label={t('trade_license_no')}
                 value={licenseNo}
                 onChangeText={setLicenseNo}
-                placeholder="L-12345"
+                placeholder={t('license_field_placeholder')}
                 iconName="shield-checkmark-outline"
               />
 
               <CSelect
-                label="Subcity"
+                label={t('subcity')}
                 value={subcity}
                 onValueChange={setSubcity}
                 options={SUBCITIES.map((sc) => ({ label: sc, value: sc }))}
               />
 
               <CInput
-                label="Business Address"
+                label={t('business_address')}
                 value={businessAddress}
                 onChangeText={setBusinessAddress}
-                placeholder="Bole, Addis Ababa"
+                placeholder={t('subcity_field_placeholder')}
                 iconName="location-outline"
               />
             </View>
@@ -167,7 +213,7 @@ export const AuthRegister = ({
           ) : null}
 
           <CButton
-            title={loading ? '' : 'Complete Registration'}
+            title={loading ? '' : t('complete_registration')}
             onPress={onRegister}
             loading={loading}
             disabled={loading}
@@ -242,5 +288,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.label,
     textAlign: 'center',
+  },
+  faydaContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  faydaVerifyBtn: {
+    height: 52,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 0,
+  },
+  faydaVerifyText: {
+    fontSize: 14,
+    fontFamily: Fonts.label,
+    fontWeight: 'bold',
   },
 });

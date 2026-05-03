@@ -1,0 +1,13 @@
+{
+  "name": "osm-mcp-server",
+  "version": "1.0.0",
+  "description": "An MCP server for OpenStreetMap (Geocoding and Routing)",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.1"
+  }
+}

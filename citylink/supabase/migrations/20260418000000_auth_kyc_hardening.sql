@@ -18,75 +18,14 @@ DECLARE
 BEGIN
     SET search_path = public, pg_temp;
 
-    -- Environment guard: Mock logic only in development
-    IF v_app_env IS DISTINCT FROM 'development' THEN
-        RETURN json_build_object('success', false, 'error', 'Real Fayda API verification required in production');
-    END IF;
-
-    -- DEV MOCK LOGIC: Accept valid 13-digit Fayda IDs and 6-digit OTPs when real API access is unavailable.
-    IF length(p_fin) = 13 AND p_fin ~ '^[0-9]{13}$' AND p_otp ~ '^[0-9]{6}$' THEN
-        UPDATE profiles 
-        SET kyc_status = 'VERIFIED',
-            fayda_verified = true,
-            onboarded = true,
-            updated_at = NOW()
-        WHERE id = p_user_id
-        RETURNING * INTO v_user;
-        
-        IF FOUND THEN
-            v_success := TRUE;
-            RETURN json_build_object('success', v_success, 'data', json_build_object(
-                'id', v_user.id,
-                'phone', v_user.phone,
-                'email', v_user.email,
-                'kyc_status', v_user.kyc_status,
-                'created_at', v_user.created_at
-            ));
-        ELSE
-            v_error := 'User profile not found';
-            RETURN json_build_object('success', v_success, 'error', v_error);
-        END IF;
-    ELSE
-        v_error := 'Invalid FIN or OTP';
-        RETURN json_build_object('success', v_success, 'error', v_error);
-    END IF;
+    -- Real Fayda API verification logic should be implemented here.
+    -- For now, we strictly enforce that this function is a stub that requires
+    -- a real identity gateway integration.
+    v_error := 'Fayda API integration required for verification';
+    RETURN json_build_object('success', false, 'error', v_error);
 END;
 $$;
 
--- 2. Create a secure RPC for Government Admin Login (Dev Fallback)
-CREATE OR REPLACE FUNCTION verify_gov_admin_dev(p_badge_id TEXT, p_sec_pin TEXT)
-RETURNS json
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    v_user RECORD;
-    v_app_env TEXT := current_setting('app.environment', true);
-BEGIN
-    SET search_path = public, pg_temp;
-
-    IF v_app_env IS DISTINCT FROM 'development' THEN
-        RETURN json_build_object('success', false, 'error', 'Dev fallback disabled in non-development environment');
-    END IF;
-
-    SELECT * INTO v_user
-    FROM profiles
-    WHERE role = 'admin'
-      AND badge_id = p_badge_id
-      AND crypt(p_sec_pin, sec_pin) = sec_pin;
-      
-    IF FOUND THEN
-        RETURN json_build_object('success', true, 'user', json_build_object(
-            'id', v_user.id,
-            'email', v_user.email,
-            'full_name', v_user.full_name,
-            'role', v_user.role
-        ));
-    ELSE
-        RETURN json_build_object('success', false, 'error', 'Invalid credentials');
-    END IF;
-END;
-$$;
 
 -- 3. Lock down RLS on profiles to prevent client-side manipulation of sensitive columns
 -- By using a BEFORE UPDATE trigger, we can ensure that standard client (authenticated) users

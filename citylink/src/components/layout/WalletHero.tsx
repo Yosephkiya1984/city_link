@@ -56,11 +56,7 @@ export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }: any) => {
           start={0}
           end={progress}
         >
-          <SkiaGradient
-            start={vec(0, 0)}
-            end={vec(96, 0)}
-            colors={['#59de9b', '#06b6d4']}
-          />
+          <SkiaGradient start={vec(0, 0)} end={vec(96, 0)} colors={['#59de9b', '#06b6d4']} />
         </SkiaPath>
       </Canvas>
     </View>
@@ -68,7 +64,7 @@ export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }: any) => {
 };
 
 export function WalletHero({ balance, name, greetingKey, onQuickAction }: any) {
-  const C = useTheme();
+  const C = useTheme() as any;
   const [showBalance, setShowBalance] = useState(true);
 
   const toggleBalance = () => {
@@ -169,6 +165,7 @@ export function WalletHero({ balance, name, greetingKey, onQuickAction }: any) {
                 <MotiView
                   from={{ scale: 1 }}
                   animate={{ scale: 1 }}
+                  // @ts-ignore
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   style={{

@@ -12,6 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -42,6 +43,7 @@ export interface Dispute {
     phone: string;
   };
   escrow_id?: string;
+  evidence_url?: string;
 }
 
 export default function DisputeModule() {
@@ -50,10 +52,11 @@ export default function DisputeModule() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   const fetchDisputesData = async () => {
     // Combine both Marketplace and Restaurant disputes.
-    // We fetch food orders without a join first to avoid relationship hint errors (citizen_id FK ambiguous)
     const [mktRes, foodRes] = await Promise.all([
       supaQuery((c) =>
         c
@@ -76,9 +79,10 @@ export default function DisputeModule() {
       type: 'MARKETPLACE' as const,
       name: d.product_name,
       amount: d.total,
+      evidence_url: d.delivery_proof_url, // Map delivery proof to evidence
     }));
 
-    // Manual mapping for food users to avoid relationship hint errors
+    // Manual mapping for food users
     const foodRaw = foodRes.data || [];
     const citizenIds = [...new Set(foodRaw.map((o) => o.citizen_id).filter((id) => !!id))];
 
@@ -98,6 +102,7 @@ export default function DisputeModule() {
       name: d.restaurant_name || 'Food Order',
       amount: d.total,
       profiles: profileMap[d.citizen_id],
+      evidence_url: d.delivery_proof_url, // Food orders might also have this
     }));
 
     return ([...mkt, ...food] as Dispute[]).sort(
@@ -124,6 +129,29 @@ export default function DisputeModule() {
       ignore = true;
     };
   }, []);
+
+  const fetchAuditLogs = async (resourceId: string) => {
+    setLogsLoading(true);
+    const { data, error } = await supaQuery((c) =>
+      c
+        .from('audit_logs')
+        .select('*, profiles!actor_id(full_name)')
+        .eq('resource_id', resourceId)
+        .order('created_at', { ascending: true })
+    );
+    if (!error && data) {
+      setAuditLogs(data);
+    }
+    setLogsLoading(false);
+  };
+
+  useEffect(() => {
+    if (selectedDispute) {
+      fetchAuditLogs(selectedDispute.id);
+    } else {
+      setAuditLogs([]);
+    }
+  }, [selectedDispute]);
 
   const handleResolve = async (
     dispute: Dispute,
@@ -163,7 +191,8 @@ export default function DisputeModule() {
 
     let res;
     if (dispute.type === 'MARKETPLACE') {
-      if (action === 'REFUND') res = await rpcCancelAndRefundOrder(dispute.id, 'Resolved by Admin');
+      // p_user_id is omitted (undefined → NULL) so the RPC defaults to auth.uid() and is_admin() grants access
+      if (action === 'REFUND') res = await rpcCancelAndRefundOrder(dispute.id, undefined as any, 'Resolved by Admin');
       else {
         if (!dispute.escrow_id) {
           Alert.alert('Error', 'No escrow lock found. Manual intervention required.');
@@ -411,52 +440,103 @@ export default function DisputeModule() {
                 <Text style={[styles.sectionLabel, { color: theme.sub, fontFamily: Fonts.label }]}>
                   CASE EVIDENCE
                 </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12 }}
-                >
-                  {[1, 2, 3].map((i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.evidencePlaceholder,
-                        {
-                          backgroundColor: theme.rim,
-                          borderColor: theme.rim,
-                          width: isMobile ? 120 : 160,
-                          height: isMobile ? 90 : 120,
-                        },
-                      ]}
-                    >
-                      <Ionicons name="image-outline" size={24} color={theme.sub} />
-                    </View>
-                  ))}
-                </ScrollView>
+                {selectedDispute.evidence_url ? (
+                  <View
+                    style={[
+                      styles.evidencePlaceholder,
+                      {
+                        backgroundColor: theme.rim,
+                        borderColor: theme.rim,
+                        width: '100%',
+                        height: 300,
+                        overflow: 'hidden',
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={{ uri: selectedDispute.evidence_url }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                  </View>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 12 }}
+                  >
+                    {[1, 2].map((i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.evidencePlaceholder,
+                          {
+                            backgroundColor: theme.rim,
+                            borderColor: theme.rim,
+                            width: isMobile ? 120 : 160,
+                            height: isMobile ? 90 : 120,
+                          },
+                        ]}
+                      >
+                        <Ionicons name="image-outline" size={24} color={theme.sub} />
+                        <Text style={{ color: theme.hint, fontSize: 8, marginTop: 4 }}>
+                          NO PROOF UPLOADED
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
               </View>
 
               <View style={styles.historySection}>
                 <Text style={[styles.sectionLabel, { color: theme.sub, fontFamily: Fonts.label }]}>
-                  INVESTIGATION LOGS
+                  INVESTIGATION LOGS & AUDIT TRAIL
                 </Text>
+
                 <LogItem
-                  time="10:24 AM"
+                  time="ENTRY"
                   user="SYSTEM"
-                  text={`Registry entry for ${selectedDispute.type} dispute.`}
+                  text={`Registry entry created for ${selectedDispute.type} dispute.`}
                   isMobile={isMobile}
                 />
-                <LogItem
-                  time="10:25 AM"
-                  user="BUYER"
-                  text={selectedDispute.dispute_reason || 'Item/Service was not as described.'}
-                  isMobile={isMobile}
-                />
-                <LogItem
-                  time="12:30 PM"
-                  user="BOT"
-                  text="Automated damage/quality verification pending."
-                  isMobile={isMobile}
-                />
+
+                {selectedDispute.dispute_reason && (
+                  <LogItem
+                    time="CLAIM"
+                    user="BUYER"
+                    text={selectedDispute.dispute_reason}
+                    isMobile={isMobile}
+                  />
+                )}
+
+                {logsLoading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.primary}
+                    style={{ marginVertical: 20 }}
+                  />
+                ) : (
+                  auditLogs.map((log) => (
+                    <LogItem
+                      key={log.id}
+                      time={new Date(log.created_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                      user={log.profiles?.full_name?.split(' ')[0].toUpperCase() || 'ADMIN'}
+                      text={`${log.event_type.replace('_', ' ')}: ${log.details?.resolution || 'System Action'}`}
+                      isMobile={isMobile}
+                    />
+                  ))
+                )}
+
+                {auditLogs.length === 0 && !logsLoading && (
+                  <Text
+                    style={{ color: theme.hint, fontSize: 11, fontStyle: 'italic', marginTop: 8 }}
+                  >
+                    No manual resolutions recorded yet. Investigation pending.
+                  </Text>
+                )}
               </View>
             </ScrollView>
           ) : (

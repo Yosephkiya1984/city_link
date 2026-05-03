@@ -14,9 +14,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Radius, Fonts } from '../../theme';
+import { Surface } from '../ui/Surface';
+import { Typography } from '../ui/Typography';
 import { supaQuery } from '../../services/supabase';
 import { approveAgent, rejectAgent } from '../../services/admin.service';
 import * as Haptics from 'expo-haptics';
+import { t } from '../../utils/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -63,7 +66,7 @@ export default function DeliveryAgentModule() {
 
     if (Platform.OS === 'web') {
       try {
-        if (window.confirm(`Approve ${name} as a delivery agent?`)) {
+        if (window.confirm(t('approve_confirm'))) {
           approveAgent(agent.id).then((res) => {
             if (res.error) window.alert(res.error);
             else handleRefresh();
@@ -81,10 +84,10 @@ export default function DeliveryAgentModule() {
       /* ignore */
     }
 
-    Alert.alert('Approve Agent', `Approve ${name} as a delivery agent?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('approve_agent'), t('approve_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Approve',
+        text: t('approve'),
         onPress: async () => {
           setLoading(true);
           const res = await approveAgent(agent);
@@ -104,9 +107,9 @@ export default function DeliveryAgentModule() {
 
     if (Platform.OS === 'web') {
       try {
-        const reason = window.prompt(`Explain why ${name} is being rejected:`, '');
+        const reason = window.prompt(t('explain_rejection'), '');
         if (reason !== null) {
-          rejectAgent(agent.id, reason || 'Incomplete documentation').then((res) => {
+          rejectAgent(agent.id, reason || t('incomplete_docs')).then((res) => {
             if (res.error) window.alert(res.error);
             else handleRefresh();
           });
@@ -123,14 +126,14 @@ export default function DeliveryAgentModule() {
       /* ignore */
     }
 
-    Alert.prompt('Rejection Reason', `Explain why ${name} is being rejected:`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.prompt(t('rejection_reason'), t('explain_rejection'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Reject',
+        text: t('reject'),
         style: 'destructive',
         onPress: async (reason?: string) => {
           setLoading(true);
-          const res = await rejectAgent(agent.id, reason || 'Incomplete documentation');
+          const res = await rejectAgent(agent.id, reason || t('incomplete_docs'));
           if (res.error) {
             Alert.alert('Error', res.error);
             setLoading(false);
@@ -144,7 +147,7 @@ export default function DeliveryAgentModule() {
 
   const handleSuspend = (agent: DeliveryAgent) => {
     const name = agent.profile?.full_name || String(agent.id).slice(0, 8);
-    const action = agent.agent_status === 'SUSPENDED' ? 'Reactivate' : 'Suspend';
+    const action = agent.agent_status === 'SUSPENDED' ? t('reactivate') : t('suspend');
     const newStatus = agent.agent_status === 'SUSPENDED' ? 'APPROVED' : 'SUSPENDED';
 
     if (Platform.OS === 'web') {
@@ -169,8 +172,8 @@ export default function DeliveryAgentModule() {
       /* ignore */
     }
 
-    Alert.alert(`${action} Agent`, `${action} ${name}?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(`${action} ${t('role_agent')}`, `${action} ${name}?`, [
+      { text: t('cancel'), style: 'cancel' },
       {
         text: action,
         style: agent.agent_status === 'SUSPENDED' ? 'default' : 'destructive',
@@ -209,7 +212,7 @@ export default function DeliveryAgentModule() {
   };
 
   const renderAgent = ({ item }: { item: DeliveryAgent }) => (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
+    <Surface variant="card" padding={16} radius="xl" style={{ marginBottom: 14 }}>
       <View style={styles.cardHeader}>
         <View style={styles.agentInfo}>
           <View style={[styles.avatar, { backgroundColor: statusColor(item.agent_status) + '20' }]}>
@@ -221,10 +224,11 @@ export default function DeliveryAgentModule() {
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-              {item.profile?.full_name || 'Unknown Agent'}
+              {item.profile?.full_name || t('unknown_agent')}
             </Text>
             <Text style={[styles.sub, { color: theme.sub }]} numberOfLines={1}>
-              {item.vehicle_type?.toUpperCase()} • {item.profile?.phone || 'No phone'}
+              {t(item.vehicle_type?.toLowerCase() || 'car')} •{' '}
+              {item.profile?.phone || t('no_phone')}
             </Text>
           </View>
         </View>
@@ -235,12 +239,11 @@ export default function DeliveryAgentModule() {
             {item.agent_status}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={styles.inspectBtn}
-          onPress={() => setSelectedAgent(item)}
-        >
+        <TouchableOpacity style={styles.inspectBtn} onPress={() => setSelectedAgent(item)}>
           <Ionicons name="eye-outline" size={16} color={theme.primary} />
-          <Text style={[styles.inspectBtnText, { color: theme.primary }]}>INSPECT</Text>
+          <Text style={[styles.inspectBtnText, { color: theme.primary }]}>
+            {t('inspect').toUpperCase()}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -248,23 +251,31 @@ export default function DeliveryAgentModule() {
 
       <View style={styles.detailsRow}>
         <View style={styles.detailItem}>
-          <Text style={[styles.detailLabel, { color: theme.hint }]}>PLATE</Text>
+          <Text style={[styles.detailLabel, { color: theme.hint }]}>
+            {t('plate').toUpperCase()}
+          </Text>
           <Text style={[styles.detailValue, { color: theme.sub }]}>
             {item.plate_number || 'N/A'}
           </Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={[styles.detailLabel, { color: theme.hint }]}>LICENSE</Text>
+          <Text style={[styles.detailLabel, { color: theme.hint }]}>
+            {t('license').toUpperCase()}
+          </Text>
           <Text style={[styles.detailValue, { color: theme.sub }]}>{item.license_number}</Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={[styles.detailLabel, { color: theme.hint }]}>DELIVERIES</Text>
+          <Text style={[styles.detailLabel, { color: theme.hint }]}>
+            {t('deliveries').toUpperCase()}
+          </Text>
           <Text style={[styles.detailValue, { color: theme.sub }]}>
             {item.total_deliveries || 0}
           </Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={[styles.detailLabel, { color: theme.hint }]}>RATING</Text>
+          <Text style={[styles.detailLabel, { color: theme.hint }]}>
+            {t('rating').toUpperCase()}
+          </Text>
           <Text style={[styles.detailValue, { color: theme.sub }]}>
             ⭐ {Number(item.rating || 5).toFixed(1)}
           </Text>
@@ -281,7 +292,7 @@ export default function DeliveryAgentModule() {
               <Text
                 style={{ color: theme.red || '#fc8181', fontFamily: Fonts.label, fontSize: 12 }}
               >
-                Reject
+                {t('reject')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -289,7 +300,7 @@ export default function DeliveryAgentModule() {
               style={[styles.approveBtn, { backgroundColor: theme.primary }]}
             >
               <Text style={{ color: theme.ink, fontFamily: Fonts.label, fontSize: 12 }}>
-                Approve
+                {t('approve')}
               </Text>
             </TouchableOpacity>
           </>
@@ -335,7 +346,7 @@ export default function DeliveryAgentModule() {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </Surface>
   );
 
   return (
@@ -347,7 +358,7 @@ export default function DeliveryAgentModule() {
       ) : agents.length === 0 ? (
         <View style={styles.center}>
           <Ionicons name="bicycle-outline" size={48} color={theme.rim} />
-          <Text style={{ color: theme.sub, marginTop: 12 }}>No delivery agents registered</Text>
+          <Text style={{ color: theme.sub, marginTop: 12 }}>{t('no_agents_registered')}</Text>
         </View>
       ) : (
         <FlatList
@@ -364,8 +375,12 @@ export default function DeliveryAgentModule() {
           <View style={[styles.dossierSheet, { backgroundColor: theme.surface }]}>
             <View style={styles.dossierHeader}>
               <View>
-                <Text style={[styles.dossierTitle, { color: theme.text }]}>AGENT INSPECTION DOSSIER</Text>
-                <Text style={[styles.dossierId, { color: theme.hint }]}>ID: {selectedAgent.id}</Text>
+                <Text style={[styles.dossierTitle, { color: theme.text }]}>
+                  {t('agent_dossier')}
+                </Text>
+                <Text style={[styles.dossierId, { color: theme.hint }]}>
+                  ID: {selectedAgent.id}
+                </Text>
               </View>
               <TouchableOpacity onPress={() => setSelectedAgent(null)}>
                 <Ionicons name="close-circle" size={28} color={theme.sub} />
@@ -375,37 +390,51 @@ export default function DeliveryAgentModule() {
             <View style={[styles.dossierContent, { borderColor: theme.rim }]}>
               <View style={styles.dossierRow}>
                 <View style={styles.dossierField}>
-                  <Text style={styles.dossierLabel}>FULL NAME</Text>
-                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.profile?.full_name}</Text>
+                  <Text style={styles.dossierLabel}>{t('full_name').toUpperCase()}</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>
+                    {selectedAgent.profile?.full_name}
+                  </Text>
                 </View>
                 <View style={styles.dossierField}>
-                  <Text style={styles.dossierLabel}>FAYDA STATUS</Text>
+                  <Text style={styles.dossierLabel}>{t('fayda_status')}</Text>
                   <View style={styles.verifiedRow}>
                     <Ionicons name="checkmark-circle" size={14} color={theme.green} />
-                    <Text style={{ color: theme.green, fontWeight: '800', fontSize: 12, marginLeft: 4 }}>VERIFIED</Text>
+                    <Text
+                      style={{ color: theme.green, fontWeight: '800', fontSize: 12, marginLeft: 4 }}
+                    >
+                      {t('verified').toUpperCase()}
+                    </Text>
                   </View>
                 </View>
               </View>
 
               <View style={styles.dossierRow}>
                 <View style={styles.dossierField}>
-                  <Text style={styles.dossierLabel}>VEHICLE TYPE</Text>
-                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.vehicle_type?.toUpperCase()}</Text>
+                  <Text style={styles.dossierLabel}>{t('vehicle_type').toUpperCase()}</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>
+                    {t(selectedAgent.vehicle_type?.toLowerCase() || 'car').toUpperCase()}
+                  </Text>
                 </View>
                 <View style={styles.dossierField}>
-                  <Text style={styles.dossierLabel}>PLATE NUMBER</Text>
-                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.plate_number || 'N/A'}</Text>
+                  <Text style={styles.dossierLabel}>{t('plate_number').toUpperCase()}</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>
+                    {selectedAgent.plate_number || 'N/A'}
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.dossierRow}>
                 <View style={styles.dossierField}>
-                  <Text style={styles.dossierLabel}>LICENSE / ID NO.</Text>
-                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.license_number}</Text>
+                  <Text style={styles.dossierLabel}>{t('license_id_no')}</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>
+                    {selectedAgent.license_number}
+                  </Text>
                 </View>
                 <View style={styles.dossierField}>
-                  <Text style={styles.dossierLabel}>PHONE</Text>
-                  <Text style={[styles.dossierValue, { color: theme.text }]}>{selectedAgent.profile?.phone}</Text>
+                  <Text style={styles.dossierLabel}>{t('phone').toUpperCase()}</Text>
+                  <Text style={[styles.dossierValue, { color: theme.text }]}>
+                    {selectedAgent.profile?.phone}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -413,35 +442,54 @@ export default function DeliveryAgentModule() {
             <View style={styles.dossierActions}>
               {selectedAgent.agent_status === 'PENDING' ? (
                 <>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.dossierRejectBtn, { borderColor: theme.red + '40' }]}
                     onPress={() => {
                       handleReject(selectedAgent);
                       setSelectedAgent(null);
                     }}
                   >
-                    <Text style={{ color: theme.red, fontWeight: '900' }}>REJECT APPLICATION</Text>
+                    <Text style={{ color: theme.red, fontWeight: '900' }}>
+                      {t('reject_application').toUpperCase()}
+                    </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.dossierApproveBtn, { backgroundColor: theme.primary }]}
                     onPress={() => {
                       handleApprove(selectedAgent);
                       setSelectedAgent(null);
                     }}
                   >
-                    <Text style={{ color: theme.ink, fontWeight: '900' }}>GRANT PERMIT</Text>
+                    <Text style={{ color: theme.ink, fontWeight: '900' }}>
+                      {t('grant_permit').toUpperCase()}
+                    </Text>
                   </TouchableOpacity>
                 </>
               ) : (
-                <TouchableOpacity 
-                  style={[styles.dossierToggleBtn, { backgroundColor: selectedAgent.agent_status === 'SUSPENDED' ? theme.green + '20' : theme.red + '20' }]}
+                <TouchableOpacity
+                  style={[
+                    styles.dossierToggleBtn,
+                    {
+                      backgroundColor:
+                        selectedAgent.agent_status === 'SUSPENDED'
+                          ? theme.green + '20'
+                          : theme.red + '20',
+                    },
+                  ]}
                   onPress={() => {
                     handleSuspend(selectedAgent);
                     setSelectedAgent(null);
                   }}
                 >
-                  <Text style={{ color: selectedAgent.agent_status === 'SUSPENDED' ? theme.green : theme.red, fontWeight: '900' }}>
-                    {selectedAgent.agent_status === 'SUSPENDED' ? 'REACTIVE AGENT' : 'SUSPEND PERMIT'}
+                  <Text
+                    style={{
+                      color: selectedAgent.agent_status === 'SUSPENDED' ? theme.green : theme.red,
+                      fontWeight: '900',
+                    }}
+                  >
+                    {selectedAgent.agent_status === 'SUSPENDED'
+                      ? 'REACTIVE AGENT'
+                      : 'SUSPEND PERMIT'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -499,26 +547,81 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  
+
   // Inspection Dossier Styles
-  inspectBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.md, backgroundColor: 'rgba(99,179,237,0.1)' },
+  inspectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.md,
+    backgroundColor: 'rgba(99,179,237,0.1)',
+  },
   inspectBtnText: { fontSize: 10, fontWeight: '800' },
-  
-  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20, zIndex: 1000 },
-  dossierSheet: { width: '100%', maxWidth: 500, borderRadius: Radius.xxl, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
-  dossierHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 1000,
+  },
+  dossierSheet: {
+    width: '100%',
+    maxWidth: 500,
+    borderRadius: Radius['2xl'],
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  dossierHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
   dossierTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 1 },
   dossierId: { fontSize: 10, marginTop: 4, fontFamily: Fonts.body },
-  
+
   dossierContent: { borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 20, gap: 20 },
   dossierRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 20 },
   dossierField: { flex: 1 },
-  dossierLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: '800', letterSpacing: 0.5, marginBottom: 4 },
+  dossierLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
   dossierValue: { fontSize: 14, fontWeight: '700' },
   verifiedRow: { flexDirection: 'row', alignItems: 'center' },
-  
+
   dossierActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  dossierRejectBtn: { flex: 1, height: 48, borderRadius: Radius.lg, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  dossierApproveBtn: { flex: 1, height: 48, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
-  dossierToggleBtn: { width: '100%', height: 48, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
+  dossierRejectBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dossierApproveBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dossierToggleBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

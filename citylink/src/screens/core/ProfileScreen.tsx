@@ -23,12 +23,15 @@ import { signOut } from '../../services/auth.service';
 import { hasWalletPin } from '../../services/walletPin';
 import { KycService, FAYDA_STATUS } from '../../services/kyc.service';
 import { fetchAgentProfile } from '../../services/delivery.service';
+import { HospitalityService } from '../../services/hospitality.service';
 import { useTheme } from '../../hooks/useTheme';
 import { fmtETB } from '../../utils';
-import { t } from '../../utils/i18n';
+import { useT } from '../../utils/i18n';
 
 export default function ProfileScreen() {
+  const t = useT();
   const isDark = useSystemStore((s) => s.isDark);
+  const lang = useSystemStore((s) => s.lang);
   const toggleTheme = useSystemStore((s) => s.toggleTheme);
   const C = useTheme();
 
@@ -43,6 +46,8 @@ export default function ProfileScreen() {
   const [pinSet, setPinSet] = useState(false);
   const [kycStatus, setKycStatus] = useState<string | null>(FAYDA_STATUS.NOT_STARTED as string);
   const [isAgent, setIsAgent] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
+  const [staffData, setStaffData] = useState<any>(null);
   const [loadingAgent, setLoadingAgent] = useState(false);
 
   const loadProfileData = useCallback(async () => {
@@ -50,16 +55,19 @@ export default function ProfileScreen() {
     if (!userId)
       return { pinSetStatus: false, kycStatusValue: FAYDA_STATUS.NOT_STARTED, isAgentValue: false };
 
-    const [pinSetStatus, statusData, agentProfile] = await Promise.all([
+    const [pinSetStatus, statusData, agentProfile, staffCheck] = await Promise.all([
       hasWalletPin(userId),
       KycService.getKYCStatus(),
       fetchAgentProfile(userId),
+      HospitalityService.getMerchantStaffProfile(userId).catch(() => null)
     ]);
 
     return {
       pinSetStatus,
       kycStatusValue: statusData.status,
       isAgentValue: !!agentProfile.data,
+      isStaffValue: !!staffCheck,
+      staffCheckData: staffCheck
     };
   }, [currentUser?.id]);
 
@@ -69,6 +77,8 @@ export default function ProfileScreen() {
       setPinSet(data.pinSetStatus);
       setKycStatus(data.kycStatusValue);
       setIsAgent(data.isAgentValue);
+      setIsStaff(data.isStaffValue);
+      setStaffData(data.staffCheckData);
       setLoadingAgent(false);
     });
   }, [loadProfileData]);
@@ -83,9 +93,9 @@ export default function ProfileScreen() {
     }
   }
 
-  const kycVerified = 
-    kycStatus === FAYDA_STATUS.VERIFIED || 
-    currentUser?.kyc_status === 'VERIFIED' || 
+  const kycVerified =
+    kycStatus === FAYDA_STATUS.VERIFIED ||
+    currentUser?.kyc_status === 'VERIFIED' ||
     currentUser?.fayda_verified === true;
 
   return (
@@ -255,8 +265,42 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Staff Portal Entry */}
+        {isStaff && (
+          <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+            <TouchableOpacity
+              onPress={() => (navigation as any).navigate('MerchantPortal', { 
+                staffMode: true, 
+                staffRole: staffData?.role,
+                merchantType: staffData?.merchant?.merchant_type,
+                merchantId: staffData?.merchant?.id
+              })}
+              style={{
+                backgroundColor: C.primary,
+                borderRadius: Radius.xl,
+                padding: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 16,
+                ...Shadow.md,
+              }}
+            >
+              <Ionicons name="restaurant" size={28} color={C.white} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: C.white, fontSize: 18, fontFamily: Fonts.black }}>
+                  {t('staff_dashboard') || 'Staff Dashboard'}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: Fonts.medium }}>
+                  Manage tables and orders
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={C.white} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Delivery Agent Entry */}
-        {(currentUser?.role === 'delivery_agent' || isAgent) ? (
+        {currentUser?.role === 'delivery_agent' || isAgent ? (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
               onPress={() => {
@@ -265,11 +309,11 @@ export default function ProfileScreen() {
                 if (uiMode === 'agent') {
                   console.log('[Profile] Setting mode to citizen');
                   setUiMode('citizen');
-                  showToast('Switched to Citizen Mode', 'info');
+                  showToast(t('switch_to_citizen'), 'info');
                 } else {
                   console.log('[Profile] Setting mode to agent');
                   setUiMode('agent');
-                  showToast('Switched to Delivery Mode', 'success');
+                  showToast(t('enter_delivery'), 'success');
                 }
               }}
               style={{
@@ -309,14 +353,12 @@ export default function ProfileScreen() {
                     fontFamily: Fonts.black,
                   }}
                 >
-                  {uiMode === 'agent' ? 'Switch to Citizen App' : 'Enter Delivery Dashboard'}
+                  {uiMode === 'agent' ? t('switch_to_citizen') : t('enter_delivery')}
                 </Text>
                 <Text
                   style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}
                 >
-                  {uiMode === 'agent'
-                    ? 'Return to main superapp services'
-                    : 'Start receiving delivery jobs'}
+                  {uiMode === 'agent' ? t('return_to_main') : t('start_delivery')}
                 </Text>
               </View>
               {loadingAgent ? (
@@ -332,7 +374,7 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
-             <TouchableOpacity
+            <TouchableOpacity
               onPress={() => (navigation as any).navigate('BecomeDeliveryAgent')}
               style={{
                 backgroundColor: C.surface,
@@ -360,10 +402,12 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
-                  Work with CityLink
+                  {t('work_with_citylink')}
                 </Text>
-                <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}>
-                  Earn money by becoming a delivery agent
+                <Text
+                  style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}
+                >
+                  {t('earn_money_agent')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={C.primary} />
@@ -388,47 +432,42 @@ export default function ProfileScreen() {
               value: pinSet ? t('active') : t('not_set'),
               onPress: () => showToast(t('pin_coming'), 'info'),
             },
-            ...(isBiometricsSupported ? [{
-              icon: 'finger-print',
-              label: t('biometric_lock'),
-              type: 'switch',
-              value: isBiometricsEnabled,
-              onValueChange: (val: boolean) => {
-                setBiometricsEnabled(val);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              },
-            }] : []),
+            ...(isBiometricsSupported
+              ? [
+                  {
+                    icon: 'finger-print',
+                    label: t('biometric_lock'),
+                    type: 'switch',
+                    value: isBiometricsEnabled,
+                    onValueChange: (val: boolean) => {
+                      setBiometricsEnabled(val);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    },
+                  },
+                ]
+              : []),
             {
               icon: 'shield-checkmark',
               label: t('id_kyc'),
               value: kycVerified ? t('verified') : t('unverified'),
               onPress: () =>
-                showToast(
-                  kycVerified ? 'KYC already completed' : 'KYC completed during registration',
-                  'info'
-                ),
+                showToast(kycVerified ? t('kyc_completed') : t('kyc_reg_info'), 'info'),
             },
             {
               icon: 'language',
               label: t('app_lang'),
-              value: 'English',
+              value: lang === 'am' ? t('amharic') : lang === 'om' ? t('oromo') : t('english'),
               onPress: () => (navigation as any).navigate('Language'),
             },
             {
               icon: 'chatbubbles',
-              label: 'Messages',
+              label: t('messages'),
               onPress: () => (navigation as any).navigate('ChatInbox'),
             },
             {
               icon: 'help-circle',
               label: t('help_support'),
               onPress: () => showToast(t('help_coming'), 'info'),
-            },
-            {
-              icon: 'construct',
-              label: 'Developer Portal',
-              value: 'v1.0-AUDIT',
-              onPress: () => (navigation as any).navigate('DevPortal'),
             },
           ].map((item: any, idx) => (
             <TouchableOpacity

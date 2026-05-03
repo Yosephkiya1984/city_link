@@ -34,7 +34,8 @@ import { ErrorReportingProvider } from './src/utils/debug/errorReporting';
 
 // ── Inner bootstrap component — runs INSIDE AppStoreProvider ─────────────────
 function AppBootstrap() {
-  const isDark = useSystemStore(s => s.isDark);
+  const isDark = useSystemStore((s) => s.isDark);
+  const lang = useSystemStore((s) => s.lang);
   const theme = useTheme();
   const [bootstrapped, setBootstrapped] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -42,7 +43,7 @@ function AppBootstrap() {
   useEffect(() => {
     // A. Start Memory Shield
     const stopMemoryMonitor = memoryManager.startMonitoring();
-    
+
     // B. Register Cache Cleanup on critical memory pressure
     memoryManager.registerCleanupTask(() => {
       console.log('[App] Critical Memory Pressure: Clearing transient caches...');
@@ -78,18 +79,27 @@ function AppBootstrap() {
           Manrope_700Bold,
         }).then(() => {
           setFontsLoaded(true);
-          console.log(`[Performance] Fonts loaded in ${(performance.now() - fontStart).toFixed(2)}ms`);
+          console.log(
+            `[Performance] Fonts loaded in ${(performance.now() - fontStart).toFixed(2)}ms`
+          );
         });
 
         const { hydrateSession } = useAuthStore.getState();
         const authPromise = hydrateSession().then(() => {
-          console.log(`[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`);
+          console.log(
+            `[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`
+          );
         });
 
         await Promise.all([fontPromise, authPromise]);
 
         const session = useAuthStore.getState().currentUser;
         if (session) {
+          // Sync language with user profile preference
+          if (session.language && session.language !== useSystemStore.getState().lang) {
+            useSystemStore.getState().setLang(session.language);
+          }
+
           // Hydrate the wallet state (balance + history)
           const { useWalletStore } = await import('./src/store/WalletStore');
           await useWalletStore.getState().hydrateWallet(session.id);
@@ -104,7 +114,9 @@ function AppBootstrap() {
         }
 
         if (__DEV__) {
-          console.log(`[Performance] Total bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`);
+          console.log(
+            `[Performance] Total bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`
+          );
         }
       } catch (e) {
         console.warn('[App] Boot error:', e);
@@ -115,7 +127,8 @@ function AppBootstrap() {
 
     // 🛡️ Biometric Session Monitor
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      const { isBiometricsEnabled, isBiometricsSupported, setLocked } = useBiometricStore.getState();
+      const { isBiometricsEnabled, isBiometricsSupported, setLocked } =
+        useBiometricStore.getState();
       const session = useAuthStore.getState().currentUser;
 
       if (nextAppState === 'active' && session && isBiometricsEnabled && isBiometricsSupported) {
@@ -157,7 +170,7 @@ function AppBootstrap() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} key={lang}>
       <SafeAreaProvider>
         <PerformanceProvider>
           <ErrorReportingProvider>

@@ -74,9 +74,17 @@ export async function fetchParkingSessions(merchantId: string) {
   );
 }
 
-export async function updateSessionStatus(sessionId: string, newStatus: string) {
+export async function updateSessionStatus(
+  sessionId: string,
+  merchantId: string,
+  newStatus: string
+) {
   return supaQuery<void>((c) =>
-    c.from('parking_sessions').update({ status: newStatus }).eq('id', sessionId)
+    c
+      .from('parking_sessions')
+      .update({ status: newStatus })
+      .eq('id', sessionId)
+      .eq('merchant_id', merchantId)
   );
 }
 
@@ -96,8 +104,18 @@ export async function finalizeParkingSessionLegal(
   );
 }
 
-export async function updateParkingLot(lotId: string, updates: Partial<ParkingLot>) {
+export async function updateParkingLot(
+  lotId: string,
+  merchantId: string,
+  updates: Partial<ParkingLot>
+) {
   return supaQuery<ParkingLot>((c) =>
-    c.from('parking_lots').update(updates).eq('id', lotId).select().single()
+    c
+      .from('parking_lots')
+      .update(updates)
+      .eq('id', lotId)
+      .eq('merchant_id', merchantId)
+      .select()
+      .single()
   );
 }

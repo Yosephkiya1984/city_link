@@ -5,24 +5,32 @@ import { User } from '../types/domain_types';
 
 export interface WalletState {
   balance: number;
+  frozenBalance: number;
   transactions: Transaction[];
   activeParking: ParkingSession | null;
   setBalance: (val: number) => Promise<void>;
+  setFrozenBalance: (val: number) => Promise<void>;
   setTransactions: (txs: Transaction[]) => Promise<void>;
   addTransaction: (tx: Transaction) => Promise<void>;
   setActiveParking: (session: ParkingSession | null) => Promise<void>;
   hydrateWallet: (userId?: string) => Promise<void>;
+  syncWithServer: () => Promise<void>;
   reset: () => Promise<void>;
 }
 
 export const useWalletStore = create<WalletState>((set) => ({
   balance: 0,
+  frozenBalance: 0,
   transactions: [],
   activeParking: null,
 
   setBalance: async (val) => {
     set({ balance: val });
     await SecurePersist.saveBalance(val);
+  },
+
+  setFrozenBalance: async (val) => {
+    set({ frozenBalance: val });
   },
 
   setTransactions: async (txs) => {
@@ -72,6 +80,28 @@ export const useWalletStore = create<WalletState>((set) => ({
       SecurePersist.loadActiveParking(),
     ]);
     set({ balance, transactions, activeParking });
+  },
+
+  syncWithServer: async () => {
+    const { getClient } = await import('../services/supabase');
+    const supabase = getClient();
+    if (!supabase) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('wallets')
+      .select('balance, frozen_balance')
+      .eq('user_id', user.id)
+      .single();
+
+    if (data && !error) {
+      useWalletStore.getState().setBalance(data.balance);
+      useWalletStore.getState().setFrozenBalance(data.frozen_balance || 0);
+    }
   },
 
   reset: async () => {

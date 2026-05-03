@@ -24,7 +24,7 @@ import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, Spacing, Shadow, Fonts, FontSize } from '../../theme';
 import { CButton, Card, SectionTitle, CInput } from '../../components';
-import { fmtETB, uid } from '../../utils';
+import { fmtETB, uid, t } from '../../utils';
 import { payUtilityBill, payTrafficFine } from '../../services/payment.service';
 
 export default function BillPayScreen() {
@@ -47,19 +47,19 @@ export default function BillPayScreen() {
   async function handlePay() {
     const amt = parseFloat(amount);
     if (!currentUser) {
-      showToast('Sign in to pay bills', 'error');
+      showToast(t('sign_in_required'), 'error');
       return;
     }
     if (!account) {
-      showToast('Enter customer/account/notice number', 'error');
+      showToast(t('enter_account_error'), 'error');
       return;
     }
     if (type !== 'Traffic' && (!amt || amt <= 0)) {
-      showToast('Enter valid amount', 'error');
+      showToast(t('enter_valid_amount_error'), 'error');
       return;
     }
     if (balance < amt) {
-      showToast('Insufficient balance', 'error');
+      showToast(t('insufficient_balance_error'), 'error');
       return;
     }
 
@@ -91,10 +91,10 @@ export default function BillPayScreen() {
       }
 
       setSuccess(true);
-      showToast('Payment successful! âœ…', 'success');
+      showToast(t('payment_successful'), 'success');
     } catch (e) {
       console.error('Payment Error:', e);
-      showToast('Payment failed. Please try again.', 'error');
+      showToast(t('payment_failed_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -118,7 +118,7 @@ export default function BillPayScreen() {
   if (success) {
     return (
       <View style={{ flex: 1, backgroundColor: C.ink }}>
-        <TopBar title="Success" />
+        <TopBar title={t('success')} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 }}>
           <View
             style={{
@@ -134,7 +134,7 @@ export default function BillPayScreen() {
             <Ionicons name="checkmark-circle" size={64} color={C.green} />
           </View>
           <Text style={{ color: C.text, fontSize: 28, fontFamily: Fonts.black }}>
-            Payment Complete
+            {t('payment_complete')}
           </Text>
           <Text
             style={{
@@ -145,10 +145,13 @@ export default function BillPayScreen() {
               marginTop: 12,
             }}
           >
-            Your {type} bill of {fmtETB(parseFloat(amount))} ETB was paid successfully.
+            {t('payment_complete_desc', {
+              type: t(type.toLowerCase()),
+              amount: fmtETB(parseFloat(amount)),
+            })}
           </Text>
           <CButton
-            title="Back to Services"
+            title={t('back_to_services')}
             onPress={() => navigation.goBack()}
             style={{ marginTop: 40, width: '100%' }}
           />
@@ -159,7 +162,7 @@ export default function BillPayScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
-      <TopBar title={`${type} Bill`} />
+      <TopBar title={t('pay_bill_title', { type: t(type.toLowerCase()) })} />
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         <View style={{ marginBottom: 30, alignItems: 'center' }}>
           <View
@@ -182,23 +185,23 @@ export default function BillPayScreen() {
             />
           </View>
           <Text style={{ color: C.text, fontSize: 24, fontFamily: Fonts.black, marginTop: 16 }}>
-            Pay {type} Bill
+            {t('pay_bill_title', { type: t(type.toLowerCase()) })}
           </Text>
           <Text style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.medium, marginTop: 4 }}>
-            Fast, secure city utility payments
+            {t('bill_desc')}
           </Text>
         </View>
 
         <Card style={{ padding: 20, marginBottom: 24, ...Shadow.sm }}>
           <CInput
-            label={type === 'Water' ? 'Customer Number' : 'Account / Meter Number'}
+            label={type === 'Water' ? t('customer_number') : t('account_meter_number')}
             value={account}
             onChangeText={setAccount}
-            placeholder="e.g. 123456789"
+            placeholder={t('account_placeholder')}
             iconName="list"
           />
           <CInput
-            label="Amount (ETB)"
+            label={t('amount_etb')}
             value={amount}
             onChangeText={setAmount}
             placeholder="0.00"
@@ -219,14 +222,16 @@ export default function BillPayScreen() {
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.medium }}>
-                Convenience Fee
+                {t('convenience_fee')}
               </Text>
-              <Text style={{ color: C.green, fontSize: 13, fontFamily: Fonts.bold }}>FREE</Text>
+              <Text style={{ color: C.green, fontSize: 13, fontFamily: Fonts.bold }}>
+                {t('free')}
+              </Text>
             </View>
             <View style={{ height: 1, backgroundColor: C.edge, marginVertical: 12 }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ color: C.sub, fontSize: 13, fontFamily: Fonts.bold }}>
-                Total to Pay
+                {t('total_to_pay')}
               </Text>
               <Text style={{ color: C.text, fontSize: 18, fontFamily: Fonts.black }}>
                 {amount ? fmtETB(parseFloat(amount)) : '0.00 ETB'}
@@ -236,7 +241,7 @@ export default function BillPayScreen() {
         </Card>
 
         <CButton
-          title={loading ? 'Processing...' : 'Pay Bill'}
+          title={loading ? t('processing') : t('pay_bill')}
           onPress={handlePay}
           loading={loading}
         />
@@ -251,7 +256,7 @@ export default function BillPayScreen() {
               marginBottom: 16,
             }}
           >
-            Verified Service Providers
+            {t('verified_providers')}
           </Text>
           <View style={{ flexDirection: 'row', gap: 24, alignItems: 'center' }}>
             <Text style={{ color: C.sub, fontSize: 14, fontFamily: Fonts.bold }}>EEP</Text>

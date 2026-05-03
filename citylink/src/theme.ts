@@ -73,9 +73,9 @@ export const Colors = {
 export const DarkColors = {
   ink: '#000000', // True Noir
   surface: '#121212', // Stitch Surface
-  surfaceHigh: '#1E1E1E', 
+  surfaceHigh: '#1E1E1E',
   lift: '#1E1E1E',
-  top: '#242424', 
+  top: '#242424',
   rim: '#242424',
   overlay: 'rgba(0, 0, 0, 0.88)',
 

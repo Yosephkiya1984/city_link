@@ -45,6 +45,7 @@ export function useShopActions({
   const navigation = useNavigation<any>();
 
   const handleSaveProduct = async () => {
+    if (!currentUser?.id) return;
     const priceVal = parseFloat(newProduct.price);
     const stockVal = parseInt(newProduct.stock);
 
@@ -71,7 +72,7 @@ export function useShopActions({
     }
 
     if (editingProduct) {
-      const { error } = await marketplaceService.updateProduct(editingProduct.id, {
+      const { error } = await marketplaceService.updateProduct(editingProduct.id, currentUser.id, {
         name: newProduct.name,
         price: priceVal,
         category: newProduct.category,
@@ -83,6 +84,11 @@ export function useShopActions({
       if (error) showToast('Update failed', 'error');
       else showToast('Product updated!', 'success');
     } else {
+      const { data: sessionData } = await getClient()!.auth.getSession();
+      console.log('[ShopActions] Current Supabase Session Role:', sessionData.session?.user?.role);
+      console.log('[ShopActions] Current Supabase Session ID:', sessionData.session?.user?.id);
+      console.log('[ShopActions] Current AuthStore ID:', currentUser.id);
+
       const productData = {
         id: uid(),
         merchant_id: currentUser.id,
@@ -137,8 +143,9 @@ export function useShopActions({
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          if (!currentUser?.id) return;
           try {
-            await marketplaceService.deleteProduct(productId);
+            await marketplaceService.deleteProduct(productId, currentUser.id);
             setInventory((prev: any) => prev.filter((p: any) => p.id !== productId));
             showToast('Product removed', 'success');
           } catch (e) {
@@ -150,7 +157,7 @@ export function useShopActions({
   };
 
   const handleMarkShipped = async (orderId: string) => {
-    if (shipping) return;
+    if (!currentUser?.id || shipping) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     setShipping(true);
@@ -184,7 +191,7 @@ export function useShopActions({
   };
 
   const handleConfirmPickup = async (orderId: string) => {
-    if (loading) return;
+    if (!currentUser?.id || loading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
     try {
@@ -210,7 +217,7 @@ export function useShopActions({
   };
 
   const handleDispatchRetry = async (orderId: string) => {
-    if (shipping) return;
+    if (!currentUser?.id || shipping) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShipping(true);
     try {
@@ -245,7 +252,7 @@ export function useShopActions({
           onPress: async () => {
             setLoading(true);
             try {
-              const res = await marketplaceService.cancelOrder(orderId, 'cancelled_by_merchant');
+              const res = await marketplaceService.cancelOrder(orderId, currentUser.id, 'cancelled_by_merchant');
               if (res.success) {
                 showToast('Order cancelled', 'success');
                 loadData();
@@ -268,6 +275,7 @@ export function useShopActions({
       {
         text: 'Yes, Self-Deliver',
         onPress: async () => {
+          if (!currentUser?.id) return;
           setLoading(true);
           try {
             await marketplaceService.selfDeliverOrder(order.id, currentUser.id);
@@ -307,7 +315,7 @@ export function useShopActions({
   };
 
   const handleMessageBuyer = async (order: any) => {
-    if (!order.buyer_id) return;
+    if (!currentUser?.id || !order.buyer_id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const [id1, id2] = [currentUser.id, order.buyer_id].sort();
@@ -365,6 +373,7 @@ export function useShopActions({
         {
           text: 'Confirm Withdrawal',
           onPress: async () => {
+            if (!currentUser?.id) return;
             setWithdrawing(true);
             try {
               // Note: In a real app, bank details would be fetched from merchant profile

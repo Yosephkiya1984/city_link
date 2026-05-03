@@ -178,8 +178,9 @@ export const fetchAdminLiveStats = async (): Promise<{ data: AdminStats; error?:
       ),
     ]);
 
-    const mktRevenue = revenueRes.data?.marketplace_revenue ?? 0;
-    const foodRevenue = revenueRes.data?.food_revenue ?? 0;
+    const revenueData = Array.isArray(revenueRes.data) ? revenueRes.data[0] : revenueRes.data;
+    const mktRevenue = revenueData?.marketplace_revenue ?? 0;
+    const foodRevenue = revenueData?.food_revenue ?? 0;
 
     return {
       data: {
@@ -239,3 +240,40 @@ export const subscribeToGlobalEvents = (
     )
     .subscribe();
 };
+
+/**
+ * fetchPendingWithdrawals — fetches all PENDING withdrawal requests with profile info.
+ */
+export async function fetchPendingWithdrawals() {
+  const { data, error } = await supaQuery<any[]>((c) =>
+    c
+      .from('withdrawal_requests')
+      .select('*, profiles!user_id(full_name, phone)')
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: false })
+  );
+  return { data, error };
+}
+
+/**
+ * processWithdrawal — approves or rejects a withdrawal request using secure RPC.
+ */
+export async function processWithdrawal(
+  requestId: string,
+  status: 'APPROVED' | 'REJECTED',
+  notes?: string
+) {
+  const { data, error } = await supaQuery<{ ok: boolean; error?: string; status?: string }>((c) =>
+    c.rpc('process_withdrawal', {
+      p_request_id: requestId,
+      p_status: status,
+      p_notes: notes,
+    })
+  );
+
+  if (error) return { ok: false, error };
+  // The RPC returns a jsonb object like { "ok": true, "status": "APPROVED" }
+  // but supaQuery wraps the whole response in a data property.
+  const result = Array.isArray(data) ? data[0] : data;
+  return { ok: result?.ok ?? false, error: result?.error };
+}

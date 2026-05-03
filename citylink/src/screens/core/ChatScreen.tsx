@@ -12,7 +12,7 @@ import {
   StatusBar,
   LayoutAnimation,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList } from '../../components/common/SafeFlashList';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -25,6 +25,7 @@ import {
   updateChatThreadLastMessage,
 } from '../../services/chat.service';
 import { uid } from '../../utils';
+import { t } from '../../utils/i18n';
 
 const T = {
   bg: '#101319',
@@ -223,11 +224,11 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
           <ActivityIndicator color={T.primary} />
         </View>
       ) : (
-        <FlashList
+        <FlashList<any>
           ref={flatListRef}
           data={messages}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: any) => item.id}
           contentContainerStyle={styles.listContent}
           estimatedItemSize={70}
           inverted
@@ -247,7 +248,7 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.input}
-            placeholder="Write a message..."
+            placeholder={t('chat_message_placeholder')}
             placeholderTextColor={T.textSub}
             value={inputText}
             onChangeText={setInputText}

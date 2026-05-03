@@ -26,6 +26,7 @@ export const AuthLogin = ({
   error,
   onBack,
   onSendOtp,
+  t,
 }: any) => {
   return (
     <Animated.View
@@ -34,25 +35,22 @@ export const AuthLogin = ({
       <TouchableOpacity
         style={[styles.backButton, { borderColor: C.edge }]}
         onPress={onBack}
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('back_btn') || 'Go back'}
         accessibilityRole="button"
-        accessibilityHint="Navigates back to the welcome screen"
       >
         <Ionicons name="chevron-back" size={24} color={C.text} />
       </TouchableOpacity>
 
       <Text style={[styles.title, { color: C.text }]}>
-        {authMode === 'gov' ? 'Government Access' : 'Welcome Back'}
+        {authMode === 'gov' ? t('gov_access') : t('welcome_back')}
       </Text>
       <Text style={[styles.subtitle, { color: C.sub }]}>
-        {authMode === 'gov'
-          ? 'Enter your badge details and secure PIN'
-          : 'Sign in with your phone number to continue'}
+        {authMode === 'gov' ? t('gov_auth_desc') : t('login_desc')}
       </Text>
 
       <View style={styles.form}>
         <CInput
-          label="Phone or Email"
+          label={t('phone_email_label')}
           value={phone}
           onChangeText={setPhone}
           placeholder="+251 9XX... or test@gmail.com"
@@ -65,14 +63,14 @@ export const AuthLogin = ({
         {authMode === 'gov' && (
           <>
             <CInput
-              label="Badge ID"
+              label={t('badge_id_label')}
               value={badgeId}
               onChangeText={setBadgeId}
               placeholder="ST-123456"
               iconName="id-card-outline"
             />
             <CInput
-              label="Security PIN"
+              label={t('security_pin_label')}
               value={secPin}
               onChangeText={setSecPin}
               placeholder="****"
@@ -91,7 +89,7 @@ export const AuthLogin = ({
         ) : null}
 
         <CButton
-          title={authMode === 'gov' ? 'Authorize' : 'Verify Phone'}
+          title={authMode === 'gov' ? t('authorize') : t('verify_phone')}
           onPress={onSendOtp}
           loading={loading}
           disabled={loading}

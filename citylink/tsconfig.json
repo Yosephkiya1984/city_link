@@ -13,6 +13,11 @@
     "esModuleInterop": true
   },
   "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js",
+    "supabase/functions",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",

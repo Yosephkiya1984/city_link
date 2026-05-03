@@ -21,7 +21,7 @@ import { CButton, CInput } from '../../components';
 import { fmtETB, uid, normalizePhone } from '../../utils';
 import { t } from '../../utils/i18n';
 import { P2P_PIN_THRESHOLD_ETB } from '../../config';
-import { queueP2PTransfer } from '../../services/wallet.service';
+import { queueP2PTransfer, generateIdempotencyKey } from '../../services/wallet.service';
 import { hasWalletPin, verifyWalletPin } from '../../services/walletPin';
 import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
 import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
@@ -48,43 +48,47 @@ export default function SendMoneyScreen() {
   const [pinModal, setPinModal] = useState(false);
   const [pinValue, setPinValue] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
   async function handleSend() {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) {
-      showToast('Enter valid amount', 'error');
+      showToast(t('enter_valid_amount'), 'error');
       return;
     }
     if (balance < amt) {
-      showToast('Insufficient balance', 'error');
+      showToast(t('insufficient_balance'), 'error');
       return;
     }
     if (phone.length < 9) {
-      showToast('Enter valid phone', 'error');
+      showToast(t('enter_valid_phone'), 'error');
       return;
     }
 
+    const key = generateIdempotencyKey('p2p-ui', currentUser?.id || 'anon', amt, phone);
+    setActiveKey(key);
+
     if (amt >= P2P_PIN_THRESHOLD_ETB) {
       if (!currentUser?.id) {
-        showToast('Authentication error', 'error');
+        showToast(t('auth_error'), 'error');
         return;
       }
       const hasPinSet = await hasWalletPin(currentUser.id);
       if (!hasPinSet) {
-        showToast('Please set up wallet PIN first for transfers â‰¥ 5,000 ETB', 'error');
+        showToast(t('setup_pin_required'), 'error');
         return;
       }
       setPinModal(true);
       return;
     }
 
-    processTransfer(amt);
+    processTransfer(amt, key);
   }
 
-  async function processTransfer(amt: number) {
+  async function processTransfer(amt: number, ik?: string) {
     if (!currentUser) return;
     if (!currentUser.id) {
-      showToast('User ID missing', 'error');
+      showToast(t('user_id_missing'), 'error');
       return;
     }
     setLoading(true);
@@ -97,6 +101,7 @@ export default function SendMoneyScreen() {
         recipientPhone: normalizedPhone,
         amount: amt,
         note: '',
+        idempotencyKey: ik || activeKey || undefined,
       });
 
       if (!res.ok) {
@@ -131,10 +136,10 @@ export default function SendMoneyScreen() {
       console.error('P2P Transfer Error:', error);
       const msg =
         error.message === 'recipient_not_found'
-          ? 'Recipient not registered'
+          ? t('recipient_not_found')
           : error.message === 'insufficient_funds'
-            ? 'Insufficient balance'
-            : 'Transfer failed. Please try again.';
+            ? t('insufficient_balance')
+            : t('transfer_failed_try_again');
       showToast(msg, 'error');
     } finally {
       setLoading(false);
@@ -143,14 +148,14 @@ export default function SendMoneyScreen() {
 
   async function handlePinVerification() {
     if (!pinValue || pinValue.length !== 6) {
-      showToast('Please enter 6-digit PIN', 'error');
+      showToast(t('enter_6_digit_pin'), 'error');
       return;
     }
 
     setLoading(true);
     try {
       if (!currentUser?.id) {
-        showToast('Authentication error', 'error');
+        showToast(t('auth_error'), 'error');
         setLoading(false);
         return;
       }
@@ -159,13 +164,13 @@ export default function SendMoneyScreen() {
         const amt = parseFloat(amount);
         setPinModal(false);
         setPinValue('');
-        await processTransfer(amt);
+        await processTransfer(amt, activeKey || undefined);
       } else {
-        showToast('Invalid PIN. Please try again.', 'error');
+        showToast(t('invalid_pin_try_again'), 'error');
         setLoading(false);
       }
     } catch (error) {
-      showToast('PIN verification failed', 'error');
+      showToast(t('pin_verification_failed'), 'error');
       setLoading(false);
     }
   }
@@ -210,7 +215,7 @@ export default function SendMoneyScreen() {
             }}
           >
             <Text style={{ color: C.white, fontSize: 11, fontFamily: Fonts.label }}>
-              Daily limit: 150,000 ETB
+              {t('daily_limit', { limit: '150,000' })}
             </Text>
           </View>
         </LinearGradient>
@@ -228,7 +233,7 @@ export default function SendMoneyScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Ionicons name="shield-checkmark" size={18} color={C.amber} />
             <Text style={{ color: C.amber, fontSize: 13, fontFamily: Fonts.label }}>
-              PIN required for transfers â‰¥ {fmtETB(P2P_PIN_THRESHOLD_ETB, 0)}
+              {t('pin_required_threshold', { amount: fmtETB(P2P_PIN_THRESHOLD_ETB, 0) })}
             </Text>
           </View>
         </View>
@@ -312,7 +317,7 @@ export default function SendMoneyScreen() {
             <Text
               style={{ color: C.text, fontSize: FontSize.xl, fontWeight: '800', marginBottom: 8 }}
             >
-              Enter Wallet PIN
+              {t('enter_wallet_pin')}
             </Text>
             <TextInput
               value={pinValue}
@@ -338,7 +343,7 @@ export default function SendMoneyScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
               <CButton
-                title="Cancel"
+                title={t('cancel')}
                 variant="ghost"
                 style={{ flex: 1 }}
                 onPress={() => {
@@ -347,7 +352,7 @@ export default function SendMoneyScreen() {
                 }}
               />
               <CButton
-                title="Confirm"
+                title={t('confirm')}
                 style={{ flex: 1 }}
                 onPress={handlePinVerification}
                 loading={loading}
@@ -358,14 +363,14 @@ export default function SendMoneyScreen() {
       </Modal>
       <SuccessOverlay
         visible={showSuccess}
-        title="Transfer Sent"
-        subtitle={`You have successfully sent ${fmtETB(parseFloat(amount) || 0, 0)} to ${phone}.`}
+        title={t('transfer_sent')}
+        subtitle={t('transfer_sent_desc', { amount: fmtETB(parseFloat(amount) || 0, 0), phone })}
         onClose={() => {
           setShowSuccess(false);
           navigation.goBack();
         }}
       />
-      <ProcessingOverlay visible={loading} message="Securing transfer..." />
+      <ProcessingOverlay visible={loading} message={t('securing_transfer')} />
     </View>
   );
 }

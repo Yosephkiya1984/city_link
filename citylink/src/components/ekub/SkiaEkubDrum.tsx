@@ -7,11 +7,11 @@ import {
   LinearGradient,
   vec,
   Rect,
-  useDerivedValue,
   Skia,
 } from '@shopify/react-native-skia';
 import Animated, {
   useSharedValue,
+  useDerivedValue,
   withTiming,
   Easing,
   runOnJS,
@@ -42,35 +42,40 @@ export const SkiaEkubDrum: React.FC<SkiaEkubDrumProps> = ({
 
   // Use Skia Typeface for high-performance text
   const font = React.useMemo(() => {
+    // @ts-ignore
     const typeface = Skia.Typeface.makeFromName('Inter', Skia.FontStyle.Bold);
+    // @ts-ignore
     return typeface ? new Skia.Font(typeface, 14) : null;
   }, []);
 
   React.useEffect(() => {
     if (isSpinning) {
       setDisplayWinner(false);
-      setFinished(false);
       rotation.value = 0;
-      
+
       const totalSpins = 15; // 15 full rotations
-      const targetRotation = totalSpins + (winnerIndex / members.length);
+      const targetRotation = totalSpins + winnerIndex / members.length;
 
       rotation.value = withSequence(
         // Ramp up
-        withTiming(targetRotation * 0.8, { 
-          duration: 3500, 
-          easing: Easing.in(Easing.quad) 
+        withTiming(targetRotation * 0.8, {
+          duration: 3500,
+          easing: Easing.in(Easing.quad),
         }),
         // Land precisely
-        withTiming(targetRotation, { 
-          duration: 2500, 
-          easing: Easing.out(Easing.back(1.2)) 
-        }, (isDone) => {
-          if (isDone) {
-            runOnJS(setDisplayWinner)(true);
-            if (onFinished) runOnJS(onFinished)();
+        withTiming(
+          targetRotation,
+          {
+            duration: 2500,
+            easing: Easing.out(Easing.back(1.2)),
+          },
+          (isDone) => {
+            if (isDone) {
+              runOnJS(setDisplayWinner)(true);
+              if (onFinished) runOnJS(onFinished)();
+            }
           }
-        })
+        )
       );
     } else {
       rotation.value = 0;
@@ -93,12 +98,12 @@ export const SkiaEkubDrum: React.FC<SkiaEkubDrumProps> = ({
 
           {/* Members Mapping */}
           {members.map((name, index) => (
-            <MemberItem 
-              key={index} 
-              index={index} 
-              name={name} 
-              total={members.length} 
-              rotation={rotation} 
+            <MemberItem
+              key={index}
+              index={index}
+              name={name}
+              total={members.length}
+              rotation={rotation}
               font={font}
             />
           ))}
@@ -112,7 +117,7 @@ export const SkiaEkubDrum: React.FC<SkiaEkubDrumProps> = ({
               positions={[0, 0.2, 0.8, 1]}
             />
           </Rect>
-          
+
           {/* Center Highlight */}
           <Rect x={40} y={DRUM_HEIGHT / 2 - 25} width={DRUM_WIDTH - 80} height={50} opacity={0.1}>
             <LinearGradient
@@ -147,17 +152,17 @@ export const SkiaEkubDrum: React.FC<SkiaEkubDrumProps> = ({
 const MemberItem = ({ index, name, total, rotation, font }: any) => {
   const itemRotation = useDerivedValue(() => {
     // Current angle in the cylinder (0 to 1)
-    const offset = (index / total);
+    const offset = index / total;
     const currentPos = (rotation.value + offset) % 1;
-    
+
     // Convert to radians for perspective calculation
     const angle = currentPos * 2 * Math.PI;
-    
+
     // Calculate Y position (-1 to 1)
     const y = -Math.sin(angle);
     // Calculate Z depth (0 to 1, where 1 is closest)
     const z = Math.cos(angle);
-    
+
     return { y, z, angle };
   });
 
@@ -167,11 +172,11 @@ const MemberItem = ({ index, name, total, rotation, font }: any) => {
   });
 
   const scale = useDerivedValue(() => {
-    return 0.8 + (itemRotation.value.z * 0.4);
+    return 0.8 + itemRotation.value.z * 0.4;
   });
 
   const translateY = useDerivedValue(() => {
-    return (DRUM_HEIGHT / 2) + (itemRotation.value.y * (DRUM_HEIGHT / 2 - 40));
+    return DRUM_HEIGHT / 2 + itemRotation.value.y * (DRUM_HEIGHT / 2 - 40);
   });
 
   if (!font) return null;
@@ -179,7 +184,7 @@ const MemberItem = ({ index, name, total, rotation, font }: any) => {
   return (
     <Group opacity={opacity}>
       <SkiaText
-        x={DRUM_WIDTH / 2 - (name.length * 4)} // Crude centering
+        x={DRUM_WIDTH / 2 - name.length * 4} // Crude centering
         y={translateY}
         text={name}
         font={font}
