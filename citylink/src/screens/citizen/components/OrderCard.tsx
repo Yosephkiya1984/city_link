@@ -115,6 +115,7 @@ export const OrderCard = ({
   onDispute,
   onCancel,
   onReject,
+  onViewReceipt,
   navigation,
 }: {
   order: MarketplaceOrder;
@@ -122,6 +123,7 @@ export const OrderCard = ({
   onDispute: (order: MarketplaceOrder) => void;
   onCancel?: (order: MarketplaceOrder) => void;
   onReject?: (order: MarketplaceOrder) => void;
+  onViewReceipt: (order: MarketplaceOrder) => void;
   navigation: any;
 }) => {
   const [order, setOrder] = useState(initialOrder);
@@ -431,6 +433,19 @@ export const OrderCard = ({
               })}
             </Text>
           </View>
+
+          <TouchableOpacity
+            style={{
+              padding: 10,
+              backgroundColor: C.lift,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: C.edge,
+            }}
+            onPress={() => onViewReceipt(order)}
+          >
+            <Ionicons name="receipt-outline" size={20} color={C.primary} />
+          </TouchableOpacity>
 
           {['SHIPPED', 'AWAITING_PIN', 'DISPATCHING', 'AGENT_ASSIGNED', 'IN_TRANSIT'].includes(
             order.status

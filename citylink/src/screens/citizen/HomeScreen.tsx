@@ -20,6 +20,7 @@ import {
   SectionTitle,
   Spacer,
 } from '../../components';
+import { ConciergeComponent } from '../../components/ai/ConciergeComponent';
 
 // ── State & Theme ────────────────────────────────────────────────────────────
 import { useAuthStore } from '../../store/AuthStore';
@@ -240,6 +241,7 @@ export default function HomeScreen() {
 
         <CulturalTexture />
       </ScrollView>
+      <ConciergeComponent />
     </Screen>
   );
 }

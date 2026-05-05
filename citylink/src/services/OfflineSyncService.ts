@@ -2,94 +2,71 @@ import NetInfo from '@react-native-community/netinfo';
 import { SecurePersist } from '../store/SecurePersist';
 import { getClient } from './supabase';
 
-export interface OfflineOrder {
-  id: string; // temporary UUID
-  merchantId: string;
-  items: any[];
-  total: number;
+export interface OfflineAction {
+  id: string; 
+  type: 'ORDER' | 'RESERVATION_UPDATE';
+  payload: any;
   createdAt: string;
-  status: 'pending_sync';
 }
 
 class OfflineSyncManager {
   private isSyncing = false;
-  private queue: OfflineOrder[] = [];
+  private queue: OfflineAction[] = [];
 
   constructor() {
     this.init();
   }
 
   private async init() {
-    // Load existing queue
-    this.queue = await SecurePersist.loadOfflineOrders();
-
-    // Listen for network changes
+    this.queue = await SecurePersist.loadOfflineActions() || [];
     NetInfo.addEventListener(state => {
       if (state.isConnected && state.isInternetReachable && this.queue.length > 0) {
-        this.syncOrders();
+        this.syncActions();
       }
     });
   }
 
-  public async addOrder(order: OfflineOrder) {
-    this.queue.push(order);
-    await SecurePersist.saveOfflineOrders(this.queue);
-    
-    // Attempt sync immediately if we might have connection
-    const state = await NetInfo.fetch();
-    if (state.isConnected && state.isInternetReachable) {
-      this.syncOrders();
-    }
+  public async addAction(action: OfflineAction) {
+    this.queue.push(action);
+    await SecurePersist.saveOfflineActions(this.queue);
+    this.syncActions();
   }
 
-  public async syncOrders() {
+  public async syncActions() {
     if (this.isSyncing || this.queue.length === 0) return;
+    const state = await NetInfo.fetch();
+    if (!state.isConnected) return;
+
     this.isSyncing = true;
+    console.log(`[OfflineSync] Syncing ${this.queue.length} actions...`);
 
-    console.log(`[OfflineSync] Attempting to sync ${this.queue.length} orders...`);
+    const failedActions: OfflineAction[] = [];
 
-    const failedOrders: OfflineOrder[] = [];
-
-    for (const order of this.queue) {
+    for (const action of this.queue) {
       try {
         const client = getClient();
         if (!client) throw new Error('Supabase client not initialized');
 
-        // Send to Supabase KDS/Orders table
-        // This simulates the real backend call
-        const { error } = await client.from('restaurant_orders').insert({
-          merchant_id: order.merchantId,
-          items: order.items,
-          total: order.total,
-          status: 'PENDING',
-          is_quick_sale: true,
-          offline_id: order.id
-        });
-
-        if (error) {
-          console.error(`[OfflineSync] Failed to sync order ${order.id}:`, error.message);
-          failedOrders.push(order);
-        } else {
-          console.log(`[OfflineSync] Successfully synced order ${order.id}`);
+        if (action.type === 'ORDER') {
+          await client.from('restaurant_orders').upsert({
+            ...action.payload,
+            offline_id: action.id,
+          }, { onConflict: 'offline_id' });
+        } else if (action.type === 'RESERVATION_UPDATE') {
+          const { id, status, fired_at } = action.payload;
+          await client.from('reservations').update({ status, fired_at, updated_at: new Date() }).eq('id', id);
         }
+
+        console.log(`[OfflineSync] Synced ${action.id}`);
       } catch (err) {
-        console.error(`[OfflineSync] Exception syncing order ${order.id}:`, err);
-        failedOrders.push(order);
+        console.error(`[OfflineSync] Failed ${action.id}:`, err);
+        failedActions.push(action);
       }
     }
 
-    // Keep only the ones that failed
-    this.queue = failedOrders;
-    await SecurePersist.saveOfflineOrders(this.queue);
+    this.queue = failedActions;
+    await SecurePersist.saveOfflineActions(this.queue);
     this.isSyncing = false;
-
-    if (this.queue.length === 0) {
-      console.log('[OfflineSync] All offline orders synced successfully.');
-    }
-  }
-
-  public getQueueLength() {
-    return this.queue.length;
   }
 }
 

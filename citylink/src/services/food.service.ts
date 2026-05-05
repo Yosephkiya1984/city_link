@@ -57,6 +57,19 @@ export async function fetchFoodOrdersByMerchant(merchantId: string) {
   );
 }
 
+/**
+ * fetchFoodOrderById — fetches a single food order by its unique ID.
+ */
+export async function fetchFoodOrderById(orderId: string) {
+  return supaQuery<FoodOrder>((c) =>
+    c
+      .from('food_orders')
+      .select('*')
+      .eq('id', orderId)
+      .single()
+  );
+}
+
 // ── Merchant Dashboard Functions ───────────────────────────────────────
 
 export const fetchRestaurantOrders = async (
@@ -103,6 +116,8 @@ export const fetchMerchantRestaurant = async (
 };
 
 export const updateOrderStatus = FoodApi.updateOrderStatus;
+
+export const settleFoodOrderPayment = FoodApi.settleFoodOrderPayment;
 
 /**
  * rejectFoodOrder — rejects a food order and triggers escrow refund to the citizen.

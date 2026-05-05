@@ -186,6 +186,10 @@ export default function FoodScreen() {
     selectedTable,
     setSelectedTable,
     createTableReservation,
+    arrivalPreference,
+    setArrivalPreference,
+    brokerId,
+    setBrokerId,
     buyEventTicket,
   } = useFood();
 
@@ -752,6 +756,39 @@ export default function FoodScreen() {
                     placeholderTextColor={NOIR.hint}
                     value={reservationTime}
                     onChangeText={setReservationTime}
+                  />
+
+                  <Text style={S.fieldLabel}>When should we serve pre-orders?</Text>
+                  <View style={S.chipRow}>
+                    {[ 
+                      { id: 'IMMEDIATE', label: 'On Arrival', icon: 'flash' },
+                      { id: '15MIN', label: '15m After', icon: 'timer' },
+                      { id: '30MIN', label: '30m After', icon: 'hourglass' },
+                    ].map((pref) => {
+                      const sel = arrivalPreference === pref.id;
+                      return (
+                        <TouchableOpacity
+                          key={pref.id}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setArrivalPreference(pref.id as any);
+                          }}
+                          style={[S.guestChip, sel && S.guestChipActive, { flex: 1 }]}
+                        >
+                          <Ionicons name={pref.icon as any} size={14} color={sel ? '#000' : NOIR.sub} />
+                          <Text style={[S.guestChipTxt, sel && { color: '#000' }]}>{pref.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={S.fieldLabel}>Referral / Broker ID (Optional)</Text>
+                  <TextInput
+                    style={S.textInput}
+                    placeholder="Enter broker ID for group bookings"
+                    placeholderTextColor={NOIR.hint}
+                    value={brokerId || ''}
+                    onChangeText={setBrokerId}
                   />
 
                   <View style={S.depositBox}>

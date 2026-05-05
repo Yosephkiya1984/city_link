@@ -47,6 +47,8 @@ export function useFood() {
   // Reservation
   const [guestCount, setGuestCount] = useState(2);
   const [reservationTime, setReservationTime] = useState('');
+  const [arrivalPreference, setArrivalPreference] = useState<'IMMEDIATE' | '15MIN' | '30MIN'>('IMMEDIATE');
+  const [brokerId, setBrokerId] = useState<string | null>(null);
 
   // Live Table state
   const [restaurantTables, setRestaurantTables] = useState<
@@ -229,7 +231,9 @@ export function useFood() {
       deposit,
       [], // No pre-orders
       selectedTable,
-      tableDetails?.table_number ? String(tableDetails.table_number) : undefined
+      tableDetails?.table_number ? String(tableDetails.table_number) : undefined,
+      { arrival_preference: arrivalPreference },
+      brokerId
     );
     setCart({});
     await useWalletStore.getState().syncWithServer();
@@ -285,6 +289,10 @@ export function useFood() {
     selectedTable,
     setSelectedTable,
     createTableReservation,
+    arrivalPreference,
+    setArrivalPreference,
+    brokerId,
+    setBrokerId,
     buyEventTicket,
   };
 }

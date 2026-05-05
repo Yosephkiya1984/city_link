@@ -142,21 +142,31 @@ export function DispatchCard({ dispatch, onAccept, onDecline }: DispatchCardProp
           <TouchableOpacity
             style={[
               s.declineBtn,
-              { backgroundColor: 'transparent', borderColor: T.rim, borderWidth: 1 },
+              { 
+                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                borderColor: 'rgba(239, 68, 68, 0.4)', 
+                borderWidth: 1.5 
+              },
             ]}
             onPress={() => onDecline(dispatch)}
           >
-            <Ionicons name="close" size={20} color={(T as any).crimson} />
-            <Text style={[s.declineBtnText, { color: (T as any).crimson }]}>
-              {t('decline_btn')}
+            <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+            <Text style={[s.declineBtnText, { color: '#EF4444' }]}>
+              {t('decline_btn') || 'Decline'}
             </Text>
           </TouchableOpacity>
+          
           <TouchableOpacity
-            style={[s.acceptBtn, { backgroundColor: (T as any).gold }]}
+            style={[
+              s.acceptBtn, 
+              { backgroundColor: '#D4AF37', shadowColor: '#D4AF37', shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 }
+            ]}
             onPress={() => onAccept(dispatch)}
           >
-            <Ionicons name="checkmark" size={20} color={T.bg} />
-            <Text style={[s.acceptBtnText, { color: T.bg }]}>{t('accept_job_btn')}</Text>
+            <Ionicons name="checkmark-circle" size={20} color="#000000" />
+            <Text style={[s.acceptBtnText, { color: '#000000' }]}>
+              {t('accept_job_btn') || 'Accept'}
+            </Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>

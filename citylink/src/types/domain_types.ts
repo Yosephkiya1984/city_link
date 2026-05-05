@@ -568,17 +568,26 @@ export interface MenuItem {
 
 export interface FoodOrder {
   id: string;
-  citizen_id: string;
+  citizen_id?: string;
   merchant_id: string;
-  restaurant_id: string;
-  restaurant_name: string;
+  restaurant_id?: string;
+  restaurant_name?: string;
   items: FoodOrderItem[];
   total: number;
-  status: 'NEW' | 'PREPARING' | 'READY' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+  status: 'PENDING' | 'PREPARING' | 'READY' | 'SERVED' | 'COMPLETED' | 'CANCELLED' | 'IN_KITCHEN' | 'NEW';
+  payment_status?: 'UNPAID' | 'PAID' | 'PARTIAL';
+  payment_method?: 'CASH' | 'WALLET' | 'CARD';
+  is_quick_sale?: boolean;
+  table_id?: string;
+  table_number?: string | number;
+  staff_id?: string;
+  note?: string;
   delivery_pin?: string;
   destination_lat?: number;
   destination_lng?: number;
   created_at: string;
+  updated_at?: string;
+  offline_id?: string;
 }
 
 export interface PropertyEnquiry {

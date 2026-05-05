@@ -31,6 +31,8 @@ import { t } from '../../utils/i18n';
 import { useMyOrders } from '../../hooks/useMyOrders';
 import { myOrdersStyles as styles } from './MyOrdersScreen.styles';
 import { OrderCard } from './components/OrderCard';
+import { EthiopianReceipt } from '../../components/core/EthiopianReceipt';
+import { useState } from 'react';
 
 function useTheme() {
   const isDark = useSystemStore((s) => s.isDark);
@@ -59,6 +61,8 @@ export default function MyOrdersScreen() {
     submitDispute,
     handleRejectDelivery,
   } = useMyOrders();
+
+  const [receiptOrder, setReceiptOrder] = useState<any>(null);
 
   const tabAnim = useRef(new Animated.Value(tab === 'active' ? 0 : 1)).current;
 
@@ -174,6 +178,7 @@ export default function MyOrdersScreen() {
                 }}
                 onCancel={handleCancelOrder}
                 onReject={handleRejectDelivery}
+                onViewReceipt={(order) => setReceiptOrder(order)}
                 navigation={navigation}
               />
             ))
@@ -249,6 +254,14 @@ export default function MyOrdersScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* 🧾 Ethiopian Fiscal Receipt Modal */}
+      <Modal visible={!!receiptOrder} animationType="slide" transparent statusBarTranslucent>
+        <EthiopianReceipt
+          order={receiptOrder}
+          onClose={() => setReceiptOrder(null)}
+        />
       </Modal>
     </View>
   );

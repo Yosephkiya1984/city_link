@@ -82,7 +82,9 @@ export class HospitalityService {
     depositAmount: number,
     preOrders: { product_id: string; quantity: number; unit_price: number }[] = [],
     tableId?: string,
-    tableNumber?: string
+    tableNumber?: string,
+    metadata: any = {},
+    brokerId: string | null = null
   ) {
     const { data, error } = await getClient()!.rpc('process_table_reservation', {
       p_merchant_id: merchantId,
@@ -92,6 +94,8 @@ export class HospitalityService {
       p_items: preOrders,
       p_table_id: tableId,
       p_table_number: tableNumber,
+      p_metadata: metadata,
+      p_broker_id: brokerId,
     });
     if (error) throw new Error(error.message);
     return data;
@@ -275,10 +279,87 @@ export class HospitalityService {
   static async getMerchantStaffProfile(profileId: string) {
     const { data, error } = await getClient()!
       .from('merchant_staff')
-      .select('*, merchant:merchants(id, business_name, merchant_type)')
+      .select('*, merchant:profiles(id, business_name, role)')
       .eq('profile_id', profileId)
       .maybeSingle();
       
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async removeStaffMember(staffId: string) {
+    const { error } = await getClient()!
+      .from('merchant_staff')
+      .delete()
+      .eq('id', staffId);
+    if (error) throw new Error(error.message);
+  }
+
+  static async cancelReservation(reservationId: string) {
+    const { data, error } = await getClient()!.rpc('cancel_reservation', {
+      p_reservation_id: reservationId,
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async fireReservation(reservationId: string) {
+    const { data, error } = await getClient()!.rpc('fire_reservation', {
+      p_reservation_id: reservationId,
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async updateReservationStatus(reservationId: string, status: string, firedAt?: string) {
+    const payload: any = { status };
+    if (firedAt) payload.fired_at = firedAt;
+    
+    const { data, error } = await getClient()!
+      .from('reservations')
+      .update(payload)
+      .eq('id', reservationId)
+      .select()
+      .single();
+    return { data, error: error?.message };
+  }
+
+  // ==========================================
+  // WAITLIST METHODS
+  // ==========================================
+
+  static async getWaitlist(merchantId: string) {
+    const { data, error } = await getClient()!
+      .from('restaurant_waitlist')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .in('status', ['WAITING', 'NOTIFIED'])
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  static async addToWaitlist(payload: any) {
+    const { data, error } = await getClient()!
+      .from('restaurant_waitlist')
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async updateWaitlistStatus(waitlistId: string, status: string, additionalData: any = {}) {
+    const payload: any = { status, updated_at: new Date().toISOString(), ...additionalData };
+    if (status === 'NOTIFIED') payload.notified_at = new Date().toISOString();
+    if (status === 'SEATED') payload.seated_at = new Date().toISOString();
+
+    const { data, error } = await getClient()!
+      .from('restaurant_waitlist')
+      .update(payload)
+      .eq('id', waitlistId)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return data;
   }

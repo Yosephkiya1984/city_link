@@ -30,6 +30,7 @@ import { DashboardInventoryTab } from './components/DashboardInventoryTab';
 import { DashboardOrdersTab } from './components/DashboardOrdersTab';
 import { DashboardFinanceTab } from './components/DashboardFinanceTab';
 import { styles } from './components/ShopDashboardStyles';
+import { EthiopianReceipt } from '../../components/core/EthiopianReceipt';
 
 // Modular Components
 import { ProductManagementModal } from '../../components/merchant/ProductManagementModal';
@@ -65,6 +66,7 @@ export default function ShopDashboard() {
   const [pinInput, setPinInput] = useState('');
   const [submittingPin, setSubmittingPin] = useState(false);
   const [shipping, setShipping] = useState(false);
+  const [receiptOrder, setReceiptOrder] = useState<any>(null);
 
   const businessName = currentUser?.business_name || currentUser?.full_name || 'Store Front';
 
@@ -415,6 +417,7 @@ export default function ShopDashboard() {
               handleMessageBuyer={handleMessageBuyer}
               setPinInput={setPinInput}
               setPinPromptOrder={setPinPromptOrder}
+              handleViewReceipt={(o: any) => setReceiptOrder(o)}
               styles={styles}
               t={t}
             />
@@ -480,6 +483,13 @@ export default function ShopDashboard() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      <Modal visible={!!receiptOrder} animationType="slide" transparent statusBarTranslucent>
+        <EthiopianReceipt
+          order={receiptOrder}
+          onClose={() => setReceiptOrder(null)}
+        />
       </Modal>
     </Screen>
   );

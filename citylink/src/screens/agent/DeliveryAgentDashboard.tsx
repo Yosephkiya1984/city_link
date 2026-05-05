@@ -370,13 +370,16 @@ export default function DeliveryAgentDashboard() {
     setSubmittingPickupPin(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     try {
-      const res = await marketplaceService.confirmAgentHandover(
+      const res = await markOrderPickedUp(
         pickupPinJob.id,
         currentUser.id,
+        pickupPinJob.order_type || 'MARKETPLACE',
         pickupPinInput.trim()
       );
-      if (res.success) {
+      if (res.ok) {
         showToast(t('confirm_handover_msg'), 'success');
+      } else {
+        throw new Error(res.error || 'Handover failed');
       }
       setPickupPinJob(null);
       setPickupPinInput('');
@@ -452,7 +455,7 @@ export default function DeliveryAgentDashboard() {
 
   const handleConfirmWithPin = async () => {
     if (!currentUser?.id || !pinPromptJob) return;
-    const requiredLen = pinPromptJob.order_type === 'MARKETPLACE' ? 6 : 4;
+    const requiredLen = 6;
     if (pinInput.trim().length < requiredLen) {
       showToast(t('pin_length_err', { len: requiredLen }), 'error');
       return;
@@ -795,6 +798,29 @@ export default function DeliveryAgentDashboard() {
             ))
           ))}
 
+        <View style={{ padding: 20, marginTop: 20 }}>
+          <TouchableOpacity
+            style={[
+              s.actionBtn,
+              {
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderColor: 'rgba(239, 68, 68, 0.3)',
+                borderWidth: 1,
+                marginBottom: 20,
+              },
+            ]}
+            onPress={() => {
+              Alert.alert(t('sign_out'), 'Are you sure you want to log out?', [
+                { text: t('cancel'), style: 'cancel' },
+                { text: t('sign_out'), onPress: logout, style: 'destructive' },
+              ]);
+            }}
+          >
+            <Ionicons name="log-out-outline" size={20} color={T.red} />
+            <Text style={[s.actionBtnText, { color: T.red }]}>{t('sign_out')}</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={{ height: 30 }} />
       </ScrollView>
 
@@ -857,7 +883,7 @@ export default function DeliveryAgentDashboard() {
             <NumericKeypad
               value={pinInput}
               setValue={setPinInput}
-              maxLength={pinPromptJob?.order_type === 'MARKETPLACE' ? 6 : 4}
+              maxLength={6}
               onConfirm={() => handleConfirmWithPin()}
               confirmLoading={submittingPin}
             />

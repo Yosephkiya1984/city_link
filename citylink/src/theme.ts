@@ -91,6 +91,7 @@ export const DarkColors = {
   success: '#22C97A',
   warning: '#F0A830',
   error: '#EF4444',
+  gold: '#D4AF37',
   onSurface: '#E8EDF5',
   onVariant: '#8A95AA',
 
@@ -100,6 +101,7 @@ export const DarkColors = {
   greenB: 'rgba(34, 201, 122, 0.25)',
   greenDim: 'rgba(34, 201, 122, 0.12)',
   red: '#EF4444',
+  crimson: '#EF4444',
   redL: 'rgba(239, 68, 68, 0.12)',
   redDim: 'rgba(239, 68, 68, 0.12)',
   amber: '#F0A830',

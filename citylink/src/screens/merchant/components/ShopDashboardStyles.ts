@@ -533,4 +533,16 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pinTextLarge: { fontSize: 44, fontWeight: '800', color: D.primary, letterSpacing: 8 },
+
+  // Restaurant Specific Extensions
+  emptyCard: { padding: 40, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.lg },
+  resCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: Radius.lg, marginBottom: 12 },
+  resTimeBox: { backgroundColor: D.primary + '20', padding: 8, borderRadius: Radius.md, minWidth: 60, alignItems: 'center' },
+  checkInBtn: { backgroundColor: D.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.sm },
+  checkInText: { color: D.ink, fontSize: 12, fontFamily: Fonts.bold },
+  menuGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
+  foodCard: { flexBasis: '48%', flexGrow: 1, borderRadius: Radius.lg, overflow: 'hidden', padding: 0 },
+  foodImg: { width: '100%', height: 120, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg },
+  foodInfo: { padding: 12 },
+  foodFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: D.edge },
 });

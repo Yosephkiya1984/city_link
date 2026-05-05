@@ -1,12 +1,11 @@
 import React from 'react';
-import { View, Text, Modal, StyleSheet, ScrollView, Share } from 'react-native';
+import { View, Text, Modal, StyleSheet, ScrollView, Share, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { useTheme } from '../../hooks/useTheme';
-import { Fonts, Radius, Shadow, Colors } from '../../theme';
+import { Fonts, Radius, Shadow, Colors, FontSize } from '../../theme';
 import { fmtETB, fmtDateTime } from '../../utils';
 import { CButton } from '../ui/CButton';
-import { GlassView } from '../GlassView';
 
 interface ReceiptItem {
   label: string;
@@ -36,7 +35,7 @@ export function LegalReceipt({
   amount,
   paymentMethod,
   items,
-  title = 'FISCAL RECEIPT',
+  title = 'OFFICIAL FISCAL RECEIPT',
 }: LegalReceiptProps) {
   const C = useTheme();
 
@@ -75,108 +74,105 @@ export function LegalReceipt({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
-        <GlassView intensity={40} style={styles.container}>
+        <View style={[styles.container, { backgroundColor: C.surface }]}>
+          {/* Header Actions */}
+          <View style={[styles.topActions, { backgroundColor: C.edge2, borderBottomColor: C.edge }]}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <Ionicons name="close" size={24} color={C.text} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
+              <Ionicons name="share-outline" size={24} color={C.primary} />
+            </TouchableOpacity>
+          </View>
+
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={[styles.iconBox, { backgroundColor: C.primary + '20' }]}>
-                <Ionicons name="checkmark-circle" size={32} color={C.primary} />
-              </View>
-              <Text style={[styles.title, { color: C.text }]}>{title}</Text>
-              <Text style={[styles.subtitle, { color: C.sub }]}>
-                Government Compliant Digital Document
-              </Text>
+            {/* Fiscal Branding */}
+            <View style={styles.fiscalHeader}>
+              <Text style={[styles.fiscalTitle, { color: C.text }]}>{title}</Text>
+              <Text style={[styles.fiscalSubtitle, { color: C.sub }]}>Ministry of Revenue, Ethiopia</Text>
             </View>
 
-            {/* Receipt Body */}
-            <View
-              style={[styles.receiptPaper, { backgroundColor: C.surface, borderColor: C.edge }]}
-            >
-              <View style={styles.merchantInfo}>
-                <Text style={[styles.merchantName, { color: C.text }]}>{merchantName}</Text>
-                <Text style={[styles.tinText, { color: C.sub }]}>TIN: {merchantTIN}</Text>
+            {/* Merchant Section */}
+            <View style={styles.section}>
+              <Text style={[styles.merchantName, { color: C.primary }]}>{merchantName}</Text>
+              <Text style={[styles.metaText, { color: C.sub }]}>Address: Addis Ababa, Ethiopia</Text>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: C.sub }]}>TIN:</Text>
+                <Text style={[styles.value, { color: C.text }]}>{merchantTIN}</Text>
               </View>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: C.sub }]}>Ref Number:</Text>
+                <Text style={[styles.value, { color: C.text }]}>{transactionId}</Text>
+              </View>
+            </View>
 
-              <View style={styles.divider} />
+            <View style={styles.divider} />
 
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: C.sub }]}>Ref Number</Text>
-                <Text style={[styles.infoValue, { color: C.text }]}>{transactionId}</Text>
+            {/* Details Section */}
+            <View style={styles.section}>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: C.sub }]}>Date:</Text>
+                <Text style={[styles.value, { color: C.text }]}>{fmtDateTime(date)}</Text>
               </View>
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: C.sub }]}>Date & Time</Text>
-                <Text style={[styles.infoValue, { color: C.text }]}>{fmtDateTime(date)}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: C.sub }]}>Method</Text>
-                <Text
-                  style={[
-                    styles.infoValue,
-                    { color: paymentMethod === 'WALLET' ? C.primary : Colors.gold },
-                  ]}
-                >
-                  {paymentMethod === 'WALLET'
-                    ? 'DIGITAL WALLET'
-                    : paymentMethod === 'BANK_TRANSFER'
-                      ? 'BANK TRANSFER'
-                      : 'CASH PAYMENT'}
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: C.sub }]}>Payment Method:</Text>
+                <Text style={[styles.value, { color: C.primary }]}>
+                  {paymentMethod === 'WALLET' ? 'DIGITAL WALLET' : paymentMethod}
                 </Text>
               </View>
+            </View>
 
-              <View style={[styles.divider, { marginVertical: 16 }]} />
+            <View style={styles.divider} />
 
+            {/* Items Table */}
+            <View style={styles.itemTable}>
+              <View style={[styles.row, styles.tableHeader, { borderBottomColor: C.edge }]}>
+                <Text style={[styles.itemCell, { flex: 2, color: C.sub }]}>Description</Text>
+                <Text style={[styles.itemCell, { textAlign: 'right', color: C.sub }]}>Total</Text>
+              </View>
+              
               {items.map((item, i) => (
-                <View key={i} style={styles.itemRow}>
-                  <Text style={[styles.itemLabel, { color: C.text }]}>{item.label}</Text>
-                  <Text style={[styles.itemValue, { color: C.text }]}>{fmtETB(item.value)}</Text>
-                </View>
-              ))}
-
-              <View style={[styles.divider, { marginVertical: 16 }]} />
-
-              <View style={styles.totalBlock}>
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: C.sub }]}>Subtotal</Text>
-                  <Text style={[styles.summaryValue, { color: C.sub }]}>{fmtETB(subtotal)}</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: C.sub }]}>VAT (15%)</Text>
-                  <Text style={[styles.summaryValue, { color: C.sub }]}>{fmtETB(vat)}</Text>
-                </View>
-                <View style={[styles.summaryRow, { marginTop: 8 }]}>
-                  <Text style={[styles.finalTotalLabel, { color: C.text }]}>TOTAL</Text>
-                  <Text style={[styles.finalTotalValue, { color: C.primary }]}>
-                    {fmtETB(amount)}
+                <View key={i} style={styles.row}>
+                  <Text style={[styles.itemCell, { flex: 2, color: C.text }]}>{item.label}</Text>
+                  <Text style={[styles.itemCell, { textAlign: 'right', color: C.text, fontWeight: '700' }]}>
+                    {fmtETB(item.value)}
                   </Text>
                 </View>
-              </View>
+              ))}
+            </View>
 
-              {/* QR Code Section */}
-              <View style={styles.qrSection}>
-                <View style={[styles.divider, { marginBottom: 20 }]} />
-                <Text style={[styles.qrLabel, { color: C.sub }]}>Scan to Verify</Text>
-                <View style={[styles.qrBox, { backgroundColor: '#fff' }]}>
-                  <QRCode value={qrPayload} size={140} />
-                </View>
-                <Text style={[styles.qrRef, { color: C.hint }]} numberOfLines={1}>
-                  {transactionId}
-                </Text>
+            <View style={styles.divider} />
+
+            {/* Totals Section */}
+            <View style={[styles.summary, { backgroundColor: C.edge2 }]}>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: C.sub }]}>Subtotal (Exclusive)</Text>
+                <Text style={[styles.value, { color: C.text }]}>{fmtETB(subtotal)}</Text>
               </View>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: C.sub }]}>VAT (15%)</Text>
+                <Text style={[styles.value, { color: C.text }]}>{fmtETB(vat)}</Text>
+              </View>
+              <View style={[styles.row, { marginTop: 12 }]}>
+                <Text style={[styles.grandTotalLabel, { color: C.text }]}>GRAND TOTAL</Text>
+                <Text style={[styles.grandTotalValue, { color: C.primary }]}>{fmtETB(amount)}</Text>
+              </View>
+            </View>
+
+            {/* QR Code Section */}
+            <View style={[styles.qrContainer, { backgroundColor: C.edge2, borderColor: C.edge }]}>
+              <View style={{ backgroundColor: '#fff', padding: 12, borderRadius: 12 }}>
+                <QRCode value={qrPayload} size={120} />
+              </View>
+              <Text style={[styles.qrHint, { color: C.sub }]}>Scan to verify this receipt</Text>
             </View>
 
             <View style={styles.footer}>
-              <Ionicons name="shield-checkmark" size={16} color={C.green} />
-              <Text style={[styles.footerText, { color: C.sub }]}>
-                Verified and Secured by CityLink Infrastructure
-              </Text>
+              <Text style={[styles.footerText, { color: C.hint }]}>Computer Generated Receipt</Text>
+              <Text style={[styles.footerText, { color: C.hint }]}>CityLink Digital Ecosystem v2.0</Text>
             </View>
           </ScrollView>
-
-          <View style={styles.actions}>
-            <CButton title="Share" onPress={handleShare} variant="outline" style={{ flex: 1 }} />
-            <CButton title="Done" onPress={onClose} style={{ flex: 1, marginLeft: 12 }} />
-          </View>
-        </GlassView>
+        </View>
       </View>
     </Modal>
   );
@@ -185,7 +181,7 @@ export function LegalReceipt({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.9)',
     justifyContent: 'center',
     padding: 20,
   },
@@ -194,152 +190,106 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     maxHeight: '90%',
   },
+  topActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  closeBtn: { padding: 4 },
+  shareBtn: { padding: 4 },
   scroll: {
     padding: 24,
   },
-  header: {
+  fiscalHeader: {
     alignItems: 'center',
     marginBottom: 24,
   },
-  iconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 22,
+  fiscalTitle: {
+    fontSize: 16,
     fontFamily: Fonts.black,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
-  subtitle: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
+  fiscalSubtitle: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
     marginTop: 4,
   },
-  receiptPaper: {
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    padding: 20,
-    ...Shadow.md,
-  },
-  merchantInfo: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
+  section: { marginVertical: 8 },
   merchantName: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: Fonts.black,
-    textTransform: 'uppercase',
+    marginBottom: 8,
   },
-  tinText: {
+  metaText: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  label: {
     fontSize: 12,
     fontFamily: Fonts.bold,
-    marginTop: 2,
+  },
+  value: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#e2e8f0',
+    marginVertical: 16,
     borderStyle: 'dashed',
     borderWidth: 1,
     borderRadius: 1,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  infoLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.medium,
-  },
-  infoValue: {
-    fontSize: 11,
-    fontFamily: Fonts.bold,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  itemTable: { marginTop: 8 },
+  tableHeader: {
+    paddingBottom: 8,
+    borderBottomWidth: 1,
     marginBottom: 8,
   },
-  itemLabel: {
-    fontSize: 14,
-    fontFamily: Fonts.medium,
-  },
-  itemValue: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-  },
-  totalBlock: {
-    marginTop: 10,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-  },
-  summaryValue: {
+  itemCell: {
     fontSize: 12,
     fontFamily: Fonts.bold,
+    flex: 1,
   },
-  finalTotalLabel: {
+  summary: {
+    padding: 16,
+    borderRadius: 16,
+  },
+  grandTotalLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.black,
+  },
+  grandTotalValue: {
     fontSize: 20,
     fontFamily: Fonts.black,
   },
-  finalTotalValue: {
-    fontSize: 24,
-    fontFamily: Fonts.black,
-  },
-  receiptCut: {
-    position: 'absolute',
-    bottom: -10,
-    left: 20,
-    right: 20,
-    height: 20,
-  },
-  qrSection: {
+  qrContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginVertical: 32,
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  qrLabel: {
-    fontSize: 11,
+  qrHint: {
+    marginTop: 12,
+    fontSize: 10,
     fontFamily: Fonts.bold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
   },
-  qrBox: {
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  qrRef: {
-    fontSize: 9,
-    fontFamily: Fonts.medium,
-    textAlign: 'center',
-  },
-
   footer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-    gap: 8,
+    paddingBottom: 20,
   },
   footerText: {
     fontSize: 10,
+    marginTop: 4,
     fontFamily: Fonts.medium,
-    textAlign: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    padding: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
   },
 });

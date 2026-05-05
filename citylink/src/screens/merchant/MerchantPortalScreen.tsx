@@ -24,6 +24,7 @@ import { CButton, Card, SectionTitle, CInput } from '../../components';
 import { fmtETB, uid, fmtDateTime } from '../../utils';
 import { useT } from '../../utils/i18n';
 import * as ProfileService from '../../services/profile.service';
+import { ConciergeComponent } from '../../components/ai/ConciergeComponent';
 
 // Import only Core 6 merchant dashboards
 import {
@@ -211,5 +212,10 @@ export default function MerchantPortalScreen() {
     );
   }
 
-  return <View style={{ flex: 1, backgroundColor: C.ink }}>{renderDashboard()}</View>;
+  return (
+    <View style={{ flex: 1, backgroundColor: C.ink }}>
+      {renderDashboard()}
+      <ConciergeComponent />
+    </View>
+  );
 }

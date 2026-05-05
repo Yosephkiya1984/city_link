@@ -1,440 +1,263 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { D, Radius, Fonts } from './StitchTheme';
+import { MotiView, AnimatePresence } from 'moti';
+import { D, Radius, Fonts, Shadow } from './StitchTheme';
+import { Typography, Surface } from '../../../components';
 import { fmtETB, fmtDateTime } from '../../../utils';
-import { t } from '../../../utils/i18n';
-
-const { width } = Dimensions.get('window');
-
-import { MarketplaceOrder, Dispute } from '../../../types';
-
-export interface DashboardOrdersTabProps {
-  orders: MarketplaceOrder[];
-  openDisputes: Dispute[];
-  loading: boolean;
-  shipping: boolean;
-  handleMarkShipped: (id: string) => void;
-  handleConfirmPickup: (id: string) => void;
-  handleDispatchRetry: (id: string) => void;
-  handleCancelOrder: (id: string) => void;
-  handleSwitchSelfDelivery: (order: MarketplaceOrder) => void;
-  handleMessageBuyer: (order: MarketplaceOrder) => void;
-  setPinInput: (val: string) => void;
-  setPinPromptOrder: (order: MarketplaceOrder | null) => void;
-  styles: any;
-  t: any;
-}
 
 export function DashboardOrdersTab({
-  orders,
-  openDisputes,
-  loading,
-  shipping,
+  orders = [],
+  openDisputes = [],
+  loading = false,
+  shipping = false,
   handleMarkShipped,
   handleConfirmPickup,
-  handleDispatchRetry,
+  handleRetryDispatch,
   handleCancelOrder,
-  handleSwitchSelfDelivery,
+  handleCompleteOrder,
+  handleSettlePayment,
   handleMessageBuyer,
-  setPinInput,
-  setPinPromptOrder,
+  handleFireReservation,
+  handleViewReceipt,
+  mode = 'shop',
   styles,
   t,
-}: DashboardOrdersTabProps) {
-  return (
-    <View style={styles.tabContent}>
-      <View style={styles.headerTitleRow}>
-        <View>
-          <Text style={styles.pageTitle}>{t('orders_tab')}</Text>
-          <Text style={styles.pageSubtitle}>
-            {
-              orders.filter((o) =>
-                [
-                  'PAID',
-                  'SHIPPED',
-                  'DISPATCHING',
-                  'AGENT_ASSIGNED',
-                  'IN_TRANSIT',
-                  'AWAITING_PIN',
-                ].includes(o.status as any)
-              ).length
-            }{' '}
-            {t('active_shipments')}
-          </Text>
-        </View>
-      </View>
+}: any) {
+  const [filter, setFilter] = React.useState('all');
 
-      {openDisputes.length > 0 && (
-        <View style={styles.alertBanner}>
-          <View style={styles.alertIconBox}>
-            <Ionicons name="warning" size={16} color={D.red} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.alertTitle, { fontFamily: Fonts.bold }]}>
-              {openDisputes.length} {t('open_dispute')}
-              {openDisputes.length > 1 ? 's' : ''}
-            </Text>
-            <Text style={[styles.alertSub, { fontFamily: Fonts.regular }]}>
-              {openDisputes[0]?.reason || t('needs_resolution_24h')}
-            </Text>
-          </View>
-        </View>
+  const filtered = orders.filter((o: any) => {
+    if (filter === 'all') return true;
+    return o.status?.toLowerCase() === filter.toLowerCase();
+  });
+
+  const getStatusColor = (status: string) => {
+    const s = status?.toLowerCase();
+    if (['pending', 'paid', 'placed'].includes(s)) return D.gold;
+    if (['confirmed', 'shipped', 'preparing', 'accepted'].includes(s)) return D.blue;
+    if (['processing', 'ready', 'dispatching', 'agent_assigned', 'in_transit'].includes(s)) return D.primary;
+    if (['completed', 'delivered', 'settled'].includes(s)) return D.green;
+    if (['cancelled', 'rejected'].includes(s)) return D.red;
+    return D.sub;
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={localStyles.filterBar} contentContainerStyle={{ gap: 8 }}>
+        {['all', 'pending', 'paid', 'confirmed', 'ready', 'dispatching', 'completed'].map((f: string) => (
+          <TouchableOpacity
+            key={f}
+            onPress={() => setFilter(f)}
+            style={[localStyles.filterChip, filter === f && { backgroundColor: D.primary }]}
+          >
+            <Typography variant="hint" style={{ color: filter === f ? D.ink : D.sub, textTransform: 'uppercase' }}>{f}</Typography>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {openDisputes?.length > 0 && (
+        <Surface variant="lift" style={localStyles.alertBanner}>
+          <Ionicons name="warning" size={20} color={D.red} />
+          <Typography variant="hint" style={{ color: D.red, marginLeft: 8 }}>
+            {openDisputes.length} OPEN DISPUTES
+          </Typography>
+        </Surface>
       )}
 
-      <View style={{ gap: 16 }}>
-        {orders.length === 0 && !loading && (
-          <View style={{ alignItems: 'center', padding: 40 }}>
-            <Ionicons name="cart-outline" size={48} color={D.edge} />
-            <Text style={{ color: D.sub, marginTop: 12, fontFamily: Fonts.regular }}>
-              {t('no_orders_yet')}
-            </Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {filtered.length === 0 ? (
+          <View style={localStyles.empty}>
+            <Ionicons name="basket-outline" size={64} color={D.lift} />
+            <Typography variant="title" color="sub">No orders found.</Typography>
           </View>
+        ) : (
+          filtered.map((order: any, i: number) => {
+            const s = order.status?.toLowerCase();
+            const isDelivery = order._source === 'delivery' || !!order.shipping_address;
+            const isPreOrder = order.type === 'preorder' || order.order_type === 'pickup' || order.type === 'pickup';
+            
+            // KDS Header Color: Red (Delivery), Blue (Pre-order/Pickup), White (Default)
+            const kdsHeaderColor = mode === 'restaurant' 
+              ? (isDelivery ? D.red : isPreOrder ? D.blue : D.surface)
+              : D.surface;
+
+            return (
+              <MotiView
+                key={order.id}
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 50 }}
+              >
+                <Surface variant="lift" style={[localStyles.orderCard, mode === 'restaurant' && { borderLeftColor: kdsHeaderColor, borderLeftWidth: 8 }]}>
+                  <View style={[localStyles.orderHeader, mode === 'restaurant' && { backgroundColor: kdsHeaderColor + '10', padding: 12, margin: -16, marginBottom: 12, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg }]}>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {isDelivery && <Ionicons name="bicycle" size={16} color={D.red} />}
+                        {isPreOrder && <Ionicons name="time" size={16} color={D.blue} />}
+                        <Typography variant="title">Order #{order.id.slice(0, 8)}</Typography>
+                        {order.status === 'FIRED' && (
+                          <MotiView
+                            from={{ opacity: 0.4, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1.1 }}
+                            transition={{ loop: true, type: 'timing', duration: 1000 }}
+                            style={{ backgroundColor: D.blue, width: 8, height: 8, borderRadius: 4 }}
+                          />
+                        )}
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Typography variant="hint" color="sub">{fmtDateTime(order.created_at)}</Typography>
+                        {order.fired_at && (
+                          <Typography variant="hint" style={{ color: D.blue, fontWeight: 'bold' }}>
+                            • {Math.floor((new Date().getTime() - new Date(order.fired_at).getTime()) / 60000)}m ago
+                          </Typography>
+                        )}
+                      </View>
+                    </View>
+                    <View style={[localStyles.statusBadge, { backgroundColor: getStatusColor(order.status) + '20' }]}>
+                      <View style={[localStyles.statusDot, { backgroundColor: getStatusColor(order.status) }]} />
+                      <Typography variant="hint" style={{ color: getStatusColor(order.status) }}>{order.status?.toUpperCase()}</Typography>
+                    </View>
+                  </View>
+
+                  <View style={localStyles.divider} />
+
+                  <View style={localStyles.orderDetails}>
+                    <Typography variant="body">
+                      {order.items?.length || 0} items • {fmtETB(order.total_amount || order.total)}
+                    </Typography>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <Typography variant="hint" color="sub" numberOfLines={1}>
+                        {order.shipping_address || 'Dine-In'}
+                      </Typography>
+                      {order.metadata?.arrival_preference && (
+                        <View style={{ backgroundColor: D.blue + '20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm }}>
+                          <Typography variant="hint" style={{ color: D.blue, fontSize: 10 }}>
+                            ⏱ {order.metadata.arrival_preference === 'IMMEDIATE' ? 'Serve Now' : order.metadata.arrival_preference}
+                          </Typography>
+                        </View>
+                      )}
+                      {order.commission_amount > 0 && (
+                        <View style={{ backgroundColor: D.gold + '20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm }}>
+                          <Typography variant="hint" style={{ color: D.gold, fontSize: 10 }}>
+                            🤝 Broker Attached
+                          </Typography>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={localStyles.actions}>
+                    {/* Action logic based on mode and status */}
+                    {(s === 'pending' || s === 'paid' || s === 'placed') && handleMarkShipped && (
+                      <TouchableOpacity 
+                        style={[localStyles.actionBtn, { backgroundColor: D.primary }]}
+                        onPress={() => handleMarkShipped(order.id)}
+                        disabled={shipping}
+                      >
+                        <Typography variant="h3" style={{ color: D.ink }}>
+                          {mode === 'restaurant' ? 'CONFIRM' : 'MARK SHIPPED'}
+                        </Typography>
+                      </TouchableOpacity>
+                    )}
+
+                    {(s === 'confirmed' || s === 'preparing' || s === 'accepted' || s === 'agent_assigned') && handleConfirmPickup && (
+                      <TouchableOpacity 
+                        style={[localStyles.actionBtn, { backgroundColor: s === 'agent_assigned' ? D.blue : D.gold }]}
+                        onPress={() => handleConfirmPickup(order.id)}
+                        disabled={shipping}
+                      >
+                        <Typography variant="h3" style={{ color: D.ink }}>
+                          {mode === 'restaurant' 
+                            ? (s === 'agent_assigned' ? 'HANDOVER' : 'READY') 
+                            : 'CONFIRM PICKUP'}
+                        </Typography>
+                      </TouchableOpacity>
+                    )}
+
+                    {s === 'ready' && handleCompleteOrder && (
+                      <TouchableOpacity 
+                        style={[localStyles.actionBtn, { backgroundColor: D.green }]}
+                        onPress={() => handleCompleteOrder(order.id)}
+                        disabled={shipping}
+                      >
+                        <Typography variant="h3" style={{ color: D.white }}>COMPLETE</Typography>
+                      </TouchableOpacity>
+                    )}
+
+                    {s === 'ready' && handleSettlePayment && (
+                      <TouchableOpacity 
+                        style={[localStyles.actionBtn, { backgroundColor: D.blue }]}
+                        onPress={() => handleSettlePayment(order)}
+                        disabled={shipping}
+                      >
+                        <Typography variant="h3" style={{ color: D.white }}>SETTLE</Typography>
+                      </TouchableOpacity>
+                    )}
+
+                    {s === 'confirmed' && order.order_type === 'preorder' && handleFireReservation && (
+                      <TouchableOpacity 
+                        style={[localStyles.actionBtn, { backgroundColor: D.red }]}
+                        onPress={() => handleFireReservation(order.id)}
+                        disabled={shipping}
+                      >
+                        <Typography variant="h3" style={{ color: D.white }}>🔥 FIRE</Typography>
+                      </TouchableOpacity>
+                    )}
+
+                    {s === 'dispatching' && handleRetryDispatch && (
+                      <TouchableOpacity 
+                        style={[localStyles.actionBtn, { backgroundColor: D.gold }]}
+                        onPress={() => handleRetryDispatch(order.id, order._source === 'delivery' ? 'FOOD' : 'MARKETPLACE')}
+                        disabled={shipping}
+                      >
+                        <Typography variant="h3" style={{ color: D.ink }}>RETRY</Typography>
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity 
+                      style={[localStyles.actionBtn, { backgroundColor: D.surface, borderWidth: 1, borderColor: D.edge, flex: 0, paddingHorizontal: 12 }]}
+                      onPress={() => handleMessageBuyer(order)}
+                    >
+                      <Ionicons name="chatbubble-outline" size={18} color={D.text} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[localStyles.actionBtn, { backgroundColor: D.surface, borderWidth: 1, borderColor: D.edge, flex: 0, paddingHorizontal: 12 }]}
+                      onPress={() => handleViewReceipt?.(order)}
+                    >
+                      <Ionicons name="receipt-outline" size={18} color={D.text} />
+                    </TouchableOpacity>
+
+                    {(s === 'pending' || s === 'paid') && handleCancelOrder && (
+                      <TouchableOpacity 
+                        style={[localStyles.actionBtn, { backgroundColor: D.red + '15', flex: 0, paddingHorizontal: 12 }]}
+                        onPress={() => handleCancelOrder(order.id)}
+                      >
+                        <Ionicons name="close" size={18} color={D.red} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </Surface>
+              </MotiView>
+            );
+          })
         )}
-        {orders.map((o) => (
-          <View key={o.id} style={styles.orderMobileCard}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.ocId, { fontFamily: Fonts.mono }]}>
-                  {o.id.slice(0, 8).toUpperCase()}
-                </Text>
-                <Text style={[styles.ocTimeTxtMobile, { fontFamily: Fonts.regular }]}>
-                  {' '}
-                  •{' '}
-                  {new Date(o.created_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.ocStatusBadge,
-                  {
-                    backgroundColor:
-                      o.status === 'PAID'
-                        ? D.primary + '30'
-                        : [
-                              'SHIPPED',
-                              'DISPATCHING',
-                              'AGENT_ASSIGNED',
-                              'IN_TRANSIT',
-                              'AWAITING_PIN',
-                            ].includes(o.status)
-                          ? D.gold + '30'
-                          : o.status === 'COMPLETED'
-                            ? D.primary + '30'
-                            : o.status === 'DISPUTED'
-                              ? D.red + '30'
-                              : D.lift,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.ocStatusTxt,
-                    {
-                      fontFamily: Fonts.black,
-                      color:
-                        o.status === 'PAID'
-                          ? D.primary
-                          : [
-                                'SHIPPED',
-                                'DISPATCHING',
-                                'AGENT_ASSIGNED',
-                                'IN_TRANSIT',
-                                'AWAITING_PIN',
-                              ].includes(o.status)
-                            ? D.gold
-                            : o.status === 'COMPLETED'
-                              ? D.primary
-                              : o.status === 'DISPUTED'
-                                ? D.red
-                                : D.sub,
-                    },
-                  ]}
-                >
-                  {o.status.replace('_', ' ')}
-                </Text>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-              <View
-                style={[styles.ocImgMobile, { alignItems: 'center', justifyContent: 'center' }]}
-              >
-                <Ionicons name="cube" size={24} color={D.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.ocProdName, { fontFamily: Fonts.bold }]}>
-                  {o.product_name}
-                </Text>
-                <Text
-                  style={[styles.ocProdDetail, { fontFamily: Fonts.regular }]}
-                  numberOfLines={1}
-                >
-                  {t('quantity_label')}: {o.qty || 1}
-                </Text>
-                <Text style={[styles.ocBigAmountMobile, { fontFamily: Fonts.black }]}>
-                  {fmtETB(o.total)}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.ocDivider} />
-
-            <View style={{ flexDirection: 'row' }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.ocTinyLabel, { fontFamily: Fonts.bold }]}>
-                  {t('shipping_address_required').toUpperCase()}
-                </Text>
-                <Text style={[styles.ocAddressTxt, { fontFamily: Fonts.regular }]}>
-                  {o.shipping_address || 'Standard Delivery'}
-                </Text>
-              </View>
-              <View
-                style={{ flex: 1, paddingLeft: 12, borderLeftWidth: 1, borderLeftColor: D.edge }}
-              >
-                <Text style={[styles.ocTinyLabel, { fontFamily: Fonts.bold }]}>
-                  {['DISPATCHING', 'AGENT_ASSIGNED'].includes(o.status)
-                    ? t('pickup_pin_up')
-                    : t('escrow_status_up')}
-                </Text>
-                {['DISPATCHING', 'AGENT_ASSIGNED'].includes(o.status) ? (
-                  <View style={styles.ocPinBoxMobile}>
-                    <Text style={[styles.ocPinTxt, { fontFamily: Fonts.mono }]}>
-                      {o.pickup_pin || t('generating')}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                    <Ionicons
-                      name={o.status === 'COMPLETED' ? 'checkmark-circle' : 'lock-closed'}
-                      size={14}
-                      color={o.status === 'COMPLETED' ? D.primary : D.gold}
-                    />
-                    <Text
-                      style={[
-                        styles.ocLockTxt,
-                        { fontFamily: Fonts.bold },
-                        o.status === 'COMPLETED' && { color: D.primary },
-                      ]}
-                    >
-                      {o.status === 'COMPLETED' ? t('released') : t('funds_secured')}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View style={{ marginTop: 16, flexDirection: 'row', gap: 12 }}>
-              {o.status === 'PAID' ? (
-                <TouchableOpacity
-                  style={[styles.ocBtnMobile, { backgroundColor: D.primary, flex: 2 }]}
-                  onPress={() => handleMarkShipped(o.id)}
-                >
-                  <Ionicons
-                    name="cube-outline"
-                    size={16}
-                    color={D.ink}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={[styles.ocBtnTxt, { color: D.ink, fontFamily: Fonts.black }]}>
-                    {t('mark_shipped')}
-                  </Text>
-                </TouchableOpacity>
-              ) : o.status === 'DISPATCHING' ? (
-                <View style={{ flexDirection: 'row', gap: 8, flex: 2 }}>
-                  <TouchableOpacity
-                    style={[styles.ocBtnMobile, { backgroundColor: D.lift, flex: 1.2 }]}
-                    disabled
-                  >
-                    <ActivityIndicator size="small" color={D.primary} style={{ marginRight: 6 }} />
-                    <Text style={[styles.ocBtnTxt, { color: D.sub, fontFamily: Fonts.bold }]}>
-                      {t('finding_driver')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.ocBtnMobile,
-                      {
-                        backgroundColor: D.lift,
-                        flex: 1,
-                        borderColor: D.edge,
-                        borderWidth: 1,
-                      },
-                    ]}
-                    onPress={() => handleSwitchSelfDelivery(o)}
-                  >
-                    <Text style={[styles.ocBtnTxt, { color: D.text, fontFamily: Fonts.bold }]}>
-                      {t('self_deliver')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : o.status === 'SHIPPED' || o.status === 'SELF_DELIVERY' ? (
-                <View style={{ flex: 2, gap: 8 }}>
-                  <TouchableOpacity
-                    style={[styles.ocBtnMobile, { backgroundColor: D.green }]}
-                    onPress={() => {
-                      setPinInput('');
-                      setPinPromptOrder(o);
-                    }}
-                  >
-                    <Ionicons
-                      name="checkmark-done"
-                      size={14}
-                      color="#000"
-                      style={{ marginRight: 4 }}
-                    />
-                    <Text style={[styles.ocBtnTxt, { color: '#000', fontFamily: Fonts.black }]}>
-                      {t('complete_delivery_pin')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.ocBtnMobile,
-                      {
-                        backgroundColor: D.lift,
-                        borderColor: D.primary + '30',
-                        borderWidth: 1,
-                      },
-                    ]}
-                    onPress={() => handleDispatchRetry(o.id)}
-                  >
-                    <Ionicons
-                      name="bicycle-outline"
-                      size={14}
-                      color={D.primary}
-                      style={{ marginRight: 4 }}
-                    />
-                    <Text
-                      style={[
-                        styles.ocBtnTxt,
-                        { color: D.primary, fontSize: 11, fontFamily: Fonts.bold },
-                      ]}
-                    >
-                      {t('search_for_drivers')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : o.status === 'AGENT_ASSIGNED' ? (
-                <View style={{ flex: 2, gap: 8 }}>
-                  <TouchableOpacity
-                    style={[
-                      styles.ocBtnMobile,
-                      { backgroundColor: o.merchant_confirmed_pickup ? D.lift : D.primary },
-                    ]}
-                    onPress={() => handleConfirmPickup(o.id)}
-                    disabled={o.merchant_confirmed_pickup}
-                  >
-                    <Ionicons
-                      name={o.merchant_confirmed_pickup ? 'time-outline' : 'hand-right-outline'}
-                      size={16}
-                      color={o.merchant_confirmed_pickup ? D.sub : D.ink}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      style={[
-                        styles.ocBtnTxt,
-                        {
-                          color: o.merchant_confirmed_pickup ? D.sub : D.ink,
-                          fontFamily: Fonts.black,
-                        },
-                      ]}
-                    >
-                      {o.merchant_confirmed_pickup ? t('awaiting_agent') : t('confirm_handover')}
-                    </Text>
-                  </TouchableOpacity>
-                  {o.agent_confirmed_pickup && !o.merchant_confirmed_pickup && (
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        color: D.primary,
-                        textAlign: 'center',
-                        fontFamily: Fonts.black,
-                      }}
-                    >
-                      {t('agent_confirmed_pickup_up')}
-                    </Text>
-                  )}
-                </View>
-              ) : ['IN_TRANSIT', 'AWAITING_PIN'].includes(o.status) ? (
-                <TouchableOpacity
-                  style={[styles.ocBtnMobile, { backgroundColor: D.lift, flex: 2 }]}
-                  disabled
-                >
-                  <Text style={[styles.ocBtnTxt, { color: D.sub, fontFamily: Fonts.bold }]}>
-                    {o.status === 'AWAITING_PIN' ? t('driver_arrived_pin') : t('driver_on_route')}
-                  </Text>
-                </TouchableOpacity>
-              ) : o.status === 'DISPUTED' ? (
-                <TouchableOpacity
-                  style={[styles.ocBtnMobile, { backgroundColor: D.red + '30', flex: 2 }]}
-                  disabled
-                >
-                  <Text style={[styles.ocBtnTxt, { color: D.red, fontFamily: Fonts.black }]}>
-                    {t('disputed')}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.ocBtnMobile, { backgroundColor: D.lift, flex: 2 }]}
-                  disabled
-                >
-                  <Text style={[styles.ocBtnTxt, { color: D.primary, fontFamily: Fonts.black }]}>
-                    {t('completed')}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {o.status === 'PAID' && (
-                <TouchableOpacity
-                  style={[styles.ocBtnMobileOutlined, { flex: 1, borderColor: D.red + '80' }]}
-                  onPress={() => handleCancelOrder(o.id)}
-                >
-                  <Text
-                    style={[
-                      styles.ocBtnOutlinedTxtMobile,
-                      { color: D.red, fontFamily: Fonts.bold },
-                    ]}
-                  >
-                    {t('cancel')}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.ocBtnMobileOutlined, { flex: 1, borderColor: D.primary + '50' }]}
-                onPress={() => handleMessageBuyer(o)}
-              >
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={14}
-                  color={D.primary}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  style={[
-                    styles.ocBtnOutlinedTxtMobile,
-                    { color: D.primary, fontFamily: Fonts.bold },
-                  ]}
-                >
-                  {t('message')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.ocBtnMobileOutlined, { flex: 1 }]}>
-                <Text style={[styles.ocBtnOutlinedTxtMobile, { fontFamily: Fonts.bold }]}>
-                  {t('details')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-      </View>
+      </ScrollView>
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  filterBar: { flexDirection: 'row', marginBottom: 20 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.full, backgroundColor: D.surface, marginRight: 8, borderWidth: 1, borderColor: D.edge },
+  alertBanner: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: Radius.md, backgroundColor: D.red + '10', marginBottom: 16, borderLeftWidth: 4, borderLeftColor: D.red },
+  orderCard: { padding: 16, borderRadius: Radius.lg, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: D.primary },
+  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
+  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
+  divider: { height: 1, backgroundColor: D.edge, marginVertical: 12 },
+  orderDetails: { marginBottom: 16 },
+  actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  actionBtn: { flex: 1, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  empty: { padding: 60, alignItems: 'center' },
+});

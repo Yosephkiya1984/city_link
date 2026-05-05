@@ -134,17 +134,34 @@ export function ActiveJobCard({
         </View>
 
         <Text style={s.activeJobProduct}>{job.display_name}</Text>
-        <Text style={s.activeJobEarning}>
-          {t('your_pay_label')}:{' '}
-          <Text style={{ color: T.green }}>ETB {fmtETB(Math.floor((job.total || 0) * 0.12))}</Text>
-          <Text style={{ fontSize: 10, color: T.textSub }}> ({job.order_type})</Text>
-        </Text>
+        
+        <View style={s.statsStrip}>
+          <View style={s.statItem}>
+            <Text style={s.statLabel}>{t('your_pay_label').toUpperCase()}</Text>
+            <Text style={s.statValue}>ETB {fmtETB(Math.floor((job.total || 0) * 0.12))}</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statLabel}>{t('order_value_label').toUpperCase()}</Text>
+            <Text style={s.statValue}>ETB {fmtETB(job.total)}</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statLabel}>{t('type_label')?.toUpperCase() || 'TYPE'}</Text>
+            <Text style={s.statValue}>{job.order_type}</Text>
+          </View>
+        </View>
 
         <View style={s.addressRow}>
           <View style={[s.dot, { backgroundColor: T.green }]} />
           <View style={{ flex: 1 }}>
             <Text style={s.addressLabel}>{t('role_merchant').toUpperCase()}</Text>
             <Text style={s.addressText}>{job.merchant?.business_name || t('role_merchant')}</Text>
+            {(job.merchant?.subcity || job.merchant?.woreda) && (
+              <Text style={s.addressSub}>
+                {job.merchant?.subcity}{job.merchant?.woreda ? `, Woreda ${job.merchant?.woreda}` : ''}
+              </Text>
+            )}
           </View>
         </View>
         <View style={s.addressRow}>
@@ -296,6 +313,37 @@ const s = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 20,
   },
+  statsStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  statLabel: {
+    fontSize: 9,
+    color: '#8B949E',
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 14,
+    color: '#E2E8F0',
+    fontWeight: '900',
+  },
   addressRow: {
     flexDirection: 'row',
     marginBottom: 12,
@@ -317,6 +365,11 @@ const s = StyleSheet.create({
     color: '#E2E8F0',
     fontSize: 14,
     fontWeight: '700',
+  },
+  addressSub: {
+    color: '#8B949E',
+    fontSize: 12,
+    marginTop: 2,
   },
   actionBtn: {
     height: 56,

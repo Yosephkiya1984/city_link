@@ -30,6 +30,7 @@ import {
 import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
 import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
 import { LegalReceipt } from '../../components/shared/LegalReceipt';
+import { EthiopianReceipt } from '../../components/core/EthiopianReceipt';
 import { Transaction } from '../../types/domain_types';
 
 // â”€â”€ State & Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -43,6 +44,7 @@ import { CHAPA_CHANNELS } from '../../config';
 // â”€â”€ Domain Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import * as WalletService from '../../services/wallet.service';
 import PaymentService from '../../services/payment.service';
+import { fetchFoodOrderById } from '../../services/food.service';
 import { useServiceAccess } from '../../services/serviceAccess';
 
 export default function WalletScreen() {
@@ -68,6 +70,8 @@ export default function WalletScreen() {
   const [hasManuallySelected, setHasManuallySelected] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [fullOrder, setFullOrder] = useState<any>(null);
+  const [fetchingReceipt, setFetchingReceipt] = useState(false);
 
   // â”€â”€ Verification Effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
@@ -112,6 +116,23 @@ export default function WalletScreen() {
   }, [fetchWallet]);
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const handleSelectTransaction = async (tx: Transaction) => {
+    setSelectedTx(tx);
+    if (tx.category === 'food' && tx.reference_id) {
+      setFetchingReceipt(true);
+      try {
+        const { data, error } = await fetchFoodOrderById(tx.reference_id);
+        if (data) setFullOrder(data);
+      } catch (e) {
+        console.error('Receipt fetch error:', e);
+      } finally {
+        setFetchingReceipt(false);
+      }
+    } else {
+      setFullOrder(null);
+    }
+  };
+
   const handleTopup = async () => {
     const canAccess = await guardServiceAccess('wallet top-up');
     if (!canAccess) return;
@@ -238,7 +259,7 @@ export default function WalletScreen() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item, index }: { item: any; index: number }) => (
           <View style={{ paddingHorizontal: 16 }}>
-            <TransactionItem tx={item} index={index} onPress={() => setSelectedTx(item)} />
+            <TransactionItem tx={item} index={index} onPress={() => handleSelectTransaction(item)} />
           </View>
         )}
         ListEmptyComponent={() => (
@@ -367,7 +388,7 @@ export default function WalletScreen() {
       <ProcessingOverlay visible={loading} message={t('topup_processing')} />
 
       {/* RECEIPT MODAL */}
-      {selectedTx && (
+      {selectedTx && !fullOrder && !fetchingReceipt && (
         <LegalReceipt
           visible={!!selectedTx}
           onClose={() => setSelectedTx(null)}
@@ -385,6 +406,22 @@ export default function WalletScreen() {
             },
           ]}
         />
+      )}
+
+      {fullOrder && (
+        <Modal visible={!!fullOrder} transparent animationType="slide">
+          <EthiopianReceipt 
+            order={fullOrder} 
+            onClose={() => {
+              setFullOrder(null);
+              setSelectedTx(null);
+            }} 
+          />
+        </Modal>
+      )}
+
+      {fetchingReceipt && (
+        <ProcessingOverlay visible={true} message="Loading secure receipt..." />
       )}
     </View>
   );

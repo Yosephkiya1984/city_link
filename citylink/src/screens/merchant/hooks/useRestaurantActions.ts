@@ -17,11 +17,13 @@ import {
   addRestaurantTable,
   setTableStatus,
   fetchMerchantRestaurant,
+  settleFoodOrderPayment,
 } from '../../../services/food.service';
 import { updateRestaurantStock } from '../../../services/marketplace.service';
-import { confirmOrderPickup } from '../../../services/delivery.service';
+import { markOrderPickedUp, retryDispatch } from '../../../services/delivery.service';
 import { HospitalityService } from '../../../services/hospitality.service';
 import { uid } from '../../../utils';
+import { OfflineSyncService } from '../../../services/OfflineSyncService';
 
 export function useRestaurantActions(data: any, isWhitelisted: boolean = false) {
   const { loadData, setMenu, menu } = data;
@@ -42,6 +44,7 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
   const [uploading, setUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [restaurantProfile, setRestaurantProfile] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
 
   const onUpdateStatus = async (orderId: string, newStatus: string) => {
     if (!currentUser) return;
@@ -50,24 +53,19 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
 
     try {
       if (newStatus === 'DISPATCHING') {
-        if (!currentUser?.id) return;
-        
-        // 1. Mark as READY and generate pickup_pin on server
-        const pickupRes = await confirmOrderPickup(orderId, currentUser.id, 'FOOD');
-        
-        if (!pickupRes.ok) {
-          showToast(pickupRes.error || 'Failed to prepare order', 'error');
-          return;
-        }
+        try {
+          // 🚀 Trigger the unified dispatch system
+          // This RPC handles moving status to DISPATCHING and notifying nearby agents
+          const dispatchRes = await dispatchFoodOrder(orderId, currentUser.id);
 
-        // 2. Call Dispatch RPC
-        const dispatchRes = await dispatchFoodOrder(orderId, currentUser.id);
-
-        if (dispatchRes.success) {
-          showToast(`Dispatched to ${dispatchRes.dispatchedCount} agents`, 'success');
-          setCurrentPin(pickupRes.pin || '');
-          setShowPinModal(true);
+          if (dispatchRes.success) {
+            showToast(`📡 Dispatched to ${dispatchRes.dispatchedCount} agents`, 'success');
+            loadData();
+          }
+        } catch (e: any) {
+          showToast(e.message || 'Dispatch failed', 'error');
         }
+        return;
       } else if (newStatus === 'COMPLETED') {
         const targetOrder = data.orders.find((o: any) => o.id === orderId);
         const result = await completeFoodOrder(orderId, currentUser.id, targetOrder?.pickup_pin);
@@ -78,12 +76,64 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
           showToast(result.error || 'Failed to complete order', 'error');
         }
       } else {
+        // 🔄 SMART STATUS REDIRECT: If marking a DELIVERY order as READY, trigger DISPATCHING flow
+        if (newStatus === 'READY') {
+          const targetOrder = data.orders.find((o: any) => o.id === orderId);
+          if (!targetOrder) return;
+
+          // 🚀 HANDOVER CHECK: If agent is already assigned, READY means handover (Confirm Pickup)
+          if (targetOrder.status === 'AGENT_ASSIGNED') {
+            const agentId = targetOrder.agent_id;
+            if (!agentId) {
+              showToast('No agent assigned for handover', 'error');
+              return;
+            }
+            
+            console.log(`[RestaurantActions] Handover for ${orderId} to agent ${agentId}`);
+            const type = targetOrder._source === 'delivery' ? 'FOOD' : 'MARKETPLACE';
+            const pickupRes = await markOrderPickedUp(orderId, currentUser.id, type);
+            
+            if (pickupRes.ok) {
+              showToast('✅ Handover confirmed!', 'success');
+              if (pickupRes.pin) {
+                setCurrentPin(pickupRes.pin);
+                setShowPinModal(true);
+              }
+              loadData();
+              return;
+            } else {
+              showToast(pickupRes.error || 'Handover failed', 'error');
+              return;
+            }
+          }
+
+          // 🚀 Explicit delivery check for auto-dispatch
+          const isDelivery = targetOrder._source === 'delivery' || !!targetOrder.shipping_address;
+          const isPreOrder = targetOrder.type === 'preorder' || targetOrder.order_type === 'pickup' || targetOrder.type === 'pickup';
+          
+          console.log(`[RestaurantActions] READY transition for ${orderId}. isDelivery:`, isDelivery);
+
+          if (isDelivery && !isPreOrder) {
+            console.log('[RestaurantActions] Auto-dispatching delivery order');
+            // Move to DISPATCHING state to trigger agent discovery
+            setActionLoading(false); 
+            return onUpdateStatus(orderId, 'DISPATCHING');
+          }
+        }
+
         const result = await updateOrderStatus(orderId, currentUser.id, newStatus);
         if (!result.error) {
           showToast(`Order ${newStatus.toLowerCase()}`, 'success');
           loadData();
         } else {
-          showToast(result.error || 'Failed to update order', 'error');
+          // If network error, add to offline queue
+          OfflineSyncService.addAction({
+            id: orderId,
+            type: 'ORDER',
+            payload: { merchant_id: currentUser.id, status: newStatus },
+            createdAt: new Date().toISOString()
+          });
+          showToast('Offline: Status will sync when connected', 'info');
         }
       }
       loadData();
@@ -94,13 +144,63 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     }
   };
 
+  const onFireReservation = async (reservationId: string) => {
+    if (!currentUser?.id) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setActionLoading(true);
+    try {
+      await HospitalityService.fireReservation(reservationId);
+      showToast('🔥 Order sent to kitchen!', 'success');
+      loadData();
+    } catch (error: any) {
+      // Offline fallback
+      OfflineSyncService.addAction({
+        id: reservationId,
+        type: 'RESERVATION_UPDATE',
+        payload: { id: reservationId, status: 'FIRED', fired_at: new Date() },
+        createdAt: new Date().toISOString()
+      });
+      showToast('Offline: Order will fire when connected', 'info');
+      loadData(); // Update local state if possible
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onSettlePayment = async (orderId: string, method: string = 'CASH') => {
+    if (!currentUser?.id) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setActionLoading(true);
+    try {
+      const res = await settleFoodOrderPayment(orderId, currentUser.id, method);
+      if (res.ok) {
+        showToast(`Payment settled via ${method}`, 'success');
+        loadData();
+      } else {
+        showToast(res.error || 'Failed to settle payment', 'error');
+      }
+    } catch (e: any) {
+      showToast(e.message || 'Failed to settle payment', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const onRejectOrder = async (orderId: string) => {
     if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setActionLoading(true);
     try {
-      await rejectFoodOrder(orderId, currentUser.id);
-      showToast('Order rejected & Citizen refunded', 'info');
+      // 1. Check if it's a reservation first
+      const isReservation = data.reservations.some((r: any) => r.id === orderId);
+      
+      if (isReservation) {
+        await HospitalityService.cancelReservation(orderId);
+        showToast('Reservation cancelled & Citizen refunded', 'info');
+      } else {
+        await rejectFoodOrder(orderId, currentUser.id);
+        showToast('Order rejected & Citizen refunded', 'info');
+      }
       loadData();
     } catch (error: any) {
       showToast(error.message || 'Failed to reject order', 'error');
@@ -175,10 +275,6 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     }
   };
 
-  // ==========================================
-  // HOSPITALITY ACTIONS
-  // ==========================================
-
   const onCreateEvent = async (eventPayload: any) => {
     if (!currentUser?.id) return;
     setActionLoading(true);
@@ -241,8 +337,6 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActionLoading(true);
     try {
-      // In a real app, this would trigger a withdrawal flow
-      // For now, we'll simulate success if balance > 0
       showToast('Withdrawal initiated! Processing...', 'info');
       setTimeout(() => {
         showToast('ETB 1,200 withdrawn to your bank account', 'success');
@@ -254,10 +348,6 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       setActionLoading(false);
     }
   };
-
-  // ==========================================
-  // BANNER & RESTAURANT PROFILE ACTIONS
-  // ==========================================
 
   const onPickBanner = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -303,10 +393,6 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     const res = await fetchMerchantRestaurant(currentUser.id);
     if (res.data) setRestaurantProfile(res.data);
   }, [currentUser?.id]);
-
-  // ==========================================
-  // TABLE MANAGEMENT ACTIONS
-  // ==========================================
 
   const onAddTable = async (
     tableNumber: string,
@@ -368,9 +454,75 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     }
   }, [showToast]);
 
+  const onUpdateStock = async (stockItem: any) => {
+    if (!currentUser?.id) return;
+    setActionLoading(true);
+    try {
+      const res = await updateRestaurantStock({ ...stockItem, merchant_id: currentUser.id });
+      if (res.error) showToast(res.error, 'error');
+      else {
+        showToast(`Stock updated!`, 'success');
+        loadData();
+      }
+    } catch (e: any) {
+      showToast(e.message || 'Failed to update stock', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onOrderSupplies = async (item: any) => {
+    if (!currentUser?.id) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    showToast(`Searching for ${item.item_name} on Agro-Link...`, 'info');
+    (navigation as any).navigate('Marketplace', {
+      search: item.item_name,
+      category: 'Agro',
+    });
+  };
+
+  const onUpdateReservationStatus = async (reservationId: string, status: string) => {
+    if (!currentUser?.id) return;
+    setActionLoading(true);
+    try {
+      const { error } = await HospitalityService.updateReservationStatus(reservationId, status);
+      if (error) throw new Error(error);
+      showToast(`Reservation ${status.toLowerCase()}`, 'success');
+      loadData();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to update reservation', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onRetryDispatch = async (orderId: string, orderType: any = 'FOOD') => {
+    if (!currentUser?.id) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setActionLoading(true);
+    try {
+      const lat = restaurantProfile?.latitude || null;
+      const lng = restaurantProfile?.longitude || null;
+      const res = await retryDispatch(orderId, currentUser.id, orderType, lat, lng);
+      if (res.ok) {
+        showToast(`Dispatched to ${res.count} agents`, 'success');
+        loadData();
+      } else {
+        showToast(res.error || 'Dispatch failed', 'error');
+      }
+    } catch (e: any) {
+      showToast(e.message || 'Dispatch error', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return {
     actionLoading,
     onUpdateStatus,
+    onRetryDispatch,
+    onFireReservation,
+    onSettlePayment,
     onAddMenuItem,
     onToggleAvailability,
     onCreateEvent,
@@ -391,7 +543,6 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     setSelectedImage,
     onPickImage,
     uploading,
-    // Banner
     bannerImage,
     setBannerImage,
     bannerUploading,
@@ -399,35 +550,12 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     onUploadBanner,
     restaurantProfile,
     onLoadRestaurantProfile,
-    // Tables
     onAddTable,
     onSetTableStatus,
-    // Stock
-    onUpdateStock: async (stockItem: any) => {
-      if (!currentUser?.id) return;
-      setActionLoading(true);
-      try {
-        const res = await updateRestaurantStock({ ...stockItem, merchant_id: currentUser.id });
-        if (res.error) showToast(res.error, 'error');
-        else {
-          showToast(`Stock updated!`, 'success');
-          loadData();
-        }
-      } catch (e: any) {
-        showToast(e.message || 'Failed to update stock', 'error');
-      } finally {
-        setActionLoading(true);
-      }
-    },
-    onOrderSupplies: async (item: any) => {
-      if (!currentUser?.id) return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      // Navigate to marketplace or show suggested products
-      showToast(`Searching for ${item.item_name} on Agro-Link...`, 'info');
-      (navigation as any).navigate('Marketplace', {
-        search: item.item_name,
-        category: 'Agro',
-      });
-    },
+    onUpdateStock,
+    onOrderSupplies,
+    onUpdateReservationStatus,
+    editingProduct,
+    setEditingProduct,
   };
 }

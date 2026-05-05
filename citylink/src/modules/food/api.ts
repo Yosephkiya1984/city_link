@@ -237,4 +237,27 @@ export const FoodApi = {
       return { data: null, error: error.message };
     }
   },
+
+  /**
+   * settleFoodOrderPayment — marks a food order as paid.
+   */
+  async settleFoodOrderPayment(
+    orderId: string,
+    merchantId: string,
+    method: string = 'CASH'
+  ): Promise<{ ok: boolean; error: string | null }> {
+    const res = await supaQuery<void>((client) =>
+      client
+        .from('food_orders')
+        .update({
+          payment_status: 'PAID',
+          payment_method: method,
+          status: 'COMPLETED', // Auto-complete if it's a quick sale settlement
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId)
+        .eq('merchant_id', merchantId)
+    );
+    return { ok: !res.error, error: res.error };
+  },
 };

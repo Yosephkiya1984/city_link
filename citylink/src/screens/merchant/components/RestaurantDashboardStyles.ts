@@ -1,5 +1,5 @@
 import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
-import { D, Radius, Fonts } from './StitchTheme';
+import { D, Radius, Fonts, Shadow } from './StitchTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -59,6 +59,42 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 10,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  actionCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: D.lift,
+    borderWidth: 1,
+    borderColor: D.edge,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: D.primary,
+    marginRight: 6,
+    shadowColor: D.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
 
   // Banner
   bannerContainer: {
@@ -76,7 +112,17 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-end',
-    padding: 20,
+    padding: 16,
+  },
+  bannerUploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-end',
+    ...Shadow.primary,
   },
   bannerTitle: {
     fontSize: 28,
@@ -112,6 +158,42 @@ export const styles = StyleSheet.create({
     color: D.sub,
   },
   tabTextActive: {
+    color: D.ink,
+  },
+
+  // New Tab Styles
+  tabScrollWrapper: {
+    backgroundColor: D.ink,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: D.edge,
+  },
+  tabContentContainer: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  tabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: D.lift,
+    borderWidth: 1,
+    borderColor: D.edge,
+  },
+  tabButtonActive: {
+    backgroundColor: D.primary,
+    borderColor: D.primary,
+    ...Shadow.primary,
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: D.sub,
+    marginLeft: 8,
+  },
+  tabButtonTextActive: {
     color: D.ink,
   },
 

@@ -95,7 +95,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await SecurePersist.saveUser(null);
         return;
       }
-    } catch {
+    } catch (e: any) {
+      // 🛡️ RECOVERY: If we hit a terminal auth error (like 'Refresh Token Not Found'),
+      // we must clear the store to break the invalid session loop.
+      const isTerminalAuthError = 
+        e?.message?.includes('Refresh Token') || 
+        e?.message?.includes('Invalid Refresh Token') ||
+        e?.status === 400;
+
+      if (isTerminalAuthError) {
+        console.error('[AuthStore] Terminal session error, forcing logout:', e.message);
+        set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
+        await SecurePersist.saveUser(null);
+        return;
+      }
       // Network unavailable — allow offline hydration but mark as unverified
     }
 

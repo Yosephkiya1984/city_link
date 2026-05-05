@@ -16,6 +16,7 @@ import SendMoneyScreen from '../screens/citizen/SendMoneyScreen';
 import CartScreen from '../screens/citizen/CartScreen';
 import LanguageScreen from '../screens/core/LanguageScreen';
 import FaydaKycScreen from '../screens/citizen/FaydaKycScreen';
+import TrackOrderScreen from '../screens/citizen/TrackOrderScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -55,6 +56,7 @@ export function CitizenStack() {
       />
       <Stack.Screen name="Language" component={LanguageScreen} />
       <Stack.Screen name="FaydaKYC" component={FaydaKycScreen} />
+      <Stack.Screen name="TrackOrder" component={TrackOrderScreen} />
     </Stack.Navigator>
   );
 }

@@ -174,6 +174,27 @@ export const SecurePersist = {
     }
   },
 
+  // 🛡️ Offline Actions Persistence (Queue for OfflineSyncService)
+  saveOfflineActions: async (actions: any[]): Promise<void> => {
+    const raw = JSON.stringify(actions);
+    const encrypted = await SecurityUtils.encrypt(raw);
+    await AsyncStorage.setItem('citylink-offline-actions', encrypted);
+  },
+  loadOfflineActions: async (): Promise<any[]> => {
+    try {
+      const res = await AsyncStorage.getItem('citylink-offline-actions');
+      if (!res) return [];
+
+      const decrypted = await SecurityUtils.decrypt(res);
+      if (decrypted && decrypted !== '[DECRYPTION_ERROR]' && decrypted !== '[CORRUPTED_DATA]') {
+        return JSON.parse(decrypted);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
   /**
    * clearAll — Hard wipe of all CityLink persistent data.
    */
@@ -185,6 +206,7 @@ export const SecurePersist = {
       'citylink-kyc-data',
       'citylink-kyc-status',
       'citylink-active-parking',
+      'citylink-offline-actions',
     ];
     for (const key of secureKeys) {
       try {

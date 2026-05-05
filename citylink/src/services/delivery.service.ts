@@ -249,6 +249,28 @@ export async function dispatchOrderToAgents(
   return { ok: true, expiresAt, dispatchedTo: agentIds.length };
 }
 
+// ── Retry Dispatch (Automated Discovery) ──────────────────────────────────────
+export async function retryDispatch(
+  orderId: string,
+  merchantId: string,
+  orderType: OrderType = 'MARKETPLACE',
+  lat?: number,
+  lng?: number
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  if (!hasSupabase()) return { ok: false };
+  const { data, error } = await supaQuery<any>((c) =>
+    c.rpc('dispatch_order', {
+      p_order_id: orderId,
+      p_merchant_id: merchantId,
+      p_order_type: orderType,
+      p_lat: lat,
+      p_lng: lng
+    })
+  );
+  if (error || !data?.ok) return { ok: false, error: error || data?.error || 'dispatch_failed' };
+  return { ok: true, count: data.dispatched_count };
+}
+
 // ── Accept Delivery Job ───────────────────────────────────────────────────────
 export async function acceptDeliveryJob(
   orderId: string,
@@ -316,24 +338,32 @@ export async function declineDeliveryJob(
 // ── Mark Picked Up (Merchant + Agent dual confirmation) ──────────────────────
 export async function markOrderPickedUp(
   orderId: string,
-  agentId: string,
-  orderType: OrderType = 'MARKETPLACE'
-): Promise<{ ok: boolean; error?: string; status?: string; pin?: string }> {
+  userId: string,
+  orderType: OrderType = 'MARKETPLACE',
+  pickupPin?: string
+): Promise<{ ok: boolean; error?: string; status?: string; pickupPin?: string; deliveryPin?: string }> {
   if (!hasSupabase()) return { ok: true };
   const { data, error } = await supaQuery<{
     ok: boolean;
     status: string;
-    delivery_pin: string;
+    pickup_pin?: string;
+    delivery_pin?: string;
     error?: string;
   }>((c) =>
     c.rpc('confirm_order_pickup', {
       p_order_id: orderId,
-      p_user_id: agentId,
+      p_user_id: userId,
       p_order_type: orderType,
+      p_pickup_pin: pickupPin,
     })
   );
   if (error || !data?.ok) return { ok: false, error: error || data?.error || 'pickup_failed' };
-  return { ok: true, status: data.status, pin: data.delivery_pin };
+  return { 
+    ok: true, 
+    status: data.status, 
+    pickupPin: data.pickup_pin, 
+    deliveryPin: data.delivery_pin 
+  };
 }
 
 // ── Mark Delivered (triggers PIN flow) ────────────────────────────────────────
