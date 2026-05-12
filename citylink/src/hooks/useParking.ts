@@ -168,7 +168,8 @@ export function useParking() {
 
   // ── Start Parking ──────────────────────────────────────────────────────
   async function handleStartParking() {
-    if (!selectedSpot || !selectedLot) return;
+    if (!selectedLot) return;
+    if (selectedLot.spots && selectedLot.spots.length > 0 && !selectedSpot) return;
     
     if (activeParking) {
       showToast('You already have an active session. End it before starting a new one.', 'error');
@@ -188,7 +189,7 @@ export function useParking() {
     const { data, error } = await startParkingSession(
       currentUser?.id || '',
       selectedLot.id,
-      selectedSpot.id,
+      selectedSpot?.id || 'ZONE',
       plateNumber,
       estimatedDuration
     );
@@ -298,14 +299,17 @@ export function useParking() {
       showToast('You already have an active parking session.', 'error');
       return;
     }
-    if (lot.spots.filter(s => s.status === 'available').length === 0) {
+    if (lot.spots && lot.spots.length > 0 && lot.spots.filter(s => s.status === 'available').length === 0) {
       showToast('This zone is currently full.', 'error');
       return;
     }
     // Auto-assign to a generic 'Zone' spot
-    const availableSpot = lot.spots.find(s => s.status === 'available');
+    const availableSpot = lot.spots && lot.spots.length > 0 
+      ? lot.spots.find(s => s.status === 'available') || lot.spots[0]
+      : null;
+      
     setSelectedLot(lot);
-    setSelectedSpot(availableSpot || lot.spots[0]);
+    setSelectedSpot(availableSpot);
     setEstimatedDuration(2); // Reset to 2 hours default
     setConfirmModal(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

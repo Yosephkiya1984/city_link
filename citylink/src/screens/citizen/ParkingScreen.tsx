@@ -137,11 +137,11 @@ export default function ParkingScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.cockpitEndBtn} onPress={onParkingEnd}>
+              <TouchableOpacity style={styles.cockpitEndBtn} onPress={() => setQrModal(true)}>
                 <Text style={styles.cockpitEndText}>
-                  {t('end_session_pay')} · {(activeParking as any).plate || 'No Plate'}
+                  Provide Passkey to Valet to Exit
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color="#0B0D11" />
+                <Ionicons name="key" size={16} color="#0B0D11" />
               </TouchableOpacity>
             </LinearGradient>
           </View>
@@ -177,72 +177,81 @@ export default function ParkingScreen() {
       </ScrollView>
 
       <Modal visible={confirmModal} transparent animationType="slide">
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => setConfirmModal(false)}>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.9)' }]} />
+        </Pressable>
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1, justifyContent: 'flex-end' }}
         >
-          <Pressable style={styles.modalOverlay} onPress={() => setConfirmModal(false)} />
-          <View style={styles.modalContent}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <TouchableOpacity onPress={() => setConfirmModal(false)} style={{ padding: 4 }}>
-                <Ionicons name="arrow-back" size={24} color="#FFF" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>{t('confirm_booking') || 'Confirm Zone Access'}</Text>
-              <View style={{ width: 24 }} />
-            </View>
+          <ScrollView 
+            keyboardShouldPersistTaps="handled" 
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalContent}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <TouchableOpacity onPress={() => setConfirmModal(false)} style={{ padding: 4 }}>
+                  <Ionicons name="arrow-back" size={24} color="#FFF" />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>{t('confirm_booking') || 'Confirm Zone Access'}</Text>
+                <View style={{ width: 24 }} />
+              </View>
 
-            {selectedLot && (
-              <>
-                <Text style={styles.modalSubtitle}>
-                  {selectedLot.name} · <Text style={{ color: ADDIS_NOIR.gold }}>Zone Access</Text>
-                </Text>
-                
-                <View style={{ marginVertical: 10 }}>
-                  <ParkingDurationDial 
-                    value={estimatedDuration} 
-                    onValueChange={setEstimatedDuration}
-                  />
-                </View>
-
-                <View style={{ marginBottom: 15 }}>
-                  <Text style={{ color: '#bccabe', fontSize: 12, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    Vehicle Plate Number
+              {selectedLot && (
+                <>
+                  <Text style={styles.modalSubtitle}>
+                    {selectedLot.name} · <Text style={{ color: ADDIS_NOIR.gold }}>Zone Access</Text>
                   </Text>
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
-                    <TextInput
-                      style={{ color: '#FFF', fontSize: 18, fontWeight: '700', textAlign: 'center' }}
-                      placeholder="e.g. AA 2 A12345"
-                      placeholderTextColor="rgba(255,255,255,0.3)"
-                      value={plateNumber}
-                      onChangeText={setPlateNumber}
-                      autoCapitalize="characters"
+                  
+                  <View style={{ marginVertical: 10 }}>
+                    <ParkingDurationDial 
+                      value={estimatedDuration} 
+                      onValueChange={setEstimatedDuration}
                     />
                   </View>
-                </View>
 
-                <View style={styles.modalInfo}>
-                  <Row label={t('hourly_rate') || 'Hourly Rate'} value={`${selectedLot.rate_per_hour} ETB`} />
-                  <Row label="Initial Escrow" value={`${selectedLot.rate_per_hour * estimatedDuration} ETB`} />
-                  <Row label={t('current_balance')} value={`${fmtETB(balance)} ETB`} />
-                </View>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={onParkingStart}
-                  disabled={loading}
-                >
-                  <Text style={styles.modalButtonText}>
-                    {loading ? t('reserving') : `🅿️ Lock Escrow & Enter Zone`}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.cancelButton, { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginTop: 8, paddingTop: 16 }]} 
-                  onPress={() => setConfirmModal(false)}
-                >
-                  <Text style={[styles.cancelButtonText, { color: '#FF5A4C' }]}>{t('cancel_request') || 'Cancel & Go Back'}</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ color: '#bccabe', fontSize: 12, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      Vehicle Plate Number
+                    </Text>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+                      <TextInput
+                        style={{ color: '#FFF', fontSize: 18, fontWeight: '700', textAlign: 'center' }}
+                        placeholder="e.g. AA 2 A12345"
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        value={plateNumber}
+                        onChangeText={setPlateNumber}
+                        autoCapitalize="characters"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.modalInfo}>
+                    <Row label={t('hourly_rate') || 'Hourly Rate'} value={`${selectedLot.rate_per_hour} ETB`} />
+                    <Row label="Initial Escrow" value={`${selectedLot.rate_per_hour * estimatedDuration} ETB`} />
+                    <Row label={t('current_balance')} value={`${fmtETB(balance)} ETB`} />
+                  </View>
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={onParkingStart}
+                    disabled={loading}
+                  >
+                    <Text style={styles.modalButtonText}>
+                      {loading ? t('reserving') : `🅿️ Lock Escrow & Enter Zone`}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.cancelButton, { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginTop: 8, paddingTop: 16 }]} 
+                    onPress={() => setConfirmModal(false)}
+                  >
+                    <Text style={[styles.cancelButtonText, { color: '#FF5A4C' }]}>{t('cancel_request') || 'Cancel & Go Back'}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
