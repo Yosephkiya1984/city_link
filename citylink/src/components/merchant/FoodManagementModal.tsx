@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
-import { DarkColors as T, Fonts, Radius, Spacing, Shadow } from '../../theme';
-import { D } from '../../screens/merchant/components/StitchTheme';
+import { DarkColors as T } from '../../theme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../hospitality/HospitalityTheme';
 import { t } from '../../utils/i18n';
 import { Typography, Surface } from '../index';
 
@@ -360,23 +360,23 @@ const styles = StyleSheet.create({
   container: { height: '90%', borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, padding: Spacing.xl },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xl },
   closeBtn: { padding: 8, backgroundColor: D.lift, borderRadius: 20 },
-  imageBox: { height: 180, borderRadius: Radius.l, backgroundColor: D.base, overflow: 'hidden', marginBottom: Spacing.xl, borderWidth: 1, borderColor: D.edge },
+  imageBox: { height: 180, borderRadius: Radius.lg, backgroundColor: D.lift, overflow: 'hidden', marginBottom: Spacing.xl, borderWidth: 1, borderColor: D.edge },
   fullImage: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   imageOverlay: { position: 'absolute', bottom: 12, right: 12, backgroundColor: D.primary, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', ...Shadow.primary },
   formSection: { marginBottom: Spacing.xl },
   label: { marginBottom: 8, letterSpacing: 1 },
-  input: { backgroundColor: D.base, borderRadius: Radius.l, padding: Spacing.md, color: D.text, fontFamily: Fonts.bold, borderWidth: 1, borderColor: D.edge },
+  input: { backgroundColor: D.lift, borderRadius: Radius.lg, padding: Spacing.md, color: D.text, fontFamily: Fonts.bold, borderWidth: 1, borderColor: D.edge },
   row: { flexDirection: 'row', gap: Spacing.md },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   varRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   tagCloud: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.m, borderWidth: 1, borderColor: D.edge, backgroundColor: D.lift },
+  tag: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.md, borderWidth: 1, borderColor: D.edge, backgroundColor: D.lift },
   tagActive: { backgroundColor: D.primary, borderColor: D.primary },
   tagText: { fontSize: 12, fontFamily: Fonts.bold, color: D.sub },
   tagTextActive: { color: D.ink },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   spiceLevels: { flexDirection: 'row', gap: 8, marginTop: 12, alignItems: 'center' },
-  spiceBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: D.base, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: D.edge },
-  saveBtn: { backgroundColor: D.primary, padding: Spacing.lg, borderRadius: Radius.l, alignItems: 'center', justifyContent: 'center', ...Shadow.primary },
+  spiceBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: D.lift, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: D.edge },
+  saveBtn: { backgroundColor: D.primary, padding: Spacing.lg, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center', ...Shadow.primary },
 });

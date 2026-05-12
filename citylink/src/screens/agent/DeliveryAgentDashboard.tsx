@@ -29,7 +29,9 @@ import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../../store/AuthStore';
 import { useWalletStore } from '../../store/WalletStore';
 import { useSystemStore } from '../../store/SystemStore';
+import { useDeliveryStore } from '../../store/DeliveryStore';
 import { t } from '../../utils/i18n';
+import { EthiopianReceipt } from '../../components/core/EthiopianReceipt';
 
 // Modular Components
 import { DispatchCard } from '../../components/agent/DispatchCard';
@@ -115,18 +117,14 @@ export default function DeliveryAgentDashboard() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
   const { balance, setBalance } = useWalletStore();
+  const dStore = useDeliveryStore();
 
-  const [tab, setTab] = useState('home'); // home | history
-  const [agentProfile, setAgentProfile] = useState<any>(null);
-  const [isOnline, setIsOnline] = useState(false);
-  const [togglingOnline, setTogglingOnline] = useState(false);
-  const [dispatches, setDispatches] = useState<any[]>([]);
-  const [activeJobs, setActiveJobs] = useState<UnifiedOrder[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('home'); 
+  const [loading, setLoading] = useState(dStore.lastUpdated === null);
   const [refreshing, setRefreshing] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState(0);
 
+  const [togglingOnline, setTogglingOnline] = useState(false);
   const [rejectionJob, setRejectionJob] = useState<any>(null);
   const [rejectionType, setRejectionType] = useState<string>('NOT_REACHABLE');
   const [rejectionComment, setRejectionComment] = useState('');
@@ -141,6 +139,7 @@ export default function DeliveryAgentDashboard() {
   const [submittingPickupPin, setSubmittingPickupPin] = useState(false);
 
   const [showWorkID, setShowWorkID] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<any>(null);
 
   // Proof of Delivery (POD) State
   const [showCamera, setShowCamera] = useState(false);
@@ -155,14 +154,16 @@ export default function DeliveryAgentDashboard() {
   const activeJobsRef = useRef<UnifiedOrder[]>([]);
 
   useEffect(() => {
-    activeJobsRef.current = activeJobs;
-  }, [activeJobs]);
+    activeJobsRef.current = dStore.activeJobs;
+  }, [dStore.activeJobs]);
 
   // Extracted NumericKeypad is now imported
 
   // â”€â”€ Load Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadDashboard = useCallback(async () => {
     if (!currentUser?.id) return;
+    if (dStore.lastUpdated === null) setLoading(true);
+
     const [profile, jobs, hist] = await Promise.all([
       fetchAgentProfile(currentUser.id),
       fetchActiveJobs(currentUser.id),
@@ -170,11 +171,12 @@ export default function DeliveryAgentDashboard() {
     ]);
 
     if (profile.data) {
-      setAgentProfile(profile.data);
-      setIsOnline(profile.data.is_online || false);
+      dStore.setAgentProfile(profile.data);
+      dStore.setIsOnline(profile.data.is_online || false);
     }
-    setActiveJobs(jobs);
-    setHistory(hist);
+    dStore.setActiveJobs(jobs);
+    dStore.setHistory(hist);
+    dStore.setLastUpdated(new Date().toISOString());
 
     // 🛡️ Wallet Refresh
     const wallet = await fetchWalletData(currentUser.id);
@@ -190,12 +192,14 @@ export default function DeliveryAgentDashboard() {
     setTodayEarnings(todayTotal);
 
     const pending = await fetchPendingDispatches(currentUser.id);
-    setDispatches(pending);
+    dStore.setDispatches(pending);
+    
+    setLoading(false);
+    setRefreshing(false);
   }, [currentUser?.id]);
 
   useEffect(() => {
-    setLoading(true);
-    loadDashboard().finally(() => setLoading(false));
+    loadDashboard();
 
     if (!currentUser || !currentUser.id) return;
 
@@ -208,7 +212,6 @@ export default function DeliveryAgentDashboard() {
       'marketplace_orders',
       `agent_id=eq.${currentUser.id}`,
       (payload) => {
-        // Refresh whenever any order assigned to this agent changes
         loadDashboard();
       }
     );
@@ -216,13 +219,12 @@ export default function DeliveryAgentDashboard() {
     return () => {
       unsubscribe(dispatchSub.current);
       unsubscribe(jobsSub.current);
-      // Removed locationInterval cleanup here, handled in dedicated effect
     };
   }, [loadDashboard, currentUser?.id]);
 
   // â”€â”€ Location Tracking Watcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
-    if (!currentUser?.id || !isOnline) {
+    if (!currentUser?.id || !dStore.isOnline) {
       if (locationInterval.current) {
         clearInterval(locationInterval.current);
         locationInterval.current = null;
@@ -258,13 +260,13 @@ export default function DeliveryAgentDashboard() {
         locationInterval.current = null;
       }
     };
-  }, [isOnline, currentUser?.id]);
+  }, [dStore.isOnline, currentUser?.id]);
 
   // â”€â”€ Online Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleToggleOnline = async (val: boolean) => {
     if (!currentUser?.id) return;
 
-    if (agentProfile?.agent_status !== 'APPROVED') {
+    if (dStore.agentProfile?.agent_status !== 'APPROVED') {
       showToast(t('verification_required_msg'), 'error');
       return;
     }
@@ -313,7 +315,7 @@ export default function DeliveryAgentDashboard() {
     if (!currentUser?.id) return;
 
     // Quick local check if we know they are blocked
-    if (agentProfile?.blocked_until && new Date(agentProfile.blocked_until) > new Date()) {
+    if (dStore.agentProfile?.blocked_until && new Date(dStore.agentProfile.blocked_until) > new Date()) {
       showToast(t('account_restricted_title'), 'error');
       return;
     }
@@ -335,7 +337,7 @@ export default function DeliveryAgentDashboard() {
 
     showToast(t('confirm_handover_msg'), 'success');
 
-    // Clear local dispatches immediately so they don't see the card anymore
+    // Clear local dStore.dispatches immediately so they don't see the card anymore
     setDispatches((prev) => prev.filter((d) => d.order_id !== dispatch.order_id));
 
     // Refresh to pull the active job
@@ -480,6 +482,14 @@ export default function DeliveryAgentDashboard() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast(t('delivered_msg', { amount: res.agent_share || '...' }), 'success');
+    
+    // 🧾 OPEN RECEIPT
+    setCompletedOrder({ 
+      ...pinPromptJob, 
+      agent_fee: res.agent_share,
+      created_at: new Date().toISOString() // Ensure timestamp for receipt
+    });
+
     setPinPromptJob(null);
     setPinInput('');
     loadDashboard();
@@ -514,7 +524,7 @@ export default function DeliveryAgentDashboard() {
   };
 
   // â”€â”€ Pending approval screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  if (agentProfile && agentProfile.agent_status === 'PENDING') {
+  if (dStore.agentProfile && dStore.agentProfile.agent_status === 'PENDING') {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
         <Ionicons name="hourglass-outline" size={64} color={T.yellow} />
@@ -562,7 +572,7 @@ export default function DeliveryAgentDashboard() {
           </TouchableOpacity>
           <View style={s.ratingBadge}>
             <Ionicons name="star" size={12} color={T.yellow} />
-            <Text style={s.ratingText}>{(agentProfile?.rating || 5).toFixed(1)}</Text>
+            <Text style={s.ratingText}>{(dStore.agentProfile?.rating || 5).toFixed(1)}</Text>
           </View>
           <TouchableOpacity
             style={s.signOutBtn}
@@ -612,20 +622,20 @@ export default function DeliveryAgentDashboard() {
         {tab === 'home' && (
           <>
             {/* Penalty Block Banner */}
-            {agentProfile?.blocked_until && new Date(agentProfile.blocked_until) > new Date() && (
+            {dStore.agentProfile?.blocked_until && new Date(dStore.agentProfile.blocked_until) > new Date() && (
               <View style={[s.penaltyBanner, { marginBottom: 16 }]}>
                 <View style={s.penaltyHeader}>
                   <Ionicons name="warning" size={20} color={T.red} />
                   <Text style={s.penaltyTitle}>{t('account_restricted_title')}</Text>
                 </View>
                 <Text style={s.penaltyReason}>
-                  {agentProfile.last_block_reason || t('account_restricted_desc')}
+                  {dStore.agentProfile.last_block_reason || t('account_restricted_desc')}
                 </Text>
                 <View style={s.penaltyTimer}>
                   <Ionicons name="time-outline" size={14} color={T.red} />
                   <Text style={s.penaltyTimerText}>
                     {t('restriction_lifts_msg', {
-                      time: new Date(agentProfile.blocked_until).toLocaleTimeString(),
+                      time: new Date(dStore.agentProfile.blocked_until).toLocaleTimeString(),
                     })}
                   </Text>
                 </View>
@@ -642,7 +652,7 @@ export default function DeliveryAgentDashboard() {
                 </Text>
                 <View style={s.agentName}>
                   <Text style={s.headerTitle}>{currentUser?.full_name?.split(' ')[0]}</Text>
-                  {isOnline && <View style={s.pulseDot} />}
+                  {dStore.isOnline && <View style={s.pulseDot} />}
                 </View>
               </View>
               <View style={s.headerRight}>
@@ -668,23 +678,21 @@ export default function DeliveryAgentDashboard() {
 
             {/* ══ Online Toggle ══ */}
             <AgentOnlineToggle
-              isOnline={isOnline}
-              onToggle={() => handleToggleOnline(!isOnline)}
+              isOnline={dStore.isOnline}
+              onToggle={() => handleToggleOnline(!dStore.isOnline)}
               loading={togglingOnline}
             />
 
             {/* ══ Stats Row ══ */}
             <AgentStatsRow
               stats={{
-                todayDeliveries: history?.length || 0,
-                todayEarnings: Math.floor(
-                  (history?.reduce((acc, h) => acc + (h.total || 0), 0) || 0) * 0.12
-                ),
-                rating: agentProfile?.rating || 4.8,
+                todayDeliveries: dStore.history?.filter(h => new Date(h.delivered_at).toDateString() === new Date().toDateString()).length || 0,
+                todayEarnings: todayEarnings,
+                rating: dStore.agentProfile?.rating || 4.8,
               }}
             />
 
-            {agentProfile?.agent_status !== 'APPROVED' ? (
+            {dStore.agentProfile?.agent_status !== 'APPROVED' ? (
               <View style={[s.lockdownCard, { marginTop: 10 }]}>
                 <LinearGradient colors={['#242B3D', '#131720']} style={s.lockdownGradient}>
                   <View style={s.lockdownIconBox}>
@@ -716,7 +724,7 @@ export default function DeliveryAgentDashboard() {
             ) : (
               <>
                 {/* Pending Dispatch */}
-                {dispatches?.map((d) => (
+                {dStore.dispatches?.map((d) => (
                   <DispatchCard
                     key={d.order_id}
                     dispatch={d}
@@ -726,7 +734,7 @@ export default function DeliveryAgentDashboard() {
                 ))}
 
                 {/* Active Jobs */}
-                {activeJobs.length > 0 && (
+                {dStore.activeJobs.length > 0 && (
                   <View style={{ gap: 16 }}>
                     <View
                       style={{
@@ -737,11 +745,11 @@ export default function DeliveryAgentDashboard() {
                       }}
                     >
                       <Text style={{ color: T.text, fontSize: 13, fontWeight: '800' }}>
-                        {t('active_assignments_label', { count: activeJobs.length })}
+                        {t('active_assignments_label', { count: dStore.activeJobs.length })}
                       </Text>
                       <Ionicons name="list-outline" size={16} color={T.textSub} />
                     </View>
-                    {activeJobs?.map((job) => (
+                    {dStore.activeJobs?.map((job) => (
                       <ActiveJobCard
                         key={job.id}
                         job={job}
@@ -755,14 +763,14 @@ export default function DeliveryAgentDashboard() {
                 )}
 
                 {/* Empty state */}
-                {activeJobs.length === 0 && dispatches.length === 0 && (
+                {dStore.activeJobs.length === 0 && dStore.dispatches.length === 0 && (
                   <View style={s.emptyState}>
                     <Ionicons name="bicycle-outline" size={52} color={T.textSub} />
                     <Text style={s.emptyTitle}>
-                      {isOnline ? t('waiting_orders_msg') : t('go_online_msg')}
+                      {dStore.isOnline ? t('waiting_orders_msg') : t('go_online_msg')}
                     </Text>
                     <Text style={s.emptyBody}>
-                      {isOnline ? t('nearby_orders_alert') : t('match_orders_radius_msg')}
+                      {dStore.isOnline ? t('nearby_orders_alert') : t('match_orders_radius_msg')}
                     </Text>
                   </View>
                 )}
@@ -772,14 +780,14 @@ export default function DeliveryAgentDashboard() {
         )}
 
         {tab === 'history' &&
-          (history?.length === 0 ? (
+          (dStore.history?.length === 0 ? (
             <View style={s.emptyState}>
               <Ionicons name="time-outline" size={52} color={T.textSub} />
               <Text style={s.emptyTitle}>{t('no_deliveries_yet')}</Text>
               <Text style={s.emptyBody}>{t('history_empty_desc')}</Text>
             </View>
           ) : (
-            history?.map((h, i) => (
+            dStore.history?.map((h, i) => (
               <View key={h.id || i} style={s.historyCard}>
                 <View style={s.historyLeft}>
                   <Ionicons name="checkmark-circle" size={24} color={T.green} />
@@ -791,8 +799,14 @@ export default function DeliveryAgentDashboard() {
                 </View>
                 <View>
                   <Text style={s.historyEarning}>
-                    +ETB {fmtETB(Math.floor((h.total || 0) * 0.12))}
+                    +ETB {fmtETB(Number(h.agent_fee))}
                   </Text>
+                  <TouchableOpacity 
+                    style={{ marginTop: 4, padding: 4 }}
+                    onPress={() => setCompletedOrder(h)}
+                  >
+                    <Text style={{ color: T.primary, fontSize: 10, fontWeight: '800' }}>{t('view_receipt')}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             ))
@@ -905,7 +919,7 @@ export default function DeliveryAgentDashboard() {
       <AgentWorkIDModal
         visible={showWorkID}
         onClose={() => setShowWorkID(false)}
-        agentProfile={agentProfile}
+        agentProfile={dStore.agentProfile}
         currentUser={currentUser}
       />
 
@@ -917,6 +931,17 @@ export default function DeliveryAgentDashboard() {
         capturing={capturing}
         cameraRef={cameraRef}
       />
+
+      {/* ══ Settlement Receipt Modal ══ */}
+      {completedOrder && (
+        <Modal visible={!!completedOrder} transparent animationType="slide">
+          <EthiopianReceipt 
+            order={completedOrder} 
+            isAgentMode={true}
+            onClose={() => setCompletedOrder(null)} 
+          />
+        </Modal>
+      )}
     </View>
   );
 }

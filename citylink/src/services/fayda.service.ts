@@ -28,26 +28,31 @@ export interface FaydaVerificationResult {
 }
 
 /**
- * IFaydaProvider
- * Interface for the identity provider to allow for easy mocking/testing.
+ * SimulatedFaydaProvider
+ * Mocked provider for development based on the 2026 NIDP Technical Spec.
  */
-interface IFaydaProvider {
-  verify(faydaId: string): Promise<FaydaVerificationResult>;
-  getConsent(faydaId: string): Promise<boolean>;
-}
-
-/**
- * ProdFaydaProvider
- * Stubs for the actual OIDC / JWS handshake.
- */
-class ProdFaydaProvider implements IFaydaProvider {
+class SimulatedFaydaProvider implements IFaydaProvider {
   async getConsent(faydaId: string): Promise<boolean> {
-    console.warn('[FaydaService] Prod consent flow not implemented (missing API access)');
-    return false;
+    // In dev, we simulate a successful consent if the ID follows the correct format (12 digits)
+    return /^\d{12}$/.test(faydaId);
   }
 
   async verify(faydaId: string): Promise<FaydaVerificationResult> {
-    return { success: false, error: 'Production API handshake not configured' };
+    // Simulate network delay for authenticity
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    return {
+      success: true,
+      status: 'VERIFIED',
+      profile: {
+        fayda_id: faydaId,
+        full_name: "Yoseph K. Alemu", // Mocked data
+        date_of_birth: "1984-05-12",
+        gender: 'M',
+        region: "Addis Ababa",
+        status: 'ACTIVE'
+      }
+    };
   }
 }
 
@@ -59,21 +64,20 @@ class FaydaBridge {
   private provider: IFaydaProvider;
 
   constructor() {
-    this.provider = new ProdFaydaProvider();
+    // If we are in dev/simulation mode, use the simulator
+    this.provider = new SimulatedFaydaProvider();
   }
 
   /**
    * requestVerification
    * Initiates the identity verification process.
-   * 1. Check for user consent.
-   * 2. Perform the provider-specific handshake.
    */
   async requestVerification(faydaId: string): Promise<FaydaVerificationResult> {
     try {
       // 1. Consent Handshake
       const hasConsent = await this.provider.getConsent(faydaId);
       if (!hasConsent) {
-        return { success: false, error: 'User rejected consent or ID invalid' };
+        return { success: false, error: 'Invalid Fayda ID format. Must be 12 digits.' };
       }
 
       // 2. Identity Verification

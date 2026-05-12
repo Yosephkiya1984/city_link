@@ -116,6 +116,7 @@ export const fetchMerchantRestaurant = async (
 };
 
 export const updateOrderStatus = FoodApi.updateOrderStatus;
+export const fireToKitchen = FoodApi.fireToKitchen;
 
 export const settleFoodOrderPayment = FoodApi.settleFoodOrderPayment;
 

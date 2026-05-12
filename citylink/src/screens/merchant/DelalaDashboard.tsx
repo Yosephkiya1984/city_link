@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useDelalaData } from './hooks/useDelalaData';
 import { useDelalaActions } from './hooks/useDelalaActions';
 import { useAuthStore } from '../../store/AuthStore';
-import { D, Radius, Fonts, Spacing, Shadow } from './components/StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../components/hospitality/HospitalityTheme';
 import { fmtETB } from '../../utils';
 import { styles } from './components/DelalaDashboardStyles';
 import { useT } from '../../utils/i18n';
@@ -220,7 +220,7 @@ export default function DelalaDashboard() {
 const localStyles = StyleSheet.create({
   licenseRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   profileBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: D.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: D.edge },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: D.error + '10', paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.m, borderWidth: 1, borderColor: D.error + '30' },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: D.error + '10', paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.md, borderWidth: 1, borderColor: D.error + '30' },
   heroRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   heroCard: { flex: 1, padding: 20, borderRadius: Radius.lg },
   listingCard: { borderRadius: Radius.xl, marginBottom: 20, overflow: 'hidden' },

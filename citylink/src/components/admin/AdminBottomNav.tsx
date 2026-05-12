@@ -30,7 +30,7 @@ export default function AdminBottomNav({ activeTab, onTabChange }: AdminBottomNa
     { id: 'overview', label: 'Monitor', mIcon: 'view-dashboard-outline' },
     { id: 'merchants', label: 'Shops', mIcon: 'store-search-outline' },
     { id: 'drivers', label: 'Agents', mIcon: 'moped-outline' },
-    { id: 'disputes', label: 'Disputes', mIcon: 'gavel' },
+    { id: 'ai', label: 'AI', mIcon: 'brain' },
     { id: 'finance', label: 'Finance', mIcon: 'cash-register' },
     { id: 'logout', label: 'Logout', mIcon: 'logout' },
   ];

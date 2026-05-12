@@ -25,6 +25,7 @@ interface TopBarProps {
 }
 
 import { GlassView } from './GlassView';
+import { SovereignIndicator } from './ai';
 
 export default function TopBar({
   title,
@@ -112,7 +113,7 @@ export default function TopBar({
         ) : null}
 
         {/* Branding / Center */}
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           {title ? (
             <Text
               numberOfLines={1}
@@ -143,6 +144,7 @@ export default function TopBar({
               </Text>
             </View>
           )}
+          <SovereignIndicator />
         </View>
 
         {/* Action Controls */}

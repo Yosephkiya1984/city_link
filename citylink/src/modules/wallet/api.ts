@@ -1,28 +1,15 @@
+import NetInfo from '@react-native-community/netinfo';
 import { supaQuery } from '../../services/supabase';
-import { WELCOME_BONUS_ETB } from '../../config';
 import { SecurePersist } from '../../store/SecurePersist';
+import { Transaction, Wallet } from '../../types';
 import { uid } from '../../utils';
-import { Wallet, Transaction } from '../../types';
+import { OfflineSyncService } from '../../services/OfflineSyncService';
 
 /**
  * Wallet Domain API
  * Orchestrates financial operations, balance synchronization, and secure caching.
  */
 export const WalletApi = {
-  /**
-   * generateIdempotencyKey — returns a stable key for a specific transaction context.
-   * Standardizes key format: context:userId:amount:timestamp_bucket
-   */
-  generateIdempotencyKey(
-    context: string,
-    userId: string,
-    amount: number,
-    entropy?: string
-  ): string {
-    const bucket = Math.floor(Date.now() / 600000); // 10 minute stability window
-    return `${context}:${userId.slice(0, 8)}:${amount}:${bucket}${entropy ? `:${entropy}` : ''}`;
-  },
-
   /**
    * fetchWallet — returns the raw wallet row for a given user ID.
    */
@@ -50,134 +37,145 @@ export const WalletApi = {
   },
 
   /**
-   * fetchWalletData — High-level function used by screens.
-   * Orchestrates balance, transactions, and SECURE OFFLINE CACHING.
+   * fetchWalletData — High-level function to fetch balance and transactions.
+   * Handles server fetch with secure cache fallback.
+   * DOES NOT update global store (separation of concerns).
    */
   async fetchWalletData(
     userId: string
   ): Promise<{ balance: number; transactions: Transaction[]; walletId: string } | null> {
     if (!userId) return null;
 
-    try {
-      const { data: walletData, error: wErr } = await this.fetchWallet(userId);
-      if (wErr) throw new Error(wErr);
+    let attempts = 0;
+    const maxAttempts = 3;
 
-      let wallet: any = walletData;
-      if (!wallet) {
-        const { data: newWallet, error: ensureErr } = await this.ensureWallet(userId);
-        if (ensureErr) throw new Error(ensureErr);
-        wallet = newWallet;
+    // 1. Try server sync (iterative retry)
+    while (attempts < maxAttempts) {
+      try {
+        const { data: walletData, error: wErr } = await WalletApi.fetchWallet(userId);
+        if (wErr) throw new Error(wErr);
+
+        let wallet: any = walletData;
+        if (!wallet) {
+          const { data: newWallet, error: ensureErr } = await WalletApi.ensureWallet(userId);
+          if (ensureErr) throw new Error(ensureErr);
+          wallet = newWallet;
+        }
+
+        if (!wallet) break; // Fallback to cache
+
+        const { data: txs, error: txErr } = await supaQuery<Transaction[]>((c) =>
+          c
+            .from('transactions')
+            .select('*')
+            .eq('wallet_id', wallet.id)
+            .order('created_at', { ascending: false })
+            .limit(20)
+        );
+
+        if (txErr) console.warn('[WalletApi] Transaction fetch warning:', txErr);
+
+        const result = {
+          balance: wallet.balance,
+          transactions: txs || [],
+          walletId: wallet.id,
+        };
+
+        // Update secure cache for offline mode
+        await SecurePersist.setItem(`wallet-cache-${userId}`, JSON.stringify(result));
+        return result;
+      } catch (err: any) {
+        attempts++;
+        console.error(`[WalletApi] Sync Attempt ${attempts} failed:`, err.message);
       }
-
-      if (!wallet) return null;
-
-      const { data: txs } = await supaQuery<Transaction[]>((c) =>
-        c
-          .from('transactions')
-          .select('*')
-          .eq('wallet_id', wallet.id)
-          .order('created_at', { ascending: false })
-          .limit(20)
-      );
-
-      const result = {
-        balance: wallet.balance,
-        transactions: txs || [],
-        walletId: wallet.id,
-      };
-
-      await SecurePersist.setItem(`wallet-cache-${userId}`, JSON.stringify(result));
-      return result;
-    } catch (err: any) {
-      const cached = await SecurePersist.getItem(`wallet-cache-${userId}`);
-      if (cached) return JSON.parse(cached);
-      return null;
     }
+
+    // 2. Fallback to Secure Cache
+    try {
+      const cached = await SecurePersist.getItem(`wallet-cache-${userId}`);
+      if (cached) {
+        console.log('[WalletApi] Using secure cache fallback.');
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      console.error('[WalletApi] Cache fallback failed:', e);
+    }
+
+    return null;
   },
 
   /**
-   * processTopup — Atomic idempotency wrapper for top-ups.
+   * generateIdempotencyKey — returns a unique key for transaction safety.
    */
-  async processTopup(
-    userId: string,
-    amount: number,
-    provider: string,
-    externalRef?: string
-  ): Promise<boolean> {
-    const idempotencyKey =
-      externalRef || this.generateIdempotencyKey('topup', userId, amount, provider);
-    const res = await supaQuery<{ ok: boolean }>((c) =>
-      c.rpc('credit_wallet_atomic', {
+  generateIdempotencyKey(): string {
+    return uid();
+  },
+
+  /**
+   * processTopup — atomic top-up via external provider.
+   */
+  async processTopup(userId: string, amount: number, provider: string = 'telebirr'): Promise<boolean> {
+    const { data, error } = await supaQuery<{ ok: boolean }>((c) =>
+      c.rpc('process_topup_atomic', {
         p_user_id: userId,
         p_amount: amount,
-        p_description: `Top-up via ${provider.toUpperCase()}`,
-        p_category: 'topup',
-        p_idempotency_key: idempotencyKey,
+        p_provider: provider,
+        p_idempotency_key: uid(),
       })
     );
-    return !res.error && res.data?.ok === true;
+    return !!data?.ok && !error;
   },
 
   /**
-   * claimWelcomeBonus — triggers the one-time welcome bonus logic.
+   * claimWelcomeBonus — one-time bonus for new users.
    */
-  async claimWelcomeBonus(
-    userId: string
-  ): Promise<{ applied: boolean; newBalance?: number; error?: string | null }> {
-    const res = await supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
-      c.rpc('process_welcome_bonus', {
-        p_user_id: userId,
-        p_amount: WELCOME_BONUS_ETB,
-      })
+  async claimWelcomeBonus(userId: string): Promise<boolean> {
+    const { data, error } = await supaQuery<{ ok: boolean }>((c) =>
+      c.rpc('claim_welcome_bonus', { p_user_id: userId })
     );
-
-    if (res.error) return { applied: false, error: res.error };
-    return { applied: res.data?.ok || false, newBalance: res.data?.new_balance };
+    return !!data?.ok && !error;
   },
 
   /**
-   * queueP2PTransfer — starts a P2P transfer.
+   * queueP2PTransfer — performs a peer-to-peer transfer.
    */
-  async queueP2PTransfer({
-    senderId,
-    recipientPhone,
-    amount,
-    note,
-    idempotencyKey,
-  }: {
-    senderId: string;
-    recipientPhone: string;
-    amount: number;
-    note?: string;
-    idempotencyKey?: string;
-  }): Promise<{ ok: boolean; newBalance?: number; status?: string; error?: string | null }> {
-    const finalKey =
-      idempotencyKey ||
-      this.generateIdempotencyKey(
-        'p2p',
-        senderId,
-        amount,
-        `${recipientPhone}:${uid().slice(0, 4)}`
-      );
-
-    const res = await supaQuery<{
-      ok: boolean;
-      new_balance: number;
-      status: string;
-      error?: string;
-    }>((c) =>
+  async queueP2PTransfer(
+    senderId: string,
+    recipientPhone: string,
+    amount: number,
+    note: string = '',
+    idempotencyKey?: string
+  ): Promise<{ ok: boolean; newBalance?: number; status?: string; error?: string }> {
+    const iKey = idempotencyKey || uid();
+    
+    // 1. Try online first
+    const { data, error } = await supaQuery<{ ok: boolean; new_balance: number; status: string; error?: string }>((c) =>
       c.rpc('process_p2p_transfer', {
         p_sender_id: senderId,
         p_recipient_phone: recipientPhone,
         p_amount: amount,
-        p_note: note || '',
-        p_idempotency_key: finalKey,
+        p_note: note,
+        p_idempotency_key: iKey,
       })
     );
 
-    if (res.error) return { ok: false, error: res.error };
-    if (!res.data?.ok) return { ok: false, error: res.data?.error || 'Transfer failed' };
+    if (error || !data) {
+      // 2. If network error, queue for offline sync
+      const net = await NetInfo.fetch();
+      if (!net.isConnected || !net.isInternetReachable) {
+        await OfflineSyncService.addAction({
+          id: uid(),
+          type: 'P2P_TRANSFER',
+          payload: { senderId, recipientPhone, amount, note, idempotencyKey: iKey },
+          createdAt: new Date().toISOString(),
+        });
+        return { ok: true, status: 'QUEUED_OFFLINE' };
+      }
+      return { ok: false, error: error || 'Transfer failed' };
+    }
 
-    return { ok: true, newBalance: res.data?.new_balance, status: res.data?.status };
+    if (!data.ok) return { ok: false, error: data.error };
+
+    return { ok: true, newBalance: data.new_balance, status: data.status };
   },
 };

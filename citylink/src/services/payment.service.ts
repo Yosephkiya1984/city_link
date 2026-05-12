@@ -4,6 +4,9 @@ import { getSession } from './auth.service';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import * as Crypto from 'expo-crypto';
+import NetInfo from '@react-native-community/netinfo';
+import { OfflineSyncService } from './OfflineSyncService';
+import { uid } from '../utils';
 
 export interface ChapaInitResponse {
   status: 'success' | 'error';
@@ -136,17 +139,35 @@ export function calcFee(amount: number, channel: string = 'telebirr'): number {
  */
 export async function payUtilityBill(
   billId: string,
-  citizenId: string
+  citizenId: string,
+  idempotencyKey?: string
 ): Promise<{
-  data: { ok: boolean; error?: string; new_balance: number } | null;
+  data: { ok: boolean; error?: string; new_balance: number; status?: string } | null;
   error: string | null;
 }> {
-  return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
+  const iKey = idempotencyKey || uid();
+  const { data, error } = await supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_utility_payment_atomic', {
       p_bill_id: billId,
       p_citizen_id: citizenId,
+      p_idempotency_key: iKey,
     })
   );
+
+  if (error) {
+    const net = await NetInfo.fetch();
+    if (!net.isConnected || !net.isInternetReachable) {
+      await OfflineSyncService.addAction({
+        id: uid(),
+        type: 'UTILITY_PAYMENT',
+        payload: { billId, citizenId, idempotencyKey: iKey },
+        createdAt: new Date().toISOString(),
+      });
+      return { data: { ok: true, new_balance: 0, status: 'QUEUED_OFFLINE' }, error: null };
+    }
+  }
+
+  return { data: data ? { ...data, status: 'COMPLETED' } : null, error };
 }
 
 /**
@@ -154,17 +175,35 @@ export async function payUtilityBill(
  */
 export async function payTrafficFine(
   userId: string,
-  fineId: string
+  fineId: string,
+  idempotencyKey?: string
 ): Promise<{
-  data: { ok: boolean; error?: string; new_balance: number } | null;
+  data: { ok: boolean; error?: string; new_balance: number; status?: string } | null;
   error: string | null;
 }> {
-  return supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
+  const iKey = idempotencyKey || uid();
+  const { data, error } = await supaQuery<{ ok: boolean; error?: string; new_balance: number }>((c) =>
     c.rpc('process_traffic_fine_atomic', {
       p_user_id: userId,
       p_fine_id: fineId,
+      p_idempotency_key: iKey,
     })
   );
+
+  if (error) {
+    const net = await NetInfo.fetch();
+    if (!net.isConnected || !net.isInternetReachable) {
+      await OfflineSyncService.addAction({
+        id: uid(),
+        type: 'TRAFFIC_FINE',
+        payload: { userId, fineId, idempotencyKey: iKey },
+        createdAt: new Date().toISOString(),
+      });
+      return { data: { ok: true, new_balance: 0, status: 'QUEUED_OFFLINE' }, error: null };
+    }
+  }
+
+  return { data: data ? { ...data, status: 'COMPLETED' } : null, error };
 }
 
 // ── Format ETB ────────────────────────────────────────────────────────────────

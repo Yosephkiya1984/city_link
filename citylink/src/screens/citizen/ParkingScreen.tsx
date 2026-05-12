@@ -7,7 +7,7 @@
  *  - This file (pure render, ~230 lines)
  */
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Image, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'react-native';
@@ -24,6 +24,7 @@ import { FlashList } from '../../components/common/SafeFlashList';
 import { SuccessOverlay } from '../../components/layout/SuccessOverlay';
 import { ProcessingOverlay } from '../../components/layout/ProcessingOverlay';
 import { useTheme } from '../../hooks/useTheme';
+import { ParkingDurationDial } from './components/ParkingDurationDial';
 
 const ADDIS_NOIR = {
   gold: '#D4AF37',
@@ -48,6 +49,11 @@ export default function ParkingScreen() {
     handleLotPress,
     handleSpotPress,
     getCurrentFare,
+    citizenLocation,
+    estimatedDuration,
+    setEstimatedDuration,
+    plateNumber,
+    setPlateNumber,
   } = useParking();
 
   const C = useTheme();
@@ -109,14 +115,14 @@ export default function ParkingScreen() {
                 <View style={styles.cockpitBrand}>
                   <Ionicons name="car-sport" size={24} color="#FFF" />
                   <View>
-                    <Text style={styles.cockpitTitle}>{t('currently_parked')}</Text>
+                    <Text style={styles.cockpitTitle}>{t('currently_parked') || 'Parked'}</Text>
                     <Text style={styles.cockpitSub}>
-                      {activeParking.spot_number} · {(activeParking as any).lot_name}
+                      {(activeParking as any).lot_name || 'Zone Access Active'}
                     </Text>
                   </View>
                 </View>
                 <TouchableOpacity style={styles.cockpitQrBtn} onPress={() => setQrModal(true)}>
-                  <Ionicons name="qr-code" size={20} color="#FFF" />
+                  <Ionicons name="key-outline" size={20} color="#FFF" />
                 </TouchableOpacity>
               </View>
 
@@ -132,7 +138,9 @@ export default function ParkingScreen() {
               </View>
 
               <TouchableOpacity style={styles.cockpitEndBtn} onPress={onParkingEnd}>
-                <Text style={styles.cockpitEndText}>{t('end_session_pay')}</Text>
+                <Text style={styles.cockpitEndText}>
+                  {t('end_session_pay')} · {(activeParking as any).plate || 'No Plate'}
+                </Text>
                 <Ionicons name="chevron-forward" size={16} color="#0B0D11" />
               </TouchableOpacity>
             </LinearGradient>
@@ -155,10 +163,9 @@ export default function ParkingScreen() {
             renderItem={({ item: lot }: any) => (
               <LotCard
                 lot={lot}
-                isExpanded={selectedLot?.id === lot.id}
-                selectedSpot={selectedSpot}
+                citizenLocation={citizenLocation}
                 onLotPress={handleLotPress}
-                onSpotPress={handleSpotPress}
+                activeParking={activeParking}
               />
             )}
             keyExtractor={(item: any) => item.id}
@@ -169,36 +176,74 @@ export default function ParkingScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* 🧾 Confirm Modal */}
       <Modal visible={confirmModal} transparent animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setConfirmModal(false)} />
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{t('confirm_booking')}</Text>
-          {selectedLot && selectedSpot && (
-            <>
-              <Text style={styles.modalSubtitle}>
-                {selectedLot.name} · Spot{' '}
-                <Text style={{ color: ADDIS_NOIR.gold }}>{selectedSpot.number}</Text>
-              </Text>
-              <View style={styles.modalInfo}>
-                <Row label={t('hourly_rate')} value={`${selectedLot.rate_per_hour} ETB`} />
-                <Row label={t('current_balance')} value={`${fmtETB(balance)} ETB`} />
-              </View>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={onParkingStart}
-                disabled={loading}
-              >
-                <Text style={styles.modalButtonText}>
-                  {loading ? t('reserving') : `🅿️ ${t('start_parking')}`}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setConfirmModal(false)} />
+          <View style={styles.modalContent}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <TouchableOpacity onPress={() => setConfirmModal(false)} style={{ padding: 4 }}>
+                <Ionicons name="arrow-back" size={24} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>{t('confirm_booking') || 'Confirm Zone Access'}</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            {selectedLot && (
+              <>
+                <Text style={styles.modalSubtitle}>
+                  {selectedLot.name} · <Text style={{ color: ADDIS_NOIR.gold }}>Zone Access</Text>
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setConfirmModal(false)}>
-                <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+                
+                <View style={{ marginVertical: 10 }}>
+                  <ParkingDurationDial 
+                    value={estimatedDuration} 
+                    onValueChange={setEstimatedDuration}
+                  />
+                </View>
+
+                <View style={{ marginBottom: 15 }}>
+                  <Text style={{ color: '#bccabe', fontSize: 12, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    Vehicle Plate Number
+                  </Text>
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <TextInput
+                      style={{ color: '#FFF', fontSize: 18, fontWeight: '700', textAlign: 'center' }}
+                      placeholder="e.g. AA 2 A12345"
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      value={plateNumber}
+                      onChangeText={setPlateNumber}
+                      autoCapitalize="characters"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.modalInfo}>
+                  <Row label={t('hourly_rate') || 'Hourly Rate'} value={`${selectedLot.rate_per_hour} ETB`} />
+                  <Row label="Initial Escrow" value={`${selectedLot.rate_per_hour * estimatedDuration} ETB`} />
+                  <Row label={t('current_balance')} value={`${fmtETB(balance)} ETB`} />
+                </View>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={onParkingStart}
+                  disabled={loading}
+                >
+                  <Text style={styles.modalButtonText}>
+                    {loading ? t('reserving') : `🅿️ Lock Escrow & Enter Zone`}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.cancelButton, { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginTop: 8, paddingTop: 16 }]} 
+                  onPress={() => setConfirmModal(false)}
+                >
+                  <Text style={[styles.cancelButtonText, { color: '#FF5A4C' }]}>{t('cancel_request') || 'Cancel & Go Back'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <SuccessOverlay
@@ -210,18 +255,34 @@ export default function ParkingScreen() {
 
       <ProcessingOverlay visible={loading} message={t('securing_transfer')} />
 
-      {/* 📱 QR Modal */}
+      {/* 📱 Pass-Key Modal */}
       <Modal visible={qrModal} transparent animationType="slide">
         <Pressable style={styles.modalOverlay} onPress={() => setQrModal(false)} />
         <View style={styles.qrModalContent}>
           <View style={styles.qrCard}>
-            <Text style={styles.qrTitle}>{t('facility_access_code')}</Text>
-            <Text style={styles.qrCode}>
-              {(activeParking as any)?.qr_token?.toUpperCase() || 'REF-8291'}
+            <Text style={styles.qrTitle}>{t('facility_access_code') || 'Valet Pass-Key'}</Text>
+            <Text style={[styles.qrCode, { fontSize: 48, letterSpacing: 8, color: ADDIS_NOIR.gold }]}>
+              {(activeParking as any)?.pin || '123456'}
+            </Text>
+            <View style={{ marginTop: 15, padding: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, textAlign: 'center', textTransform: 'uppercase' }}>Vehicle Plate</Text>
+              <Text style={{ color: '#FFF', fontSize: 20, fontWeight: '800', textAlign: 'center' }}>
+                {(activeParking as any)?.plate || 'AA-UNKNOWN'}
+              </Text>
+            </View>
+          </View>
+          <View style={{ marginTop: 20, padding: 15, backgroundColor: 'rgba(212, 175, 55, 0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.3)' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Ionicons name="information-circle" size={18} color={ADDIS_NOIR.gold} />
+              <Text style={{ color: ADDIS_NOIR.gold, fontWeight: '700', marginLeft: 8, fontSize: 13 }}>Valet Handshake Guide</Text>
+            </View>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 18 }}>
+              1. The valet already sees your <Text style={{ color: '#FFF', fontWeight: '700' }}>Plate {(activeParking as any)?.plate}</Text> on their dashboard.{"\n"}
+              2. Show them this <Text style={{ color: '#FFF', fontWeight: '700' }}>6-digit PIN</Text> only when you are ready to exit.{"\n"}
+              3. They will verify it to finalize your payment automatically.
             </Text>
           </View>
-          <Text style={styles.qrDescription}>{t('qr_desc')}</Text>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setQrModal(false)}>
+          <TouchableOpacity style={[styles.cancelButton, { marginTop: 20 }]} onPress={() => setQrModal(false)}>
             <Text style={styles.cancelButtonText}>{t('close_portal')}</Text>
           </TouchableOpacity>
         </View>
@@ -232,86 +293,97 @@ export default function ParkingScreen() {
 
 // ── Sub-Components ──────────────────────────────────────────────────────────
 
+function haversineDist(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function LotCard({
   lot,
-  isExpanded,
-  selectedSpot,
+  citizenLocation,
   onLotPress,
-  onSpotPress,
+  activeParking,
 }: {
   lot: ParkingLotLocal;
-  isExpanded: boolean;
-  selectedSpot: ParkingSpotLocal | null;
+  citizenLocation: { lat: number, lng: number } | null;
   onLotPress: (lot: ParkingLotLocal) => void;
-  onSpotPress: (spot: ParkingSpotLocal) => void;
+  activeParking: any;
 }) {
   const available = lot.spots.filter((s) => s.status === 'available').length;
-  const pct = Math.round((available / lot.total_spots) * 100);
+  const pct = Math.round((available / Math.max(lot.total_spots, 1)) * 100);
+  const isFull = available === 0;
+  const isSurge = pct < 15 && !isFull;
   const progressColor = pct > 50 ? '#59de9b' : pct > 20 ? '#ffd887' : '#ff5a4c';
 
+  let distanceStr = '';
+  if (citizenLocation && lot.merchant_lat && lot.merchant_lng) {
+    const distKm = haversineDist(citizenLocation.lat, citizenLocation.lng, lot.merchant_lat, lot.merchant_lng);
+    distanceStr = distKm < 1 ? `${Math.round(distKm * 1000)}m away` : `${distKm.toFixed(1)}km away`;
+  }
+
   return (
-    <TouchableOpacity onPress={() => onLotPress(lot)} style={styles.lotCard} activeOpacity={0.8}>
+    <TouchableOpacity 
+      onPress={() => !isFull && onLotPress(lot)} 
+      style={[styles.lotCard, (isFull || !!activeParking) && { opacity: 0.55 }]} 
+      activeOpacity={0.8}
+      disabled={!!activeParking}
+    >
       <View style={styles.lotHeader}>
         <View style={styles.lotInfo}>
           <View style={styles.lotDetails}>
-            <Text style={styles.lotName}>{lot.name}</Text>
-            <Text style={styles.lotLocation}>📍 {lot.subcity}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <Text style={styles.lotName}>{lot.name}</Text>
+              {isSurge && (
+                <View style={{ backgroundColor: '#FF6B2B20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, color: '#FF6B2B', fontWeight: '800' }}>🔥 HIGH DEMAND</Text>
+                </View>
+              )}
+              {isFull && (
+                <View style={{ backgroundColor: '#ff5a4c20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, color: '#ff5a4c', fontWeight: '800' }}>FULL</Text>
+                </View>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.lotLocation}>📍 {lot.subcity}</Text>
+              {distanceStr ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: 'rgba(212, 175, 55, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Ionicons name="person" size={10} color="#D4AF37" />
+                  <Text style={{ fontSize: 10, color: '#D4AF37', marginLeft: 4, fontWeight: '700' }}>Attendant {distanceStr}</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
           <View style={styles.lotPricing}>
-            <Text style={styles.priceAmount}>{lot.rate_per_hour} ETB</Text>
-            <Text style={styles.priceLabel}>{t('per_hour')}</Text>
+            <Text style={[styles.priceAmount, lot.is_surge && { color: ADDIS_NOIR.gold }]}>
+              {lot.current_rate || lot.rate_per_hour} <Text style={{ fontSize: 10 }}>ETB/Hr</Text>
+            </Text>
+            {lot.is_surge && (
+              <View style={localStyles.surgeBadge}>
+                <Ionicons name="flash" size={8} color={ADDIS_NOIR.gold} />
+                <Text style={localStyles.surgeText}>HIGH DEMAND</Text>
+              </View>
+            )}
+            <Text style={styles.priceLabel}>{t('hourlyRate')}</Text>
           </View>
         </View>
         <View style={styles.availabilityBar}>
-          <View style={styles.progressBar}>
-            <View
-              style={[styles.progressFill, { width: `${pct}%`, backgroundColor: progressColor }]}
-            />
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[styles.progressFill, { width: `${pct}%`, backgroundColor: progressColor }]}
+              />
+            </View>
+            <Text style={[styles.availabilityText, { color: progressColor }]}>
+              {isFull ? 'ZONE FULL' : `${available} SPOTS FREE`}
+            </Text>
           </View>
-          <Text style={styles.availabilityText}>
-            {available}/{lot.total_spots} {t('free')}
-          </Text>
+          <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.2)" />
         </View>
       </View>
-
-      {isExpanded && (
-        <View style={styles.spotSelection}>
-          <Text style={styles.spotSelectionTitle}>{t('select_spot')}</Text>
-          <View style={styles.spotGrid}>
-            {lot.spots.slice(0, 40).map((spot) => {
-              const isSelected = selectedSpot?.id === spot.id;
-              const spotStyle =
-                spot.status === 'occupied'
-                  ? styles.spotOccupied
-                  : isSelected
-                    ? styles.spotSelected
-                    : styles.spotAvailable;
-              const textStyle =
-                spot.status === 'occupied'
-                  ? styles.spotTextOccupied
-                  : isSelected
-                    ? styles.spotTextSelected
-                    : styles.spotTextAvailable;
-              return (
-                <TouchableOpacity
-                  key={spot.id}
-                  disabled={spot.status === 'occupied'}
-                  onPress={() => onSpotPress(spot)}
-                  style={[styles.spotButton, spotStyle]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.spotText, textStyle]}>{spot.number}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <View style={styles.spotLegend}>
-            <LegendDot color="#59de9b" label={t('available')} />
-            <LegendDot color="#59de9b" label={t('selected')} />
-            <LegendDot color="#ff5a4c" label={t('occupied')} />
-          </View>
-        </View>
-      )}
     </TouchableOpacity>
   );
 }
@@ -337,3 +409,21 @@ function Row({ label, value }: { label: string; value: string | number }) {
     </View>
   );
 }
+const localStyles = StyleSheet.create({
+  surgeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  surgeText: {
+    color: ADDIS_NOIR.gold,
+    fontSize: 8,
+    fontFamily: Fonts.bold,
+    letterSpacing: 0.5,
+  },
+});

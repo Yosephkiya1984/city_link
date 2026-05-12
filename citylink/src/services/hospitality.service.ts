@@ -276,15 +276,42 @@ export class HospitalityService {
     return data;
   }
 
-  static async getMerchantStaffProfile(profileId: string) {
-    const { data, error } = await getClient()!
+  // Returns ALL staff roles for a user — supports multi-role (valet + waiter simultaneously)
+  static async getMerchantAllStaffProfiles(profileId: string): Promise<any[]> {
+    // Step 1: Get all staff assignments for this profile
+    const { data: staffRows, error: staffErr } = await getClient()!
       .from('merchant_staff')
-      .select('*, merchant:profiles(id, business_name, role)')
-      .eq('profile_id', profileId)
-      .maybeSingle();
-      
-    if (error) throw new Error(error.message);
-    return data;
+      .select('id, merchant_id, profile_id, role, is_online')
+      .eq('profile_id', profileId);
+
+    if (staffErr || !staffRows?.length) return [];
+
+    // Step 2: Fetch merchant details in one query (avoids FK alias issues entirely)
+    const merchantIds = [...new Set(staffRows.map((s: any) => s.merchant_id).filter(Boolean))];
+    const { data: merchantRows } = await getClient()!
+      .from('merchants')
+      .select('id, merchant_type, business_name, merchant_details')
+      .in('id', merchantIds);
+
+    // Combine — one entry per staff record, each with its merchant attached
+    return staffRows.map((s: any) => ({
+      ...s,
+      merchant: merchantRows?.find((m: any) => m.id === s.merchant_id) ?? null,
+    }));
+  }
+
+  static async getMerchantStaffProfile(profileId: string) {
+    const all = await HospitalityService.getMerchantAllStaffProfiles(profileId);
+    if (!all.length) return null;
+
+    // Prioritize parking record for valet dashboard (data hooks only need merchant_id)
+    const parkingStaff = all.find(
+      (s: any) =>
+        s.merchant?.merchant_type === 'parking' ||
+        s.merchant?.merchant_details?.merchant_type === 'parking' ||
+        s.role === 'valet'
+    );
+    return parkingStaff ?? all[0];
   }
 
   static async removeStaffMember(staffId: string) {

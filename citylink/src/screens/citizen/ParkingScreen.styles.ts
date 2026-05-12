@@ -152,7 +152,8 @@ export const parkingStyles = StyleSheet.create({
   priceAmount: { color: ADDIS_NOIR.cyan, fontSize: 18, fontFamily: Fonts.bold },
   priceLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 9, marginTop: 2 },
   availabilityBar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  progressBar: { flex: 1, height: 4, backgroundColor: ADDIS_NOIR.lift, borderRadius: 2 },
+  progressContainer: { flex: 1 },
+  progressBar: { height: 4, backgroundColor: ADDIS_NOIR.lift, borderRadius: 2, marginBottom: 6 },
   progressFill: { height: 4, borderRadius: 2 },
   availabilityText: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: Fonts.bold },
 

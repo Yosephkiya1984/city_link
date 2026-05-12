@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import { useEkubData } from './hooks/useEkubData';
 import { useEkubActions } from './hooks/useEkubActions';
 import { useAuthStore } from '../../store/AuthStore';
-import { D, Radius, Fonts, Spacing, Shadow } from './components/StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../components/hospitality/HospitalityTheme';
 import { fmtETB } from '../../utils';
 import { styles } from './components/EkubDashboardStyles';
 import { useT } from '../../utils/i18n';
@@ -28,7 +28,7 @@ const { width } = Dimensions.get('window');
 
 export default function EkubDashboard() {
   const t = useT();
-  const currentUser = useAuthStore((s) => s.currentUser);
+  const { currentUser, signOut } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'circles' | 'apps' | 'draws' | 'ledger'>('circles');
   const [isDrawing, setIsDrawing] = useState(false);
   const [winner, setWinner] = useState<any>(null);
@@ -241,8 +241,15 @@ export default function EkubDashboard() {
               <Typography variant="hint" color="primary" style={{ marginLeft: 4 }}>GOVERNMENT AUDITED</Typography>
             </View>
           </View>
-          <TouchableOpacity style={localStyles.settingsBtn}>
-            <Ionicons name="settings-outline" size={24} color={D.white} />
+          <TouchableOpacity 
+            style={localStyles.logoutBtn}
+            onPress={async () => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              await signOut();
+            }}
+          >
+            <Ionicons name="log-out-outline" size={20} color={D.red} />
+            <Text style={localStyles.logoutText}>EXIT</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -293,7 +300,8 @@ export default function EkubDashboard() {
 
 const localStyles = StyleSheet.create({
   trustRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: D.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: D.edge },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: D.red + '15', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: D.red + '30' },
+  logoutText: { color: D.red, fontFamily: Fonts.bold, fontSize: 12, marginLeft: 6, letterSpacing: 1 },
   circleCard: { padding: 16, borderRadius: Radius.xl, marginBottom: 16 },
   circleHeader: { flexDirection: 'row', alignItems: 'center' },
   circleIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: D.violet + '20', alignItems: 'center', justifyContent: 'center' },

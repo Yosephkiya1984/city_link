@@ -3,7 +3,7 @@ import { ParkingLot, ParkingSpot, ParkingSession } from '../types';
 
 export async function fetchParkingLots(merchantId?: string) {
   return supaQuery<ParkingLot[]>((c) => {
-    let query = c.from('parking_lots').select('*, parking_spots(*)');
+    let query = c.from('parking_lots_dynamic').select('*, parking_spots(*), merchant:profiles(latitude, longitude)');
     if (merchantId) {
       query = query.eq('merchant_id', merchantId);
     }
@@ -11,18 +11,40 @@ export async function fetchParkingLots(merchantId?: string) {
   });
 }
 
+export async function createParkingLot(lot: Partial<ParkingLot>) {
+  return supaQuery<ParkingLot>((c) =>
+    c.from('parking_lots').insert(lot).select().single()
+  );
+}
+
 export async function startParkingSession(
   userId: string,
   lotId: string,
   spotId: string,
-  vehiclePlate: string
+  vehiclePlate: string,
+  estimatedHours: number = 2
 ) {
-  return supaQuery<{ ok: boolean; session_id: string; error?: string }>((c) =>
+  return supaQuery<{ ok: boolean; session_id: string; pin: string; error?: string }>((c) =>
     c.rpc('start_parking_session_atomic', {
       p_user_id: userId,
       p_lot_id: lotId,
       p_spot_id: spotId,
+      p_plate: vehiclePlate,
+      p_duration_hrs: estimatedHours,
+    })
+  );
+}
+
+export async function startParkingSessionMerchant(
+  lotId: string,
+  vehiclePlate: string,
+  spotNumber: string = 'WALK-IN'
+) {
+  return supaQuery<{ ok: boolean; session_id: string; error?: string }>((c) =>
+    c.rpc('start_parking_session_merchant', {
+      p_lot_id: lotId,
       p_vehicle_plate: vehiclePlate,
+      p_spot_number: spotNumber,
     })
   );
 }
@@ -92,14 +114,16 @@ export async function finalizeParkingSessionLegal(
   sessionId: string,
   paymentMethod: 'WALLET' | 'CASH' | 'BANK_TRANSFER',
   amount: number,
-  collectedById: string
+  collectedById: string,
+  pin?: string
 ) {
-  return supaQuery<{ ok: boolean; error?: string; method: string }>((c) =>
+  return supaQuery<{ ok: boolean; error?: string; actual_cost?: number }>((c) =>
     c.rpc('finalize_parking_session_legal', {
       p_session_id: sessionId,
       p_payment_method: paymentMethod,
       p_amount: amount,
       p_collected_by: collectedById,
+      p_pin: pin,
     })
   );
 }
@@ -117,5 +141,57 @@ export async function updateParkingLot(
       .eq('merchant_id', merchantId)
       .select()
       .single()
+  );
+}
+
+export async function deleteParkingLot(lotId: string, merchantId: string) {
+  return supaQuery<any>((c) =>
+    c.from('parking_lots').delete().eq('id', lotId).eq('merchant_id', merchantId)
+  );
+}
+
+export async function updateMerchantLocation(merchantId: string, lat: number, lng: number) {
+  return supaQuery<void>((c) =>
+    c
+      .from('profiles')
+      .update({ latitude: lat, longitude: lng, updated_at: new Date().toISOString() })
+      .eq('id', merchantId)
+  );
+}
+
+export async function fetchMerchantStaff(merchantId: string) {
+  return supaQuery<any[]>((c) =>
+    c
+      .from('merchant_staff')
+      .select('*, profile:profiles!merchant_staff_profile_id_fkey(*)')
+      .eq('merchant_id', merchantId)
+  );
+}
+
+export async function addStaffByPhone(merchantId: string, phone: string, role: string = 'valet') {
+  return supaQuery<{ ok: boolean; staff_id: string; error?: string }>((c) =>
+    c.rpc('add_merchant_staff_by_phone', {
+      p_merchant_id: merchantId,
+      p_phone: phone,
+      p_role: role,
+    })
+  );
+}
+
+export async function updateStaffStatus(staffId: string, isOnline: boolean) {
+  return supaQuery<any>((c) =>
+    c
+      .from('merchant_staff')
+      .update({ is_online: isOnline })
+      .eq('id', staffId)
+  );
+}
+
+export async function revokeStaffAccess(staffId: string) {
+  return supaQuery<any>((c) =>
+    c
+      .from('merchant_staff')
+      .delete()
+      .eq('id', staffId)
   );
 }

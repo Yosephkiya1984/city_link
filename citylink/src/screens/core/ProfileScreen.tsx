@@ -46,28 +46,26 @@ export default function ProfileScreen() {
   const [pinSet, setPinSet] = useState(false);
   const [kycStatus, setKycStatus] = useState<string | null>(FAYDA_STATUS.NOT_STARTED as string);
   const [isAgent, setIsAgent] = useState(false);
-  const [isStaff, setIsStaff] = useState(false);
-  const [staffData, setStaffData] = useState<any>(null);
+  const [staffProfiles, setStaffProfiles] = useState<any[]>([]);
   const [loadingAgent, setLoadingAgent] = useState(false);
 
   const loadProfileData = useCallback(async () => {
     const userId = currentUser?.id;
     if (!userId)
-      return { pinSetStatus: false, kycStatusValue: FAYDA_STATUS.NOT_STARTED, isAgentValue: false };
+      return { pinSetStatus: false, kycStatusValue: FAYDA_STATUS.NOT_STARTED, isAgentValue: false, staffProfilesData: [] as any[] };
 
-    const [pinSetStatus, statusData, agentProfile, staffCheck] = await Promise.all([
+    const [pinSetStatus, statusData, agentProfile, staffProfilesData] = await Promise.all([
       hasWalletPin(userId),
       KycService.getKYCStatus(),
       fetchAgentProfile(userId),
-      HospitalityService.getMerchantStaffProfile(userId).catch(() => null)
+      HospitalityService.getMerchantAllStaffProfiles(userId).catch(() => [] as any[])
     ]);
 
     return {
       pinSetStatus,
       kycStatusValue: statusData.status,
       isAgentValue: !!agentProfile.data,
-      isStaffValue: !!staffCheck,
-      staffCheckData: staffCheck
+      staffProfilesData,
     };
   }, [currentUser?.id]);
 
@@ -77,8 +75,7 @@ export default function ProfileScreen() {
       setPinSet(data.pinSetStatus);
       setKycStatus(data.kycStatusValue);
       setIsAgent(data.isAgentValue);
-      setIsStaff(data.isStaffValue);
-      setStaffData(data.staffCheckData);
+      setStaffProfiles(data.staffProfilesData || []);
       setLoadingAgent(false);
     });
   }, [loadProfileData]);
@@ -265,39 +262,90 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Staff Portal Entry */}
-        {isStaff && (
-          <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
-            <TouchableOpacity
-              onPress={() => (navigation as any).navigate('MerchantPortal', { 
-                staffMode: true, 
-                staffRole: staffData?.role,
-                merchantType: staffData?.merchant?.merchant_type,
-                merchantId: staffData?.merchant?.id
-              })}
-              style={{
-                backgroundColor: C.primary,
-                borderRadius: Radius.xl,
-                padding: 20,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 16,
-                ...Shadow.md,
-              }}
-            >
-              <Ionicons name="restaurant" size={28} color={C.white} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: C.white, fontSize: 18, fontFamily: Fonts.black }}>
-                  {t('staff_dashboard') || 'Staff Dashboard'}
-                </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: Fonts.medium }}>
-                  Manage tables and orders
-                </Text>
+        {/* ── Staff Portal Entries: one card per registered role ── */}
+        {staffProfiles.map((staffEntry, idx) => {
+          const isParkingValet =
+            staffEntry.merchant?.merchant_type === 'parking' ||
+            staffEntry.merchant?.merchant_details?.merchant_type === 'parking' ||
+            staffEntry.role === 'valet';
+
+          if (isParkingValet) {
+            return (
+              <View key={`valet-${idx}`} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    if (uiMode === 'valet') {
+                      setUiMode('citizen');
+                      showToast(t('switch_to_citizen') || 'Switching to Citizen mode', 'info');
+                    } else {
+                      setUiMode('valet');
+                      showToast('Entering Valet Mode', 'success');
+                    }
+                  }}
+                  style={{
+                    backgroundColor: uiMode === 'valet' ? C.primaryL : C.surface,
+                    borderRadius: Radius.xl,
+                    padding: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 16,
+                    borderWidth: 1.5,
+                    borderColor: uiMode === 'valet' ? C.primary : C.edge2,
+                    ...Shadow.md,
+                  }}
+                >
+                  <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: uiMode === 'valet' ? 'rgba(255,215,0,0.15)' : 'rgba(99,179,237,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name={uiMode === 'valet' ? 'person-outline' : 'car'} size={26} color={uiMode === 'valet' ? C.primary : C.sub} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: uiMode === 'valet' ? C.primary : C.text, fontSize: 16, fontFamily: Fonts.black }}>
+                      {uiMode === 'valet' ? t('switch_to_citizen') || 'Citizen Mode' : 'Valet Dashboard'}
+                    </Text>
+                    <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}>
+                      {staffEntry.merchant?.business_name || 'Parking Lot'} • {uiMode === 'valet' ? 'Return to main app' : 'Manage parking entries & exits'}
+                    </Text>
+                  </View>
+                  <Ionicons name="repeat-outline" size={20} color={uiMode === 'valet' ? C.primary : C.sub} />
+                </TouchableOpacity>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={C.white} />
-            </TouchableOpacity>
-          </View>
-        )}
+            );
+          }
+
+          // Restaurant / Shop / other staff card
+          return (
+            <View key={`staff-${idx}`} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+              <TouchableOpacity
+                onPress={() => (navigation as any).navigate('MerchantPortal', {
+                  staffMode: true,
+                  staffRole: staffEntry.role,
+                  merchantType: staffEntry.merchant?.merchant_type,
+                  merchantId: staffEntry.merchant_id,
+                })}
+                style={{
+                  backgroundColor: C.primary,
+                  borderRadius: Radius.xl,
+                  padding: 20,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 16,
+                  ...Shadow.md,
+                }}
+              >
+                <Ionicons name="restaurant" size={28} color={C.white} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: C.white, fontSize: 18, fontFamily: Fonts.black }}>
+                    {t('staff_dashboard') || 'Staff Dashboard'}
+                  </Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: Fonts.medium }}>
+                    {staffEntry.merchant?.business_name || staffEntry.merchant?.merchant_type || 'Merchant'} • {staffEntry.role?.toUpperCase()}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={C.white} />
+              </TouchableOpacity>
+            </View>
+          );
+        })}
 
         {/* Delivery Agent Entry */}
         {currentUser?.role === 'delivery_agent' || isAgent ? (

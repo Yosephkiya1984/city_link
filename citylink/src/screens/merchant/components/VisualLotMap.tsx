@@ -9,8 +9,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
-import { D, Radius, Fonts, Spacing, Shadow } from './StitchTheme';
-import { Typography, Surface } from '../../../components';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
+import { Typography, GlassCard, GlassView } from '../../../components';
+import { useTheme } from '../../../hooks/useTheme';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 8;
@@ -26,29 +27,31 @@ interface Spot {
 
 interface VisualLotMapProps {
   spots: Spot[];
+  currentLotName?: string;
   onSpotPress: (spot: Spot) => void;
   editMode: boolean;
 }
 
-export function VisualLotMap({ spots, onSpotPress, editMode }: VisualLotMapProps) {
+export function VisualLotMap({ spots, currentLotName, onSpotPress, editMode }: VisualLotMapProps) {
+  const C = useTheme();
   return (
-    <Surface variant="lift" style={styles.container}>
+    <GlassCard style={styles.container}>
       <View style={styles.header}>
-        <Typography variant="h3">Lot Navigation</Typography>
+        <Typography variant="h3">{currentLotName || 'Lot Grid'}</Typography>
         <View style={styles.legend}>
-          <View style={[styles.dot, { backgroundColor: D.primary }]} />
-          <Typography variant="hint">Free</Typography>
-          <View style={[styles.dot, { backgroundColor: D.gold, marginLeft: 8 }]} />
-          <Typography variant="hint">Full</Typography>
+          <View style={[styles.dot, { backgroundColor: C.primary }]} />
+          <Typography variant="hint" style={{ marginRight: 8, marginLeft: 4 }}>Free</Typography>
+          <View style={[styles.dot, { backgroundColor: C.gold }]} />
+          <Typography variant="hint" style={{ marginLeft: 4 }}>Full</Typography>
         </View>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.gridContainer}>
+        <GlassView variant="outline" style={[styles.gridContainer, { backgroundColor: C.surface, borderColor: C.edge }]}>
           {/* Background Grid Lines */}
           <View style={styles.gridOverlay}>
             {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => (
-              <View key={i} style={styles.gridCell} />
+              <View key={i} style={[styles.gridCell, { borderColor: C.lift + '30' }]} />
             ))}
           </View>
 
@@ -62,8 +65,8 @@ export function VisualLotMap({ spots, onSpotPress, editMode }: VisualLotMapProps
                 {
                   left: spot.x * CELL_SIZE,
                   top: spot.y * CELL_SIZE,
-                  backgroundColor: spot.status === 'occupied' ? D.gold : D.primary + '20',
-                  borderColor: spot.status === 'occupied' ? D.gold : D.primary,
+                  backgroundColor: spot.status === 'occupied' ? C.gold : C.primary + '20',
+                  borderColor: spot.status === 'occupied' ? C.gold : C.primary,
                 },
               ]}
             >
@@ -75,27 +78,27 @@ export function VisualLotMap({ spots, onSpotPress, editMode }: VisualLotMapProps
                 <Ionicons 
                   name={spot.status === 'occupied' ? 'car-sport' : 'cube-outline'} 
                   size={16} 
-                  color={spot.status === 'occupied' ? D.ink : D.primary} 
+                  color={spot.status === 'occupied' ? '#000' : C.primary} 
                 />
-                <Text style={[styles.spotNum, { color: spot.status === 'occupied' ? D.ink : D.primary }]}>
+                <Text style={[styles.spotNum, { color: spot.status === 'occupied' ? '#000' : C.primary }]}>
                   {spot.number}
                 </Text>
               </MotiView>
               
               {spot.status === 'vip' && (
-                <View style={styles.vipBadge}>
-                  <Ionicons name="star" size={8} color={D.ink} />
+                <View style={[styles.vipBadge, { backgroundColor: C.gold }]}>
+                  <Ionicons name="star" size={8} color="#000" />
                 </View>
               )}
             </TouchableOpacity>
           ))}
-        </View>
+        </GlassView>
       </ScrollView>
 
       <View style={styles.footer}>
         <Typography variant="hint" color="sub">Drag to view entire lot. Tap spot to manage session.</Typography>
       </View>
-    </Surface>
+    </GlassCard>
   );
 }
 
@@ -108,10 +111,8 @@ const styles = StyleSheet.create({
     width: CELL_SIZE * GRID_SIZE,
     height: CELL_SIZE * GRID_SIZE,
     position: 'relative',
-    backgroundColor: D.surface,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    borderColor: D.edge,
   },
   gridOverlay: {
     flexDirection: 'row',
@@ -126,7 +127,6 @@ const styles = StyleSheet.create({
     width: CELL_SIZE,
     height: CELL_SIZE,
     borderWidth: 0.5,
-    borderColor: D.lift + '30',
   },
   spot: {
     position: 'absolute',
@@ -141,6 +141,6 @@ const styles = StyleSheet.create({
   },
   spotInner: { alignItems: 'center', justifyContent: 'center' },
   spotNum: { fontSize: 10, fontFamily: Fonts.black, marginTop: 2 },
-  vipBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: D.gold, width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  vipBadge: { position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   footer: { marginTop: 12, alignItems: 'center' },
 });

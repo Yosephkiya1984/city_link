@@ -10,6 +10,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,6 +63,9 @@ export default function MerchantPortalScreen() {
     await useAuthStore.getState().signOut();
   };
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncAttempted = React.useRef(false);
+
   const merchantType = isStaffMode 
     ? staffMerchantType 
     : ((currentUser as any)?.merchant_type || (currentUser as any)?.merchant_details?.merchant_type);
@@ -73,6 +77,8 @@ export default function MerchantPortalScreen() {
       'retail',
       'shop',
       'seller',
+      'retailer',
+      'marketplace',
       'restaurant',
       'cafe',
       'food',
@@ -83,7 +89,7 @@ export default function MerchantPortalScreen() {
     ];
 
     async function checkAndRefresh() {
-      if (!currentUser) return;
+      if (!currentUser || syncAttempted.current) return;
       
       if (isStaffMode) {
         console.log('[MerchantPortal] Operating in Staff Mode for type:', merchantType);
@@ -98,6 +104,8 @@ export default function MerchantPortalScreen() {
 
       if (!normalizedType || !knownTypes.includes(normalizedType)) {
         console.log('⚠️ Unknown or missing merchant type. Attempting profile refresh...');
+        syncAttempted.current = true;
+        setIsSyncing(true);
 
         // SELF-HEALING: Re-fetch profile from server if type is missing in cache
         try {
@@ -105,12 +113,14 @@ export default function MerchantPortalScreen() {
           if (freshUser && freshUser.merchant_type) {
             console.log('[MerchantPortal] Profile healed! Type:', freshUser.merchant_type);
             await setCurrentUser(freshUser);
+            setIsSyncing(false);
             return;
           }
         } catch (e) {
           console.warn('[MerchantPortal] Self-healing failed:', e);
         }
 
+        setIsSyncing(false);
         console.log('❌ Still missing or unknown merchant type after refresh.');
         if (currentUser.role !== 'merchant' && !isStaffMode) {
           showToast(
@@ -148,12 +158,56 @@ export default function MerchantPortalScreen() {
       case 'ekub':
         return <EkubDashboard />;
       default:
-        // MANDATORY FALLBACK: If the user is a verified merchant but has an unknown or missing sub-type,
+        if (!merchantType || isSyncing) {
+          // Healing logic: if merchant_type is missing, try fetching full profile once before giving up
+          return (
+            <View style={[styles.center, { backgroundColor: C.ink, padding: 20, flex: 1, justifyContent: 'center' }]}>
+              <Ionicons name="refresh-circle-outline" size={64} color={C.primary} />
+              <Text style={[styles.title, { color: C.text, marginTop: 16, fontSize: 24, fontWeight: '700' }]}>Identity Recovery</Text>
+              <Text style={[styles.desc, { color: C.sub, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20 }]}>
+                {isSyncing 
+                  ? "We're re-syncing your merchant credentials. This usually happens after a session refresh or identity update..."
+                  : "We couldn't automatically verify your merchant type. Please retry or sign out."}
+              </Text>
+              
+              {isSyncing && <ActivityIndicator color={C.primary} style={{ marginBottom: 32 }} />}
+
+              <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: C.primary, width: '100%', marginBottom: 12, padding: 16, borderRadius: 12, alignItems: 'center' }]}
+                onPress={async () => {
+                  setIsSyncing(true);
+                  const { fetchProfile } = await import('../../services/profile.service');
+                  const res = await fetchProfile(currentUser?.id || '');
+                  if (res.data?.merchant_type) {
+                    await useAuthStore.getState().setCurrentUser(res.data);
+                  } else {
+                    useSystemStore.getState().showToast('Profile sync failed. Please contact support.', 'error');
+                  }
+                  setIsSyncing(false);
+                }}
+                disabled={isSyncing}
+              >
+                <Text style={{ color: C.ink, fontWeight: '700' }}>{isSyncing ? 'Syncing...' : 'Retry Sync'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: 'transparent', width: '100%', padding: 16, borderRadius: 12, alignItems: 'center' }]}
+                onPress={() => useAuthStore.getState().signOut()}
+                disabled={isSyncing}
+              >
+                <Text style={{ color: C.sub, fontWeight: '600' }}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }
+
+        // MANDATORY FALLBACK: If the user is a verified merchant but has an unknown sub-type,
         // we default them to the ShopDashboard (Marketplace) to ensure they aren't locked out.
         if (currentUser?.role === 'merchant') {
           console.log('[MerchantPortal] Falling back to ShopDashboard for role: merchant');
           return <ShopDashboard />;
         }
+
         return (
           <View
             style={{
@@ -219,3 +273,19 @@ export default function MerchantPortalScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontFamily: Fonts.headline,
+  },
+  desc: {
+    fontFamily: Fonts.body,
+  },
+  actionBtn: {
+    justifyContent: 'center',
+  },
+});

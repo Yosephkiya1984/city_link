@@ -102,6 +102,30 @@ export const useWalletStore = create<WalletState>((set) => ({
       useWalletStore.getState().setBalance(data.balance);
       useWalletStore.getState().setFrozenBalance(data.frozen_balance || 0);
     }
+
+    // 🏎️ Sync Active Parking Session
+    const { data: session, error: sessErr } = await supabase
+      .from('parking_sessions')
+      .select('*, parking_lots(name, rate_per_hour)')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'ACTIVE', 'RESERVED'])
+      .order('start_time', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (session && !sessErr) {
+      const mappedSession = {
+        ...session,
+        lot_name: (session.parking_lots as any)?.name || 'Parking Lot',
+        rate_per_hour: (session.parking_lots as any)?.rate_per_hour || 15,
+      };
+      useWalletStore.getState().setActiveParking(mappedSession);
+    } else if (!sessErr) {
+      // No active session in DB, clear local if it exists
+      if (useWalletStore.getState().activeParking) {
+        useWalletStore.getState().setActiveParking(null);
+      }
+    }
   },
 
   reset: async () => {

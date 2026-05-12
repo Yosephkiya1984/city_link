@@ -2,8 +2,8 @@ import { getClient, supaQuery, hasSupabase, subscribeToTable } from './supabase'
 import { uid } from '../utils';
 import { decode } from 'base64-arraybuffer';
 import { Product, MarketplaceOrder, Dispute, MerchantMetrics } from '../types';
-
 import { MarketplaceApi, ProductWithMerchant } from '../modules/marketplace';
+import { OfflineSyncService } from './OfflineSyncService';
 
 // —— Products ——————————————————————————————————————————————————————————————————
 
@@ -301,11 +301,7 @@ export async function fetchMerchantMetrics(merchantId: string): Promise<Merchant
     total_products: number;
     low_stock_products: number;
   }>((c) =>
-    c
-      .from('merchant_metrics')
-      .select('total_revenue, active_orders, total_products, low_stock_products')
-      .eq('merchant_id', merchantId)
-      .single()
+    c.rpc('get_merchant_metrics', { p_merchant_id: merchantId }).single()
   );
 
   if (error || !data) {
@@ -335,12 +331,7 @@ export async function fetchMerchantSalesHistory(merchantId: string) {
 
   const fromDate = Object.keys(dailyMap)[0];
   const { data, error } = await supaQuery<{ day: string; total: number }[]>((c) =>
-    c
-      .from('merchant_sales_history_7d')
-      .select('day, total')
-      .eq('merchant_id', merchantId)
-      .gte('day', fromDate)
-      .order('day', { ascending: true })
+    c.rpc('get_merchant_sales_history_7d', { p_merchant_id: merchantId })
   );
 
   if (error || !data) {
@@ -441,20 +432,15 @@ export const marketplaceService = {
     lat: number | null = null,
     lng: number | null = null
   ) => {
-    const res = await supaQuery<{ ok: boolean; dispatched_count: number; error?: string }>((c) =>
-      c.rpc('dispatch_marketplace_order', {
-        p_order_id: orderId,
-        p_merchant_id: merchantId,
-        p_lat: lat,
-        p_lng: lng,
-      })
-    );
-    if (res.error || !res.data?.ok)
-      throw res.error || new Error(res.data?.error || 'Failed to dispatch order');
-    return {
-      success: true,
-      dispatchedCount: res.data.dispatched_count,
-    };
+    // 1. Optimistic/Offline Queue
+    await OfflineSyncService.addAction({
+      id: `ship-${orderId}-${Date.now()}`,
+      type: 'MARKETPLACE_SHIP',
+      payload: { orderId, merchantId, lat, lng },
+      createdAt: new Date().toISOString()
+    });
+
+    return { success: true, dispatchedCount: 1 };
   },
 
   confirmPickup: async (orderId: string, userId: string) => {

@@ -178,6 +178,41 @@ export default function FinanceModule() {
         />
       </View>
 
+      {/* Revenue Breakdown */}
+      <View style={[styles.revenueSection, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
+        <View style={styles.revenueHeader}>
+          <Text style={[styles.revenueTitle, { color: theme.text, fontFamily: Fonts.label }]}>
+            REVENUE BREAKDOWN (30D)
+          </Text>
+          <View style={[styles.pill, { backgroundColor: theme.green + '15' }]}>
+            <Text style={{ color: theme.green, fontSize: 10, fontWeight: '700' }}>+15% TARGET</Text>
+          </View>
+        </View>
+
+        <View style={styles.revenueGrid}>
+          <View style={styles.revenueItem}>
+            <Text style={[styles.revLabel, { color: theme.sub }]}>TOTAL COLLECTED</Text>
+            <Text style={[styles.revValue, { color: theme.text, fontFamily: Fonts.headline }]}>
+              {stats?.total_revenue_30d?.toLocaleString() || 0} ETB
+            </Text>
+          </View>
+          <View style={[styles.revDivider, { backgroundColor: theme.rim }]} />
+          <View style={styles.revenueItem}>
+            <Text style={[styles.revLabel, { color: theme.sub }]}>PARKING (15%)</Text>
+            <Text style={[styles.revValue, { color: theme.green, fontFamily: Fonts.headline }]}>
+              {stats?.parking_revenue_30d?.toLocaleString() || 0} ETB
+            </Text>
+          </View>
+          <View style={[styles.revDivider, { backgroundColor: theme.rim }]} />
+          <View style={styles.revenueItem}>
+            <Text style={[styles.revLabel, { color: theme.sub }]}>MARKETPLACE</Text>
+            <Text style={[styles.revValue, { color: theme.primary, fontFamily: Fonts.headline }]}>
+              {stats?.marketplace_revenue_30d?.toLocaleString() || 0} ETB
+            </Text>
+          </View>
+        </View>
+      </View>
+
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.sub, fontFamily: Fonts.label }]}>
@@ -293,4 +328,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyState: { alignItems: 'center', padding: 60 },
+  revenueSection: {
+    padding: 24,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    marginBottom: 32,
+  },
+  revenueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  revenueTitle: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+  },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  revenueGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  revenueItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  revLabel: {
+    fontSize: 10,
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  revValue: {
+    fontSize: 20,
+  },
+  revDivider: {
+    width: 1,
+    height: 30,
+    marginHorizontal: 12,
+  },
 });

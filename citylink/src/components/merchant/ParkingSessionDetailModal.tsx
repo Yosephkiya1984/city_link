@@ -37,7 +37,7 @@ export function ParkingSessionDetailModal({
               <Text style={styles.title}>Session Detail</Text>
               <Text style={styles.subtitle}>
                 Vehicle at {lot?.spot_prefix}
-                {session.spot_id}
+                {session.spot_number}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>

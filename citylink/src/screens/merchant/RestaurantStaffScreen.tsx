@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView, MotiText } from 'moti';
 import { Screen, Typography, Surface, SectionTitle } from '../../components';
-import { D, Radius, Fonts, Spacing, Shadow } from './components/StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../components/hospitality/HospitalityTheme';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { HospitalityService } from '../../services/hospitality.service';

@@ -1,5 +1,5 @@
 import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
-import { D, Radius, Fonts } from './StitchTheme';
+import { Radius, Spacing, Fonts, D } from '../../../components/hospitality/HospitalityTheme';
 
 const { width } = Dimensions.get('window');
 

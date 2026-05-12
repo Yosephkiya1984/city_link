@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import * as ImagePicker from 'expo-image-picker';
-import { D, Radius, Fonts, Shadow } from '../../screens/merchant/components/StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../hospitality/HospitalityTheme';
 import { Typography, Surface } from '../index';
 
 const { height } = Dimensions.get('window');

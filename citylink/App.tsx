@@ -93,16 +93,16 @@ function AppBootstrap() {
 
         await Promise.all([fontPromise, authPromise]);
 
+        // Initialize Global Services
+        const { walletSyncService } = await import('./src/services/WalletSyncService');
+        walletSyncService.initialize();
+
         const session = useAuthStore.getState().currentUser;
         if (session) {
           // Sync language with user profile preference
           if (session.language && session.language !== useSystemStore.getState().lang) {
             useSystemStore.getState().setLang(session.language);
           }
-
-          // Hydrate the wallet state (balance + history)
-          const { useWalletStore } = await import('./src/store/WalletStore');
-          await useWalletStore.getState().hydrateWallet(session.id);
 
           // Background PIN Hash Sync
           const { ensureFullSync } = await import('./src/services/walletPin');

@@ -129,8 +129,11 @@ export function useRestaurantData(): RestaurantData {
       
       const client = getClient();
       if (client) {
-        const { data: wallet } = await client.from('wallets').select('balance').eq('user_id', currentUser.id).single();
-        if (wallet) useWalletStore.getState().setBalance(wallet.balance);
+        const { data: wallet } = await client.from('wallets').select('balance, frozen_balance').eq('user_id', currentUser.id).single();
+        if (wallet) {
+          useWalletStore.getState().setBalance(wallet.balance);
+          useWalletStore.getState().setFrozenBalance(wallet.frozen_balance || 0);
+        }
       }
     } catch (error) {
       console.error('Restaurant Load Error:', error);

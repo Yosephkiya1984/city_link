@@ -8,13 +8,14 @@ import { WalletApi } from '../modules/wallet';
  * Delegates to modular WalletApi for domain-driven architecture.
  */
 
-export const generateIdempotencyKey = WalletApi.generateIdempotencyKey.bind(WalletApi);
-export const fetchWallet = WalletApi.fetchWallet.bind(WalletApi);
-export const fetchWalletData = WalletApi.fetchWalletData.bind(WalletApi);
-export const processTopup = WalletApi.processTopup.bind(WalletApi);
-export const ensureWallet = WalletApi.ensureWallet.bind(WalletApi);
-export const claimWelcomeBonus = WalletApi.claimWelcomeBonus.bind(WalletApi);
-export const queueP2PTransfer = WalletApi.queueP2PTransfer.bind(WalletApi);
+export const generateIdempotencyKey = () => WalletApi.generateIdempotencyKey();
+export const fetchWallet = (userId: string) => WalletApi.fetchWallet(userId);
+export const fetchWalletData = (userId: string) => WalletApi.fetchWalletData(userId);
+export const processTopup = (userId: string, amount: number) => WalletApi.processTopup(userId, amount);
+export const ensureWallet = (userId: string) => WalletApi.ensureWallet(userId);
+export const claimWelcomeBonus = (userId: string) => WalletApi.claimWelcomeBonus(userId);
+export const queueP2PTransfer = (senderId: string, recipientPhone: string, amount: number, note?: string) => 
+  WalletApi.queueP2PTransfer(senderId, recipientPhone, amount, note);
 
 /**
  * fetchTransactions — returns recent transactions for a wallet.

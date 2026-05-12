@@ -1,5 +1,5 @@
 import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
-import { D, Radius, Fonts, Shadow } from './StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -11,10 +11,16 @@ export const styles = StyleSheet.create({
   // Header & Brand
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 20 : (StatusBar.currentHeight || 0) + 20,
     backgroundColor: D.ink,
     borderBottomWidth: 1,
-    borderBottomColor: D.edge,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  glassHeader: {
+    backgroundColor: 'rgba(8, 20, 36, 0.8)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   headerTop: {
     flexDirection: 'row',
@@ -25,18 +31,19 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: Fonts.black,
     color: D.white,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   brandTag: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
+    fontSize: 10,
+    fontFamily: Fonts.black,
     color: D.primary,
-    marginTop: 2,
+    marginTop: 0,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2,
+    opacity: 0.9,
   },
   avatar: {
     width: 48,
@@ -70,12 +77,12 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   actionCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: D.lift,
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: D.edge,
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -175,17 +182,17 @@ export const styles = StyleSheet.create({
   tabButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
     backgroundColor: D.lift,
     borderWidth: 1,
-    borderColor: D.edge,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   tabButtonActive: {
-    backgroundColor: D.primary,
-    borderColor: D.primary,
-    ...Shadow.primary,
+    backgroundColor: D.primary + '20',
+    borderColor: D.primary + '40',
+    borderWidth: 1,
   },
   tabButtonText: {
     fontSize: 13,
@@ -194,7 +201,8 @@ export const styles = StyleSheet.create({
     marginLeft: 8,
   },
   tabButtonTextActive: {
-    color: D.ink,
+    color: D.primary,
+    fontFamily: Fonts.black,
   },
 
   // Overview / Bento Styles
@@ -381,28 +389,47 @@ export const styles = StyleSheet.create({
 
   // Restaurant Specific (Menu Grid)
   menuGrid: {
-    paddingHorizontal: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    paddingTop: 16,
+  },
+  foodCard: {
+    width: (width - 48) / 2,
+    marginBottom: 16,
+    borderRadius: 24,
+    backgroundColor: D.card,
+    borderWidth: 1,
+    borderColor: D.edge,
+    overflow: 'hidden',
+  },
+  foodImg: {
+    width: '100%',
+    height: 120,
+    backgroundColor: D.lift,
+  },
+  foodInfo: {
+    padding: 16,
+    gap: 4,
   },
   menuItemCard: {
     width: (width - 44) / 2,
     backgroundColor: D.surface,
-    borderRadius: 20,
-    padding: 12,
+    borderRadius: 24,
+    padding: 16,
     borderWidth: 1,
     borderColor: D.edge,
+    ...Shadow.md,
   },
   menuItemImage: {
     width: '100%',
     aspectRatio: 1.2,
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: D.lift,
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  menuItemName: { fontSize: 14, fontFamily: Fonts.bold, color: D.white },
-  menuItemPrice: { fontSize: 13, fontFamily: Fonts.black, color: D.primary, marginTop: 2 },
+  menuItemName: { fontSize: 15, fontFamily: Fonts.bold, color: D.white, letterSpacing: -0.3 },
+  menuItemPrice: { fontSize: 14, fontFamily: Fonts.black, color: D.primary, marginTop: 4 },
 
   // Shared UI
   iconButtonOutlined: {

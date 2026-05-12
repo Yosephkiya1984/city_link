@@ -11,15 +11,16 @@ import {
   TextInput,
   Alert,
   StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
 import { signOut } from '../../services/auth.service';
-import { DarkColors as T, Fonts, Spacing, Radius, Shadow } from '../../theme';
+import { DarkColors as T } from '../../theme';
 import { useT } from '../../utils/i18n';
-import { D } from './components/StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../components/hospitality/HospitalityTheme';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Import extracted hooks & sub-components
@@ -32,6 +33,14 @@ import { DashboardFinanceTab } from './components/DashboardFinanceTab';
 import { styles } from './components/ShopDashboardStyles';
 import { EthiopianReceipt } from '../../components/core/EthiopianReceipt';
 
+import { PerformanceProfiler } from '../../utils/debug/memoryManager';
+
+// Profile the tabs
+const ProfiledOverview = PerformanceProfiler.profileComponent(DashboardOverviewTab, 'DashboardOverviewTab');
+const ProfiledInventory = PerformanceProfiler.profileComponent(DashboardInventoryTab, 'DashboardInventoryTab');
+const ProfiledOrders = PerformanceProfiler.profileComponent(DashboardOrdersTab, 'DashboardOrdersTab');
+const ProfiledFinance = PerformanceProfiler.profileComponent(DashboardFinanceTab, 'DashboardFinanceTab');
+
 // Modular Components
 import { ProductManagementModal } from '../../components/merchant/ProductManagementModal';
 import { OrderVerificationModal } from '../../components/merchant/OrderVerificationModal';
@@ -39,6 +48,47 @@ import { Screen, Typography, Surface, SectionTitle } from '../../components';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { fmtETB } from '../../utils';
+
+const localStyles = StyleSheet.create({
+  welcomeCard: {
+    backgroundColor: D.card,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: D.edge,
+    padding: 24,
+    overflow: 'hidden',
+  },
+  welcomeBgIcon: {
+    position: 'absolute',
+    right: -30,
+    top: -10,
+    opacity: 0.1,
+    transform: [{ rotate: '15deg' }],
+  },
+  quickAction: {
+    backgroundColor: D.blue,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  financeCard: {
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#4DE693',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: 'rgba(0,33,15,0.15)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+});
 
 export default function ShopDashboard() {
   const t = useT();
@@ -161,9 +211,12 @@ export default function ShopDashboard() {
     }
   };
 
-  const totalSales = orders
-    .filter((o) => o.status === 'COMPLETED')
-    .reduce((s, o) => s + (o.total || 0), 0);
+  const totalSales = React.useMemo(() => 
+    orders
+      .filter((o) => o.status === 'COMPLETED')
+      .reduce((s, o) => s + (o.total || 0), 0),
+    [orders]
+  );
 
   return (
     <Screen style={styles.container}>
@@ -245,153 +298,65 @@ export default function ShopDashboard() {
           <RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={D.blue} />
         }
       >
-        {/* ─── Bento Header ─── */}
-        <View style={{ paddingHorizontal: 16, marginTop: 10, marginBottom: 16, gap: 14 }}>
-          {/* Welcome Card */}
-          <View
-            style={{
-              backgroundColor: D.card,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: D.edge,
-              padding: 24,
-              overflow: 'hidden',
-            }}
-          >
-            <View style={{ zIndex: 10 }}>
-              <Text
-                style={{ color: '#FFF', fontSize: 28, fontFamily: Fonts.headline, marginBottom: 8 }}
-              >
-                Welcome back
-              </Text>
-              <Text style={{ color: D.sub, fontSize: 14, fontFamily: Fonts.bold, lineHeight: 20 }}>
-                {inventory.length} items in stock.{' '}
-                {orders.filter((o) => o.status === 'PENDING').length} orders awaiting processing.
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 24, zIndex: 10 }}>
-              <TouchableOpacity
-                onPress={() => setActiveTab('orders')}
-                style={{
-                  backgroundColor: D.blue,
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <Ionicons name="cart" size={20} color="#00210F" />
-                <Text style={{ color: '#00210F', fontFamily: Fonts.bold, fontSize: 14 }}>
-                  Orders
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowProductModal(true)}
-                style={{
-                  backgroundColor: D.lift,
-                  borderWidth: 1,
-                  borderColor: D.edge,
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <Ionicons name="add" size={20} color="#FFF" />
-                <Text style={{ color: '#FFF', fontFamily: Fonts.bold, fontSize: 14 }}>
-                  New Product
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <Ionicons
-              name="bag-handle"
-              size={140}
-              color={D.blue}
-              style={{
-                position: 'absolute',
-                right: -30,
-                top: -10,
-                opacity: 0.1,
-                transform: [{ rotate: '15deg' }],
-              }}
-            />
-          </View>
-
-          {/* Finance Summary Card */}
-          <LinearGradient
-            colors={['#4DE693', '#2B9E5F']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 24,
-              padding: 24,
-              shadowColor: '#4DE693',
-              shadowOpacity: 0.3,
-              shadowRadius: 10,
-              elevation: 8,
-            }}
-          >
-            <Text
-              style={{
-                color: '#00210F',
-                fontSize: 11,
-                fontFamily: Fonts.bold,
-                letterSpacing: 2,
-                textTransform: 'uppercase',
-                opacity: 0.7,
-              }}
-            >
-              Store Revenue
-            </Text>
-            <Text
-              style={{
-                color: '#00210F',
-                fontSize: 36,
-                fontFamily: Fonts.headline,
-                marginVertical: 8,
-                letterSpacing: -1,
-              }}
-            >
-              ETB {fmtETB(totalSales, 0)}
-            </Text>
-            <View style={{ marginTop: 12 }}>
-              <View
-                style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}
-              >
-                <Text style={{ color: '#00210F', fontSize: 13, opacity: 0.8 }}>Monthly Goal</Text>
-                <Text style={{ color: '#00210F', fontSize: 13, fontFamily: Fonts.bold }}>85%</Text>
-              </View>
-              <View
-                style={{
-                  height: 6,
-                  backgroundColor: 'rgba(0,33,15,0.15)',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                }}
-              >
-                <View style={{ width: '85%', height: '100%', backgroundColor: '#00210F' }} />
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-
         <View style={styles.tabContent}>
           {activeTab === 'overview' && (
-            <DashboardOverviewTab
-              orders={orders}
-              inventory={inventory}
-              salesHistory={salesHistory}
-              showToast={showToast}
-              styles={styles}
-              t={t}
-            />
+            <View>
+              {/* ─── Bento Header (Only on Overview) ─── */}
+              <View style={{ paddingHorizontal: 16, marginTop: 10, marginBottom: 16, gap: 14 }}>
+                {/* Welcome Card */}
+                <View style={localStyles.welcomeCard}>
+                  <View style={{ zIndex: 10 }}>
+                    <Typography variant="h1" style={{ color: '#FFF' }}>Welcome back</Typography>
+                    <Typography variant="hint" color="sub" style={{ marginTop: 4 }}>
+                      {inventory.length} items in stock. {orders.filter(o => o.status === 'PENDING').length} new orders.
+                    </Typography>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 20, zIndex: 10 }}>
+                    <TouchableOpacity onPress={() => setActiveTab('orders')} style={localStyles.quickAction}>
+                      <Ionicons name="cart" size={18} color="#00210F" />
+                      <Typography variant="title" style={{ color: '#00210F', fontSize: 13 }}>Orders</Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setShowProductModal(true)} style={[localStyles.quickAction, { backgroundColor: D.lift, borderWidth: 1, borderColor: D.edge }]}>
+                      <Ionicons name="add" size={18} color="#FFF" />
+                      <Typography variant="title" style={{ color: '#FFF', fontSize: 13 }}>New Product</Typography>
+                    </TouchableOpacity>
+                  </View>
+                  <Ionicons name="bag-handle" size={140} color={D.blue} style={localStyles.welcomeBgIcon} />
+                </View>
+
+                {/* Finance Summary Card */}
+                <LinearGradient
+                  colors={['#4DE693', '#2B9E5F']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={localStyles.financeCard}
+                >
+                  <Typography variant="hint" style={{ color: '#00210F', letterSpacing: 1.5, opacity: 0.7 }}>STORE REVENUE</Typography>
+                  <Typography variant="h1" style={{ color: '#00210F', fontSize: 32, marginVertical: 4 }}>{fmtETB(totalSales)}</Typography>
+                  <View style={{ marginTop: 8 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Typography variant="hint" style={{ color: '#00210F', fontSize: 11 }}>Monthly Goal</Typography>
+                      <Typography variant="hint" style={{ color: '#00210F', fontSize: 11, fontWeight: '700' }}>85%</Typography>
+                    </View>
+                    <View style={localStyles.progressBar}>
+                      <View style={{ width: '85%', height: '100%', backgroundColor: '#00210F' }} />
+                    </View>
+                  </View>
+                </LinearGradient>
+              </View>
+
+              <ProfiledOverview
+                orders={orders}
+                inventory={inventory}
+                salesHistory={salesHistory}
+                showToast={showToast}
+                styles={styles}
+                t={t}
+              />
+            </View>
           )}
           {activeTab === 'inventory' && (
-            <DashboardInventoryTab
+            <ProfiledInventory
               inventory={inventory}
               inventorySearch={inventorySearch}
               setInventorySearch={setInventorySearch}
@@ -404,7 +369,7 @@ export default function ShopDashboard() {
             />
           )}
           {activeTab === 'orders' && (
-            <DashboardOrdersTab
+            <ProfiledOrders
               orders={orders}
               openDisputes={openDisputes}
               loading={loading}
@@ -423,8 +388,9 @@ export default function ShopDashboard() {
             />
           )}
           {activeTab === 'finance' && (
-            <DashboardFinanceTab
+            <ProfiledFinance
               walletTransactions={walletTransactions}
+              totalSales={totalSales}
               withdrawing={withdrawing}
               handleWithdraw={handleWithdraw}
               styles={styles}

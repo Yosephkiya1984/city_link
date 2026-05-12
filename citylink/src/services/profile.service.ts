@@ -106,7 +106,7 @@ export async function upsertProfile(profile: Partial<User> & { id: string }) {
  */
 export async function checkPhoneExists(
   phone: string
-): Promise<{ id: string; role: string; full_name?: string } | null> {
+): Promise<{ id: string; role: string; full_name?: string; is_verified?: boolean } | null> {
   if (!hasSupabase()) {
     return null;
   }
@@ -114,11 +114,13 @@ export async function checkPhoneExists(
     c.rpc('lookup_profile_by_phone', { p_phone: phone })
   );
 
-  if (error || !data) return null;
+  if (error || !data || !data[0]) return null;
+  const row = data[0];
   return {
-    id: data.id,
-    role: data.role,
-    full_name: data.full_name,
+    id: row.id,
+    role: row.role,
+    full_name: row.full_name,
+    is_verified: row.is_verified,
   };
 }
 

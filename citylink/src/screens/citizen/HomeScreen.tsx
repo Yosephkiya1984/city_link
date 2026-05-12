@@ -30,7 +30,7 @@ import { Fonts, Spacing, Radius } from '../../theme';
 import { greeting, useT } from '../../utils/i18n';
 
 // ── Domain Services ──────────────────────────────────────────────────────────
-import * as WalletService from '../../services/wallet.service';
+import { walletSyncService } from '../../services/WalletSyncService';
 
 const CulturalTexture = () => (
   <View style={styles.textureOverlay} pointerEvents="none">
@@ -71,16 +71,9 @@ export default function HomeScreen() {
       else setLoading(true);
 
       try {
-        const { fetchProfile } = await import('../../services/auth.service');
-        const profileRes = await fetchProfile(currentUser.id);
-        if (profileRes.data) {
-          await useAuthStore.getState().setCurrentUser(profileRes.data);
-        }
-
-        const walletData = await WalletService.fetchWalletData(currentUser?.id);
-        if (walletData) {
-          setBalance(walletData.balance);
-          setTransactions(walletData.transactions || []);
+        // Use the event-driven sync service
+        if (isRefresh) {
+          await walletSyncService.sync(true);
         }
       } catch (error) {
         console.error('Home sync error:', error);
@@ -134,7 +127,12 @@ export default function HomeScreen() {
         }
       >
         {/* Header Section */}
-        <View style={styles.header}>
+        <MotiView
+          from={{ opacity: 0, translateY: -20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 600 }}
+          style={styles.header}
+        >
           <View>
             <Typography variant="h1" style={styles.greeting}>
               {t(`greeting_${greeting()}_name`, {
@@ -153,17 +151,23 @@ export default function HomeScreen() {
           >
             <Ionicons name="person-outline" size={22} color={theme.primary} />
           </Surface>
-        </View>
+        </MotiView>
 
         <Spacer size={Spacing.md} />
 
         {/* Hero Section */}
-        <WalletHero
-          balance={balance}
-          name={currentUser?.full_name?.split(' ')[0] || 'User'}
-          greetingKey={greeting()}
-          onQuickAction={handleQuickAction}
-        />
+        <MotiView
+          from={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', delay: 200 }}
+        >
+          <WalletHero
+            balance={balance}
+            name={currentUser?.full_name?.split(' ')[0] || 'User'}
+            greetingKey={greeting()}
+            onQuickAction={handleQuickAction}
+          />
+        </MotiView>
 
         <Spacer size={Spacing.xl} />
 

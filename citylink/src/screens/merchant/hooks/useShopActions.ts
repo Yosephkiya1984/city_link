@@ -365,9 +365,22 @@ export function useShopActions({
       return;
     }
 
+    // Dynamic bank details from merchant profile
+    const bankName = currentUser?.merchant_details?.bank_name;
+    const accountNum = currentUser?.merchant_details?.account_number;
+
+    if (!bankName || !accountNum) {
+      Alert.alert(
+        'Missing Bank Details',
+        'Please update your bank account information in your profile settings before withdrawing.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Request Payout',
-      `Withdraw ETB ${currentBalance.toLocaleString()} to your linked bank account?`,
+      `Withdraw ETB ${currentBalance.toLocaleString()} to your ${bankName} account (${accountNum})?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -376,17 +389,17 @@ export function useShopActions({
             if (!currentUser?.id) return;
             setWithdrawing(true);
             try {
-              // Note: In a real app, bank details would be fetched from merchant profile
               const res = await requestWithdrawal(
                 currentUser.id,
                 currentBalance,
-                'CBE',
-                '1000XXXXXXXXXX'
+                bankName,
+                accountNum
               );
 
               if (res.data?.ok) {
+                // Optimistically update or wait for refresh
                 useWalletStore.getState().setBalance(res.data.new_balance);
-                showToast('Withdrawal request submitted! Funds will arrive in 24h.', 'success');
+                showToast('Withdrawal request submitted! Processing via Chapa gateway.', 'success');
                 loadData();
               } else {
                 showToast(res.error || 'Withdrawal failed', 'error');

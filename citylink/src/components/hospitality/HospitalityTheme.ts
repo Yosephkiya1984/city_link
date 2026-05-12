@@ -1,4 +1,4 @@
-import { Fonts, Radius, Spacing, Shadow, FontSize } from '../../../theme';
+import { Fonts, Radius, Spacing, Shadow, FontSize } from '../../theme';
 
 export const D = {
   ink: '#081424',
@@ -20,6 +20,12 @@ export const D = {
   rim: 'rgba(255, 255, 255, 0.05)',
   secondary: '#FACC15',
   tertiary: '#3B82F6',
+  // Dream Tokens for AI Concierge
+  ai_glow: '#8B5CF6',
+  royal: '#F59E0B',
+  glass_rim: 'rgba(255, 255, 255, 0.15)',
+  aura: 'rgba(139, 92, 246, 0.3)',
+
   violet: '#8B5CF6',
   green: '#10B981',
   onVariant: '#94A3B8',

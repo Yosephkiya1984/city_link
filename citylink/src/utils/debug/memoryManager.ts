@@ -59,12 +59,20 @@ class MemoryManager {
 
     // Monitor memory usage
     const monitorInterval = setInterval(() => {
-      this.checkMemoryUsage();
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(() => this.checkMemoryUsage());
+      } else {
+        this.checkMemoryUsage();
+      }
     }, MEMORY_CONFIG.CLEANUP_INTERVAL);
 
     // Detect memory leaks
     const leakDetectionInterval = setInterval(() => {
-      this.detectMemoryLeaks();
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(() => this.detectMemoryLeaks());
+      } else {
+        this.detectMemoryLeaks();
+      }
     }, MEMORY_CONFIG.LEAK_DETECTION_INTERVAL);
 
     // Cleanup on component unmount
@@ -196,13 +204,38 @@ class MemoryManager {
     this.objectRegistry.delete(id);
   }
 
-  // Estimate object size
+  // Estimate object size without expensive JSON.stringify
   estimateObjectSize(obj: unknown): number {
-    try {
-      return JSON.stringify(obj).length * 2; // Rough estimate in bytes
-    } catch (error) {
-      return 0;
+    if (!obj) return 0;
+    
+    let bytes = 0;
+    const stack = [obj];
+    const seen = new Set();
+    let count = 0;
+    const MAX_COUNT = 100; // Limit depth to prevent performance hit
+
+    while (stack.length > 0 && count < MAX_COUNT) {
+      const value = stack.pop();
+      count++;
+
+      if (value === null || value === undefined) continue;
+
+      switch (typeof value) {
+        case 'boolean': bytes += 4; break;
+        case 'number': bytes += 8; break;
+        case 'string': bytes += value.length * 2; break;
+        case 'object':
+          if (!seen.has(value)) {
+            seen.add(value);
+            for (const key in value as any) {
+              bytes += key.length * 2;
+              stack.push((value as any)[key]);
+            }
+          }
+          break;
+      }
     }
+    return bytes;
   }
 
   // Register cleanup task

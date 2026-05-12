@@ -1,5 +1,5 @@
 import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
-import { D, Radius, Fonts } from './StitchTheme';
+import { Radius, Spacing, Fonts, D } from '../../../components/hospitality/HospitalityTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -8,9 +8,9 @@ export const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 24) + 16,
+    paddingTop: Platform.OS === 'ios' ? 10 : 16,
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 16,
     backgroundColor: D.ink,
   },
   headerTop: {

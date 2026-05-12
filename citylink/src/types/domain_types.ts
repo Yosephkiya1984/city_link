@@ -206,6 +206,7 @@ export interface SystemState {
   notifications: Notification[];
   unreadCount: number;
   chatHistory: ChatMessage[];
+  chatHistories?: Record<string, ChatMessage[]>;
 }
 
 export interface MarketplaceState {
@@ -218,6 +219,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
+  /** Optional structured action card surfaced by the AI concierge */
+  action?: { type: string; data: any };
 }
 
 export interface Toast {
@@ -256,6 +259,13 @@ export interface ParkingLot {
   address: string;
   base_rate?: number;
   hourly_rate?: number;
+  current_rate?: number;
+  overnight_rate?: number;
+  lot_type?: 'private' | 'municipal' | 'association';
+  is_24_7?: boolean;
+  opening_hour?: string;
+  closing_hour?: string;
+  is_surge?: boolean;
   capacity?: number;
   total_spots?: number;
   available_spots: number;
@@ -275,7 +285,6 @@ export interface ParkingSession {
   user_id: string;
   merchant_id: string;
   lot_id: string;
-  spot_id?: string;
   spot_number: string;
   plate?: string;
   pin?: string;

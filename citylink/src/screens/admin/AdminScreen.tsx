@@ -23,6 +23,7 @@ import AuditModule from '../../components/admin/AuditModule';
 import SystemModule from '../../components/admin/SystemModule';
 import DeliveryAgentModule from '../../components/admin/DeliveryAgentModule';
 import FinanceModule from '../../components/admin/FinanceModule';
+import { KnowledgeManagerScreen } from './KnowledgeManagerScreen';
 
 export default function AdminScreen() {
   const theme = useTheme();
@@ -115,6 +116,8 @@ export default function AdminScreen() {
         return <FinanceModule />;
       case 'systems':
         return <SystemModule />;
+      case 'ai':
+        return <KnowledgeManagerScreen />;
       default:
         return <OverviewModule />;
     }

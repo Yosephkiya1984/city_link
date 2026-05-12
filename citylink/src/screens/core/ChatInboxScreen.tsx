@@ -55,7 +55,10 @@ export default function ChatInboxScreen({ navigation }: { navigation: any }) {
   const [activeFilter, setActiveFilter] = useState('all');
 
   const loadThreads = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error } = await fetchChatThreads(currentUser.id);
     if (data) setThreads(data);

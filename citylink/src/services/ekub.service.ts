@@ -2,6 +2,7 @@ import { supaQuery } from './supabase';
 import { uid } from '../utils';
 import { EkubCircle, EkubMember, EkubContribution, EkubDraw, EkubVouch } from '../types';
 import * as Crypto from 'expo-crypto';
+import { OfflineSyncService } from './OfflineSyncService';
 
 /**
  * createEkub — Organiser creates a new circle.
@@ -78,13 +79,18 @@ export async function joinEkub(ekubId: string, userId: string) {
  * contributeToEkub — records a contribution atomically.
  */
 export async function contributeToEkub(userId: string, ekubId: string, roundNumber: number) {
-  return supaQuery<{ ok: boolean; new_balance: number; error?: string }>((c) =>
-    c.rpc('process_ekub_contribution_atomic', {
-      p_user_id: userId,
-      p_ekub_id: ekubId,
-      p_round_number: roundNumber,
-    })
-  );
+  const idempotencyKey = `ekub-contrib-${userId}-${ekubId}-${roundNumber}`;
+  
+  // 1. Optimistic/Offline Queue
+  await OfflineSyncService.addAction({
+    id: uid(),
+    type: 'EKUB_CONTRIBUTION',
+    payload: { userId, ekubId, roundNumber, idempotencyKey },
+    createdAt: new Date().toISOString()
+  });
+
+  // 2. Return optimistic success (actual sync happens in background)
+  return { data: { ok: true, new_balance: 0 }, error: null };
 }
 
 /**

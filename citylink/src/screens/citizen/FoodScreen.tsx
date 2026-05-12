@@ -10,12 +10,16 @@ import {
   TextInput,
   ImageBackground,
   FlatList,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useFood, FoodTab } from '../../hooks/useFood';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { VisualTableBuilder } from '../../components/hospitality/VisualTableBuilder';
+import { ToastContainer } from '../../components';
 import { foodStyles as S, NOIR } from './FoodScreen.styles';
 import { Fonts } from '../../theme';
 import { fmtETB, t } from '../../utils';
@@ -191,10 +195,41 @@ export default function FoodScreen() {
     brokerId,
     setBrokerId,
     buyEventTicket,
+    showToast,
   } = useFood();
 
   const [orderProcessing, setOrderProcessing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [dateObj, setDateObj] = useState(new Date());
+
+  const onDateChange = (_: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const newDate = new Date(dateObj);
+      newDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+      setDateObj(newDate);
+      setShowTimePicker(true);
+    }
+  };
+
+  const onTimeChange = (_: any, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      const newDate = new Date(dateObj);
+      newDate.setHours(selectedTime.getHours(), selectedTime.getMinutes());
+      setDateObj(newDate);
+      
+      // Format to YYYY-MM-DD HH:MM
+      const y = newDate.getFullYear();
+      const m = String(newDate.getMonth() + 1).padStart(2, '0');
+      const d = String(newDate.getDate()).padStart(2, '0');
+      const hr = String(newDate.getHours()).padStart(2, '0');
+      const min = String(newDate.getMinutes()).padStart(2, '0');
+      setReservationTime(`${y}-${m}-${d} ${hr}:${min}`);
+    }
+  };
 
   const handleOrder = async () => {
     setOrderProcessing(true);
@@ -206,7 +241,7 @@ export default function FoodScreen() {
       }
       setOrderSuccess(true);
     } catch (e: any) {
-      // Toast is shown inside the hook
+      showToast(e.message || 'Something went wrong', 'error');
     } finally {
       setOrderProcessing(false);
     }
@@ -219,7 +254,7 @@ export default function FoodScreen() {
       await buyEventTicket(selectedEvent.id, guestCount);
       setOrderSuccess(true);
     } catch (e: any) {
-      //
+      showToast(e.message || 'Ticket purchase failed', 'error');
     } finally {
       setOrderProcessing(false);
     }
@@ -436,126 +471,30 @@ export default function FoodScreen() {
                     </View>
                   ) : (
                     menuItems.map((item) => (
-                      <View
-                        key={item.id}
-                        style={[S.menuRow, { alignItems: 'flex-start', paddingVertical: 16 }]}
-                      >
-                        {/* Food Image */}
-                        <View
-                          style={{
-                            width: 90,
-                            height: 90,
-                            borderRadius: 16,
-                            overflow: 'hidden',
-                            backgroundColor: NOIR.surface,
-                            marginRight: 14,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {item.image_url ? (
-                            <ImageBackground
-                              source={{ uri: item.image_url }}
-                              style={{ flex: 1 }}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View
-                              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-                            >
-                              <Ionicons name="fast-food" size={28} color={NOIR.hint} />
-                            </View>
-                          )}
+                      <View key={item.id} style={S.menuRow}>
+                        <View style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: NOIR.surface, overflow: 'hidden' }}>
+                          <Image
+                            source={{ uri: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200' }}
+                            style={{ width: '100%', height: '100%' }}
+                          />
                           {item.is_featured && (
-                            <View
-                              style={{
-                                position: 'absolute',
-                                top: 4,
-                                left: 4,
-                                backgroundColor: NOIR.gold,
-                                paddingHorizontal: 5,
-                                paddingVertical: 2,
-                                borderRadius: 6,
-                              }}
-                            >
-                              <Text style={{ color: '#000', fontSize: 8, fontWeight: '800' }}>
-                                ★ TOP
-                              </Text>
+                            <View style={{ position: 'absolute', top: 4, left: 4, backgroundColor: NOIR.gold, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 }}>
+                              <Text style={{ color: '#000', fontSize: 8, fontWeight: '800' }}>★ TOP</Text>
                             </View>
                           )}
                         </View>
-                        {/* Info */}
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1, marginLeft: 12 }}>
                           <Text style={S.menuItemName}>{item.name}</Text>
-                          {!!item.description && (
-                            <Text style={S.menuItemDesc} numberOfLines={2}>
-                              {item.description}
-                            </Text>
-                          )}
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              gap: 6,
-                              marginBottom: 8,
-                              flexWrap: 'wrap',
-                            }}
-                          >
-                            {item.is_vegetarian && (
-                              <View
-                                style={{
-                                  backgroundColor: '#10B98115',
-                                  paddingHorizontal: 6,
-                                  paddingVertical: 2,
-                                  borderRadius: 6,
-                                  borderWidth: 1,
-                                  borderColor: '#10B98140',
-                                }}
-                              >
-                                <Text style={{ color: '#10B981', fontSize: 10, fontWeight: '700' }}>
-                                  🌿 Veg
-                                </Text>
-                              </View>
-                            )}
-                            {item.prep_minutes > 0 && (
-                              <View
-                                style={{
-                                  backgroundColor: NOIR.surface,
-                                  paddingHorizontal: 6,
-                                  paddingVertical: 2,
-                                  borderRadius: 6,
-                                }}
-                              >
-                                <Text style={{ color: NOIR.sub, fontSize: 10 }}>
-                                  ⏱ {item.prep_minutes}m
-                                </Text>
-                              </View>
-                            )}
-                            {item.spice_level > 0 && (
-                              <Text style={{ fontSize: 10 }}>
-                                {'🌶'.repeat(Math.min(item.spice_level, 3))}
-                              </Text>
-                            )}
-                          </View>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                            }}
-                          >
+                          {!!item.description && <Text style={S.menuItemDesc} numberOfLines={2}>{item.description}</Text>}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                             <Text style={S.menuItemPrice}>ETB {fmtETB(item.price, 0)}</Text>
                             {(cart[item.id] ?? 0) > 0 ? (
                               <View style={S.qtyCtrl}>
-                                <TouchableOpacity
-                                  style={S.qtyBtn}
-                                  onPress={() => removeFromCart(item.id)}
-                                >
+                                <TouchableOpacity style={S.qtyBtn} onPress={() => removeFromCart(item.id)}>
                                   <Ionicons name="remove" size={16} color={NOIR.text} />
                                 </TouchableOpacity>
                                 <Text style={S.qtyVal}>{cart[item.id]}</Text>
-                                <TouchableOpacity
-                                  style={S.qtyBtn}
-                                  onPress={() => addToCart(item.id)}
-                                >
+                                <TouchableOpacity style={S.qtyBtn} onPress={() => addToCart(item.id)}>
                                   <Ionicons name="add" size={16} color={NOIR.gold} />
                                 </TouchableOpacity>
                               </View>
@@ -634,98 +573,13 @@ export default function FoodScreen() {
                   {/* Live Table Setup */}
                   <View>
                     <Text style={S.spotSelectionTitle}>{t('select_table')}</Text>
-                    <View style={S.spotGrid}>
-                      {restaurantTables.map((table) => {
-                        const isSelected = selectedTable === table.id;
-                        const isOccupied = table.status === 'OCCUPIED';
-                        const isVIP = table.is_vip;
-                        return (
-                          <TouchableOpacity
-                            key={table.id}
-                            disabled={isOccupied}
-                            onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                              setSelectedTable(table.id);
-                            }}
-                            style={[
-                              S.spotButton,
-                              isOccupied
-                                ? S.spotOccupied
-                                : isVIP
-                                  ? {
-                                      ...S.spotAvailable,
-                                      borderColor: '#A855F7',
-                                      backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                                    }
-                                  : isSelected
-                                    ? S.spotSelected
-                                    : S.spotAvailable,
-                            ]}
-                            activeOpacity={0.8}
-                          >
-                            {isVIP && (
-                              <Ionicons
-                                name="star"
-                                size={10}
-                                color="#A855F7"
-                                style={{ marginBottom: 2 }}
-                              />
-                            )}
-                            <Text
-                              style={[
-                                S.spotText,
-                                isOccupied
-                                  ? S.spotTextOccupied
-                                  : isVIP
-                                    ? { color: '#A855F7' }
-                                    : isSelected
-                                      ? S.spotTextSelected
-                                      : S.spotTextAvailable,
-                              ]}
-                            >
-                              T{table.table_number}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                    <View style={S.spotLegend}>
-                      <View style={S.legendItem}>
-                        <View
-                          style={[
-                            S.legendDot,
-                            { backgroundColor: 'rgba(89, 222, 155, 0.2)', borderColor: '#59de9b' },
-                          ]}
-                        />
-                        <Text style={S.legendText}>{t('available')}</Text>
-                      </View>
-                      <View style={S.legendItem}>
-                        <View
-                          style={[
-                            S.legendDot,
-                            { backgroundColor: 'rgba(212, 175, 55, 0.2)', borderColor: '#D4AF37' },
-                          ]}
-                        />
-                        <Text style={S.legendText}>{t('selected')}</Text>
-                      </View>
-                      <View style={S.legendItem}>
-                        <View
-                          style={[
-                            S.legendDot,
-                            { backgroundColor: 'rgba(255, 90, 76, 0.2)', borderColor: '#ff5a4c' },
-                          ]}
-                        />
-                        <Text style={S.legendText}>{t('occupied')}</Text>
-                      </View>
-                      <View style={S.legendItem}>
-                        <View
-                          style={[
-                            S.legendDot,
-                            { backgroundColor: 'rgba(168, 85, 247, 0.2)', borderColor: '#A855F7' },
-                          ]}
-                        />
-                        <Text style={S.legendText}>VIP</Text>
-                      </View>
+                    <View style={{ height: 320, marginTop: 10 }}>
+                      <VisualTableBuilder
+                        tables={restaurantTables}
+                        selectedTableId={selectedTable}
+                        onTablePress={(table: any) => setSelectedTable(table.id)}
+                        hideControls={true}
+                      />
                     </View>
                   </View>
 
@@ -750,13 +604,39 @@ export default function FoodScreen() {
                   </View>
 
                   <Text style={S.fieldLabel}>{t('date_time')}</Text>
-                  <TextInput
-                    style={S.textInput}
-                    placeholder="YYYY-MM-DD HH:MM  (e.g. 2026-04-30 19:30)"
-                    placeholderTextColor={NOIR.hint}
-                    value={reservationTime}
-                    onChangeText={setReservationTime}
-                  />
+                  <TouchableOpacity 
+                    style={[S.textInput, { justifyContent: 'center' }]} 
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={{ color: reservationTime ? NOIR.text : NOIR.hint }}>
+                      {reservationTime || t('select_date_time')}
+                    </Text>
+                    <Ionicons 
+                      name="calendar-outline" 
+                      size={16} 
+                      color={NOIR.hint} 
+                      style={{ position: 'absolute', right: 12 }} 
+                    />
+                  </TouchableOpacity>
+
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={dateObj}
+                      mode="date"
+                      display="default"
+                      onChange={onDateChange}
+                      minimumDate={new Date()}
+                    />
+                  )}
+
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={dateObj}
+                      mode="time"
+                      display="default"
+                      onChange={onTimeChange}
+                    />
+                  )}
 
                   <Text style={S.fieldLabel}>When should we serve pre-orders?</Text>
                   <View style={S.chipRow}>
@@ -810,6 +690,7 @@ export default function FoodScreen() {
                 </View>
               )}
             </ScrollView>
+            <ToastContainer />
           </View>
         )}
       </Modal>
@@ -911,6 +792,7 @@ export default function FoodScreen() {
                 />
               </View>
             </ScrollView>
+            <ToastContainer />
           </View>
         )}
       </Modal>

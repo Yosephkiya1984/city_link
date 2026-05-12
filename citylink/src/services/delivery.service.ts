@@ -43,9 +43,21 @@ export interface UnifiedOrder {
   destination_lng?: number;
 }
 
-import * as Location from 'expo-location';
 import { decode } from 'base64-arraybuffer';
 import { uid } from '../utils';
+
+/**
+ * getLocModule
+ * Safely retrieves expo-location at runtime to prevent RSOD in Expo Go.
+ */
+async function getLocModule() {
+  try {
+    return require('expo-location');
+  } catch (e) {
+    console.warn('[DeliveryService] Location module not found.');
+    return null;
+  }
+}
 
 // ── Haversine distance (km) ───────────────────────────────────────────────────
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -106,11 +118,16 @@ export async function registerDeliveryAgent({
 
 // ── GPS Location ──────────────────────────────────────────────────────────────
 export async function requestLocationPermission(): Promise<boolean> {
+  const Location = await getLocModule();
+  if (!Location) return false;
   const { status } = await Location.requestForegroundPermissionsAsync();
   return status === 'granted';
 }
 
 export async function getCurrentLocation(): Promise<{ lat: number; lng: number } | null> {
+  const Location = await getLocModule();
+  if (!Location) return null;
+
   const { status } = await Location.getForegroundPermissionsAsync();
   if (status !== 'granted') {
     const req = await Location.requestForegroundPermissionsAsync();
@@ -132,7 +149,7 @@ export async function getCurrentLocation(): Promise<{ lat: number; lng: number }
 
     const loc = await Promise.race([locPromise, timeoutPromise]);
     if (loc) {
-      return { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      return { lat: (loc as any).coords.latitude, lng: (loc as any).coords.longitude };
     }
 
     return null;

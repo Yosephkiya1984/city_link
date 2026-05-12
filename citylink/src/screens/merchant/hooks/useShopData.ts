@@ -1,14 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../../store/AuthStore';
 import { useSystemStore } from '../../../store/SystemStore';
 import { useWalletStore } from '../../../store/WalletStore';
+import { useMerchantStore } from '../../../store/MerchantStore';
 import { getClient, subscribeToTable, unsubscribe } from '../../../services/supabase';
 import {
   marketplaceService,
   fetchMarketplaceOrdersByMerchant,
   fetchMerchantInventory,
 } from '../../../services/marketplace.service';
-import type { Product, FoodOrder, Notification } from '../../../types/domain_types';
+import type { Product } from '../../../types/domain_types';
 
 export interface ShopData {
   orders: any[];
@@ -34,27 +35,19 @@ export interface ShopData {
 
 export function useShopData(): ShopData {
   const currentUser = useAuthStore((s) => s.currentUser);
-  const showToast = useSystemStore((s) => s.showToast);
-
-  const [orders, setOrders] = useState<any[]>([]);
-  const [inventory, setInventory] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const mStore = useMerchantStore();
+  
+  const [loading, setLoading] = useState(mStore.lastUpdated === null);
   const [refreshing, setRefreshing] = useState(false);
-  const [walletTransactions, setWalletTransactions] = useState<any[]>([]);
-  const [salesHistory, setSalesHistory] = useState({
-    curve: [0, 0, 0, 0, 0, 0, 0],
-    raw: [],
-    labels: [],
-  });
   const [openDisputes, setOpenDisputes] = useState<any[]>([]);
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
-    setLoading(true);
+    if (mStore.lastUpdated === null) setLoading(true);
 
     const client = getClient();
     const { data: wallet } = client
-      ? await client.from('wallets').select('id, balance').eq('user_id', currentUser.id).single()
+      ? await client.from('wallets').select('id, balance, frozen_balance').eq('user_id', currentUser.id).single()
       : { data: null };
 
     const [ordRes, invRes, txRes, salesRes, disputes] = await Promise.all([
@@ -65,16 +58,19 @@ export function useShopData(): ShopData {
       marketplaceService.getMerchantOpenDisputes(currentUser.id),
     ]);
 
-    if (ordRes.data) setOrders(ordRes.data);
-    if (invRes.data) setInventory(invRes.data);
-    else setInventory([]); // Ensure inventory is never null/undefined in state
-    if (txRes?.data) setWalletTransactions(txRes.data);
-    if (salesRes) setSalesHistory(salesRes as any);
+    if (ordRes.data) mStore.setOrders(ordRes.data);
+    if (invRes.data) mStore.setInventory(invRes.data);
+    else mStore.setInventory([]); 
+
+    if (txRes?.data) mStore.setWalletTransactions(txRes.data);
+    if (salesRes) mStore.setSalesHistory(salesRes as any);
     if (disputes) setOpenDisputes(disputes);
+    
+    mStore.setLastUpdated(new Date().toISOString());
+
     if (wallet && typeof wallet.balance === 'number' && isFinite(wallet.balance)) {
       useWalletStore.getState().setBalance(wallet.balance);
-    } else {
-      useWalletStore.getState().setBalance(0);
+      useWalletStore.getState().setFrozenBalance(wallet.frozen_balance || 0);
     }
 
     setLoading(false);
@@ -91,11 +87,11 @@ export function useShopData(): ShopData {
       `merchant_id=eq.${currentUser.id}`,
       (payload) => {
         if (payload.eventType === 'UPDATE') {
-          setOrders((prev) =>
-            prev.map((o) => (o.id === payload.new.id ? { ...o, ...payload.new } : o))
+          mStore.setOrders(
+            mStore.orders.map((o) => (o.id === payload.new.id ? { ...o, ...payload.new } : o))
           );
         } else if (payload.eventType === 'INSERT') {
-          setOrders((prev) => [payload.new, ...prev]);
+          mStore.setOrders([payload.new, ...mStore.orders]);
           loadData();
         }
       }
@@ -107,13 +103,13 @@ export function useShopData(): ShopData {
       `merchant_id=eq.${currentUser.id}`,
       (payload) => {
         if (payload.eventType === 'UPDATE') {
-          setInventory((prev) =>
-            prev.map((p) => (p.id === payload.new.id ? { ...p, ...payload.new } : p))
+          mStore.setInventory(
+            mStore.inventory.map((p) => (p.id === payload.new.id ? { ...p, ...payload.new } : p))
           );
         } else if (payload.eventType === 'INSERT') {
-          setInventory((prev) => [payload.new, ...prev]);
+          mStore.setInventory([payload.new, ...mStore.inventory]);
         } else if (payload.eventType === 'DELETE') {
-          setInventory((prev) => prev.filter((p) => p.id !== payload.old.id));
+          mStore.setInventory(mStore.inventory.filter((p) => p.id !== payload.old.id));
         }
         loadData();
       }
@@ -126,18 +122,18 @@ export function useShopData(): ShopData {
   }, [loadData, currentUser?.id]);
 
   return {
-    orders,
-    setOrders,
-    inventory,
-    setInventory,
+    orders: mStore.orders,
+    setOrders: mStore.setOrders,
+    inventory: mStore.inventory,
+    setInventory: mStore.setInventory,
     loading,
     setLoading,
     refreshing,
     setRefreshing,
-    walletTransactions,
-    setWalletTransactions,
-    salesHistory,
-    setSalesHistory,
+    walletTransactions: mStore.walletTransactions,
+    setWalletTransactions: mStore.setWalletTransactions,
+    salesHistory: mStore.salesHistory,
+    setSalesHistory: mStore.setSalesHistory,
     openDisputes,
     setOpenDisputes,
     loadData,

@@ -21,19 +21,21 @@ export interface SystemState {
   notifications: Notification[];
   unreadCount: number;
   chatHistory: ChatMessage[];
+  chatHistories: Record<string, ChatMessage[]>;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   setIsDark: (val: boolean) => void;
   setLang: (lang: string) => void;
   setNotifications: (notifs: Notification[]) => void;
   setChatHistory: (msgs: ChatMessage[]) => void;
+  setChatHistories: (histories: Record<string, ChatMessage[]>) => void;
   setTheme: (theme: 'light' | 'dark') => void;
   showToast: (message: string, type?: Toast['type']) => void;
   addNotification: (notif: Notification) => void;
   markNotifRead: (id: string) => void;
   clearNotifications: () => void;
-  addChatMessage: (msg: ChatMessage) => void;
-  clearChat: () => void;
+  addChatMessage: (msg: ChatMessage, mode?: string) => void;
+  clearChat: (mode?: string) => void;
   reset: () => void;
   /** The single incoming P2P transfer awaiting user tap-to-confirm. null = none pending. */
   pendingP2PClaim: PendingP2PClaim | null;
@@ -50,6 +52,12 @@ export const useSystemStore = create<SystemState>()(
       notifications: [],
       unreadCount: 0,
       chatHistory: [],
+      chatHistories: {
+        citizen: [],
+        merchant: [],
+        agent: [],
+        admin: []
+      },
       theme: 'dark',
       pendingP2PClaim: null,
 
@@ -61,6 +69,7 @@ export const useSystemStore = create<SystemState>()(
         set({ notifications, unreadCount });
       },
       setChatHistory: (chatHistory) => set({ chatHistory }),
+      setChatHistories: (chatHistories) => set({ chatHistories }),
       setTheme: (theme) => set({ theme, isDark: theme === 'dark' }),
 
       showToast: (message, type = 'info') => {
@@ -90,18 +99,45 @@ export const useSystemStore = create<SystemState>()(
         }),
 
       clearNotifications: () => set({ notifications: [], unreadCount: 0 }),
-      addChatMessage: (msg) => set((s) => ({ chatHistory: [...s.chatHistory, msg].slice(-50) })),
-      clearChat: () => set({ chatHistory: [] }),
+      
+      addChatMessage: (msg, mode = 'citizen') => 
+        set((s) => {
+          const histories = s.chatHistories || { citizen: [], merchant: [], agent: [], admin: [] };
+          const modeHistory = histories[mode] || [];
+          return {
+            chatHistory: [...s.chatHistory, msg].slice(-50), // Legacy support
+            chatHistories: {
+              ...histories,
+              [mode]: [...modeHistory, msg].slice(-50)
+            }
+          };
+        }),
+        
+      clearChat: (mode) => 
+        set((s) => {
+          if (!mode) return { chatHistory: [] };
+          
+          const histories = s.chatHistories || { citizen: [], merchant: [], agent: [], admin: [] };
+          return {
+            chatHistory: mode === 'citizen' ? [] : s.chatHistory, // Legacy support
+            chatHistories: {
+              ...histories,
+              [mode]: []
+            }
+          };
+        }),
+        
       setPendingP2PClaim: (claim) => set({ pendingP2PClaim: claim }),
       reset: () =>
         set({
           isDark: true,
           theme: 'dark',
           lang: 'en',
+          toasts: [],
           notifications: [],
           unreadCount: 0,
           chatHistory: [],
-          toasts: [],
+          chatHistories: { citizen: [], merchant: [], agent: [], admin: [] },
           pendingP2PClaim: null,
         }),
     }),
@@ -114,7 +150,12 @@ export const useSystemStore = create<SystemState>()(
         lang: state.lang,
         notifications: state.notifications,
         unreadCount: state.unreadCount,
+        // 🛡️ FIX: Persist per-mode chat histories so AI conversations survive
+        // unexpected shutdowns (power loss, crash, etc.). Previously only the
+        // legacy `chatHistory` field was persisted; switching modes or a sudden
+        // shutdown would wipe the conversation entirely.
         chatHistory: state.chatHistory,
+        chatHistories: state.chatHistories,
       }),
     }
   )

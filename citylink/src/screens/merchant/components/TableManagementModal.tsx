@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView, AnimatePresence } from 'moti';
-import { D, Radius, Fonts, Spacing, Shadow } from './StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 import { Typography, Surface } from '../../../components';
 
 interface TableManagementModalProps {

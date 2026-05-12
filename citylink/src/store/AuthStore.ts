@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
 import { User } from '../types';
 import { SecurePersist } from './SecurePersist';
 
@@ -6,19 +7,20 @@ export interface AuthState {
   currentUser: User | null;
   isAuthenticated: boolean;
   isVerified: boolean;
-  uiMode: 'citizen' | 'merchant' | 'agent' | 'admin';
+  uiMode: 'citizen' | 'merchant' | 'agent' | 'admin' | 'valet';
   setCurrentUser: (user: User | null) => Promise<void>;
-  setUiMode: (mode: 'citizen' | 'merchant' | 'agent' | 'admin') => void;
+  setUiMode: (mode: 'citizen' | 'merchant' | 'agent' | 'admin' | 'valet') => void;
   hydrateSession: () => Promise<void>;
   signOut: () => Promise<void>;
   reset: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  currentUser: null,
-  isAuthenticated: false,
-  isVerified: false,
-  uiMode: 'citizen',
+export const useAuthStore = create<AuthState>()(
+  subscribeWithSelector((set, get) => ({
+    currentUser: null,
+    isAuthenticated: false,
+    isVerified: false,
+    uiMode: 'citizen',
 
   setCurrentUser: async (user) => {
     const isVerified = !!(user?.fayda_verified || user?.kyc_status === 'VERIFIED');
@@ -77,78 +79,67 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   hydrateSession: async () => {
-    const user = await SecurePersist.loadUser();
-    if (!user) {
-      set({ currentUser: null, isAuthenticated: false, isVerified: false });
-      return;
+    // 1. Immediate Hydration from Cache
+    const cachedUser = await SecurePersist.loadUser();
+    if (cachedUser) {
+      console.log('[AuthStore] Hydrating from local cache:', cachedUser.id);
+      const isV = !!(cachedUser.fayda_verified || cachedUser.kyc_status === 'VERIFIED');
+      let restoredMode: AuthState['uiMode'] = 'citizen';
+      if (cachedUser.role === 'admin') restoredMode = 'admin';
+      if (cachedUser.role === 'merchant') restoredMode = 'merchant';
+      
+      set({ 
+        currentUser: cachedUser, 
+        isAuthenticated: true, 
+        isVerified: isV, 
+        uiMode: restoredMode 
+      });
+    } else {
+      set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
     }
 
-    // Validate the live Supabase session before trusting the local store.
-    // A locally-stored user whose server session has expired/been revoked must be cleared.
-    let session: any = null;
-    try {
-      const { getSession } = await import('../services/auth.service');
-      session = await getSession();
-      if (!session || session.user.id !== user.id) {
-        // Server session is dead or belongs to a different user — clear local state
-        set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
-        await SecurePersist.saveUser(null);
-        return;
-      }
-    } catch (e: any) {
-      // 🛡️ RECOVERY: If we hit a terminal auth error (like 'Refresh Token Not Found'),
-      // we must clear the store to break the invalid session loop.
-      const isTerminalAuthError = 
-        e?.message?.includes('Refresh Token') || 
-        e?.message?.includes('Invalid Refresh Token') ||
-        e?.status === 400;
+    // 2. Background Validation & Refresh
+    const backgroundRefresh = async () => {
+      try {
+        const { getSession } = await import('../services/auth.service');
+        const session = await getSession();
+        
+        if (!session) {
+          if (get().isAuthenticated) {
+            console.log('[AuthStore] Session expired, clearing state.');
+            set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
+            await SecurePersist.saveUser(null);
+          }
+          return;
+        }
 
-      if (isTerminalAuthError) {
-        console.error('[AuthStore] Terminal session error, forcing logout:', e.message);
-        set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
-        await SecurePersist.saveUser(null);
-        return;
-      }
-      // Network unavailable — allow offline hydration but mark as unverified
-    }
-
-    // 🛡️ REFRESH PROFILE: Ensure we have the latest metadata (roles, status) from the DB
-    try {
-      if (session) {
+        // Session exists, refresh profile
         const { loadSessionProfile } = await import('../services/profile.service');
         const refreshed = await loadSessionProfile(session.user as any, session.user.phone || '');
+        
         if (refreshed?.profile) {
-          const isV = !!(
-            refreshed.profile.fayda_verified || refreshed.profile.kyc_status === 'VERIFIED'
-          );
-
-          // 🛡️ IDENTITY SYNC: If refreshed profile ID differs from current auth ID (phone fallback match),
-          // we MUST use the profile ID for data consistency across the app.
-          if (refreshed.profile.id !== session.user.id) {
-            console.log(
-              '[AuthStore] Identity fragmentation detected. Mapping auth ID',
-              session.user.id,
-              'to profile ID',
-              refreshed.profile.id
-            );
+          const isV = !!(refreshed.profile.fayda_verified || refreshed.profile.kyc_status === 'VERIFIED');
+          
+          // Only update if data changed to avoid re-renders
+          const current = get().currentUser;
+          if (JSON.stringify(current) !== JSON.stringify(refreshed.profile)) {
+            console.log('[AuthStore] Profile refreshed from server.');
+            set({ currentUser: refreshed.profile, isVerified: isV });
+            await SecurePersist.saveUser(refreshed.profile);
           }
-
-          set({ currentUser: refreshed.profile, isVerified: isV });
-          await SecurePersist.saveUser(refreshed.profile);
+        }
+      } catch (e: any) {
+        console.warn('[AuthStore] Background refresh failed:', e.message);
+        // Terminal session error check
+        if (e?.message?.includes('Refresh Token') || e?.status === 400) {
+          set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
+          await SecurePersist.saveUser(null);
         }
       }
-    } catch (e) {
-      console.warn('[AuthStore] Profile refresh failed, using cached data:', e);
-    }
+    };
 
-    const finalUser = get().currentUser || user;
-    const isVerified = !!(finalUser?.fayda_verified || finalUser?.kyc_status === 'VERIFIED');
-
-    // 🛡️ ROUTING FIX: Restore correct uiMode on session hydration from role
-    let restoredMode: AuthState['uiMode'] = 'citizen';
-    if (finalUser?.role === 'admin') restoredMode = 'admin';
-    if (finalUser?.role === 'merchant') restoredMode = 'merchant';
-    set({ currentUser: finalUser, isAuthenticated: !!finalUser, isVerified, uiMode: restoredMode });
+    // Run in background without awaiting
+    backgroundRefresh();
   },
 
   signOut: async () => {
@@ -176,4 +167,4 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ currentUser: null, isAuthenticated: false, isVerified: false, uiMode: 'citizen' });
     await SecurePersist.saveUser(null);
   },
-}));
+})));

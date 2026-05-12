@@ -9,6 +9,7 @@ import {
   startParkingSession,
   endParkingSession,
 } from '../services/parking.service';
+import { getCurrentLocation } from '../services/delivery.service';
 import { useRealtimePostgres } from './useRealtimePostgres';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -25,48 +26,34 @@ export interface ParkingLotLocal {
   total_spots: number;
   rate_per_hour: number;
   spots: ParkingSpotLocal[];
+  merchant_lat?: number;
+  merchant_lng?: number;
+  is_surge?: boolean;
+  current_rate?: number;
 }
 
-// ── Demo Data ─────────────────────────────────────────────────────────────────
-export function generateSpots(count: number, lotId: string): ParkingSpotLocal[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `${lotId}-spot-${i + 1}`,
-    number: `${String.fromCharCode(65 + Math.floor(i / 10))}${(i % 10) + 1}`,
-    status: (Math.random() < 0.35 ? 'occupied' : 'available') as 'available' | 'occupied',
-  }));
-}
-
-const DEMO_LOTS: ParkingLotLocal[] = [
-  {
-    id: 'lot-1',
-    name: 'Bole Road Car Park',
-    subcity: 'Bole',
-    total_spots: 80,
-    rate_per_hour: 15,
-    spots: generateSpots(80, 'lot-1'),
-  },
-  {
-    id: 'lot-2',
-    name: 'Piassa Multi-Storey',
-    subcity: 'Arada',
-    total_spots: 120,
-    rate_per_hour: 12,
-    spots: generateSpots(120, 'lot-2'),
-  },
-  {
-    id: 'lot-3',
-    name: 'Mexico Square Parking',
-    subcity: 'Kirkos',
-    total_spots: 60,
-    rate_per_hour: 10,
-    spots: generateSpots(60, 'lot-3'),
-  },
-];
+// ── DB Mapping ────────────────────────────────────────────────────────────────
 
 // ── DB Mapping ────────────────────────────────────────────────────────────────
 function mapLotsFromDb(rows: any[]): ParkingLotLocal[] {
   return rows.map((lot: any) => {
-    const raw = (lot.parking_spots as any[]) || [];
+    let raw = (lot.parking_spots as any[]) || [];
+    
+    // ── Zone-Based Fallback ──────────────────────────────────────────────────
+    // If no explicit spots are defined, we synthesize virtual spots based on 
+    // capacity (total_spots) and current occupancy (occupied_count).
+    if (raw.length === 0 && lot.total_spots > 0) {
+      const occupied = Number(lot.occupied_count || 0);
+      const total = Number(lot.total_spots);
+      
+      // Create 'total' virtual spots, marking 'occupied' of them as busy
+      raw = Array.from({ length: total }, (_, i) => ({
+        id: `virtual-${lot.id}-${i}`,
+        spot_number: `${i + 1}`,
+        status: i < occupied ? 'occupied' : 'available'
+      }));
+    }
+
     const spots: ParkingSpotLocal[] = raw.map((s: any, i: number) => ({
       id: (s.id as string) || `${lot.id}-s-${i}`,
       number: String(s.spot_number ?? s.label ?? s.number ?? i + 1),
@@ -74,14 +61,21 @@ function mapLotsFromDb(rows: any[]): ParkingLotLocal[] {
         ? 'occupied'
         : 'available') as 'available' | 'occupied',
     }));
+
     const total = (lot.total_spots as number) || spots.length || 1;
+    const m = Array.isArray(lot.merchant) ? lot.merchant[0] : lot.merchant;
+    
     return {
       id: lot.id as string,
       name: lot.name as string,
       subcity: (lot.subcity as string) || 'Addis Ababa',
       total_spots: total,
       rate_per_hour: Number(lot.rate_per_hour ?? 15),
-      spots: spots.length ? spots : generateSpots(Math.min(total, 80), lot.id as string),
+      spots: spots,
+      merchant_lat: m?.latitude,
+      merchant_lng: m?.longitude,
+      is_surge: !!lot.is_surge,
+      current_rate: lot.current_rate ? Number(lot.current_rate) : undefined,
     };
   });
 }
@@ -104,13 +98,23 @@ export function useParking() {
   const addTransaction = useWalletStore((s: WalletState) => s.addTransaction);
   const showToast = useSystemStore((s: SystemState) => s.showToast);
 
-  const [lots, setLots] = useState<ParkingLotLocal[]>(DEMO_LOTS);
+  const [lots, setLots] = useState<ParkingLotLocal[]>([]);
   const [selectedLot, setSelectedLot] = useState<ParkingLotLocal | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpotLocal | null>(null);
   const [confirmModal, setConfirmModal] = useState(false);
   const [qrModal, setQrModal] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [citizenLocation, setCitizenLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [estimatedDuration, setEstimatedDuration] = useState<number>(2); // Default 2 hours
+  const [plateNumber, setPlateNumber] = useState<string>((currentUser as any)?.vehicle_plate || (currentUser as any)?.plate || '');
+
+  // ── Fetch Citizen Location ────────────────────────────────────────────────
+  useEffect(() => {
+    getCurrentLocation().then(loc => {
+      if (loc) setCitizenLocation(loc);
+    });
+  }, []);
 
   // ── Elapsed Timer ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -156,15 +160,28 @@ export function useParking() {
   // ── Fare Calculation ────────────────────────────────────────────────────
   function getCurrentFare(): number {
     if (!activeParking) return 0;
+    const rate = Number((activeParking as any).rate_per_hour) || 15;
     const hours = elapsed / 3600;
-    return Math.ceil(hours * (((activeParking as any).rate_per_hour as number) ?? 15) * 10) / 10;
+    const fare = Math.ceil(hours * rate * 10) / 10;
+    return isNaN(fare) ? 0 : fare;
   }
 
   // ── Start Parking ──────────────────────────────────────────────────────
   async function handleStartParking() {
     if (!selectedSpot || !selectedLot) return;
-    if (balance < 10) {
-      showToast('Insufficient balance. Top up first.', 'error');
+    
+    if (activeParking) {
+      showToast('You already have an active session. End it before starting a new one.', 'error');
+      return false;
+    }
+
+    const minBalance = selectedLot.rate_per_hour || 15;
+    if (balance < minBalance) {
+      showToast(`Minimum balance required: ${minBalance} ETB`, 'error');
+      return;
+    }
+    if (!plateNumber || plateNumber.trim().length < 3) {
+      showToast('A valid vehicle plate number is required.', 'error');
       return;
     }
     setLoading(true);
@@ -172,7 +189,8 @@ export function useParking() {
       currentUser?.id || '',
       selectedLot.id,
       selectedSpot.id,
-      'AA-A12345' // Defaulting to placeholder for now, would ideally come from user profile
+      plateNumber,
+      estimatedDuration
     );
 
     if (error || !data?.ok) {
@@ -186,7 +204,6 @@ export function useParking() {
       user_id: currentUser?.id || '',
       lot_id: selectedLot.id,
       lot_name: selectedLot.name,
-      spot_id: selectedSpot.id,
       spot_number: selectedSpot.number,
       start_time: new Date().toISOString(),
       rate_per_hour: selectedLot.rate_per_hour,
@@ -194,9 +211,11 @@ export function useParking() {
       status: 'active',
       merchant_id: selectedLot.id,
       created_at: new Date().toISOString(),
+      pin: data.pin,
     };
 
     setActiveParking(session);
+    setBalance(balance - (selectedLot.rate_per_hour * estimatedDuration));
     setLots((prev: ParkingLotLocal[]) =>
       prev.map((l: ParkingLotLocal) =>
         l.id === selectedLot.id
@@ -250,7 +269,7 @@ export function useParking() {
             ? {
                 ...l,
                 spots: l.spots.map((s: ParkingSpotLocal) =>
-                  s.id === (activeParking as any).spot_id
+                s.number === (activeParking as any).spot_number
                     ? { ...s, status: 'available' as const }
                     : s
                 ),
@@ -275,8 +294,21 @@ export function useParking() {
 
   // ── Interaction Handlers ────────────────────────────────────────────────
   const handleLotPress = (lot: ParkingLotLocal) => {
-    setSelectedLot(selectedLot?.id === lot.id ? null : lot);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (activeParking) {
+      showToast('You already have an active parking session.', 'error');
+      return;
+    }
+    if (lot.spots.filter(s => s.status === 'available').length === 0) {
+      showToast('This zone is currently full.', 'error');
+      return;
+    }
+    // Auto-assign to a generic 'Zone' spot
+    const availableSpot = lot.spots.find(s => s.status === 'available');
+    setSelectedLot(lot);
+    setSelectedSpot(availableSpot || lot.spots[0]);
+    setEstimatedDuration(2); // Reset to 2 hours default
+    setConfirmModal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const handleSpotPress = (spot: ParkingSpotLocal) => {
@@ -300,11 +332,16 @@ export function useParking() {
     balance,
     activeParking,
     currentUser,
+    citizenLocation,
     // Actions
     handleStartParking,
     handleEndParking,
     handleLotPress,
     handleSpotPress,
     getCurrentFare,
+    estimatedDuration,
+    setEstimatedDuration,
+    plateNumber,
+    setPlateNumber,
   };
 }

@@ -35,6 +35,8 @@
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECORD_AUDIO",
         "VIBRATE"
       ]
     },
@@ -46,8 +48,16 @@
           "cameraPermission": "Allow CityLink to use the camera for QR scanning."
         }
       ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow CityLink to use the microphone for the AI Concierge."
+        }
+      ],
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-location",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

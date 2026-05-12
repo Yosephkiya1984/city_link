@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { D, Radius, Fonts } from './StitchTheme';
+import { Radius, Spacing, Fonts, D } from '../../../components/hospitality/HospitalityTheme';
 
 export const styles = StyleSheet.create({
   // Image Upload Styles

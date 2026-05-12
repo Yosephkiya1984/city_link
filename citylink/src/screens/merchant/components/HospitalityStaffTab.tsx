@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { D, Spacing, Radius, Fonts, Shadow } from './StitchTheme';
-import { Typography, Surface, SectionTitle } from '../../../components';
+import { Typography, GlassCard, GlassView, SectionTitle } from '../../../components';
+import { useTheme } from '../../../hooks/useTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 
 export function HospitalityStaffTab({ staff, loading, onAddStaff, onRemoveStaff, t }: any) {
+  const C = useTheme();
+  const D = C;
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <SectionTitle 
@@ -15,42 +18,50 @@ export function HospitalityStaffTab({ staff, loading, onAddStaff, onRemoveStaff,
 
       {staff.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="people-outline" size={64} color={D.edge} />
-          <Text style={styles.emptyText}>No staff members added</Text>
+          <Ionicons name="people-outline" size={64} color={C.text} opacity={0.3} />
+          <Typography variant="body" color="sub" style={{ marginTop: 16 }}>No staff members added</Typography>
         </View>
       ) : (
         staff.map((member: any) => (
-          <Surface key={member.id} variant="lift" style={styles.card}>
-            <View style={styles.avatar}>
-              <Typography variant="h2" color="ink">
-                {(member.profile?.full_name || member.role || '?').charAt(0).toUpperCase()}
-              </Typography>
-            </View>
-            
-            <View style={styles.info}>
-              <Typography variant="title">{member.profile?.full_name || 'Unnamed Member'}</Typography>
-              <View style={styles.roleTag}>
-                <Text style={styles.roleText}>{member.role?.toUpperCase() || 'STAFF'}</Text>
+          <GlassCard key={member.id} accentColor={member.role === 'manager' ? C.gold : C.primary} style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
+              <View style={[styles.avatar, { backgroundColor: C.primary + '15' }]}>
+                <Typography variant="h2" color="primary">
+                  {(member.profile?.full_name || member.role || '?').charAt(0).toUpperCase()}
+                </Typography>
               </View>
-              <Text style={styles.phone}>{member.profile?.phone}</Text>
-            </View>
+              
+              <View style={styles.info}>
+                <Typography variant="title">{member.profile?.full_name || 'Unnamed Member'}</Typography>
+                <View style={[styles.roleTag, { backgroundColor: C.surface }]}>
+                  <Typography variant="hint" style={{ fontSize: 8, letterSpacing: 1, color: C.sub }}>
+                    {member.role?.toUpperCase() || 'STAFF'}
+                  </Typography>
+                </View>
+                <Typography variant="hint" color="sub" style={{ marginTop: 4 }}>
+                  {member.profile?.phone}
+                </Typography>
+              </View>
 
-            <View style={styles.statusBox}>
-              <View style={[styles.dot, { backgroundColor: member.status === 'active' ? D.primary : D.sub }]} />
-              <Text style={styles.statusText}>{member.status || 'offline'}</Text>
-            </View>
+              <View style={styles.statusBox}>
+                <View style={[styles.dot, { backgroundColor: member.status === 'active' ? C.primary : C.sub }]} />
+                <Typography variant="hint" color="sub" style={{ fontSize: 10 }}>
+                  {member.status || 'offline'}
+                </Typography>
+              </View>
 
-            <TouchableOpacity 
-              style={styles.deleteBtn}
-              onPress={() => onRemoveStaff(member.id)}
-            >
-              <Ionicons name="trash-outline" size={20} color={D.error} />
-            </TouchableOpacity>
-          </Surface>
+              <TouchableOpacity 
+                style={styles.deleteBtn}
+                onPress={() => onRemoveStaff(member.id)}
+              >
+                <Ionicons name="trash-outline" size={20} color={C.red} />
+              </TouchableOpacity>
+            </View>
+          </GlassCard>
         ))
       )}
       
-      <View style={styles.rolesInfo}>
+      <GlassView variant="outline" style={styles.rolesInfo}>
         <Typography variant="h3">Role Permissions</Typography>
         <View style={styles.roleDesc}>
           <Text style={styles.bold}>WAITER:</Text>
@@ -64,7 +75,7 @@ export function HospitalityStaffTab({ staff, loading, onAddStaff, onRemoveStaff,
           <Text style={styles.bold}>MANAGER:</Text>
           <Text style={styles.desc}>Full dashboard access, finance, team management.</Text>
         </View>
-      </View>
+      </GlassView>
     </ScrollView>
   );
 }
@@ -94,7 +105,7 @@ const styles = StyleSheet.create({
     backgroundColor: D.text + '10', 
     paddingHorizontal: 8, 
     paddingVertical: 2, 
-    borderRadius: Radius.s,
+    borderRadius: Radius.sm,
     marginTop: 2,
   },
   roleText: { fontFamily: Fonts.black, fontSize: 8, color: D.text, letterSpacing: 1 },

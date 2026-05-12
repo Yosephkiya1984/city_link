@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, FlatList, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { D, Fonts } from './StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 import { OfflineSyncService } from '../../../services/OfflineSyncService';
 import * as Crypto from 'expo-crypto';
 

@@ -28,6 +28,7 @@ export type AdminTab =
   | 'users'
   | 'finance'
   | 'logs'
+  | 'ai'
   | 'systems';
 
 interface AdminSidebarProps {
@@ -69,6 +70,7 @@ export default function AdminSidebar({
     },
     { id: 'finance', label: t('admin_finance'), icon: 'wallet-outline', mIcon: 'cash-register' },
     { id: 'logs', label: t('admin_audit'), icon: 'list-outline', mIcon: 'database-search' },
+    { id: 'ai', label: 'AI Training', icon: 'sparkles-outline', mIcon: 'brain' },
     { id: 'systems', label: t('admin_nodes'), icon: 'settings-outline', mIcon: 'cog-outline' },
   ];
 

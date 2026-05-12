@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView, AnimatePresence } from 'moti';
-import { D, Radius, Fonts, Shadow, Spacing } from './StitchTheme';
+import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 import { Typography, Surface } from '../../../components';
 import { fmtDateTime } from '../../../utils';
 
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   // Prep Summary
   prepSummary: { 
     backgroundColor: D.surface, 
-    borderRadius: Radius.l, 
+    borderRadius: Radius.lg, 
     padding: 12, 
     marginBottom: 20,
     borderWidth: 1,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     marginRight: 16,
     borderTopWidth: 8,
-    ...Shadow.lift,
+    ...Shadow.md,
     maxHeight: '90%'
   },
   ticketHeader: {

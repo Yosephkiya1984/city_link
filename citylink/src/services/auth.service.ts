@@ -2,7 +2,6 @@ import { getClient } from './supabase';
 import { Config } from '../config';
 import { User as AppUser } from '../types';
 import { Session } from '@supabase/supabase-js';
-import { clearAllStores } from '../store/StoreUtils';
 import { uid } from '../utils';
 
 // Import and re-export auth-adjacent helpers so screens can import from one place
@@ -105,13 +104,6 @@ export async function signOut(): Promise<void> {
       console.warn('[AuthService] Supabase signOut failed:', err);
     }
   }
-
-  try {
-    const { clearAllStores } = await import('../store/StoreUtils');
-    await clearAllStores();
-  } catch (err) {
-    console.warn('[AuthService] clearAllStores failed during signOut:', err);
-  }
 }
 
 interface GovAuthResponse {
@@ -148,6 +140,20 @@ export async function govBadgeLogin(badgeId: string, secPin: string): Promise<Go
     return { user: null, error: errData.message || 'Invalid government credentials' };
   } catch (err: unknown) {
     clearTimeout(timeoutId);
+
+    // Development Fallback: If gateway is unreachable, check local DB
+    console.log('[AuthService] Gov gateway unreachable, attempting DB fallback...');
+    const client = getClient();
+    if (client) {
+      const { data, error: dbErr } = await client.rpc('verify_gov_credentials', {
+        p_badge_id: badgeId,
+        p_sec_pin: secPin,
+      });
+
+      if (data?.success && data.user) {
+        return { user: data.user as AppUser, error: null };
+      }
+    }
 
     const isAbort = err instanceof Error && err.name === 'AbortError';
     const msg = isAbort ? 'Connection timed out' : 'Government gateway unavailable';

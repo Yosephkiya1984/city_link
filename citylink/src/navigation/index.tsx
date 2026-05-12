@@ -135,7 +135,9 @@ export default function AppNavigator() {
           <RootStack.Screen name="PendingVerification" component={PendingVerificationScreen} />
         ) : (
           <>
-            {uiMode === 'agent' ? (
+            {uiMode === 'valet' ? (
+              <RootStack.Screen name="ValetRoot" component={require('../screens/merchant/ParkingDashboard').default} />
+            ) : uiMode === 'agent' ? (
               <RootStack.Screen name="AgentRoot" component={AgentStack} />
             ) : uiMode === 'merchant' ? (
               <RootStack.Screen name="MerchantRoot" component={MerchantStack} />

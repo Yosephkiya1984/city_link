@@ -2,6 +2,7 @@ import { supaQuery, getClient } from '../../services/supabase';
 import { Restaurant, MenuItem, FoodOrder } from '../../types';
 import { uid } from '../../utils';
 import { decode } from 'base64-arraybuffer';
+import { OfflineSyncService } from '../../services/OfflineSyncService';
 
 /**
  * Food Domain API
@@ -136,6 +137,22 @@ export const FoodApi = {
       client.from('food_orders').update(payload).eq('id', orderId).eq('merchant_id', merchantId)
     );
     return { ok: !res.error, error: res.error };
+  },
+
+  /**
+   * fireToKitchen — updates order to PREPARING status with offline support.
+   */
+  async fireToKitchen(orderId: string, merchantId: string) {
+    // 1. Optimistic/Offline Queue
+    await OfflineSyncService.addAction({
+      id: `fire-${orderId}-${Date.now()}`,
+      type: 'KITCHEN_FIRE',
+      payload: { orderId, merchantId },
+      createdAt: new Date().toISOString()
+    });
+
+    // 2. Immediate attempt (handled by addAction calling sync)
+    return { ok: true, error: null };
   },
 
   /**

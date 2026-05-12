@@ -1,7 +1,3 @@
-import { useAuthStore } from './AuthStore';
-import { useWalletStore } from './WalletStore';
-import { useMarketStore } from './MarketStore';
-import { useSystemStore } from './SystemStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SecurePersist } from './SecurePersist';
 
@@ -11,6 +7,14 @@ import { SecurePersist } from './SecurePersist';
  */
 export const clearAllStores = async () => {
   try {
+    // 🛡️ FIX (CIRCULAR): Dynamic imports to avoid static cycles with AuthStore/WalletStore
+    const [{ useAuthStore }, { useWalletStore }, { useMarketStore }, { useSystemStore }] = await Promise.all([
+      import('./AuthStore'),
+      import('./WalletStore'),
+      import('./MarketStore'),
+      import('./SystemStore'),
+    ]);
+
     // 1. Logic resets (Zustand)
     await useAuthStore.getState().reset();
     await useWalletStore.getState().reset();
@@ -47,6 +51,14 @@ export const migrateLegacyData = async () => {
     if (!state) return;
 
     console.log('[StoreUtils] Migrating legacy data to new stores...');
+
+    // 🛡️ FIX (CIRCULAR): Dynamic imports for migration
+    const [{ useAuthStore }, { useWalletStore }, { useMarketStore }, { useSystemStore }] = await Promise.all([
+      import('./AuthStore'),
+      import('./WalletStore'),
+      import('./MarketStore'),
+      import('./SystemStore'),
+    ]);
 
     // 1. Auth Migration
     if (state.currentUser) {

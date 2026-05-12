@@ -19,7 +19,10 @@ import {
   fetchMerchantRestaurant,
   settleFoodOrderPayment,
 } from '../../../services/food.service';
-import { updateRestaurantStock } from '../../../services/marketplace.service';
+import {
+  updateRestaurantStock,
+  requestWithdrawal,
+} from '../../../services/marketplace.service';
 import { markOrderPickedUp, retryDispatch } from '../../../services/delivery.service';
 import { HospitalityService } from '../../../services/hospitality.service';
 import { uid } from '../../../utils';
@@ -95,8 +98,8 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
             
             if (pickupRes.ok) {
               showToast('✅ Handover confirmed!', 'success');
-              if (pickupRes.pin) {
-                setCurrentPin(pickupRes.pin);
+              if (pickupRes.pickupPin) {
+                setCurrentPin(pickupRes.pickupPin);
                 setShowPinModal(true);
               }
               loadData();
@@ -333,16 +336,39 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
   };
 
   const onWithdraw = async () => {
-    if (!currentUser?.id) return;
+    const currentBalance = useWalletStore.getState().balance || 0;
+    if (currentBalance < 100) {
+      showToast('Minimum withdrawal is ETB 100', 'warning');
+      return;
+    }
+
+    const bankName = currentUser?.merchant_details?.bank_name;
+    const accountNum = currentUser?.merchant_details?.account_number;
+
+    if (!bankName || !accountNum) {
+      showToast('Please update bank details in profile first', 'warning');
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActionLoading(true);
     try {
-      showToast('Withdrawal initiated! Processing...', 'info');
-      setTimeout(() => {
-        showToast('ETB 1,200 withdrawn to your bank account', 'success');
+      const res = await requestWithdrawal(
+        currentUser!.id,
+        currentBalance,
+        bankName,
+        accountNum
+      );
+
+      if (res.data?.ok) {
+        useWalletStore.getState().setBalance(res.data.new_balance);
+        showToast('Withdrawal request submitted via Chapa!', 'success');
         loadData();
-      }, 2000);
+      } else {
+        showToast(res.error || 'Withdrawal failed', 'error');
+      }
     } catch (error) {
+      console.error('[Withdrawal Error]:', error);
       showToast('Failed to initiate withdrawal', 'error');
     } finally {
       setActionLoading(false);
@@ -555,6 +581,32 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     onUpdateStock,
     onOrderSupplies,
     onUpdateReservationStatus,
+    onFireReservation,
+    onCreateReservation: async (data: any) => {
+      try {
+        setActionLoading(true);
+        const { error } = await HospitalityService.createReservation(
+          currentUser.id,
+          data.reservation_time,
+          data.guest_count,
+          0, // 0 deposit for manual bookings
+          [], // No pre-orders for manual bookings
+          data.table_id,
+          data.table_number,
+          data.metadata
+        );
+
+        if (error) throw new Error(error);
+        
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('Reservation created successfully', 'success');
+        loadData();
+      } catch (err: any) {
+        showToast(err.message || 'Failed to create reservation', 'error');
+      } finally {
+        setActionLoading(false);
+      }
+    },
     editingProduct,
     setEditingProduct,
   };

@@ -2,8 +2,17 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuthStore } from '../store/AuthStore';
 import { useWalletStore } from '../store/WalletStore';
 import { useSystemStore } from '../store/SystemStore';
-import * as Haptics from 'expo-haptics';
-import * as Location from 'expo-location';
+
+/**
+ * getNativeModules
+ * Safely retrieves native modules to prevent RSOD in restricted environments.
+ */
+async function getNativeModules() {
+  return {
+    Haptics: require('expo-haptics'),
+    Location: require('expo-location'),
+  };
+}
 
 import { fetchRestaurants, fetchFoodItems, placeOrder } from '../services/food.service';
 import { HospitalityService, EventModel } from '../services/hospitality.service';
@@ -144,14 +153,18 @@ export function useFood() {
 
   const cartCount = Object.values(cart).reduce((s, q) => s + q, 0);
 
-  const addToCart = useCallback((itemId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const addToCart = useCallback(async (itemId: string) => {
+    try {
+      const { Haptics } = await getNativeModules();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
     setCart((prev) => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
   }, []);
 
   const detectLocation = async () => {
     setLocationLoading(true);
     try {
+      const { Location, Haptics } = await getNativeModules();
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         showToast('Location permission denied', 'error');
@@ -160,7 +173,9 @@ export function useFood() {
       const loc = await Location.getCurrentPositionAsync({});
       setCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
       showToast('Location captured for precise delivery!', 'success');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
     } catch (err) {
       showToast('Could not get location', 'error');
     } finally {
@@ -210,6 +225,7 @@ export function useFood() {
     if (!res.ok) throw new Error(res.error || 'Failed to place order');
     setCart({});
     await useWalletStore.getState().syncWithServer();
+    showToast('Order placed successfully!', 'success');
     return res;
   };
 
@@ -230,10 +246,10 @@ export function useFood() {
       guestCount,
       deposit,
       [], // No pre-orders
-      selectedTable,
+      selectedTable ?? undefined,
       tableDetails?.table_number ? String(tableDetails.table_number) : undefined,
       { arrival_preference: arrivalPreference },
-      brokerId
+      brokerId ?? undefined
     );
     setCart({});
     await useWalletStore.getState().syncWithServer();
