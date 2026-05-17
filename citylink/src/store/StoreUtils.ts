@@ -8,11 +8,14 @@ import { SecurePersist } from './SecurePersist';
 export const clearAllStores = async () => {
   try {
     // 🛡️ FIX (CIRCULAR): Dynamic imports to avoid static cycles with AuthStore/WalletStore
-    const [{ useAuthStore }, { useWalletStore }, { useMarketStore }, { useSystemStore }] = await Promise.all([
+    const [{ useAuthStore }, { useWalletStore }, { useMarketStore }, { useSystemStore }, { useMerchantStore }, { useDeliveryStore }, { useAgentStore }] = await Promise.all([
       import('./AuthStore'),
       import('./WalletStore'),
       import('./MarketStore'),
       import('./SystemStore'),
+      import('./MerchantStore'),
+      import('./DeliveryStore'),
+      import('./AgentStore'),
     ]);
 
     // 1. Logic resets (Zustand)
@@ -20,6 +23,9 @@ export const clearAllStores = async () => {
     await useWalletStore.getState().reset();
     useMarketStore.getState().reset();
     useSystemStore.getState().reset();
+    useMerchantStore.getState().reset();
+    useDeliveryStore.getState().reset();
+    useAgentStore.getState().reset();
 
     // 2. Physical storage wipe (Hardened)
     await SecurePersist.clearAll();

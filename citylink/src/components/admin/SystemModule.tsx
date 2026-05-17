@@ -19,7 +19,6 @@ import * as Haptics from 'expo-haptics';
 export default function SystemModule() {
   const theme = useTheme();
   const [config, setConfig] = useState({
-    lrt_active: true,
     bus_active: true,
     marketplace_escrow: true,
     auto_approve_fayda: false,
@@ -97,7 +96,7 @@ export default function SystemModule() {
             latency="88ms"
             color={theme.green}
           />
-          <NodeCard name="LRT Fare Node" status={nodes.edge} latency="12ms" color={theme.primary} />
+
         </View>
       </View>
 
@@ -109,12 +108,7 @@ export default function SystemModule() {
         <View
           style={[styles.configCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}
         >
-          <ConfigItem
-            label="LRT Ticketing System"
-            sub="Enable/Disable city-wide rail ticketing"
-            value={config.lrt_active}
-            onToggle={() => toggleConfig('lrt_active')}
-          />
+
           <ConfigItem
             label="Bus Dispatching"
             sub="Real-time bus tracking and booking"
@@ -151,7 +145,7 @@ export default function SystemModule() {
           TARIFF CONFIGURATION
         </Text>
         <View style={styles.tariffGrid}>
-          <TariffCard label="LRT Base Fare" value="10.00 ETB" icon="subway" />
+
           <TariffCard label="Taxi Multiplier" value="1.25x" icon="car" />
           <TariffCard label="Comm. Commission" value="2.5%" icon="percent" />
           <TariffCard label="Min. Escrow" value="50.00 ETB" icon="wallet" />
@@ -222,7 +216,7 @@ function ConfigItem({
   );
 }
 
-function TariffCard({ label, value, icon }: { label: string; value: string; icon: any }) {
+function TariffCard({ label, value, icon }: { label: string; value: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }) {
   const theme = useTheme();
   const handleEdit = () => {
     if (Platform.OS === 'web') {

@@ -38,7 +38,7 @@ interface RealtimePayload {
     product_name?: string;
     full_name?: string;
     restaurant_name?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -69,7 +69,7 @@ export default function OverviewModule() {
 
   const loadStats = async () => {
     try {
-      const { data } = (await fetchAdminLiveStats()) as { data: any };
+      const { data } = (await fetchAdminLiveStats()) as { data: Partial<LiveStats> & { deliveries?: number } };
       if (data) {
         setStats({
           identities: data.identities ?? 0,
@@ -182,7 +182,7 @@ export default function OverviewModule() {
           >
             <View style={styles.statHeader}>
               <View style={[styles.iconBox, { backgroundColor: stat.color + '20' }]}>
-                <Ionicons name={stat.icon as any} size={isMobile ? 18 : 20} color={stat.color} />
+                <Ionicons name={stat.icon as React.ComponentProps<typeof Ionicons>['name']} size={isMobile ? 18 : 20} color={stat.color} />
               </View>
               {loading && <ActivityIndicator size="small" color={theme.primary} />}
             </View>
@@ -356,7 +356,7 @@ function OperationItem({
   return (
     <View style={styles.opItem}>
       <View style={[styles.opIcon, { backgroundColor: color + '15' }]}>
-        <MaterialCommunityIcons name={icon as any} size={18} color={color} />
+        <MaterialCommunityIcons name={icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={18} color={color} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.opTitle, { color: theme.text, fontFamily: Fonts.label }]}>

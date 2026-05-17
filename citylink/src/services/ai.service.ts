@@ -175,7 +175,8 @@ export async function sendMessage(
   appContext?: string,
   audioBase64?: string,
   snapshot?: UserFinancialSnapshot,
-  userName?: string
+  userName?: string,
+  onStatusUpdate?: (status: string | null) => void
 ): Promise<AIResponse> {
   const supaUrl = Config.supaUrl;
   const session = await getSession();
@@ -220,6 +221,8 @@ export async function sendMessage(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 180000); // 180s (3 min) timeout for local inference
 
+    onStatusUpdate?.(currentLang === 'am' ? 'ከአይ ሰርቨር ጋር በመገናኘት ላይ...' : 'Connecting to AI node...');
+
     const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
@@ -234,13 +237,30 @@ export async function sendMessage(
       signal: controller.signal,
     });
 
+    // Handle soft-timeout for local PC inference
+    const softTimeoutId = setTimeout(() => {
+      onStatusUpdate?.(currentLang === 'am' ? 'ትንሽ እየቆየ ነው (በኮምፒዩተርዎ ላይ እየሰራ ስለሆነ)...' : 'PC is busy with local inference, please wait...');
+    }, 8000); // 8 seconds
+
     clearTimeout(timeoutId);
+    clearTimeout(softTimeoutId);
+    onStatusUpdate?.(null);
+
     const data = await res.json().catch(() => ({}));
 
     // Handle explicit error objects returned from proxy (even if 200)
     if (data.error) {
       const errorString = String(data.error);
       console.error("[AI SERVICE ERROR DETAILED]:", data.message || data.error);
+
+      // Handle Gemini Quota Exhaustion
+      if (errorString === 'QUOTA_EXHAUSTED') {
+        return {
+          text: currentLang === 'am' ? 'የGemini ነጻ ኮታ አልቋል። እባክዎ ትንሽ ቆይተው ይሞክሩ (ወይም ሎካል ኦላማን ይጠቀሙ)።' : 'Gemini Free Tier quota reached. Please try again in a bit or ensure Local Ollama is running.',
+          retryable: true
+        };
+      }
+
       const isOverloaded = data.retryable === true || errorString.includes('429') || errorString.includes('503') || errorString.includes('SOVEREIGN_FAILURE') || errorString.includes('QUOTA');
       
       if (isOverloaded) {

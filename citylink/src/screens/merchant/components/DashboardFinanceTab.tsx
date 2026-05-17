@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
@@ -7,140 +7,118 @@ import { Typography, GlassCard, GlassView, SectionTitle } from '../../../compone
 import { fmtETB } from '../../../utils';
 import { useTheme } from '../../../hooks/useTheme';
 import { useWalletStore } from '../../../store/WalletStore';
-import { Transaction } from '../../../types/domain_types';
+import { WalletTransaction } from '../../../types/domain_types';
 import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
+import { useRenderCount } from '../../../utils/debug/performanceMonitor';
 
-const TransactionItem = React.memo(({ tx, index, C, handleViewReceipt }: any) => {
-  const isCredit = tx.type === 'credit';
-  return (
-    <MotiView
-      from={{ opacity: 0, translateY: 10 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ delay: Math.min(index * 30, 300) }}
-    >
-      <TouchableOpacity onPress={() => tx.reference_id && handleViewReceipt?.(tx.reference_id)}>
-        <GlassView variant="outline" style={localStyles.txCard}>
-          <View style={[localStyles.statIconBox, { backgroundColor: (isCredit ? C.green : C.red) + '15' }]}>
-            <Ionicons 
-              name={isCredit ? 'arrow-down' : 'arrow-up'} 
-              size={18} 
-              color={isCredit ? C.green : C.red} 
-            />
-          </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Typography variant="title">{tx.description || 'Transaction'}</Typography>
-              {tx.status === 'pending' && (
-                <View style={[localStyles.statusBadge, { backgroundColor: C.yellow + '20' }]}>
-                  <Typography variant="hint" style={{ color: C.yellow, fontSize: 8, fontWeight: '700' }}>PENDING</Typography>
-                </View>
-              )}
-            </View>
-            <Typography variant="hint" color="sub">{new Date(tx.created_at).toLocaleDateString()}</Typography>
-          </View>
-          <Typography variant="h3" style={{ color: isCredit ? C.green : C.white }}>
-            {isCredit ? '+' : '-'}{fmtETB(tx.amount)}
-          </Typography>
-        </GlassView>
-      </TouchableOpacity>
-    </MotiView>
-  );
-});
+export interface DashboardFinanceTabProps {
+  walletTransactions: WalletTransaction[];
+  wallet?: any;
+  totalSales?: number;
+  handleViewReceipt?: (refId: string) => void;
+  handleWithdraw: () => void;
+  withdrawing: boolean;
+  t: (key: string) => string;
+  styles?: any;
+}
 
-export function DashboardFinanceTab({
+export const DashboardFinanceTab = memo(function DashboardFinanceTab({
   walletTransactions = [],
-  wallet: walletProp,
-  totalSales: totalSalesProp,
+  totalSales = 0,
   handleViewReceipt,
   handleWithdraw,
   withdrawing,
-}: any) {
+  t,
+}: DashboardFinanceTabProps) {
+  useRenderCount('DashboardFinanceTab');
+  const { balance, frozenBalance } = useWalletStore();
   const C = useTheme();
-  const walletStore = useWalletStore();
-  
-  const wallet = walletProp || walletStore;
-  const totalSales = totalSalesProp || 0;
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={{ gap: 16, marginBottom: 24, paddingHorizontal: 16 }}>
-        <GlassCard accentColor={C.green} glow>
-          <View style={{ padding: 24 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View>
-                <Typography variant="hint" color="sub" style={{ letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '700' }}>
-                  AVAILABLE BALANCE
-                </Typography>
-                <Typography variant="h1" style={{ marginTop: 8, fontSize: 36 }}>{fmtETB(wallet?.balance || 0)}</Typography>
-              </View>
-              <View style={[localStyles.iconCircle, { backgroundColor: C.green + '15' }]}>
-                <Ionicons name="wallet" size={24} color={C.green} />
-              </View>
+    <View style={{ padding: Spacing.lg }}>
+      <GlassCard accentColor={C.green} glow style={{ marginBottom: 24 }}>
+        <View style={{ padding: 24 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Typography variant="hint" color="sub" style={{ letterSpacing: 1, fontWeight: '800' }}>TOTAL BALANCE</Typography>
+              <Typography variant="h1" style={{ fontSize: 36, marginTop: 4 }}>{fmtETB(balance)}</Typography>
             </View>
-            
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-              <TouchableOpacity 
-                style={[localStyles.payoutBtn, { backgroundColor: C.green, opacity: withdrawing ? 0.6 : 1 }]}
-                onPress={handleWithdraw}
-                disabled={withdrawing}
-              >
-                <Typography variant="title" style={{ color: '#00210F', fontSize: 14 }}>
-                  {withdrawing ? 'Processing...' : 'Withdraw Funds'}
-                </Typography>
-              </TouchableOpacity>
+            <View style={[localStyles.walletIcon, { backgroundColor: C.green + '20' }]}>
+              <Ionicons name="wallet-outline" size={32} color={C.green} />
             </View>
           </View>
-        </GlassCard>
 
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <GlassCard style={{ flex: 1 }}>
-            <View style={{ padding: 16 }}>
-              <Typography variant="hint" color="sub" style={{ fontSize: 10, letterSpacing: 1 }}>ESCROW (PENDING)</Typography>
-              <Typography variant="h3" style={{ marginTop: 4 }}>{fmtETB(wallet?.frozenBalance || wallet?.frozen_balance || 0)}</Typography>
+          <View style={{ flexDirection: 'row', marginTop: 24, gap: 16 }}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 16 }}>
+              <Typography variant="hint" color="sub">In Escrow</Typography>
+              <Typography variant="h3">{fmtETB(frozenBalance)}</Typography>
             </View>
-          </GlassCard>
-          <GlassCard style={{ flex: 1 }}>
-            <View style={{ padding: 16 }}>
-              <Typography variant="hint" color="sub" style={{ fontSize: 10, letterSpacing: 1 }}>PERIOD REVENUE</Typography>
-              <Typography variant="h3" style={{ marginTop: 4, color: C.primary }}>{fmtETB(totalSales || 0)}</Typography>
+            <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 16 }}>
+              <Typography variant="hint" color="sub">Total Revenue</Typography>
+              <Typography variant="h3" color="primary">{fmtETB(totalSales)}</Typography>
             </View>
-          </GlassCard>
+          </View>
+
+          <TouchableOpacity 
+            style={[localStyles.withdrawBtn, { backgroundColor: C.primary }]}
+            onPress={handleWithdraw}
+            disabled={withdrawing || balance <= 0}
+          >
+            <Typography variant="label" style={{ color: D.ink, fontWeight: '800' }}>
+              {withdrawing ? 'PROCESSING...' : 'WITHDRAW EARNINGS'}
+            </Typography>
+          </TouchableOpacity>
         </View>
+      </GlassCard>
+
+      <SectionTitle title="Payment History" rightLabel="View All" />
+      
+      <View style={{ height: 400 }}>
+        <FlashList
+          data={walletTransactions}
+          estimatedItemSize={80}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              style={localStyles.txRow}
+              onPress={() => handleViewReceipt?.(item.reference_id || '')}
+            >
+              <View style={[localStyles.txIcon, { backgroundColor: item.type?.toUpperCase() === 'CREDIT' ? C.green + '15' : C.red + '15' }]}>
+                <Ionicons 
+                  name={item.type?.toUpperCase() === 'CREDIT' ? 'arrow-down-outline' : 'arrow-up-outline'} 
+                  size={18} 
+                  color={item.type?.toUpperCase() === 'CREDIT' ? C.green : C.red} 
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 16 }}>
+                <Typography variant="title" style={{ fontSize: 15 }}>{item.description || 'Transaction'}</Typography>
+                <Typography variant="hint" color="sub">{new Date(item.created_at).toLocaleDateString()}</Typography>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Typography variant="h3" style={{ color: item.type?.toUpperCase() === 'CREDIT' ? C.green : C.red }}>
+                  {item.type?.toUpperCase() === 'CREDIT' ? '+' : '-'}{fmtETB(item.amount)}
+                </Typography>
+                <Typography variant="hint" style={{ color: item.status === 'COMPLETED' ? C.green : C.amber, fontSize: 10 }}>
+                  {item.status}
+                </Typography>
+              </View>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={
+            <View style={{ padding: 40, alignItems: 'center' }}>
+              <Ionicons name="receipt-outline" size={48} color={C.edge} />
+              <Typography variant="body" color="sub" style={{ marginTop: 12 }}>No transactions yet</Typography>
+            </View>
+          }
+        />
       </View>
-
-      <SectionTitle title="Ledger History" style={{ marginHorizontal: 16 }} />
-
-      <FlashList
-        data={walletTransactions}
-        renderItem={({ item, index }) => (
-          <TransactionItem 
-            tx={item} 
-            index={index} 
-            C={C} 
-            handleViewReceipt={handleViewReceipt} 
-          />
-        )}
-        keyExtractor={(item) => item.id}
-        estimatedItemSize={76}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
-        ListEmptyComponent={
-          <View style={localStyles.emptyState}>
-            <Ionicons name="receipt-outline" size={64} color={C.border} />
-            <Typography variant="title" color="sub">No transactions yet.</Typography>
-          </View>
-        }
-      />
     </View>
   );
-}
+});
 
 const localStyles = StyleSheet.create({
-  iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  payoutBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  payoutChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  txCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, marginBottom: 12 },
-  statIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  emptyState: { padding: 60, alignItems: 'center', justifyContent: 'center' },
-  statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
+  walletIcon: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  withdrawBtn: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
+  txRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  txIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

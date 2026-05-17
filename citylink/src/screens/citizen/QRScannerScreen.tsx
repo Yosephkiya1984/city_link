@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+
+// expo-camera is native-only; guard against web
+const CameraModule = Platform.OS !== 'web' ? require('expo-camera') : null;
+const CameraView = CameraModule?.CameraView;
+const useCameraPermissions = CameraModule?.useCameraPermissions || (() => [null, () => {}]);
 import { useNavigation } from '@react-navigation/native';
 import TopBar from '../../components/TopBar';
 import { useSystemStore } from '../../store/SystemStore';
@@ -16,6 +20,25 @@ export function QRScannerScreen() {
   const C = isDark ? Colors : LightColors;
   const lang = useSystemStore((s) => s.lang);
   const showToast = useSystemStore((s) => s.showToast);
+
+  // Web fallback - camera not supported
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.ink }}>
+        <TopBar title="📷 QR Scanner" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={{ fontSize: 60, marginBottom: 16 }}>📷</Text>
+          <Text style={{ color: C.text, fontSize: FontSize.xl, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>
+            Camera Not Supported on Web
+          </Text>
+          <Text style={{ color: C.sub, textAlign: 'center', marginBottom: 24 }}>
+            Please use the mobile app to scan QR codes.
+          </Text>
+          <CButton title="Go Back" onPress={() => navigation.goBack()} />
+        </View>
+      </View>
+    );
+  }
 
   if (!permission) {
     return (

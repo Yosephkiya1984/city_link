@@ -272,11 +272,9 @@ const TOOLS = [
 async function fetchLocalAI(messages: any[], system: string, localAiUrl: string) {
   if (!localAiUrl) return { error: "LOCAL_AI_URL_NOT_SET" };
   try {
-    console.log(`[LOG] Connecting to local node: ${localAiUrl}...`);
-
-    // Quick health check with 5s timeout — fail fast if tunnel is down
+    // 🚀 OPTIMIZATION: Faster health check (3s) to avoid blocking the user
     const tagsController = new AbortController();
-    const tagsTimeout = setTimeout(() => tagsController.abort(), 5000);
+    const tagsTimeout = setTimeout(() => tagsController.abort(), 3000);
 
     let tagsRes: Response;
     try {
@@ -285,14 +283,12 @@ async function fetchLocalAI(messages: any[], system: string, localAiUrl: string)
         headers: {
           'User-Agent': 'CityLink-Agent/1.0',
           'ngrok-skip-browser-warning': 'true',
-          'Bypass-Tunnel-Reminder': 'true',
-          'bypass-tunnel-reminder': 'true',
-          'X-Tunnel-Skip-2FA': 'true'
+          'Bypass-Tunnel-Reminder': 'true'
         }
       });
     } catch (e: any) {
-      console.error(`[ERR] Local AI fetch failed: ${e.message}`);
-      return { error: `LOCAL_TUNNEL_UNREACHABLE` };
+      console.warn(`[WRN] Local node ping failed: ${e.message}. Directly attempting Gemini...`);
+      return { error: `LOCAL_UNREACHABLE` };
     } finally {
       clearTimeout(tagsTimeout);
     }
@@ -334,20 +330,11 @@ async function fetchLocalAI(messages: any[], system: string, localAiUrl: string)
     }
     console.log(`[LOG] Selected model: ${selectedModel} (from ${tagsData.models.length} installed)`);
 
-// Append a concise action-format reminder so any model knows the expected output shape.
-const actionReminder = `\n\nSYSTEM_OVERRIDE — HIGHEST PRIORITY:
-You are the CityLink Sovereign Concierge. CRITICAL OUTPUT RULES:
-1. Your ENTIRE response must be ONE raw JSON object. Start with { end with }. NO text before or after. NO markdown. NO backticks.
-2. Format with action: {"text":"your reply","action":{"type":"tool_name","data":{params}}}
-   Format no action: {"text":"your reply"}
-3. REAL IDs for known entities:
-   - Abebe restaurant_id: c6278c73-8008-4066-b157-b511d997f041
-   - Beye menu_item_id: 1fd6e775-94aa-45cd-a7ed-7d02918eed99
-   - Camera product_id: fd6743d9-427e-460a-8358-f937e6fd8438
-   - Sami Parking lot_id: 80833d10-ed4f-4dc7-ac35-010e31ea2c8c
-   - Eyeuu ekub_id: f0af7939-6ad7-4f71-b45e-04be4aa093b1 round_number: 1
-4. ACT IMMEDIATELY for food/parking/market/ekub — never ask clarifying questions.
-5. Use user's language: Amharic fidel for Amharic, plain English otherwise.`;
+// Append a concise action-format reminder
+const actionReminder = `\n\nSYSTEM_OVERRIDE:
+1. Response must be ONE raw JSON object: {"text":"...","action":{"type":"...","data":{}}}
+2. Use user's language (Amharic fidel for Amharic).
+3. ACT IMMEDIATELY for parking/wallet/food.`;
 
     const chatController = new AbortController();
     // Supabase Edge Functions have a longer timeout on higher tiers. We give the local node 120s to handle cold starts and slow CPU inference.
@@ -486,8 +473,14 @@ async function fetchGeminiFallback(payload: any, apiKey: string, strategyIndex =
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[GEMINI ERROR] ${model} returned ${res.status}: ${errText}`);
-      // Always fallback to the next model on any error (including 429)
+      console.error(`[GEMINI ERROR] ${model} returned ${res.status}`);
+      
+      // 🛡️ CIRCUIT BREAKER: If 429, don't burn other models, just fail
+      if (res.status === 429) {
+        return { error: `QUOTA_EXHAUSTED`, provider: 'google-circuit-breaker' };
+      }
+      
+      // Fallback to next model for other errors
       return fetchGeminiFallback(payload, apiKey, strategyIndex + 1);
     }
 

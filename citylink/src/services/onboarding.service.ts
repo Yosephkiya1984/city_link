@@ -31,7 +31,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'transport',
     title: 'Smart Transport 🚌',
-    description: 'Real-time tracking for LRT, buses, and more. Never wait for transport again!',
+    description: 'Real-time tracking for buses and more. Never wait for transport again!',
     icon: 'bus',
     color: '#10b981',
     features: ['Live bus tracking', 'Route planning', 'Fare calculation', 'Trip history'],

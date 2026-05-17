@@ -71,15 +71,24 @@ export const useWalletStore = create<WalletState>((set) => ({
           SecurePersist.saveTransactions([]),
           SecurePersist.saveActiveParking(null),
         ]);
+        // Still sync from server so the correct user's data loads
+        await useWalletStore.getState().syncWithServer();
         return;
       }
     }
+
+    // 1. Load disk cache first for instant UI (fast path)
     const [balance, transactions, activeParking] = await Promise.all([
       SecurePersist.loadBalance(),
       SecurePersist.loadTransactions(),
       SecurePersist.loadActiveParking(),
     ]);
     set({ balance, transactions, activeParking });
+
+    // 2. Always follow up with a server sync to correct stale/missing data.
+    // CRITICAL: This restores the active parking session (including PIN) after
+    // logout, because logout wipes SecurePersist but the DB session stays active.
+    await useWalletStore.getState().syncWithServer();
   },
 
   syncWithServer: async () => {
@@ -87,31 +96,68 @@ export const useWalletStore = create<WalletState>((set) => ({
     const supabase = getClient();
     if (!supabase) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    // 🛡️ RESILIENCE FIX: Instead of strictly relying on supabase.auth.getUser() 
+    // Robust user resolution: try Supabase first to confirm authenticated context
+    const authResponse = await supabase.auth.getUser();
+    const authUser = authResponse.data?.user;
+    
+    // Fallback to AuthStore if Supabase is mid-refresh (e.g. immediately after login)
+    let user = authUser;
+    if (!user) {
+      const authStoreUser = (await import('./AuthStore')).useAuthStore.getState().currentUser;
+      if (authStoreUser) {
+        user = { id: authStoreUser.id } as any;
+      }
+    }
 
+    if (!user) {
+      console.warn('[WalletStore] syncWithServer aborted: No user detected in Supabase or AuthStore.');
+      return;
+    }
+
+    // ── 1. Sync wallet balance ────────────────────────────────────────────────
     const { data, error } = await supabase
       .from('wallets')
-      .select('balance, frozen_balance')
+      .select('id, balance, frozen_balance')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (data && !error) {
       useWalletStore.getState().setBalance(data.balance);
       useWalletStore.getState().setFrozenBalance(data.frozen_balance || 0);
+
+      // ── 2. Sync recent transactions (refunds/settlements appear instantly) ──
+      // This ensures the wallet history shows the escrow refund credit right
+      // after the valet closes the session — no logout required.
+      const { data: txData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('wallet_id', data.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (txData) {
+        useWalletStore.getState().setTransactions(txData as any[]);
+      }
     }
 
-    // 🏎️ Sync Active Parking Session
-    const { data: session, error: sessErr } = await supabase
+    // ── 3. Sync Active Parking Session ────────────────────────────────────────
+    // Only active/reserved sessions count. If DB has none → clear local cache.
+    // This is the authoritative check: if the valet closed it, DB has no active
+    // session, so activeParking becomes null → timer stops.
+    const { data: sessions, error: sessErr } = await supabase
       .from('parking_sessions')
       .select('*, parking_lots(name, rate_per_hour)')
       .eq('user_id', user.id)
-      .in('status', ['active', 'ACTIVE', 'RESERVED'])
+      .or('status.ilike.active,status.ilike.ACTIVE,status.ilike.RESERVED')
       .order('start_time', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (sessErr) {
+      console.error('[WalletStore] syncWithServer: Failed to fetch parking sessions:', sessErr.message, sessErr.details);
+    }
+
+    const session = sessions?.[0];
 
     if (session && !sessErr) {
       const mappedSession = {
@@ -120,11 +166,17 @@ export const useWalletStore = create<WalletState>((set) => ({
         rate_per_hour: (session.parking_lots as any)?.rate_per_hour || 15,
       };
       useWalletStore.getState().setActiveParking(mappedSession);
-    } else if (!sessErr) {
-      // No active session in DB, clear local if it exists
+    } else if (!sessErr && authUser) {
+      // 🛡️ CRITICAL: Only clear local state if we are CERTAIN we have a 
+      // valid, authenticated Supabase session and it returned 0 rows.
+      // If authUser is null (fallback used), the 0 rows might be due to 
+      // RLS blocking an unauthenticated request during a token refresh.
       if (useWalletStore.getState().activeParking) {
+        console.log('[WalletStore] No active session found on server. Clearing local state.');
         useWalletStore.getState().setActiveParking(null);
       }
+    } else if (!sessErr && !authUser) {
+      console.log('[WalletStore] Fallback user used for sync. Skipping state wipe to prevent race condition.');
     }
   },
 

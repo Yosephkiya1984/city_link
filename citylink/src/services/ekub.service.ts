@@ -18,7 +18,7 @@ export async function createEkub(data: Partial<EkubCircle>) {
     visibility: 'public',
     ...data,
   };
-  return supaQuery<EkubCircle>((c) => c.from('ekubs').insert(newEkub).select().single());
+  return supaQuery<EkubCircle>((c) => c.from('ekubs').insert(newEkub).select().maybeSingle());
 }
 
 /**
@@ -45,7 +45,7 @@ export async function submitEkubApplication(ekubId: string, userId: string, reas
     application_reason: reason,
     joined_at: new Date().toISOString(),
   };
-  return supaQuery<EkubMember>((c) => c.from('ekub_members').insert(application).select().single());
+  return supaQuery<EkubMember>((c) => c.from('ekub_members').insert(application).select().maybeSingle());
 }
 
 /**
@@ -64,7 +64,7 @@ export async function handleEkubApplication(
       .eq('user_id', userId)
       .eq('status', 'PENDING')
       .select()
-      .single()
+      .maybeSingle()
   );
 }
 
@@ -128,7 +128,7 @@ export async function signWinnerConsent(drawId: string) {
       })
       .eq('id', drawId)
       .select()
-      .single()
+      .maybeSingle()
   );
 }
 
@@ -153,7 +153,7 @@ export async function submitVouch(
     reason: reason ?? undefined,
     vouched_at: new Date().toISOString(),
   };
-  return supaQuery<EkubVouch>((c) => c.from('ekub_vouches').insert(vouch).select().single());
+  return supaQuery<EkubVouch>((c) => c.from('ekub_vouches').insert(vouch).select().maybeSingle());
 }
 
 /**

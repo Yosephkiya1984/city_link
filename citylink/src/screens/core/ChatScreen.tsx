@@ -26,6 +26,11 @@ import {
 } from '../../services/chat.service';
 import { uid } from '../../utils';
 import { t } from '../../utils/i18n';
+import { P2PChatMessage } from '../../types/domain_types';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 const T = {
   bg: '#101319',
@@ -39,16 +44,16 @@ const T = {
   accent: '#ffd887',
 };
 
-export default function ChatScreen({ route, navigation }: { route: any; navigation: any }) {
+export default function ChatScreen({ route, navigation }: Props) {
   const { threadId, recipientName, recipientId } = route.params;
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<P2PChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
-  const flatListRef = useRef<any>(null);
+  const flatListRef = useRef<FlashList<P2PChatMessage>>(null);
 
   const loadMessagesData = useCallback(async () => {
     const { data, error } = await fetchChatMessages(threadId);
@@ -80,12 +85,13 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
       `chat-${threadId}`,
       'chat_messages',
       `thread_id=eq.${threadId}`,
-      (payload: any) => {
+      (payload) => {
         if (payload.eventType === 'INSERT') {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          const newMsg = payload.new as P2PChatMessage;
           setMessages((prev) => {
-            if (prev.find((m) => m.id === payload.new.id)) return prev;
-            return [payload.new, ...prev];
+            if (prev.find((m) => m.id === newMsg.id)) return prev;
+            return [newMsg, ...prev];
           });
         }
       }
@@ -106,7 +112,7 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const msgId = uid();
-    const optimisticMsg: any = {
+    const optimisticMsg: P2PChatMessage = {
       id: msgId,
       thread_id: threadId,
       user_id: currentUser.id,
@@ -132,14 +138,14 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
       setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
       setInputText(msgText);
       showToast('Failed to send message', 'error');
-    } else {
+    } else if (data) {
       setMessages((prev) => prev.map((m) => (m.id === optimisticMsg.id ? data : m)));
       await updateChatThreadLastMessage(threadId, msgText);
     }
     setSending(false);
   };
 
-  const renderItem = ({ item, index }: { item: any; index: number }) => {
+  const renderItem = ({ item, index }: { item: P2PChatMessage; index: number }) => {
     const isMine = item.user_id === currentUser?.id;
     const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
     const sameUser = nextMsg?.user_id === item.user_id;
@@ -224,11 +230,11 @@ export default function ChatScreen({ route, navigation }: { route: any; navigati
           <ActivityIndicator color={T.primary} />
         </View>
       ) : (
-        <FlashList<any>
+        <FlashList<P2PChatMessage>
           ref={flatListRef}
           data={messages}
           renderItem={renderItem}
-          keyExtractor={(item: any) => item.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           estimatedItemSize={70}
           inverted

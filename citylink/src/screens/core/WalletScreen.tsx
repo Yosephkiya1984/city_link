@@ -228,7 +228,7 @@ export default function WalletScreen() {
               <Ionicons name="qr-code-outline" size={20} color={C.white} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => (navigation as any).navigate('SendMoney')}
+              onPress={() => navigation.navigate('SendMoney' as never)}
               style={styles.secondaryAction}
             >
               <Ionicons name="send" size={20} color={C.white} />
@@ -252,12 +252,12 @@ export default function WalletScreen() {
       <TopBar title={t('my_wallet')} />
       <FlashList
         data={transactions}
-        keyExtractor={(item: any, index: number) => item.id || index.toString()}
+        keyExtractor={(item: Transaction, index: number) => item.id || index.toString()}
         estimatedItemSize={80}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item, index }: { item: any; index: number }) => (
+        renderItem={({ item, index }: { item: Transaction; index: number }) => (
           <View style={{ paddingHorizontal: 16 }}>
             <TransactionItem tx={item} index={index} onPress={() => handleSelectTransaction(item)} />
           </View>
@@ -337,7 +337,7 @@ export default function WalletScreen() {
                     gap: 8,
                   }}
                 >
-                  <Text style={{ fontSize: 16 }}>{(info as any).icon}</Text>
+                  <Text style={{ fontSize: 16 }}>{(info as { icon: string }).icon}</Text>
                   <Text
                     style={{
                       color: selectedProvider === id ? C.text : C.sub,
@@ -345,7 +345,7 @@ export default function WalletScreen() {
                       fontFamily: Fonts.bold,
                     }}
                   >
-                    {(info as any).name}
+                    {(info as { name: string }).name}
                   </Text>
                 </TouchableOpacity>
               ))}

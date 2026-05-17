@@ -1,11 +1,15 @@
 import { useAuthStore } from '../store/AuthStore';
 import { useWalletStore } from '../store/WalletStore';
-import { WalletApi } from '../modules/wallet';
 
 /**
  * WalletSyncService
  * Orchestrates the synchronization of wallet data with the server.
  * Handles throttling, session-based triggers, and error recovery.
+ *
+ * Delegates to WalletStore.syncWithServer() which covers:
+ *   1. Wallet balance
+ *   2. Recent transactions
+ *   3. Active parking session (clears it if valet has closed the session)
  */
 class WalletSyncService {
   private isSyncing = false;
@@ -31,15 +35,15 @@ class WalletSyncService {
 
     try {
       console.log('[WalletSync] Starting synchronization...');
-      const data = await WalletApi.fetchWalletData(userId);
-      
-      if (data) {
-        const { setBalance, setTransactions } = useWalletStore.getState();
-        setBalance(data.balance);
-        setTransactions(data.transactions);
-        this.lastSyncTime = Date.now();
-        console.log('[WalletSync] Success.');
-      }
+
+      // Delegate to WalletStore.syncWithServer — single source of truth.
+      // This syncs balance, transactions, AND active parking session.
+      // If the valet closed the session, syncWithServer clears activeParking
+      // which stops the timer on the citizen's screen automatically.
+      await useWalletStore.getState().syncWithServer();
+
+      this.lastSyncTime = Date.now();
+      console.log('[WalletSync] Success.');
     } catch (error) {
       console.error('[WalletSync] Critical sync error:', error);
     } finally {
@@ -56,8 +60,10 @@ class WalletSyncService {
       (state) => state.currentUser?.id,
       (userId) => {
         if (userId) {
-          console.log('[WalletSync] Session detected, triggering initial sync.');
-          this.sync(true);
+          console.log('[WalletSync] Session detected, triggering initial sync with 1500ms delay...');
+          // 🛡️ AUTH RACE FIX: Trigger two syncs to guarantee visibility after login transients
+          setTimeout(() => this.sync(true), 1500);
+          setTimeout(() => this.sync(false), 5000); // Silent background catch-all
         }
       }
     );
@@ -65,7 +71,8 @@ class WalletSyncService {
     // 2. Initial sync if user is already logged in
     const currentId = useAuthStore.getState().currentUser?.id;
     if (currentId) {
-      this.sync(true);
+      // 🛡️ Also wait during initial boot-up sync
+      setTimeout(() => this.sync(true), 1500);
     }
   }
 }

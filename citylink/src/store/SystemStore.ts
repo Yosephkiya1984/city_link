@@ -31,6 +31,8 @@ export interface SystemState {
   setChatHistories: (histories: Record<string, ChatMessage[]>) => void;
   setTheme: (theme: 'light' | 'dark') => void;
   showToast: (message: string, type?: Toast['type']) => void;
+  removeToast: (id: string) => void;
+  clearToasts: () => void;
   addNotification: (notif: Notification) => void;
   markNotifRead: (id: string) => void;
   clearNotifications: () => void;
@@ -73,13 +75,20 @@ export const useSystemStore = create<SystemState>()(
       setTheme: (theme) => set({ theme, isDark: theme === 'dark' }),
 
       showToast: (message, type = 'info') => {
-        // 🛡️ FIX (MED-3): Use uid() for guaranteed uniqueness — Math.random() can collide
         const id = `toast-${Date.now()}-${Math.floor(Math.random() * 0xffff).toString(16)}`;
-        set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
+        set((s) => {
+          // Limit to 5 active toasts to prevent screen clutter
+          const nextToasts = [...s.toasts, { id, message, type }].slice(-5);
+          return { toasts: nextToasts };
+        });
+        
         setTimeout(() => {
           set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
-        }, 3500);
+        }, 4000);
       },
+
+      removeToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+      clearToasts: () => set({ toasts: [] }),
 
       addNotification: (notif) =>
         set((s) => ({

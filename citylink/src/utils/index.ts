@@ -142,12 +142,7 @@ export function genQrToken(prefix: string = 'CL'): string {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
-// —— LRT fare calculator ———————————————————————————————————————————————————————
-export function calcLrtFare(fromKm: number, toKm: number): number {
-  const dist = Math.abs(toKm - fromKm);
-  const fare = 2.0 + dist * 0.45;
-  return Math.ceil(fare * 10) / 10;
-}
+
 
 // —— Shimmer placeholder items —————————————————————————————————————————————————
 export function placeholderArr(n: number = 5): Array<{ _placeholder: boolean; id: string }> {

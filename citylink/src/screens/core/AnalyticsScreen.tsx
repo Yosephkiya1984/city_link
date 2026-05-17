@@ -20,6 +20,54 @@ import { fmtETB, timeAgo, uid, fmtDateTime } from '../../utils';
 import { fetchSpendingInsights } from '../../services/wallet.service';
 import { getUserSavingsMetrics } from '../../services/ekub.service';
 import { t } from '../../utils/i18n';
+import { Transaction } from '../../types/domain_types';
+
+interface Metric<T> {
+  title: string;
+  icon: string;
+  color: string;
+  data: T[];
+}
+
+interface SpendingPoint { 
+  month?: string; 
+  day?: string; 
+  amount: number; 
+}
+
+interface TransportPoint { 
+  mode: string; 
+  trips: number; 
+  percentage: number; 
+}
+
+interface SavingsPoint { 
+  category: string; 
+  target: number; 
+  current: number; 
+}
+
+interface ActivityPoint { 
+  day: string; 
+  transactions: number; 
+  logins: number; 
+}
+
+interface AnalyticsMetrics {
+  spending: Metric<SpendingPoint>;
+  transport: Metric<TransportPoint>;
+  savings: Metric<SavingsPoint>;
+  activity: Metric<ActivityPoint>;
+}
+
+interface Insight {
+  id: string;
+  title: string;
+  insight: string;
+  recommendation: string;
+  type: 'info' | 'success' | 'warning';
+  icon: string;
+}
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,7 +91,6 @@ const ANALYTICS_METRICS = {
     icon: 'car',
     color: '#10b981',
     data: [
-      { mode: 'LRT', trips: 45, percentage: 35 },
       { mode: 'Bus', trips: 38, percentage: 30 },
       { mode: 'Minibus', trips: 25, percentage: 20 },
       { mode: 'Taxi', trips: 19, percentage: 15 },
@@ -93,14 +140,7 @@ const INSIGHTS = [
     type: 'success',
     icon: 'checkmark-circle',
   },
-  {
-    id: 'transport',
-    title: 'Transport Efficiency',
-    insight: 'LRT is your most cost-effective transport option',
-    recommendation: 'Consider monthly pass for additional savings',
-    type: 'info',
-    icon: 'subway',
-  },
+
 ];
 
 export default function AnalyticsScreen() {
@@ -114,8 +154,8 @@ export default function AnalyticsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedMetric, setSelectedMetric] = useState('overview');
   const [loading, setLoading] = useState(false);
-  const [insightList, setInsightList] = useState(INSIGHTS);
-  const [metricData, setMetricData] = useState<any>(ANALYTICS_METRICS);
+  const [insightList, setInsightList] = useState<Insight[]>(INSIGHTS as Insight[]);
+  const [metricData, setMetricData] = useState<AnalyticsMetrics>(ANALYTICS_METRICS as AnalyticsMetrics);
   const [animatedValues, setAnimatedValues] = useState<Record<string, Animated.Value>>({});
 
   const loadDataRequest = useCallback(async () => {
@@ -136,16 +176,16 @@ export default function AnalyticsScreen() {
       getUserSavingsMetrics(currentUser.id),
     ]);
 
-    const timeline: any[] = [];
-    let topCatInsight: any = null;
-    let savingsMetric: any = null;
+    const timeline: SpendingPoint[] = [];
+    let topCatInsight: Insight | null = null;
+    let savingsMetric: SavingsPoint | null = null;
 
     // Process Spending
     if (spendRes.data) {
-      const txs = spendRes.data;
+      const txs = spendRes.data as Transaction[];
       const categories: Record<string, number> = {};
 
-      txs.forEach((tx: any) => {
+      txs.forEach((tx) => {
         categories[tx.category] = (categories[tx.category] || 0) + tx.amount;
         const day = new Date(tx.created_at).toLocaleDateString(undefined, { weekday: 'short' });
         const existingDay = timeline.find((d) => d.day === day);
@@ -157,7 +197,7 @@ export default function AnalyticsScreen() {
       });
 
       if (txs.length > 0) {
-        const total = txs.reduce((s: number, t: any) => s + t.amount, 0);
+        const total = txs.reduce((s, t) => s + t.amount, 0);
         const topCat = Object.entries(categories).sort((a, b) => b[1] - a[1])[0];
         if (topCat) {
           topCatInsight = {
@@ -174,7 +214,7 @@ export default function AnalyticsScreen() {
 
     // Process Savings
     if (saveRes.data) {
-      const totalSaved = saveRes.data.reduce((s: number, r: any) => s + r.amount, 0);
+      const totalSaved = (saveRes.data as { amount: number }[]).reduce((s, r) => s + r.amount, 0);
       savingsMetric = {
         category: 'Total Ekub',
         target: totalSaved * 1.5 || 10000,
@@ -190,21 +230,21 @@ export default function AnalyticsScreen() {
     const data = await loadDataRequest();
     if (data) {
       if (data.timeline.length > 0) {
-        setMetricData((prev: any) => ({
+        setMetricData((prev) => ({
           ...prev,
           spending: { ...prev.spending, data: data.timeline },
         }));
       }
       if (data.topCatInsight) {
         setInsightList((prev) => [
-          data.topCatInsight,
+          data.topCatInsight as Insight,
           ...prev.filter((i) => i.id !== 'dynamic-spend'),
         ]);
       }
       if (data.savingsMetric) {
-        setMetricData((prev: any) => ({
+        setMetricData((prev) => ({
           ...prev,
-          savings: { ...prev.savings, data: [data.savingsMetric] },
+          savings: { ...prev.savings, data: [data.savingsMetric as SavingsPoint] },
         }));
       }
     }
@@ -217,21 +257,21 @@ export default function AnalyticsScreen() {
     loadDataRequest().then((data) => {
       if (!ignore && data) {
         if (data.timeline.length > 0) {
-          setMetricData((prev: any) => ({
+          setMetricData((prev) => ({
             ...prev,
             spending: { ...prev.spending, data: data.timeline },
           }));
         }
         if (data.topCatInsight) {
           setInsightList((prev) => [
-            data.topCatInsight,
+            data.topCatInsight as Insight,
             ...prev.filter((i) => i.id !== 'dynamic-spend'),
           ]);
         }
         if (data.savingsMetric) {
-          setMetricData((prev: any) => ({
+          setMetricData((prev) => ({
             ...prev,
-            savings: { ...prev.savings, data: [data.savingsMetric] },
+            savings: { ...prev.savings, data: [data.savingsMetric as SavingsPoint] },
           }));
         }
         setLoading(false);
@@ -266,12 +306,12 @@ export default function AnalyticsScreen() {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    const monthTransactions = (transactions || []).filter((t: any) => {
+    const monthTransactions = (transactions || []).filter((t) => {
       const date = new Date(t.created_at);
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     });
 
-    const spendingByCategory = monthTransactions.reduce((acc: Record<string, number>, t: any) => {
+    const spendingByCategory = monthTransactions.reduce((acc: Record<string, number>, t) => {
       if (t.type === 'debit') {
         acc[t.category] = (acc[t.category] || 0) + t.amount;
       }
@@ -341,14 +381,14 @@ export default function AnalyticsScreen() {
           {/* Mini chart preview */}
           {key === 'spending' && (
             <View style={{ height: 60, flexDirection: 'row', alignItems: 'flex-end', gap: 4 }}>
-              {realMetric.data.slice(-7).map((item: any, index: number) => (
+              {(realMetric.data as SpendingPoint[]).slice(-7).map((item, index) => (
                 <View
                   key={index}
                   style={{
                     flex: 1,
                     height: Math.max(
                       5,
-                      (item.amount / Math.max(...realMetric.data.map((d: any) => d.amount || 1))) *
+                      (item.amount / Math.max(...(realMetric.data as SpendingPoint[]).map((d) => d.amount || 1))) *
                         50
                     ),
                     backgroundColor: realMetric.color,
@@ -361,7 +401,7 @@ export default function AnalyticsScreen() {
 
           {key === 'transport' && (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              {realMetric.data.slice(0, 3).map((item: any, index: number) => (
+              {(realMetric.data as TransportPoint[]).slice(0, 3).map((item, index) => (
                 <View key={index} style={{ alignItems: 'center' }}>
                   <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>
                     {item.trips}
@@ -380,7 +420,7 @@ export default function AnalyticsScreen() {
                 Total Savings
               </Text>
               <Text style={{ color: realMetric.color, fontSize: 16, fontFamily: Fonts.black }}>
-                {fmtETB(realMetric.data.reduce((sum: number, item: any) => sum + item.current, 0))}
+                {fmtETB((realMetric.data as SavingsPoint[]).reduce((sum, item) => sum + item.current, 0))}
               </Text>
             </View>
           )}
@@ -391,8 +431,8 @@ export default function AnalyticsScreen() {
                 Weekly Activity
               </Text>
               <Text style={{ color: realMetric.color, fontSize: 16, fontFamily: Fonts.black }}>
-                {realMetric.data.reduce(
-                  (sum: number, item: any) => sum + (item.transactions || 0),
+                {(realMetric.data as ActivityPoint[]).reduce(
+                  (sum, item) => sum + (item.transactions || 0),
                   0
                 )}
               </Text>
@@ -434,13 +474,13 @@ export default function AnalyticsScreen() {
               ))}
             </View>
             <View style={{ height: 120, flexDirection: 'row', alignItems: 'flex-end', gap: 4 }}>
-              {metric.data.map((item: any, index: number) => (
+              {(metric.data as SpendingPoint[]).map((item, index) => (
                 <View key={index} style={{ flex: 1, alignItems: 'center' }}>
                   <View
                     style={{
                       width: '80%',
                       height:
-                        (item.amount / Math.max(...metric.data.map((d: any) => d.amount))) * 100,
+                        (item.amount / Math.max(...(metric.data as SpendingPoint[]).map((d) => d.amount))) * 100,
                       backgroundColor: metric.color,
                       borderRadius: 4,
                     }}
@@ -466,7 +506,7 @@ export default function AnalyticsScreen() {
           </Text>
           {/* Custom Bar Chart */}
           <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 16, ...Shadow.md }}>
-            {metric.data.map((item: any, index: number) => (
+            {(metric.data as TransportPoint[]).map((item, index) => (
               <View key={index} style={{ marginBottom: 12 }}>
                 <View
                   style={{
@@ -506,7 +546,7 @@ export default function AnalyticsScreen() {
           <Text style={{ color: C.text, fontSize: 20, fontFamily: Fonts.black, marginBottom: 16 }}>
             {metric.title}
           </Text>
-          {metric.data.map((item: any, index: number) => (
+          {(metric.data as SavingsPoint[]).map((item, index) => (
             <View
               key={index}
               style={{
@@ -563,7 +603,7 @@ export default function AnalyticsScreen() {
               </Text>
               <Text style={{ color: C.text, fontSize: 14, fontFamily: Fonts.black }}>Logins</Text>
             </View>
-            {metric.data.map((item: any, index: number) => (
+            {(metric.data as ActivityPoint[]).map((item, index) => (
               <View
                 key={index}
                 style={{
@@ -621,7 +661,7 @@ export default function AnalyticsScreen() {
   const renderInsights = () => (
     <View>
       <SectionTitle title="AI Insights" />
-      {insightList.map((insight: any) => (
+      {insightList.map((insight) => (
         <TouchableOpacity
           key={insight.id}
           style={{

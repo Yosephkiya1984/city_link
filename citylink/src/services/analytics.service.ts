@@ -9,7 +9,6 @@ import { obfuscatePII } from '../utils/privacy';
 export interface CityStats {
   totalUsers: string;
   dailyRevenue: string;
-  lrtRiders: string;
   systemLoad: string;
 }
 
@@ -17,7 +16,6 @@ export async function fetchCityStats(): Promise<CityStats> {
   const stats: CityStats = {
     totalUsers: '0',
     dailyRevenue: '0 ETB',
-    lrtRiders: '0',
     systemLoad: '0%',
   };
 
@@ -50,12 +48,6 @@ export async function fetchCityStats(): Promise<CityStats> {
       stats.dailyRevenue = '4.8K ETB'; // Realistic fallback
     }
 
-    // 3. LRT Riders (Active sessions)
-    const { data: rail } = await supaQuery<any[]>((c) =>
-      c.from('rail_journeys').select('id', { count: 'exact', head: true }).is('tap_out_time', null)
-    );
-    stats.lrtRiders = Array.isArray(rail) ? rail.length.toString() : '45';
-
     // 4. System Load (Simulated based on hour)
     const hour = new Date().getHours();
     const load =
@@ -69,7 +61,6 @@ export async function fetchCityStats(): Promise<CityStats> {
     return {
       totalUsers: '1.2K',
       dailyRevenue: '4.8K ETB',
-      lrtRiders: '45',
       systemLoad: '12%',
     };
   }

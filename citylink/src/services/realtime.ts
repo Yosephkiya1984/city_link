@@ -54,8 +54,10 @@ export function setupUserRealtime() {
       { event: 'UPDATE', schema: 'public', table: 'wallets', filter: `user_id=eq.${userId}` },
       (p) => {
         if (p.new?.balance !== undefined) {
-          useWalletStore.getState().setBalance(p.new.balance);
-          useSystemStore.getState().showToast('Balance Synchronized', 'success');
+          // Trigger a full sync to refresh balance AND transaction history.
+          // This ensures the citizen sees the "Escrow Refund" entry immediately.
+          useWalletStore.getState().syncWithServer();
+          useSystemStore.getState().showToast('Wallet Updated', 'success');
         }
       }
     )
@@ -105,9 +107,28 @@ export function setupUserRealtime() {
     )
     .subscribe();
 
+  // 4. Parking Sessions (Citizen View)
+  // Ensures the timer stops and escrow is reconciled immediately when a valet closes the session.
+  const parkingChannel = client
+    .channel(`parking-${userId}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'parking_sessions', filter: `user_id=eq.${userId}` },
+      (p) => {
+        const s = p.new;
+        if (s.status === 'completed' || s.status === 'cancelled') {
+          useWalletStore.getState().syncWithServer();
+          useSystemStore.getState().showToast(`Parking session ${s.status}`, 'info');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }
+    )
+    .subscribe();
+
   subscriptions.set(`wallet-${userId}`, walletChannel);
   subscriptions.set(`notifications-${userId}`, notifChannel);
   subscriptions.set(`p2p-${userId}`, p2pChannel);
+  subscriptions.set(`parking-${userId}`, parkingChannel);
 }
 
 export function setupMerchantRealtime() {

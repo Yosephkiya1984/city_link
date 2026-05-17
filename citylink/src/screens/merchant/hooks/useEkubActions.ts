@@ -7,9 +7,13 @@ import {
   performEkubDraw,
   releaseEkubPot,
 } from '../../../services/ekub.service';
+import { EkubCircle } from '../../../types/domain_types';
 
-export function useEkubActions(data: any) {
-  const { loadData } = data;
+export interface EkubActionsProps {
+  loadData: () => Promise<void>;
+}
+
+export function useEkubActions({ loadData }: EkubActionsProps) {
   const showToast = useSystemStore((s) => s.showToast);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -23,7 +27,7 @@ export function useEkubActions(data: any) {
     setActionLoading(false);
   };
 
-  const onRunDraw = async (circle: any) => {
+  const onRunDraw = async (circle: EkubCircle) => {
     Alert.alert(
       'Run Round Draw?',
       `This will automatically select a winner for Round ${circle.current_round} via a secure server-side draw.`,

@@ -1,23 +1,15 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import {
-  Canvas,
-  Group,
-  Text as SkiaText,
-  LinearGradient,
-  vec,
-  Rect,
-  Skia,
-} from '@shopify/react-native-skia';
-import Animated, {
-  useSharedValue,
-  useDerivedValue,
-  withTiming,
-  Easing,
-  runOnJS,
-  withSequence,
-  FadeIn,
-} from 'react-native-reanimated';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+
+// Skia is native-only; guard against web where codegenNativeComponent doesn't exist
+const SkiaAvailable = Platform.OS !== 'web';
+const SkiaModule = SkiaAvailable ? require('@shopify/react-native-skia') : null;
+const { Canvas, Group, Text: SkiaText, LinearGradient, vec, Rect, Skia } = SkiaModule || {};
+
+const ReanimatedModule = SkiaAvailable ? require('react-native-reanimated') : null;
+const Animated = ReanimatedModule?.default;
+const { useSharedValue, useDerivedValue, withTiming, Easing, runOnJS, withSequence, FadeIn } = ReanimatedModule || {};
+
 import { Fonts, DarkColors as C } from '../../theme';
 
 const { width } = Dimensions.get('window');
@@ -37,6 +29,15 @@ export const SkiaEkubDrum: React.FC<SkiaEkubDrumProps> = ({
   onFinished,
   isSpinning,
 }) => {
+  // Web fallback — Skia is not available on web
+  if (!SkiaAvailable) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: '#fff', fontFamily: Fonts.bold }}>Ekub Drum (native only)</Text>
+      </View>
+    );
+  }
+
   const rotation = useSharedValue(0);
   const [displayWinner, setDisplayWinner] = React.useState(false);
 

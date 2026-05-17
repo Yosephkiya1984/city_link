@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Animated, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +34,10 @@ const STATUS_CONFIG = {
   DISPUTED: { icon: 'warning-outline', label: () => t('disputed_up') },
   COMPLETED: { icon: 'checkmark-circle-outline', label: () => t('completed_up') },
   CANCELLED: { icon: 'close-circle-outline', label: () => t('cancelled_up') },
+  // ── Reservation-specific ──
+  PENDING: { icon: 'time-outline', label: () => 'PENDING CONFIRM' },
+  CONFIRMED: { icon: 'calendar-outline', label: () => 'CONFIRMED' },
+  ARRIVED: { icon: 'checkmark-done-outline', label: () => 'CHECKED IN' },
 };
 
 const getStatusStyle = (status: string, C: any) => {
@@ -57,46 +61,34 @@ const getStatusStyle = (status: string, C: any) => {
       return { bg: C.primary + '15', text: C.primary, border: C.primary + '40' };
     case 'CANCELLED':
       return { bg: '#64748b15', text: '#64748b', border: '#64748b40' };
+    // ── Reservation-specific ──
+    case 'PENDING':
+      return { bg: '#f59e0b15', text: '#f59e0b', border: '#f59e0b40' };
+    case 'CONFIRMED':
+      return { bg: '#10b98115', text: '#10b981', border: '#10b98140' };
+    case 'ARRIVED':
+      return { bg: C.primary + '15', text: C.primary, border: C.primary + '40' };
     default:
       return { bg: C.surface, text: C.sub, border: C.edge };
   }
 };
 
 const EscrowStatus = ({ order, C }: { order: any; C: any }) => {
+  const isReservation = (order as any).type === 'reservation';
   const config: Record<string, any> = {
-    PAID: {
-      icon: 'lock-closed',
-      text: t('funds_locked_escrow'),
-      color: '#f59e0b',
-    },
-    DISPATCHING: {
-      icon: 'search',
-      text: t('searching_delivery_partner'),
-      color: '#60a5fa',
-    },
-    AGENT_ASSIGNED: {
-      icon: 'person',
-      text: t('agent_assigned_heading'),
-      color: '#818cf8',
-    },
-    IN_TRANSIT: {
-      icon: 'bicycle',
-      text: t('agent_picked_up_msg'),
-      color: '#f59e0b',
-    },
-    AWAITING_PIN: {
-      icon: 'home',
-      text: t('agent_arrived_msg'),
-      color: '#10b981',
-    },
+    PAID: { icon: 'lock-closed', text: t('funds_locked_escrow'), color: '#f59e0b' },
+    DISPATCHING: { icon: 'search', text: t('searching_delivery_partner'), color: '#60a5fa' },
+    AGENT_ASSIGNED: { icon: 'person', text: t('agent_assigned_heading'), color: '#818cf8' },
+    IN_TRANSIT: { icon: 'bicycle', text: t('agent_picked_up_msg'), color: '#f59e0b' },
+    AWAITING_PIN: { icon: 'home', text: t('agent_arrived_msg'), color: '#10b981' },
     SHIPPED: { icon: 'bicycle', text: t('merchant_shipped_msg'), color: C.primary },
-    COMPLETED: {
-      icon: 'checkmark-circle',
-      text: t('escrow_released_msg'),
-      color: '#8b5cf6',
-    },
+    COMPLETED: { icon: 'checkmark-circle', text: t('escrow_released_msg'), color: '#8b5cf6' },
     DISPUTED: { icon: 'shield', text: t('funds_frozen_dispute'), color: '#E8312A' },
     CANCELLED: { icon: 'arrow-undo', text: t('funds_refunded_wallet'), color: '#64748b' },
+    // ── Reservation escrow states ──
+    PENDING: { icon: 'lock-closed', text: 'Deposit held · Awaiting restaurant confirmation', color: '#f59e0b' },
+    CONFIRMED: { icon: 'lock-closed', text: 'Deposit secured · Show PIN at restaurant', color: '#10b981' },
+    ARRIVED: { icon: 'checkmark-circle', text: 'Checked in · Deposit released to restaurant', color: '#8b5cf6' },
   };
   const c = config[order.status] || config['PAID'];
   return (
@@ -142,6 +134,25 @@ export const OrderCard = ({
 
   const TRACKER_STEPS = [t('paid'), t('dispatched'), t('on_route'), t('arrived')];
 
+  // ── Reservation countdown ────────────────────────────────────────────────
+  const [resCountdown, setResCountdown] = useState('');
+  useEffect(() => {
+    if ((order as any).type !== 'reservation' || !['CONFIRMED', 'PENDING'].includes(order.status)) return;
+    const calcLabel = () => {
+      const target = new Date((order as any).reservation_time).getTime();
+      const diff = target - Date.now();
+      if (diff <= 0) return 'Time has passed';
+      const hrs = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      if (hrs >= 24) return `in ${Math.floor(hrs / 24)}d ${hrs % 24}h`;
+      if (hrs > 0) return `in ${hrs}h ${mins}m`;
+      return `in ${mins} minutes`;
+    };
+    setResCountdown(calcLabel());
+    const iv = setInterval(() => setResCountdown(calcLabel()), 30000);
+    return () => clearInterval(iv);
+  }, [(order as any).reservation_time, order.status]);
+
   const handleRevealPress = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -181,6 +192,13 @@ export const OrderCard = ({
   const executeReveal = async (walletPinHash?: string) => {
     setIsVerifying(true);
     try {
+      if ((order as any).type === 'reservation') {
+        setIsPinRevealed(true);
+        setShowPinModal(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return;
+      }
+
       const isFood = (order as any).type === 'food';
       const revealFn = isFood ? revealFoodOrderPin : revealMarketplaceOrderPin;
       
@@ -244,7 +262,7 @@ export const OrderCard = ({
         <View style={styles.cardHeader}>
           <View style={[styles.orderIcon, { backgroundColor: statusStyle.bg }]}>
             <Ionicons
-              name={(order as any).type === 'food' ? 'restaurant-outline' : 'bag-handle-outline'}
+              name={(order as any).type === 'food' ? 'restaurant-outline' : (order as any).type === 'reservation' ? 'calendar-outline' : 'bag-handle-outline'}
               size={22}
               color={statusStyle.text}
             />
@@ -253,7 +271,9 @@ export const OrderCard = ({
             <Text style={[styles.productName, { color: C.text }]} numberOfLines={1}>
               {(order as any).type === 'food'
                 ? (order as any).items?.[0]?.name || t('food_order')
-                : order.product_name || t('product')}
+                : (order as any).type === 'reservation'
+                  ? `Reservation at ${(order as any).merchant?.full_name || 'Restaurant'}`
+                  : order.product_name || t('product')}
             </Text>
             {order.merchant_name && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
@@ -272,7 +292,9 @@ export const OrderCard = ({
               #{order.id?.slice(0, 8).toUpperCase()} ·{' '}
               {(order as any).type === 'food'
                 ? `${(order as any).items_count || 1} ${t('items')}`
-                : `${t('qty')} ${order.qty || 1}`}
+                : (order as any).type === 'reservation'
+                  ? `${(order as any).guest_count || 1} Guests`
+                  : `${t('qty')} ${order.qty || 1}`}
             </Text>
           </View>
           <View
@@ -418,69 +440,203 @@ export const OrderCard = ({
           </View>
         )}
 
+
+
+        {/* Reservation countdown row */}
+        {(order as any).type === 'reservation' && resCountdown && ['CONFIRMED', 'PENDING'].includes(order.status) && (
+          <View
+            style={[
+              styles.countdownRow,
+              { backgroundColor: '#10b98110', borderColor: '#10b98125' },
+            ]}
+          >
+            <Ionicons name="calendar-outline" size={13} color="#10b981" />
+            <Text style={[styles.countdownText, { color: '#10b981' }]}>
+              Your reservation is {resCountdown}
+            </Text>
+          </View>
+        )}
+
+        {(order as any).type === 'reservation' && (order as any).service_pin && (order.status === 'CONFIRMED' || order.status === 'PENDING') && (
+          <View style={[styles.trackerContainer, { marginTop: 12 }]}>
+            <LinearGradient
+              colors={[C.primary + '15', C.primary + '05']}
+              style={[styles.pinBox, { borderColor: C.primary + '40' }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pinBoxTitle, { color: C.primary }]}>
+                  RESERVATION CHECK-IN PIN
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                  <Text
+                    style={[
+                      styles.pinBoxValue,
+                      { color: C.text, letterSpacing: isPinRevealed ? 4 : 2 },
+                    ]}
+                  >
+                    {isPinRevealed ? (order as any).service_pin : '••••'}
+                  </Text>
+                  <TouchableOpacity
+                    style={{
+                      marginLeft: 12,
+                      padding: 8,
+                      backgroundColor: C.primary + '20',
+                      borderRadius: 20,
+                    }}
+                    onPress={handleRevealPress}
+                    disabled={isVerifying}
+                  >
+                    {isVerifying ? (
+                      <ActivityIndicator size="small" color={C.primary} />
+                    ) : (
+                      <Ionicons
+                        name={isPinRevealed ? 'eye-off' : 'lock-closed'}
+                        size={18}
+                        color={C.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {isPinRevealed && (
+                  <Text style={{ fontSize: 10, color: C.sub, marginTop: 6, fontFamily: Fonts.medium }}>
+                    Show this PIN to restaurant staff at check-in
+                  </Text>
+                )}
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+          {/* Pre-ordered items for reservations */}
+          {(order as any).type === 'reservation' && (order as any).items?.length > 0 && (
+            <View style={{ marginTop: 10, padding: 10, backgroundColor: C.lift, borderRadius: 10, borderWidth: 1, borderColor: C.edge }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <Ionicons name="fast-food-outline" size={12} color={C.sub} />
+                <Text style={{ fontSize: 10, fontFamily: Fonts.bold, color: C.sub, letterSpacing: 1 }}>PRE-ORDERED</Text>
+              </View>
+              {(order as any).items.map((item: any, idx: number) => (
+                <Text key={idx} style={{ fontSize: 12, fontFamily: Fonts.medium, color: C.text, marginTop: 2 }}>
+                  {item.quantity}× {item.product?.name}
+                </Text>
+              ))}
+            </View>
+          )}
+
         <View style={[styles.divider, { backgroundColor: C.edge }]} />
         <EscrowStatus order={order} C={C} />
 
         <View style={styles.cardFooter}>
-          <View>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={[styles.priceLabel, { color: C.sub }]}>{t('total_paid')}</Text>
-            <Text style={[styles.priceValue, { color: C.text }]}>ETB {fmtETB(order.total, 0)}</Text>
-            <Text style={[styles.dateText, { color: C.sub }]}>
-              {new Date(order.created_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
+            <Text style={[styles.priceValue, { color: C.text }]}>
+              ETB {fmtETB((order as any).type === 'reservation' ? (order as any).deposit_amount : order.total, 0)}
+            </Text>
+            <Text style={[styles.dateText, { color: C.sub }]} numberOfLines={1}>
+              {(order as any).type === 'reservation' && (order as any).reservation_time ? (
+                `Reserved for: ${new Date((order as any).reservation_time).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}`
+              ) : (
+                new Date(order.created_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              )}
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={{
-              padding: 10,
-              backgroundColor: C.lift,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: C.edge,
-            }}
-            onPress={() => onViewReceipt(order)}
-          >
-            <Ionicons name="receipt-outline" size={20} color={C.primary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              style={{
+                padding: 10,
+                backgroundColor: C.lift,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: C.edge,
+              }}
+              onPress={() => onViewReceipt(order)}
+            >
+              <Ionicons name="receipt-outline" size={20} color={C.primary} />
+            </TouchableOpacity>
 
-          {['SHIPPED', 'AWAITING_PIN', 'DISPATCHING', 'AGENT_ASSIGNED', 'IN_TRANSIT'].includes(
-            order.status
-          ) ? (
-            <View style={styles.actionRow}>
-              {order.status === 'AWAITING_PIN' && (
+            {(order as any).type === 'reservation' ? (
+              // ── Reservation actions ──
+              ['PENDING', 'CONFIRMED'].includes(order.status) ? (
                 <TouchableOpacity
-                  style={[styles.ghostBtn, { borderColor: '#E8312A50', marginRight: 8 }]}
-                  onPress={() => onReject?.(order)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: '#E8312A40',
+                    backgroundColor: '#E8312A0d',
+                  }}
+                  onPress={() => onCancel?.(order)}
                 >
-                  <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>
-                    {t('reject_delivery')}
+                  <Ionicons name="close-circle-outline" size={14} color="#E8312A" />
+                  <Text style={{ fontFamily: Fonts.bold, fontSize: 12, color: '#E8312A' }}>
+                    Cancel
                   </Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.ghostBtn, { borderColor: '#E8312A50' }]}
-                onPress={() => onDispute(order)}
+              ) : (
+                <View
+                  style={[
+                    styles.statusPill,
+                    { backgroundColor: statusStyle.bg, borderColor: statusStyle.border },
+                  ]}
+                >
+                  <Ionicons name={statusConf.icon as any} size={14} color={statusStyle.text} />
+                  <Text style={[styles.statusPillText, { color: statusStyle.text }]}>
+                    {statusConf.label()}
+                  </Text>
+                </View>
+              )
+            ) : ['SHIPPED', 'AWAITING_PIN', 'DISPATCHING', 'AGENT_ASSIGNED', 'IN_TRANSIT'].includes(
+              order.status
+            ) ? (
+              // ── Delivery actions ──
+              <View style={styles.actionRow}>
+                {order.status === 'AWAITING_PIN' && (
+                  <TouchableOpacity
+                    style={[styles.ghostBtn, { borderColor: '#E8312A50', marginRight: 8 }]}
+                    onPress={() => onReject?.(order)}
+                  >
+                    <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>
+                      {t('reject_delivery')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[styles.ghostBtn, { borderColor: '#E8312A50' }]}
+                  onPress={() => onDispute(order)}
+                >
+                  <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>{t('dispute')}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.statusPill,
+                  { backgroundColor: statusStyle.bg, borderColor: statusStyle.border },
+                ]}
               >
-                <Text style={[styles.ghostBtnText, { color: '#E8312A' }]}>{t('dispute')}</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View
-              style={[
-                styles.statusPill,
-                { backgroundColor: statusStyle.bg, borderColor: statusStyle.border },
-              ]}
-            >
-              <Ionicons name={statusConf.icon as any} size={14} color={statusStyle.text} />
-              <Text style={[styles.statusPillText, { color: statusStyle.text }]}>
-                {order.status === 'COMPLETED' ? t('done') : order.status}
-              </Text>
-            </View>
-          )}
+                <Ionicons name={statusConf.icon as any} size={14} color={statusStyle.text} />
+                <Text style={[styles.statusPillText, { color: statusStyle.text }]}>
+                  {order.status === 'COMPLETED' ? t('done') : statusConf.label()}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <WalletPinModal

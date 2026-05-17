@@ -11,6 +11,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useRenderCount } from '../../utils/debug/performanceMonitor';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -37,8 +38,11 @@ import {
 import { D, Radius, Fonts, Spacing, Shadow } from '../../components/hospitality/HospitalityTheme';
 import { styles } from './components/RestaurantDashboardStyles';
 import { useT } from '../../utils/i18n';
-import { Screen, Typography, Surface, SectionTitle, GlassCard } from '../../components';
+import { Typography, GlassCard } from '../../components';
 import { fmtETB } from '../../utils';
+import { FoodOrder, FoodProduct, StaffProfile, Table } from '../../types/domain_types';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation';
 
 // Premium Modular Components
 import { HospitalityOverviewTab } from './components/HospitalityOverviewTab';
@@ -58,19 +62,20 @@ import { DashboardInventoryTab } from './components/DashboardInventoryTab';
 import { EthiopianReceipt } from '../../components/core/EthiopianReceipt';
 import { Modal } from 'react-native';
 
-export default function RestaurantDashboard({ staffMode, staffRole }: { staffMode?: boolean; staffRole?: string } = {}) {
+export default function RestaurantDashboard({ staffMode, staffRole, merchantId }: { staffMode?: boolean; staffRole?: string; merchantId?: string } = {}) {
+  useRenderCount('RestaurantDashboard');
   const t = useT();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showQuickSale, setShowQuickSale] = useState(false);
-  const [selectedTable, setSelectedTable] = useState<any>(null);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showTableModal, setShowTableModal] = useState(false);
 
   // Load Restaurant Data
-  const restaurantData = useRestaurantData();
+  const restaurantData = useRestaurantData(merchantId);
   const {
     orders,
     menu,
@@ -128,7 +133,7 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
     onUploadBanner,
   } = actions;
 
-  const [receiptOrder, setReceiptOrder] = useState<any>(null);
+  const [receiptOrder, setReceiptOrder] = useState<FoodOrder | null>(null);
 
   const handleViewTransactionReceipt = async (orderId: string) => {
     // 1. Try local cache
@@ -169,6 +174,13 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
     return true;
   });
 
+  useEffect(() => {
+    const tabExists = TABS.some(t => t.id === activeTab);
+    if (!tabExists && TABS.length > 0) {
+      setActiveTab(TABS[0].id);
+    }
+  }, [activeTab, staffRole, staffMode]);
+
   const handleTabPress = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(id);
@@ -179,6 +191,33 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
     .reduce((s, o) => s + (o.total || 0), 0);
 
   const renderTabContent = () => {
+    // 🔍 DIAGNOSTIC: Ensure all modular tab components are correctly defined
+    if (__DEV__) {
+      const components: Record<string, any> = {
+        overview: HospitalityOverviewTab,
+        orders: DashboardOrdersTab,
+        kds: RestaurantKDSTab,
+        tables: VisualTableBuilder,
+        menu: true,
+        reservations: HospitalityReservationsTab,
+        waitlist: HospitalityWaitlistTab,
+        events: HospitalityEventsTab,
+        staff: HospitalityStaffTab,
+        stock: DashboardInventoryTab,
+        finance: DashboardFinanceTab,
+      };
+      
+      if (!components[activeTab]) {
+        console.warn(`[RestaurantDashboard] Component for tab "${activeTab}" is undefined!`);
+        return (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="h3" color="red">Component Not Found</Typography>
+            <Typography variant="body" color="sub">The ${activeTab} component failed to load.</Typography>
+          </View>
+        );
+      }
+    }
+
     switch (activeTab) {
       case 'overview':
         return (
@@ -237,6 +276,7 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
               bannerUploading={bannerUploading}
               onPickBanner={onPickBanner}
               onUploadBanner={onUploadBanner}
+              onInitializeTables={actions.onInitializeTables}
               styles={styles} 
               t={t} 
               showToast={showToast} 
@@ -250,15 +290,16 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
           <DashboardOrdersTab 
             orders={orders} 
             loading={loading} 
-            handleMarkShipped={(id: any) => onUpdateStatus(id, 'PREPARING')}
-            handleConfirmPickup={(id: any) => onUpdateStatus(id, 'READY')}
-            handleCompleteOrder={(id: any) => onUpdateStatus(id, 'COMPLETED')}
+            handleMarkShipped={(id: string) => onUpdateStatus(id, 'PREPARING')}
+            handleConfirmPickup={(id: string) => onUpdateStatus(id, 'READY')}
+            handleCompleteOrder={(id: string) => onUpdateStatus(id, 'COMPLETED')}
             handleRetryDispatch={onRetryDispatch}
             handleCancelOrder={onRejectOrder}
             handleSettlePayment={onSettlePayment}
-            handleViewReceipt={(o: any) => setReceiptOrder(o)}
+            handleViewReceipt={(o: FoodOrder) => setReceiptOrder(o)}
             mode="restaurant" 
             t={t} 
+            isWaiter={staffRole === 'waiter'}
           />
         );
       case 'waitlist':
@@ -270,21 +311,39 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
             loading={loading} 
             onUpdateStatus={onUpdateReservationStatus} 
             onCreateReservation={actions.onCreateReservation}
+            onReleaseEscrow={actions.onReleaseHospitalityEscrow}
+            onNoShow={actions.onNoShowReservation}
             tables={tables}
-            merchantId={currentUser.id}
+            merchantId={restaurant?.merchant_id || currentUser.id}
             t={t} 
           />
         );
       case 'tables':
+        const decoratedTables = tables.map(table => {
+          const upcoming = reservations
+            .filter(r => r.table_id === table.id && ['PENDING', 'CONFIRMED'].includes(r.status))
+            .sort((a, b) => new Date(a.reservation_time).getTime() - new Date(b.reservation_time).getTime())[0];
+          
+          if (upcoming) {
+            return { 
+              ...table, 
+              status: table.status === 'free' ? 'reserved' : table.status,
+              upcoming_reservation: upcoming 
+            };
+          }
+          return table;
+        });
+
         return (
           <VisualTableBuilder 
-            tables={tables} 
+            tables={decoratedTables} 
             staff={staff} 
             onUpdatePosition={updateTablePosition} 
             onAddTable={addTable} 
             onDeleteTable={deleteTable} 
             onAssignStaff={assignStaff} 
-            onTablePress={(t: any) => { setSelectedTable(t); setShowTableModal(true); }}
+            onTablePress={(t: Table) => { setSelectedTable(t); setShowTableModal(true); }}
+            hideEditControl={staffRole === 'waiter'}
           />
         );
       case 'menu':
@@ -302,7 +361,7 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
 
             <View style={styles.menuGrid}>
               <AnimatePresence>
-                {menu.map((item: any, idx: number) => (
+                {menu.map((item: FoodProduct, idx: number) => (
                   <MotiView
                     key={item.id}
                     from={{ opacity: 0, translateY: 20 }}
@@ -351,7 +410,7 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
       case 'stock':
         return <DashboardInventoryTab inventory={stock} lowStockAlerts={lowStockAlerts} updateStock={updateStock} styles={styles} t={t} />;
       case 'staff':
-        return <HospitalityStaffTab staff={staff} loading={loading} onAddStaff={() => (navigation as any).navigate('ManageStaff')} onRemoveStaff={() => {}} t={t} />;
+        return <HospitalityStaffTab staff={staff} loading={loading} onAddStaff={() => navigation.navigate('ManageStaff' as any)} onRemoveStaff={() => {}} t={t} />;
       case 'events':
         return <HospitalityEventsTab events={events} loading={loading} onCreateEvent={() => {}} t={t} />;
       case 'finance':
@@ -401,7 +460,7 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
               <TouchableOpacity activeOpacity={0.7} style={styles.actionCircle} onPress={() => setShowQuickSale(true)}>
                 <Ionicons name="flash" size={20} color={D.primary} />
               </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7} style={styles.actionCircle} onPress={() => (navigation as any).navigate('ChatInbox')}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.actionCircle} onPress={() => navigation.navigate('ChatInbox')}>
                 <Ionicons name="mail" size={20} color={D.white} />
               </TouchableOpacity>
               <TouchableOpacity activeOpacity={0.7} style={[styles.actionCircle, { borderColor: D.red + '40' }]} onPress={onLogout}>
@@ -421,7 +480,7 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
                 style={[styles.tabButton, activeTab === tab.id && styles.tabButtonActive]}
               >
                 <Ionicons 
-                  name={tab.icon as any} 
+                  name={tab.icon as React.ComponentProps<typeof Ionicons>['name']} 
                   size={18} 
                   color={activeTab === tab.id ? D.ink : D.sub} 
                 />
@@ -482,6 +541,7 @@ export default function RestaurantDashboard({ staffMode, staffRole }: { staffMod
           staff={staff}
           onSetStatus={onSetTableStatus}
           onAssignStaff={assignStaff}
+          hideAssignStaff={staffRole === 'waiter'}
         />
 
         <Modal visible={!!receiptOrder} animationType="slide" transparent statusBarTranslucent>

@@ -20,13 +20,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../../store/AuthStore';
 import { useSystemStore } from '../../store/SystemStore';
-import {
-  registerDeliveryAgent,
-  requestLocationPermission,
-  fetchAgentProfile,
-} from '../../services/delivery.service';
+import { registerDeliveryAgent, requestLocationPermission, fetchAgentProfile } from '../../services/delivery.service';
 import { t } from '../../utils/i18n';
 import { VEHICLE_TYPES, SUBCITIES } from '../../config';
+import { VehicleType } from '../../types/domain_types';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation';
 
 const { width } = Dimensions.get('window');
 
@@ -46,7 +45,7 @@ const T = {
 };
 
 export default function BecomeDeliveryAgentScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
@@ -94,7 +93,7 @@ export default function BecomeDeliveryAgentScreen() {
         // 3. Register new agent record
         const { error } = await registerDeliveryAgent({
           agentId: currentUser.id,
-          vehicleType: vehicleType as any, // Cast to any or specifically to VehicleType
+          vehicleType: vehicleType as VehicleType,
           plateNumber: plateNumber.trim(),
           licenseNumber: licenseNumber.trim(),
         });
@@ -108,8 +107,9 @@ export default function BecomeDeliveryAgentScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast(existing ? t('welcome_back') : t('application_review_info'), 'success');
       navigation.goBack();
-    } catch (e: any) {
-      showToast(e?.message || t('registration_failed_err'), 'error');
+    } catch (e) {
+      const err = e as Error;
+      showToast(err.message || t('registration_failed_err'), 'error');
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export default function BecomeDeliveryAgentScreen() {
             { icon: 'location-outline', text: t('location_access_req'), ok: null },
           ].map((r, i) => (
             <View key={i} style={s.reqRow}>
-              <Ionicons name={r.icon as any} size={18} color={r.ok ? T.green : T.textSub} />
+              <Ionicons name={r.icon as React.ComponentProps<typeof Ionicons>['name']} size={18} color={r.ok ? T.green : T.textSub} />
               <Text style={[s.reqText, r.ok && { color: T.green }]}>{r.text}</Text>
               {r.ok && <Ionicons name="checkmark-circle" size={18} color={T.green} />}
             </View>

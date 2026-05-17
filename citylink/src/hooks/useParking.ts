@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AppState } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { AuthState, useAuthStore } from '../store/AuthStore';
 import { WalletState, useWalletStore } from '../store/WalletStore';
@@ -116,17 +117,52 @@ export function useParking() {
     });
   }, []);
 
-  // ── Elapsed Timer ───────────────────────────────────────────────────────
+  // ── On-Mount: Always sync session state from server ─────────────────────
+  // Fixes multi-device: phone 2 reads stale local cache. syncWithServer()
+  // immediately corrects it to the true DB state.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    useWalletStore.getState().syncWithServer();
+  }, [currentUser?.id]);
+
+  // ── AppState listener: re-sync on foreground ──────────────────────────────
+  // Fixes: user switches phones or backgrounds the app while session is
+  // running. On foreground we always re-check actual server state.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        useWalletStore.getState().syncWithServer();
+      }
+    });
+    return () => sub.remove();
+  }, [currentUser?.id]);
+
+  // ── Elapsed Timer + 30s Polling Fallback ─────────────────────────────────
+  // 1-second interval drives the visible clock.
+  // Every 30s while a session is active we also re-sync from the server as
+  // a safety net for missed realtime events (network blip, app backgrounded).
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let syncInterval: NodeJS.Timeout;
+
     if (activeParking) {
       interval = setInterval(() => {
         const secs = Math.floor((Date.now() - new Date(activeParking.start_time).getTime()) / 1000);
         setElapsed(secs);
       }, 1000);
+
+      // Safety net polling — corrects state even if realtime missed the event
+      syncInterval = setInterval(() => {
+        useWalletStore.getState().syncWithServer();
+      }, 30_000);
+    } else {
+      setElapsed(0);
     }
+
     return () => {
       if (interval) clearInterval(interval);
+      if (syncInterval) clearInterval(syncInterval);
     };
   }, [activeParking]);
 
@@ -147,21 +183,86 @@ export function useParking() {
     if (data?.length) setLots(mapLotsFromDb(data as any[]));
   }, []);
 
-  // ── Realtime ────────────────────────────────────────────────────────────
+  // ── Realtime: Valet-driven session finalization ─────────────────────────
+  //
+  //  When the valet calls finalize_parking_session_legal the DB updates
+  //  parking_sessions.status → 'completed'.  We listen here and:
+  //    1. Immediately stop + reset the elapsed timer
+  //    2. Clear activeParking in the store (stops the timer UI)
+  //    3. Show a meaningful settlement toast (refund or extra charge)
+  //    4. Sync wallet balance from the server
+  //
   const parkUserId = currentUser?.id;
   useRealtimePostgres({
     channelName: parkUserId ? `cl-rt-parking-${parkUserId}` : 'cl-rt-parking',
     table: 'parking_sessions',
-    filter: undefined,
+    // Server-side filter: only rows belonging to this citizen
+    filter: parkUserId ? `user_id=eq.${parkUserId}` : undefined,
     enabled: !!parkUserId,
-    onPayload: refreshLots,
+    onPayload: async (payload: any) => {
+      const newRow = payload?.new;
+
+      // Only act on UPDATE events where status flipped to completed/settled
+      if (!newRow) return;
+
+      const isFinalized =
+        newRow.status === 'completed' ||
+        newRow.status === 'COMPLETED' ||
+        newRow.status === 'SETTLED';
+
+      if (!isFinalized) {
+        // Still active — just refresh the lot map
+        refreshLots();
+        return;
+      }
+
+      const storeState   = useWalletStore.getState();
+      const currentActive = storeState.activeParking;
+
+      // Guard: only react if this is OUR current session
+      if (!currentActive || currentActive.id !== newRow.id) {
+        refreshLots();
+        await storeState.syncWithServer();
+        return;
+      }
+
+      // ── Stop timer immediately ────────────────────────────────────────────
+      setElapsed(0);
+      setActiveParking(null);          // clears the local store + persisted cache
+
+      // ── Build a meaningful settlement message ─────────────────────────────
+      const holdAmt   = Number(currentActive.hold_amount ?? newRow.hold_amount ?? 0);
+      const actualCost = Number(newRow.calculated_cost ?? 0);
+      const diff       = holdAmt - actualCost;
+
+      let msg: string;
+      if (diff > 0.01) {
+        // Understayed — refund issued
+        msg = `Session closed ✅  Charged: ${actualCost.toFixed(2)} ETB  |  Refunded: ${diff.toFixed(2)} ETB`;
+      } else if (diff < -0.01) {
+        // Overstayed — extra charge applied
+        msg = `Session closed ✅  Extra charge: ${Math.abs(diff).toFixed(2)} ETB  |  Total: ${actualCost.toFixed(2)} ETB`;
+      } else {
+        msg = `Session closed ✅  Total: ${actualCost.toFixed(2)} ETB`;
+      }
+
+      showToast(msg, 'success');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // ── Sync authoritative balance from server ────────────────────────────
+      await storeState.syncWithServer();
+
+      // Refresh lot availability map
+      refreshLots();
+    },
   });
 
   // ── Fare Calculation ────────────────────────────────────────────────────
   function getCurrentFare(): number {
     if (!activeParking) return 0;
     const rate = Number((activeParking as any).rate_per_hour) || 15;
-    const hours = elapsed / 3600;
+    // 🛡️ Safety Cap: Max 12 hours fare for stale sessions to prevent runaway balance drain
+    const hours = Math.min(elapsed / 3600, 12); 
     const fare = Math.ceil(hours * rate * 10) / 10;
     return isNaN(fare) ? 0 : fare;
   }
@@ -200,14 +301,16 @@ export function useParking() {
       return false;
     }
 
+    const holdAmount = selectedLot.rate_per_hour * estimatedDuration;
     const session = {
       id: data.session_id,
       user_id: currentUser?.id || '',
       lot_id: selectedLot.id,
       lot_name: selectedLot.name,
-      spot_number: selectedSpot.number,
+      spot_number: selectedSpot?.number ?? 'ZONE',
       start_time: new Date().toISOString(),
       rate_per_hour: selectedLot.rate_per_hour,
+      hold_amount: holdAmount,
       qr_token: genQrToken('PRK'),
       status: 'active',
       merchant_id: selectedLot.id,
@@ -335,6 +438,7 @@ export function useParking() {
     loading,
     balance,
     activeParking,
+    isStale: activeParking && elapsed > 12 * 3600, // 12h threshold
     currentUser,
     citizenLocation,
     // Actions

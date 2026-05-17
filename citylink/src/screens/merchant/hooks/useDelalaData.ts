@@ -2,14 +2,14 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '../../../store/AuthStore';
 import { useSystemStore } from '../../../store/SystemStore';
 import { fetchPropertyListings, fetchPropertyEnquiries } from '../../../services/services.service';
-import { PropertyListing } from '../../../types';
+import { PropertyListing, PropertyEnquiry } from '../../../types/domain_types';
 
 export function useDelalaData() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
   const [listings, setListings] = useState<PropertyListing[]>([]);
-  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [enquiries, setEnquiries] = useState<PropertyEnquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -32,8 +32,8 @@ export function useDelalaData() {
       }
       if (enquiriesRes.data) {
         setEnquiries(
-          (enquiriesRes.data as any[]).sort(
-            (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          (enquiriesRes.data as PropertyEnquiry[]).sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           )
         );
       }

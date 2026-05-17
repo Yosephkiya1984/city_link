@@ -28,22 +28,42 @@ const CACHE_KEYS = {
 class CacheEntry<T = unknown> {
   key: string;
   data: T;
-  timestamp: number;
-  ttl: number;
-  expiry: number;
-  size: number;
+  lastAccessed: number;
 
   constructor(key: string, data: T, ttl = CACHE_CONFIG.DEFAULT_TTL) {
     this.key = key;
     this.data = data;
     this.timestamp = Date.now();
+    this.lastAccessed = this.timestamp;
     this.ttl = ttl;
     this.expiry = this.timestamp + ttl;
-    this.size = this.calculateSize();
+    this.size = this.estimateSize(data);
   }
 
-  calculateSize() {
-    return JSON.stringify(this.data).length * 2; // Rough estimate in bytes
+  estimateSize(obj: any): number {
+    if (!obj) return 0;
+    const type = typeof obj;
+    if (type === 'string') return obj.length * 2;
+    if (type === 'number') return 8;
+    if (type === 'boolean') return 4;
+    if (type === 'object') {
+      // Fast estimation for objects: sum of keys and shallow values
+      // This is much faster than JSON.stringify for large objects
+      let bytes = 0;
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          bytes += key.length * 2;
+          const val = obj[key];
+          const valType = typeof val;
+          if (valType === 'string') bytes += val.length * 2;
+          else if (valType === 'number') bytes += 8;
+          else if (valType === 'boolean') bytes += 4;
+          else bytes += 20; // Default size for nested objects/arrays
+        }
+      }
+      return bytes;
+    }
+    return 0;
   }
 
   isExpired() {
@@ -124,6 +144,7 @@ class CacheManager {
       // Check memory cache first
       const memoryEntry = this.cache.get(key);
       if (memoryEntry && memoryEntry.isValid()) {
+        memoryEntry.lastAccessed = Date.now(); // Update LRU
         this.cacheStats.hits++;
         return memoryEntry.data;
       }
@@ -133,6 +154,7 @@ class CacheManager {
       if (persistentData) {
         const entry = JSON.parse(persistentData);
         const cacheEntry = new CacheEntry(entry.key, entry.data, entry.ttl);
+        cacheEntry.lastAccessed = Date.now(); // Update LRU
 
         if (cacheEntry.isValid()) {
           this.cache.set(key, cacheEntry);
@@ -239,7 +261,8 @@ class CacheManager {
   // Evict least used entries
   async evictLeastUsed() {
     const entries = Array.from(this.cache.entries());
-    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    // True LRU: sort by lastAccessed instead of creation timestamp
+    entries.sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
 
     // Remove oldest 25% of entries
     const toRemove = Math.ceil(entries.length * 0.25);
@@ -282,7 +305,6 @@ class CacheManager {
       // Preload static data
       const staticData = {
         transportRoutes: [
-          { id: 'lrt-01', name: 'LRT Line 1', stops: ['Ayat', 'Mekane Yesus', 'Legehar'] },
           { id: 'bus-01', name: 'Anbessa Route 1', stops: ['Bole', 'Megenagna', 'Piassa'] },
         ],
         exchangeRates: {

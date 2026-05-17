@@ -1,6 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import CryptoJS from 'crypto-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const KEY_NAME = 'cl_p2p_aes_key_v3'; // Bumped to v3 — v1/v2 were insecure or format-incompatible
 
@@ -16,9 +18,13 @@ export const SecurityUtils = {
     try {
       let key = null;
       try {
-        key = await SecureStore.getItemAsync(KEY_NAME);
+        if (Platform.OS === 'web') {
+          key = await AsyncStorage.getItem(KEY_NAME);
+        } else {
+          key = await SecureStore.getItemAsync(KEY_NAME);
+        }
       } catch (e) {
-        console.warn('[SecurityUtils] SecureStore.getItemAsync failed:', e);
+        console.warn('[SecurityUtils] getItem failed:', e);
       }
 
       if (!key) {
@@ -29,9 +35,13 @@ export const SecurityUtils = {
           .join('');
 
         try {
-          await SecureStore.setItemAsync(KEY_NAME, key);
+          if (Platform.OS === 'web') {
+            await AsyncStorage.setItem(KEY_NAME, key);
+          } else {
+            await SecureStore.setItemAsync(KEY_NAME, key);
+          }
         } catch (e) {
-          console.warn('[SecurityUtils] SecureStore.setItemAsync failed:', e);
+          console.warn('[SecurityUtils] setItem failed:', e);
         }
       }
       return key;
@@ -97,13 +107,17 @@ export const SecurityUtils = {
         padding: CryptoJS.pad.Pkcs7,
       });
 
-      const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-      if (!decrypted) {
-        console.warn('[SecurityUtils] Decryption resulted in empty string (possible key mismatch)');
+      try {
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+        if (!decrypted) {
+          console.warn('[SecurityUtils] Decryption resulted in empty string (possible key mismatch)');
+          return '[DECRYPTION_FAILED]';
+        }
+        return decrypted;
+      } catch (encodingErr) {
+        console.warn('[SecurityUtils] UTF-8 decoding failed - invalid key or corrupted payload');
         return '[DECRYPTION_FAILED]';
       }
-
-      return decrypted;
     } catch (err) {
       console.error('[SecurityUtils] Decryption failed:', err);
       return '[DECRYPTION_ERROR]';

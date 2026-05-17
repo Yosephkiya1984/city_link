@@ -25,6 +25,7 @@ import { styles } from './components/DelalaDashboardStyles';
 import { useT } from '../../utils/i18n';
 import { Typography, Surface, SectionTitle } from '../../components';
 import { ListingManagementModal } from '../../components/merchant/ListingManagementModal';
+import { PropertyListing, PropertyEnquiry } from '../../types/domain_types';
 
 export default function DelalaDashboard() {
   const t = useT();
@@ -32,7 +33,7 @@ export default function DelalaDashboard() {
   const signOut = useAuthStore((s) => s.signOut);
   const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'deals' | 'finance'>('listings');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingListing, setEditingListing] = useState<any>(null);
+  const [editingListing, setEditingListing] = useState<PropertyListing | null>(null);
 
   const data = useDelalaData();
   const actions = useDelalaActions(data);
@@ -41,7 +42,7 @@ export default function DelalaDashboard() {
   const { handleContactLead, onCreateListing } = actions;
 
   const activeLeads = enquiries.length;
-  const totalListingsValue = useMemo(() => listings.reduce((acc: number, l: any) => acc + (l.price || 0), 0), [listings]);
+  const totalListingsValue = useMemo(() => listings.reduce((acc: number, l: PropertyListing) => acc + (l.price || 0), 0), [listings]);
 
   const renderListings = () => (
     <ScrollView
@@ -71,7 +72,7 @@ export default function DelalaDashboard() {
           </TouchableOpacity>
         </View>
       ) : (
-        listings.map((l: any, i: number) => (
+        listings.map((l: PropertyListing, i: number) => (
           <MotiView
             key={l.id}
             from={{ opacity: 0, scale: 0.95 }}
@@ -120,7 +121,7 @@ export default function DelalaDashboard() {
   const renderLeads = () => (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: Spacing.xl }}>
       <SectionTitle title="Client Inquiries" />
-      {enquiries.map((e: any, i: number) => (
+      {enquiries.map((e: PropertyEnquiry, i: number) => (
         <Surface key={e.id} variant="lift" style={localStyles.leadCard}>
           <View style={localStyles.leadAvatar}>
             <Typography variant="h3" style={{ color: D.gold }}>{e.user_name?.[0] || 'C'}</Typography>

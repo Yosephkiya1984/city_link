@@ -24,6 +24,7 @@ export * from './layout/SectionTitle';
 export * from './layout/Spacer';
 export * from './layout/WalletHero';
 export * from './layout/FeaturedCard';
+export * from './layout/ParkingActiveBanner';
 export { default as TopBar } from './TopBar';
 
 // ── Re-exports: Feedback ──────────────────────────────────────────────────────

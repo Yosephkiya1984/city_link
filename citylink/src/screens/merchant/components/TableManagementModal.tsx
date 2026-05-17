@@ -12,6 +12,7 @@ interface TableManagementModalProps {
   staff: any[];
   onSetStatus: (tableId: string, status: any) => void;
   onAssignStaff: (tableId: string, staffId: string) => void;
+  hideAssignStaff?: boolean;
 }
 
 export const TableManagementModal: React.FC<TableManagementModalProps> = ({
@@ -21,6 +22,7 @@ export const TableManagementModal: React.FC<TableManagementModalProps> = ({
   staff = [],
   onSetStatus,
   onAssignStaff,
+  hideAssignStaff = false,
 }) => {
   if (!table) return null;
 
@@ -67,36 +69,38 @@ export const TableManagementModal: React.FC<TableManagementModalProps> = ({
               </View>
             </View>
 
-            <View style={styles.section}>
-              <Typography variant="h3" style={{ marginBottom: 12 }}>Assign Waiter</Typography>
-              {staff.length === 0 ? (
-                <Typography variant="body" color="sub">No staff members available.</Typography>
-              ) : (
-                <View style={styles.staffList}>
-                  {staff.map((s) => (
-                    <TouchableOpacity
-                      key={s.id}
-                      onPress={() => onAssignStaff(table.id, s.id)}
-                      style={[
-                        styles.staffCard,
-                        table.waiter_id === s.id && { borderColor: D.primary, backgroundColor: D.primary + '10' }
-                      ]}
-                    >
-                      <View style={styles.staffAvatar}>
-                        <Typography variant="h3" color="ink">{s.full_name?.charAt(0)}</Typography>
-                      </View>
-                      <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Typography variant="title">{s.full_name}</Typography>
-                        <Typography variant="hint" color="sub">{s.role}</Typography>
-                      </View>
-                      {table.waiter_id === s.id && (
-                        <Ionicons name="checkmark-circle" size={20} color={D.primary} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
+            {!hideAssignStaff && (
+              <View style={styles.section}>
+                <Typography variant="h3" style={{ marginBottom: 12 }}>Assign Waiter</Typography>
+                {staff.length === 0 ? (
+                  <Typography variant="body" color="sub">No staff members available.</Typography>
+                ) : (
+                  <View style={styles.staffList}>
+                    {staff.map((s) => (
+                      <TouchableOpacity
+                        key={s.id}
+                        onPress={() => onAssignStaff(table.id, s.id)}
+                        style={[
+                          styles.staffCard,
+                          table.waiter_id === s.id && { borderColor: D.primary, backgroundColor: D.primary + '10' }
+                        ]}
+                      >
+                        <View style={styles.staffAvatar}>
+                          <Typography variant="h3" color="ink">{s.full_name?.charAt(0)}</Typography>
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Typography variant="title">{s.full_name}</Typography>
+                          <Typography variant="hint" color="sub">{s.role}</Typography>
+                        </View>
+                        {table.waiter_id === s.id && (
+                          <Ionicons name="checkmark-circle" size={20} color={D.primary} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
           </ScrollView>
 
           <TouchableOpacity style={styles.doneBtn} onPress={onClose}>

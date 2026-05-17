@@ -23,6 +23,7 @@ import { fmtETB } from '../../utils';
 import { styles } from './components/EkubDashboardStyles';
 import { useT } from '../../utils/i18n';
 import { Typography, Surface, SectionTitle } from '../../components';
+import { EkubCircle, EkubMember } from '../../types/domain_types';
 
 const { width } = Dimensions.get('window');
 
@@ -31,7 +32,7 @@ export default function EkubDashboard() {
   const { currentUser, signOut } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'circles' | 'apps' | 'draws' | 'ledger'>('circles');
   const [isDrawing, setIsDrawing] = useState(false);
-  const [winner, setWinner] = useState<any>(null);
+  const [winner, setWinner] = useState<{ full_name: string; amount: number } | null>(null);
 
   const data = useEkubData();
   const actions = useEkubActions(data);
@@ -44,7 +45,7 @@ export default function EkubDashboard() {
     [circles]
   );
   
-  const handleRunDraw = async (circle: any) => {
+  const handleRunDraw = async (circle: EkubCircle) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsDrawing(true);
     setWinner(null);
@@ -264,7 +265,7 @@ export default function EkubDashboard() {
           <TouchableOpacity
             key={tab.id}
             onPress={() => {
-              setActiveTab(tab.id as any);
+              setActiveTab(tab.id as 'circles' | 'apps' | 'draws' | 'ledger');
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             style={[styles.tabItem, activeTab === tab.id && styles.tabItemActive]}

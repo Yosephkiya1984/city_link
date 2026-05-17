@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Dimensions,
+  TextInputProps,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
@@ -22,8 +23,8 @@ const { height } = Dimensions.get('window');
 interface ListingManagementModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (listing: any) => Promise<void>;
-  editingListing?: any;
+  onSave: (listing: Record<string, unknown>) => Promise<void>;
+  editingListing?: Record<string, unknown>;
 }
 
 export function ListingManagementModal({
@@ -48,18 +49,19 @@ export function ListingManagementModal({
 
   useEffect(() => {
     if (editingListing) {
+      const el = editingListing as any;
       setForm({
-        title: editingListing.title || '',
-        price: String(editingListing.price || ''),
-        category: editingListing.category || 'Real Estate',
-        type: editingListing.type || 'Rent',
-        description: editingListing.description || '',
-        location: editingListing.location || '',
-        bedrooms: String(editingListing.bedrooms || ''),
-        bathrooms: String(editingListing.bathrooms || ''),
-        sqft: String(editingListing.sqft || ''),
+        title: el.title || '',
+        price: String(el.price || ''),
+        category: el.category || 'Real Estate',
+        type: el.type || 'Rent',
+        description: el.description || '',
+        location: el.location || '',
+        bedrooms: String(el.bedrooms || ''),
+        bathrooms: String(el.bathrooms || ''),
+        sqft: String(el.sqft || ''),
       });
-      setImages(editingListing.images || []);
+      setImages(el.images || []);
     } else {
       setForm({
         title: '',
@@ -166,7 +168,11 @@ export function ListingManagementModal({
   );
 }
 
-function Input({ label, ...props }: any) {
+interface InputProps extends TextInputProps {
+  label: string;
+}
+
+function Input({ label, ...props }: InputProps) {
   return (
     <View style={styles.inputWrap}>
       <Typography variant="hint" color="sub" style={{ marginBottom: 6 }}>{label.toUpperCase()}</Typography>

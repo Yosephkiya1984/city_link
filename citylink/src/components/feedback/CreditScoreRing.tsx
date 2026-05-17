@@ -1,7 +1,13 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Canvas, Path, Skia, vec, SweepGradient, Circle, Group } from '@shopify/react-native-skia';
-import { useDerivedValue, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+
+// Skia is native-only; guard against web where codegenNativeComponent doesn't exist
+const SkiaAvailable = Platform.OS !== 'web';
+const SkiaModule = SkiaAvailable ? require('@shopify/react-native-skia') : null;
+const { Canvas, Path, Skia, vec, Circle, Group } = SkiaModule || {};
+
+const ReanimatedModule = SkiaAvailable ? require('react-native-reanimated') : null;
+const { useDerivedValue, useSharedValue, withTiming, Easing } = ReanimatedModule || {};
 import { useTheme } from '../../hooks/useTheme';
 import { Fonts, Radius } from '../../theme';
 import { CreditService } from '../../services/credit.service';
@@ -15,6 +21,20 @@ interface CreditScoreRingProps {
 export function CreditScoreRing({ score = 742, maxScore = 850 }: CreditScoreRingProps) {
   const C = useTheme();
   const percentage = (score - 300) / (maxScore - 300); // 0 to 1
+  const category = CreditService.getCategory(score);
+
+  // Web fallback — Skia is not available on web
+  if (!SkiaAvailable) {
+    return (
+      <View style={[styles.statsCard, { backgroundColor: C.surface, borderColor: C.edge }]}>
+        <View style={styles.creditTextContainer}>
+          <Text style={[styles.creditTitle, { color: C.sub }]}>CREDIT SCORE</Text>
+          <Text style={[styles.scoreText, { color: C.text }]}>{score}</Text>
+          <Text style={[styles.creditStatus, { color: category.color }]}>{category.label}</Text>
+        </View>
+      </View>
+    );
+  }
 
   // Reanimated values for smooth Skia interaction
   const progress = useSharedValue(0);
@@ -29,8 +49,6 @@ export function CreditScoreRing({ score = 742, maxScore = 850 }: CreditScoreRing
   const radius = 40;
   const strokeWidth = 8;
   const center = vec(50, 50);
-
-  const category = CreditService.getCategory(score);
 
   // Create the path for the ring
   const path = useDerivedValue(() => {

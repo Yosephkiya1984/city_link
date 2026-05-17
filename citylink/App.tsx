@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TamaguiProvider } from 'tamagui';
 import { config } from './src/tamagui.config';
-import { View, ActivityIndicator, StatusBar, Text } from 'react-native';
+import { View, ActivityIndicator, StatusBar, Text, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
@@ -53,18 +53,7 @@ function AppBootstrap() {
     async function prepare() {
       const bootStart = performance.now();
       try {
-        // 0. Check Biometric Support
-        await useBiometricStore.getState().checkSupport();
-
-        // 0. Migrate legacy data if exists
-        try {
-          await migrateLegacyData();
-        } catch (e) {
-          const message = e instanceof Error ? e.message : String(e);
-          console.error('[App] migrateLegacyData failed:', message, e);
-        }
-
-        // 1 & 2. Load Fonts & Hydrate Session Concurrently
+        // ── PHASE 1: START CRITICAL ASSETS & AUTH CONCURRENTLY ─────────────────
         const fontStart = performance.now();
         const authStart = performance.now();
 
@@ -79,48 +68,69 @@ function AppBootstrap() {
           Manrope_700Bold,
         }).then(() => {
           setFontsLoaded(true);
-          console.log(
-            `[Performance] Fonts loaded in ${(performance.now() - fontStart).toFixed(2)}ms`
-          );
+          if (__DEV__) {
+            console.log(`[Performance] Fonts loaded in ${(performance.now() - fontStart).toFixed(2)}ms`);
+          }
         });
 
-        const { hydrateSession } = useAuthStore.getState();
-        const authPromise = hydrateSession().then(() => {
-          console.log(
-            `[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`
-          );
+        const authPromise = useAuthStore.getState().hydrateSession().then(() => {
+          if (__DEV__) {
+            console.log(`[Performance] Session hydrated in ${(performance.now() - authStart).toFixed(2)}ms`);
+          }
         });
 
+        // ── PHASE 2: FIRE & FORGET SEMI-CRITICAL TASKS ────────────────────────
+        const deferredInitialization = async () => {
+          try {
+            await Promise.all([
+              useBiometricStore.getState().checkSupport(),
+              migrateLegacyData().catch(e => console.warn('[App] Migration failed:', e)),
+            ]);
+          } catch (e) {
+            console.warn('[App] Deferred initialization failed:', e);
+          }
+        };
+        deferredInitialization();
+
+        // ── PHASE 3: WAIT FOR UI-BLOCKING ASSETS ──────────────────────────────
         await Promise.all([fontPromise, authPromise]);
 
-        // Initialize Global Services
-        const { walletSyncService } = await import('./src/services/WalletSyncService');
-        walletSyncService.initialize();
-
-        const session = useAuthStore.getState().currentUser;
-        if (session) {
-          // Sync language with user profile preference
-          if (session.language && session.language !== useSystemStore.getState().lang) {
-            useSystemStore.getState().setLang(session.language);
-          }
-
-          // Background PIN Hash Sync
-          const { ensureFullSync } = await import('./src/services/walletPin');
-          await ensureFullSync(session.id);
-
-          if (__DEV__) {
-            console.log(`[App] Welcome back, ${session.full_name || 'User'}`);
-          }
-        }
+        // Release the splash screen as soon as fonts and auth are ready
+        setBootstrapped(true);
 
         if (__DEV__) {
-          console.log(
-            `[Performance] Total bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`
-          );
+          console.log(`[Performance] Critical bootstrap took ${(performance.now() - bootStart).toFixed(2)}ms`);
         }
+
+        // ── PHASE 4: POST-RENDER WARM-UP (NON-BLOCKING) ───────────────────────
+        InteractionManager.runAfterInteractions(async () => {
+          try {
+            // Initialize Background Services
+            const { walletSyncService } = await import('./src/services/WalletSyncService');
+            walletSyncService.initialize();
+
+            const session = useAuthStore.getState().currentUser;
+            if (session) {
+              // Sync language preference if mismatch
+              if (session.language && session.language !== useSystemStore.getState().lang) {
+                useSystemStore.getState().setLang(session.language);
+              }
+
+              // Background Wallet PIN sync
+              const { ensureFullSync } = await import('./src/services/walletPin');
+              ensureFullSync(session.id).catch(e => console.warn('[App] PIN sync failed:', e));
+
+              if (__DEV__) {
+                console.log(`[App] Welcome back, ${session.full_name || 'User'} (Services initialized post-render)`);
+              }
+            }
+          } catch (e) {
+            console.warn('[App] Post-render warm-up failed:', e);
+          }
+        });
       } catch (e) {
-        console.warn('[App] Boot error:', e);
-      } finally {
+        console.error('[App] Critical boot error:', e);
+        // Fallback to release the app even if something failed
         setBootstrapped(true);
       }
     }

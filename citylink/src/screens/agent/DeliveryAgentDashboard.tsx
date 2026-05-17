@@ -19,9 +19,20 @@ import {
   Modal,
   TextInput,
   Image,
+  Platform,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+
+// react-native-maps is native-only; guard against web
+const MapsAvailable = Platform.OS !== 'web';
+const MapsModule = MapsAvailable ? require('react-native-maps') : null;
+// Handle different export styles for MapView
+const MapView = MapsModule?.default || MapsModule;
+const { Marker, PROVIDER_GOOGLE } = MapsModule || {};
+
+// expo-camera is native-only; guard against web
+const CameraModule = MapsAvailable ? require('expo-camera') : null;
+const CameraView = CameraModule?.CameraView;
+const useCameraPermissions = CameraModule?.useCameraPermissions || (() => [null, () => {}]);
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,6 +61,7 @@ import {
   fetchPendingDispatches,
   fetchActiveJobs,
   fetchAgentHistory,
+  fetchAvailableMarketplaceOrders,
   acceptDeliveryJob,
   declineDeliveryJob,
   markOrderPickedUp,
@@ -115,14 +127,17 @@ function fmtDate(iso: string) {
 export default function DeliveryAgentDashboard() {
   const navigation = useNavigation();
   const currentUser = useAuthStore((s) => s.currentUser);
+  const setUiMode = useAuthStore((s) => s.setUiMode);
   const showToast = useSystemStore((s) => s.showToast);
   const { balance, setBalance } = useWalletStore();
   const dStore = useDeliveryStore();
 
   const [tab, setTab] = useState('home'); 
-  const [loading, setLoading] = useState(dStore.lastUpdated === null);
+  const [loading, setLoading] = useState(dStore.lastUpdated === null && dStore.activeJobs.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState(0);
+  const [availableOrders, setAvailableOrders] = useState<any[]>([]);
+  const [claimingOrderId, setClaimingOrderId] = useState<string | null>(null);
 
   const [togglingOnline, setTogglingOnline] = useState(false);
   const [rejectionJob, setRejectionJob] = useState<any>(null);
@@ -162,40 +177,59 @@ export default function DeliveryAgentDashboard() {
   // â”€â”€ Load Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadDashboard = useCallback(async () => {
     if (!currentUser?.id) return;
-    if (dStore.lastUpdated === null) setLoading(true);
+    const store = useDeliveryStore.getState();
+    if (store.lastUpdated === null && store.activeJobs.length === 0) setLoading(true);
 
-    const [profile, jobs, hist] = await Promise.all([
-      fetchAgentProfile(currentUser.id),
-      fetchActiveJobs(currentUser.id),
-      fetchAgentHistory(currentUser.id),
-    ]);
+    try {
+      // 1. Core dashboard data
+      const [profileRes, jobsRes, histRes, availableRes] = await Promise.allSettled([
+        fetchAgentProfile(currentUser.id),
+        fetchActiveJobs(currentUser.id),
+        fetchAgentHistory(currentUser.id, 50),
+        fetchAvailableMarketplaceOrders(),
+      ]);
 
-    if (profile.data) {
-      dStore.setAgentProfile(profile.data);
-      dStore.setIsOnline(profile.data.is_online || false);
+      if (profileRes.status === 'fulfilled' && profileRes.value.data) {
+        store.setAgentProfile(profileRes.value.data);
+        store.setIsOnline(profileRes.value.data.is_online || false);
+      }
+
+      const activeJobs = jobsRes.status === 'fulfilled' ? jobsRes.value : [];
+      store.setActiveJobs(activeJobs);
+
+      const history = histRes.status === 'fulfilled' ? histRes.value : [];
+      store.setHistory(history);
+
+      const available = availableRes.status === 'fulfilled' ? availableRes.value : [];
+      setAvailableOrders(available);
+
+      store.setLastUpdated(new Date().toISOString());
+
+      // 2. Earnings calculation
+      const today = new Date().toDateString();
+      const todayTotal = history
+        .filter((h: any) => new Date(h.delivered_at).toDateString() === today)
+        .reduce((sum: number, h: any) => sum + (Number(h.agent_fee) || 0), 0);
+      setTodayEarnings(todayTotal);
+
+      // 3. Wallet and dispatches
+      const [wallet, pending] = await Promise.all([
+        fetchWalletData(currentUser.id),
+        fetchPendingDispatches(currentUser.id),
+      ]);
+
+      if (wallet) {
+        useWalletStore.getState().setBalance(wallet.balance);
+      }
+      if (pending) {
+        store.setDispatches(pending);
+      }
+    } catch (err) {
+      console.error('[Dashboard] Unexpected load error:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    dStore.setActiveJobs(jobs);
-    dStore.setHistory(hist);
-    dStore.setLastUpdated(new Date().toISOString());
-
-    // 🛡️ Wallet Refresh
-    const wallet = await fetchWalletData(currentUser.id);
-    if (wallet) {
-      setBalance(wallet.balance);
-    }
-
-    // Compute today's earnings from history using actual agent_fee
-    const today = new Date().toDateString();
-    const todayTotal = hist
-      .filter((h: any) => new Date(h.delivered_at).toDateString() === today)
-      .reduce((sum: number, h: any) => sum + (Number(h.agent_fee) || 0), 0);
-    setTodayEarnings(todayTotal);
-
-    const pending = await fetchPendingDispatches(currentUser.id);
-    dStore.setDispatches(pending);
-    
-    setLoading(false);
-    setRefreshing(false);
   }, [currentUser?.id]);
 
   useEffect(() => {
@@ -288,7 +322,7 @@ export default function DeliveryAgentDashboard() {
       }
 
       await setAgentOnlineStatus(currentUser.id, val, lat, lng);
-      setIsOnline(val);
+      dStore.setIsOnline(val);
       showToast(val ? t('go_online_msg') : t('logged_out_msg'), val ? 'success' : 'info');
     } catch (e) {
       showToast(t('status_update_failed'), 'error');
@@ -338,7 +372,7 @@ export default function DeliveryAgentDashboard() {
     showToast(t('confirm_handover_msg'), 'success');
 
     // Clear local dStore.dispatches immediately so they don't see the card anymore
-    setDispatches((prev) => prev.filter((d) => d.order_id !== dispatch.order_id));
+    dStore.setDispatches(dStore.dispatches.filter((d: any) => d.order_id !== dispatch.order_id));
 
     // Refresh to pull the active job
     await loadDashboard();
@@ -348,13 +382,37 @@ export default function DeliveryAgentDashboard() {
   const handleDecline = async (dispatch: any) => {
     if (!currentUser?.id) return;
     const res = await declineDeliveryJob(dispatch.order_id, currentUser.id);
-    setDispatches((prev) => prev.filter((d) => d.order_id !== dispatch.order_id));
+    dStore.setDispatches(dStore.dispatches.filter((d: any) => d.order_id !== dispatch.order_id));
 
     if (res.error) {
       showToast(`Decline failed: ${res.error}`, 'error');
     } else {
       showToast(t('reject'), 'info');
     }
+  };
+
+  // —— Claim Open-Pool Order ————————————————————————————————————————————————
+  const handleClaimOrder = async (order: any) => {
+    if (!currentUser?.id) return;
+    if (dStore.agentProfile?.agent_status !== 'APPROVED') {
+      showToast(t('verification_required_msg'), 'error');
+      return;
+    }
+    setClaimingOrderId(order.id);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Use acceptDeliveryJob directly - it handles assignment and status updates
+    const { ok, error } = await acceptDeliveryJob(order.id, currentUser.id, 'MARKETPLACE');
+    if (!ok) {
+      showToast(error || t('job_already_taken_err'), 'error');
+      setClaimingOrderId(null);
+      return;
+    }
+
+    setAvailableOrders((prev) => prev.filter((o) => o.id !== order.id));
+    showToast(t('confirm_handover_msg'), 'success');
+    await loadDashboard();
+    setClaimingOrderId(null);
   };
 
   // —— Picked Up (Dual Confirmation) ———————————————————————————————————————————
@@ -523,7 +581,7 @@ export default function DeliveryAgentDashboard() {
     setRefreshing(false);
   };
 
-  // â”€â”€ Pending approval screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // —— Pending approval screen ——————————————————————————————————————————————————
   if (dStore.agentProfile && dStore.agentProfile.agent_status === 'PENDING') {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
@@ -552,44 +610,44 @@ export default function DeliveryAgentDashboard() {
   return (
     <View style={s.root}>
       {/* â”€â”€ Header â”€â”€ */}
-      <LinearGradient colors={['#0a0e14', '#111827']} style={s.navHeader}>
+      <View style={s.topBar}>
         <View>
-          <Text style={s.greeting}>{t('citylink_delivery_title')}</Text>
-          <Text style={s.headerTitle}>{currentUser?.full_name || t('role_agent')}</Text>
+          <Text
+            style={{ color: T.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}
+          >
+            {t('agent_console_label')}
+          </Text>
+          <View style={s.agentName}>
+            <Text style={s.headerTitle}>{currentUser?.full_name?.split(' ')[0]}</Text>
+            {dStore.isOnline && <View style={s.pulseDot} />}
+          </View>
         </View>
         <View style={s.headerRight}>
           <TouchableOpacity
-            style={s.switchBtn}
+            style={[s.signOutBtn, { marginRight: 4 }]}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              useAuthStore.getState().setUiMode('citizen');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setUiMode('citizen');
             }}
           >
-            <Ionicons name="repeat-outline" size={20} color={T.primary} />
-            <Text style={{ color: T.primary, fontSize: 10, fontWeight: '800', marginTop: 2 }}>
-              {t('switch_btn')}
-            </Text>
+            <Ionicons name="home-outline" size={20} color={T.primary} />
           </TouchableOpacity>
-          <View style={s.ratingBadge}>
-            <Ionicons name="star" size={12} color={T.yellow} />
-            <Text style={s.ratingText}>{(dStore.agentProfile?.rating || 5).toFixed(1)}</Text>
-          </View>
+          <TouchableOpacity style={s.switchBtn} onPress={() => setShowWorkID(true)}>
+            <Ionicons name="id-card-outline" size={20} color={T.primary} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={s.signOutBtn}
             onPress={() => {
               Alert.alert(t('sign_out'), 'Are you sure?', [
                 { text: t('cancel'), style: 'cancel' },
-                {
-                  text: t('sign_out'),
-                  onPress: logout,
-                },
+                { text: t('sign_out'), onPress: logout },
               ]);
             }}
           >
             <Ionicons name="log-out-outline" size={20} color={T.textSub} />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* â”€â”€ Tabs â”€â”€ */}
       <View style={s.tabBar}>
@@ -622,48 +680,6 @@ export default function DeliveryAgentDashboard() {
         {tab === 'home' && (
           <>
             {/* Penalty Block Banner */}
-            {dStore.agentProfile?.blocked_until && new Date(dStore.agentProfile.blocked_until) > new Date() && (
-              <View style={[s.penaltyBanner, { marginBottom: 16 }]}>
-                <View style={s.penaltyHeader}>
-                  <Ionicons name="warning" size={20} color={T.red} />
-                  <Text style={s.penaltyTitle}>{t('account_restricted_title')}</Text>
-                </View>
-                <Text style={s.penaltyReason}>
-                  {dStore.agentProfile.last_block_reason || t('account_restricted_desc')}
-                </Text>
-                <View style={s.penaltyTimer}>
-                  <Ionicons name="time-outline" size={14} color={T.red} />
-                  <Text style={s.penaltyTimerText}>
-                    {t('restriction_lifts_msg', {
-                      time: new Date(dStore.agentProfile.blocked_until).toLocaleTimeString(),
-                    })}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* ══ Top Navigation Bar ══ */}
-            <View style={s.topBar}>
-              <View>
-                <Text
-                  style={{ color: T.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}
-                >
-                  {t('agent_console_label')}
-                </Text>
-                <View style={s.agentName}>
-                  <Text style={s.headerTitle}>{currentUser?.full_name?.split(' ')[0]}</Text>
-                  {dStore.isOnline && <View style={s.pulseDot} />}
-                </View>
-              </View>
-              <View style={s.headerRight}>
-                <TouchableOpacity style={s.switchBtn} onPress={() => setShowWorkID(true)}>
-                  <Ionicons name="id-card-outline" size={20} color={T.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity style={s.signOutBtn} onPress={logout}>
-                  <Ionicons name="log-out-outline" size={20} color={T.red} />
-                </TouchableOpacity>
-              </View>
-            </View>
 
             {/* ══ Compliance Banner ══ */}
             <View style={s.complianceBanner}>
@@ -686,9 +702,9 @@ export default function DeliveryAgentDashboard() {
             {/* ══ Stats Row ══ */}
             <AgentStatsRow
               stats={{
-                todayDeliveries: dStore.history?.filter(h => new Date(h.delivered_at).toDateString() === new Date().toDateString()).length || 0,
+                totalDeliveries: dStore.agentProfile?.total_deliveries || 0,
                 todayEarnings: todayEarnings,
-                rating: dStore.agentProfile?.rating || 4.8,
+                rating: dStore.agentProfile?.rating ?? null,
               }}
             />
 
@@ -762,6 +778,63 @@ export default function DeliveryAgentDashboard() {
                   </View>
                 )}
 
+                {/* Available Jobs (Open Pool) */}
+                {availableOrders.length > 0 && (
+                  <View style={{ gap: 16, marginTop: 10 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: -8,
+                      }}
+                    >
+                      <Text style={{ color: T.text, fontSize: 13, fontWeight: '800' }}>
+                        {t('available_jobs_pool_label', { count: availableOrders.length })}
+                      </Text>
+                      <Ionicons name="search-outline" size={16} color={T.primary} />
+                    </View>
+                    {availableOrders.map((order) => (
+                      <TouchableOpacity
+                        key={order.id}
+                        style={s.availableCard}
+                        onPress={() => handleClaimOrder(order)}
+                        disabled={claimingOrderId === order.id}
+                      >
+                        <View style={s.availableLeft}>
+                          <View style={s.availableIconBox}>
+                            <Ionicons name="cube" size={24} color={T.primary} />
+                          </View>
+                        </View>
+                        <View style={{ flex: 1, paddingRight: 10 }}>
+                          <Text style={s.availableTitle} numberOfLines={1}>
+                            {order.product_name}
+                          </Text>
+                          <Text style={s.availableMerchant} numberOfLines={1}>
+                            {t('from_merchant_label', { name: order.merchant_name })}
+                          </Text>
+                          <View style={s.availableMeta}>
+                            <Ionicons name="location-outline" size={12} color={T.textSub} />
+                            <Text style={s.availableMetaText} numberOfLines={1}>
+                              {order.shipping_address}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={s.availableRight}>
+                          <Text style={s.availableFee}>ETB {order.agent_fee}</Text>
+                          <View style={[s.claimBtn, claimingOrderId === order.id && { opacity: 0.5 }]}>
+                            {claimingOrderId === order.id ? (
+                              <ActivityIndicator size="small" color={T.bg} />
+                            ) : (
+                              <Text style={s.claimBtnText}>{t('claim_btn')}</Text>
+                            )}
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
                 {/* Empty state */}
                 {dStore.activeJobs.length === 0 && dStore.dispatches.length === 0 && (
                   <View style={s.emptyState}>
@@ -790,11 +863,19 @@ export default function DeliveryAgentDashboard() {
             dStore.history?.map((h, i) => (
               <View key={h.id || i} style={s.historyCard}>
                 <View style={s.historyLeft}>
-                  <Ionicons name="checkmark-circle" size={24} color={T.green} />
+                  <Ionicons
+                    name={h.order_type === 'FOOD' ? 'restaurant' : 'cube'}
+                    size={24}
+                    color={h.order_type === 'FOOD' ? T.amber : T.primary}
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.historyProduct}>{h.product_name}</Text>
-                  <Text style={s.historySub}>From {h.merchant?.business_name || 'Merchant'}</Text>
+                  <Text style={s.historyProduct}>
+                    {h.display_name || h.product_name || h.restaurant_name || 'Order'}
+                  </Text>
+                  <Text style={s.historySub}>
+                    From {h.merchant?.business_name || h.merchant?.full_name || h.merchant_name || 'Merchant'}
+                  </Text>
                   <Text style={s.historyDate}>{fmtDate(h.delivered_at)}</Text>
                 </View>
                 <View>
@@ -811,29 +892,6 @@ export default function DeliveryAgentDashboard() {
               </View>
             ))
           ))}
-
-        <View style={{ padding: 20, marginTop: 20 }}>
-          <TouchableOpacity
-            style={[
-              s.actionBtn,
-              {
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                borderColor: 'rgba(239, 68, 68, 0.3)',
-                borderWidth: 1,
-                marginBottom: 20,
-              },
-            ]}
-            onPress={() => {
-              Alert.alert(t('sign_out'), 'Are you sure you want to log out?', [
-                { text: t('cancel'), style: 'cancel' },
-                { text: t('sign_out'), onPress: logout, style: 'destructive' },
-              ]);
-            }}
-          >
-            <Ionicons name="log-out-outline" size={20} color={T.red} />
-            <Text style={[s.actionBtnText, { color: T.red }]}>{t('sign_out')}</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -1233,6 +1291,72 @@ const _s = StyleSheet.create({
   workIdInfo: { alignItems: 'center', gap: 4 },
   workIdName: { color: '#fff', fontSize: 20, fontWeight: '900', textAlign: 'center' },
   workIdRole: { color: T.gold, fontSize: 12, fontWeight: '800', letterSpacing: 2 },
+
+  // Available Job Cards
+  availableCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: T.surface,
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: T.edge,
+    marginBottom: 8,
+  },
+  availableLeft: {
+    paddingRight: 12,
+  },
+  availableIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  availableTitle: {
+    color: T.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  availableMerchant: {
+    color: T.textSub,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  availableMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 4,
+  },
+  availableMetaText: {
+    color: T.textSub,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  availableRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  availableFee: {
+    color: T.primary,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  claimBtn: {
+    backgroundColor: T.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  claimBtnText: {
+    color: T.bg,
+    fontSize: 11,
+    fontWeight: '900',
+  },
 
   workIdDetails: {
     flexDirection: 'row',

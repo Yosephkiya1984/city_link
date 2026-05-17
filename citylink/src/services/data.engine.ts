@@ -38,7 +38,7 @@ export const DataEngine = {
     },
 
     update: (id: string, updates: Partial<User>) =>
-      supaQuery<User>((c) => c.from('profiles').update(updates).eq('id', id).select().single()),
+      supaQuery<User>((c) => c.from('profiles').update(updates).eq('id', id).select().maybeSingle()),
   },
 
   // ── Wallet & Financial ──

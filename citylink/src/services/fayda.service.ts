@@ -10,6 +10,11 @@
 import { FAYDA_DB, FEATURE_FLAGS } from '../config';
 import { KYCStatus } from '../types';
 
+export interface IFaydaProvider {
+  getConsent(faydaId: string): Promise<boolean>;
+  verify(faydaId: string): Promise<FaydaVerificationResult>;
+}
+
 export interface FaydaProfile {
   fayda_id: string;
   full_name: string;

@@ -180,7 +180,7 @@ export const MarketplaceApi = {
 
   async fetchLowStockAlerts(merchantId: string) {
     return supaQuery<any[]>((c) =>
-      c.rpc('get_low_stock_alerts', { p_merchant_id: merchantId })
+      c.rpc('get_low_stock_alerts')
     );
   },
 

@@ -12,9 +12,13 @@ import {
   revokeStaffAccess,
   createParkingLot,
 } from '../../../services/parking.service';
+import { ParkingSession } from '../../../types/domain_types';
 
-export function useParkingActions(data: any) {
-  const { loadData } = data;
+export interface ParkingActionsProps {
+  loadData: () => Promise<void>;
+}
+
+export function useParkingActions({ loadData }: ParkingActionsProps) {
   const navigation = useNavigation();
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
@@ -24,7 +28,7 @@ export function useParkingActions(data: any) {
 
   const [actionLoading, setActionLoading] = useState(false);
   const [showSessionDetail, setShowSessionDetail] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [selectedSession, setSelectedSession] = useState<ParkingSession | null>(null);
 
   const getEffectiveMerchantId = async () => {
     if (!currentUser?.id) return null;
@@ -35,8 +39,9 @@ export function useParkingActions(data: any) {
         const { HospitalityService } = await import('../../../services/hospitality.service');
         const staffProfile = await HospitalityService.getMerchantStaffProfile(currentUser.id);
         return staffProfile?.merchant_id || currentUser.id;
-      } catch (e: any) {
-        console.warn('[useParkingActions] Could not resolve valet merchant_id:', e.message);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Unknown error';
+        console.warn('[useParkingActions] Could not resolve valet merchant_id:', msg);
         return currentUser.id;
       }
     }
@@ -238,8 +243,9 @@ export function useParkingActions(data: any) {
         showToast('Parking lot created successfully!', 'success');
         loadData();
         return true;
-      } catch (e: any) {
-        showToast(e.message || 'Failed to create parking lot', 'error');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Failed to create parking lot';
+        showToast(msg, 'error');
         return false;
       } finally {
         setActionLoading(false);

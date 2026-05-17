@@ -22,6 +22,14 @@ export interface AuditLog {
   time: string;
   severity: 'low' | 'med' | 'high';
 }
+export interface RawAuditLog {
+  id: string;
+  event_type: string;
+  actor_id?: string;
+  details?: Record<string, unknown>;
+  created_at: string;
+  severity: string;
+}
 
 export default function AuditModule() {
   const theme = useTheme();
@@ -37,7 +45,7 @@ export default function AuditModule() {
 
   const fetchLogsData = async () => {
     // Simulated: In a real app, 'fiscal' mode would query the unified ledger
-    const { data, error } = await supaQuery<any[]>((c) =>
+    const { data, error } = await supaQuery<RawAuditLog[]>((c) =>
       c.rpc('fetch_system_audit_logs', { p_limit: 20 })
     );
 
@@ -259,7 +267,7 @@ interface SummaryCardProps {
   label: string;
   value: string;
   sub: string;
-  icon: string;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   color: string;
 }
 
@@ -267,7 +275,7 @@ function SummaryCard({ label, value, sub, icon, color }: SummaryCardProps) {
   const theme = useTheme();
   return (
     <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
-      <MaterialCommunityIcons name={icon as any} size={24} color={color} />
+      <MaterialCommunityIcons name={icon} size={24} color={color} />
       <View style={{ marginTop: 12 }}>
         <Text style={[styles.sumLabel, { color: theme.sub }]}>{label.toUpperCase()}</Text>
         <Text style={[styles.sumValue, { color: theme.text, fontFamily: Fonts.headline }]}>

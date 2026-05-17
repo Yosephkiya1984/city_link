@@ -12,6 +12,8 @@ import {
   Dimensions,
   StyleSheet,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView, AnimatePresence } from 'moti';
@@ -91,7 +93,7 @@ export default function ParkingDashboard() {
   const signOut = useAuthStore((s) => s.signOut);
   const uiMode = useAuthStore((s) => s.uiMode);
   const setUiMode = useAuthStore((s) => s.setUiMode);
-  const locationInterval = useRef<any>(null);
+  const locationInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Location Tracking Watcher (Conductor-as-the-Anchor) ──
   useEffect(() => {
@@ -166,14 +168,14 @@ export default function ParkingDashboard() {
       return {
         id: session?.id || `spot_${selectedLotIndex}_${i}`,
         number: session ? session.plate?.slice(-4) : `${i + 1}`,
-        status: i < lotSessions.length ? 'occupied' : 'available' as any,
+        status: (i < lotSessions.length ? 'occupied' : 'available') as 'occupied' | 'available',
         x: i % 8,
         y: Math.floor(i / 8),
       };
     });
   }, [lots, selectedLotIndex, activeSessions]);
 
-  const handleTabPress = (id: any) => {
+  const handleTabPress = (id: 'live' | 'sessions' | 'lots' | 'finance') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(id);
   };
@@ -549,54 +551,63 @@ export default function ParkingDashboard() {
 
         {/* Walk-In Modal */}
         <Modal visible={walkInModal} transparent animationType="slide">
-          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} activeOpacity={1} onPress={() => setWalkInModal(false)} />
-          <View style={localStyles.bottomSheet}>
-            <Typography variant="h2" style={{ marginBottom: 4 }}>Log Walk-In Vehicle</Typography>
-            <Typography variant="hint" color="sub" style={{ marginBottom: 20 }}>Enter the license plate of the vehicle entering off-app.</Typography>
-            <TextInput
-              style={localStyles.pinInput}
-              placeholder="e.g. AA-A 12345"
-              placeholderTextColor={D.sub}
-              value={walkInPlate}
-              onChangeText={setWalkInPlate}
-              autoCapitalize="characters"
-            />
-            <TouchableOpacity 
-              style={[localStyles.withdrawBtn, { width: '100%', marginTop: 16 }]}
-              onPress={() => {
-                if (!walkInPlate.trim()) return;
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                const handleConfirm = async () => {
-                  if (walkInPlate.length < 4) return;
-                  const success = await handleStartManualSession(walkInPlate, lots[selectedLotIndex]?.id);
-                  if (success) {
-                    setWalkInPlate('');
-                    setWalkInModal(false);
-                  }
-                };
-                handleConfirm();
-              }}
-            >
-              <Typography variant="h3" style={{ color: D.ink }}>Start Session</Typography>
-            </TouchableOpacity>
-          </View>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={{ flex: 1 }}
+          >
+            <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} activeOpacity={1} onPress={() => setWalkInModal(false)} />
+            <View style={localStyles.bottomSheet}>
+              <Typography variant="h2" style={{ marginBottom: 4 }}>Log Walk-In Vehicle</Typography>
+              <Typography variant="hint" color="sub" style={{ marginBottom: 20 }}>Enter the license plate of the vehicle entering off-app.</Typography>
+              <TextInput
+                style={localStyles.pinInput}
+                placeholder="e.g. AA-A 12345"
+                placeholderTextColor={D.sub}
+                value={walkInPlate}
+                onChangeText={setWalkInPlate}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity 
+                style={[localStyles.withdrawBtn, { width: '100%', marginTop: 16 }]}
+                onPress={() => {
+                  if (!walkInPlate.trim()) return;
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  const handleConfirm = async () => {
+                    if (walkInPlate.length < 4) return;
+                    const success = await handleStartManualSession(walkInPlate, lots[selectedLotIndex]?.id);
+                    if (success) {
+                      setWalkInPlate('');
+                      setWalkInModal(false);
+                    }
+                  };
+                  handleConfirm();
+                }}
+              >
+                <Typography variant="h3" style={{ color: D.ink }}>Start Session</Typography>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* ── Add Staff Modal ── */}
       <Modal visible={showAddStaff} transparent animationType="slide">
-        <View style={localStyles.modalOverlay}>
-          <Surface variant="card" style={localStyles.modalContent}>
-            <Typography variant="h2" color="primary" style={{ marginBottom: 8 }}>Register Valet</Typography>
-            <Typography variant="body" color="sub" style={{ marginBottom: 24 }}>Enter the phone number of the user you wish to add as a parking staff.</Typography>
-            
-             <TextInput
-              style={localStyles.input}
-              placeholder="0911223344"
-              placeholderTextColor={D.sub}
-              value={staffPhone}
-              onChangeText={setStaffPhone}
-              keyboardType="phone-pad"
-            />
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={{ flex: 1 }}
+        >
+          <View style={localStyles.modalOverlay}>
+            <Surface variant="card" style={localStyles.modalContent}>
+              <Typography variant="h2" color="primary" style={{ marginBottom: 8 }}>Register Valet</Typography>
+              <Typography variant="body" color="sub" style={{ marginBottom: 24 }}>Enter the phone number of the user you wish to add as a parking staff.</Typography>
+              
+               <TextInput
+                style={localStyles.input}
+                placeholder="0911223344"
+                placeholderTextColor={D.sub}
+                value={staffPhone}
+                onChangeText={setStaffPhone}
+                keyboardType="phone-pad"
+              />
 
             {isSearchingStaff && (
               <Typography variant="sub" style={{ color: D.gold, marginTop: 4 }}>
@@ -663,43 +674,53 @@ export default function ParkingDashboard() {
             </View>
           </Surface>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── PIN Verification Modal ── */}
         <Modal visible={!!pinModal} transparent animationType="slide">
-          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} activeOpacity={1} onPress={() => setPinModal(null)} />
-          <View style={localStyles.bottomSheet}>
-            <Typography variant="h2" style={{ marginBottom: 4 }}>Verify Exit PIN</Typography>
-            <Typography variant="hint" color="sub" style={{ marginBottom: 4 }}>Vehicle: <Typography variant="title">{pinModal?.plate}</Typography></Typography>
-            <Typography variant="hint" color="sub" style={{ marginBottom: 20 }}>Ask the citizen for their 6-digit Pass-Key.</Typography>
-            <TextInput
-              style={localStyles.pinInput}
-              placeholder="_ _ _ _ _ _"
-              placeholderTextColor={D.sub}
-              value={pinInput}
-              onChangeText={setPinInput}
-              keyboardType="number-pad"
-              maxLength={6}
-            />
-            <TouchableOpacity
-              style={[localStyles.withdrawBtn, { marginTop: 16, opacity: pinInput.length === 6 ? 1 : 0.4 }]}
-              disabled={pinInput.length < 6}
-              onPress={async () => {
-                if (!pinModal) return;
-                const success = await actions.onFinalizeSession(pinModal.sessionId, 'WALLET', 0, pinInput);
-                if (success) {
-                  setPinModal(null);
-                  setPinInput('');
-                }
-              }}
-            >
-              <Typography variant="h3" style={{ color: D.ink }}>Confirm & Close Session</Typography>
-            </TouchableOpacity>
-          </View>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={{ flex: 1 }}
+          >
+            <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} activeOpacity={1} onPress={() => setPinModal(null)} />
+            <View style={localStyles.bottomSheet}>
+              <Typography variant="h2" style={{ marginBottom: 4 }}>Verify Exit PIN</Typography>
+              <Typography variant="hint" color="sub" style={{ marginBottom: 4 }}>Vehicle: <Typography variant="title">{pinModal?.plate}</Typography></Typography>
+              <Typography variant="hint" color="sub" style={{ marginBottom: 20 }}>Ask the citizen for their 6-digit Pass-Key.</Typography>
+              <TextInput
+                style={localStyles.pinInput}
+                placeholder="_ _ _ _ _ _"
+                placeholderTextColor={D.sub}
+                value={pinInput}
+                onChangeText={setPinInput}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              <TouchableOpacity
+                style={[localStyles.withdrawBtn, { marginTop: 16, opacity: pinInput.length === 6 ? 1 : 0.4 }]}
+                disabled={pinInput.length < 6}
+                onPress={async () => {
+                  if (!pinModal) return;
+                  const success = await actions.onFinalizeSession(pinModal.sessionId, 'WALLET', 0, pinInput);
+                  if (success) {
+                    setPinModal(null);
+                    setPinInput('');
+                  }
+                }}
+              >
+                <Typography variant="h3" style={{ color: D.ink }}>Confirm & Close Session</Typography>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
       </View>
 
         <Modal visible={showAddLot} transparent animationType="fade">
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={{ flex: 1 }}
+          >
           <View style={localStyles.modalOverlay}>
             <Surface variant="card" style={localStyles.modalContent}>
               <Typography variant="h2" color="primary" style={{ marginBottom: 4 }}>New Parking Zone</Typography>
@@ -839,6 +860,7 @@ export default function ParkingDashboard() {
               </View>
             </Surface>
           </View>
+          </KeyboardAvoidingView>
         </Modal>
 
       {/* ── Global Floating Action Button ── */}

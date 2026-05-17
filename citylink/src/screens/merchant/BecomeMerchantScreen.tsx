@@ -11,6 +11,8 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,7 +29,7 @@ import { useT } from '../../utils/i18n';
 export default function BecomeMerchantScreen() {
   const t = useT();
   const C = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
@@ -73,7 +75,7 @@ export default function BecomeMerchantScreen() {
       });
 
       if (merchErr) {
-        showToast(merchErr as any, 'error');
+        showToast(merchErr.toString(), 'error');
         setLoading(false);
         return;
       }
@@ -141,7 +143,7 @@ export default function BecomeMerchantScreen() {
             title={t('enter_merchant_portal_btn')}
             onPress={() => {
               showToast(t('welcome_merchant_msg'), 'success');
-              (navigation as any).reset({
+              navigation.reset({
                 index: 0,
                 routes: [{ name: 'MerchantRoot' }],
               });

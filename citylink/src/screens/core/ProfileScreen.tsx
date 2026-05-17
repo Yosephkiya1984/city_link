@@ -27,6 +27,9 @@ import { HospitalityService } from '../../services/hospitality.service';
 import { useTheme } from '../../hooks/useTheme';
 import { fmtETB } from '../../utils';
 import { useT } from '../../utils/i18n';
+import { StaffProfile } from '../../types/domain_types';
+import { RootStackParamList } from '../../navigation';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export default function ProfileScreen() {
   const t = useT();
@@ -41,24 +44,24 @@ export default function ProfileScreen() {
   const balance = useWalletStore((s) => s.balance);
   const showToast = useSystemStore((s) => s.showToast);
   const { isBiometricsEnabled, isBiometricsSupported, setBiometricsEnabled } = useBiometricStore();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [pinSet, setPinSet] = useState(false);
-  const [kycStatus, setKycStatus] = useState<string | null>(FAYDA_STATUS.NOT_STARTED as string);
+  const [kycStatus, setKycStatus] = useState<string | null>(FAYDA_STATUS.NOT_STARTED);
   const [isAgent, setIsAgent] = useState(false);
-  const [staffProfiles, setStaffProfiles] = useState<any[]>([]);
+  const [staffProfiles, setStaffProfiles] = useState<StaffProfile[]>([]);
   const [loadingAgent, setLoadingAgent] = useState(false);
 
   const loadProfileData = useCallback(async () => {
     const userId = currentUser?.id;
     if (!userId)
-      return { pinSetStatus: false, kycStatusValue: FAYDA_STATUS.NOT_STARTED, isAgentValue: false, staffProfilesData: [] as any[] };
+      return { pinSetStatus: false, kycStatusValue: FAYDA_STATUS.NOT_STARTED, isAgentValue: false, staffProfilesData: [] as StaffProfile[] };
 
     const [pinSetStatus, statusData, agentProfile, staffProfilesData] = await Promise.all([
       hasWalletPin(userId),
       KycService.getKYCStatus(),
       fetchAgentProfile(userId),
-      HospitalityService.getMerchantAllStaffProfiles(userId).catch(() => [] as any[])
+      HospitalityService.getMerchantAllStaffProfiles(userId).catch(() => [] as StaffProfile[])
     ]);
 
     return {
@@ -235,7 +238,7 @@ export default function ProfileScreen() {
         {currentUser?.role === 'merchant' && (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
-              onPress={() => (navigation as any).navigate('MerchantPortal')}
+              onPress={() => navigation.navigate('MerchantPortal')}
               style={{
                 backgroundColor: C.primary,
                 borderRadius: Radius.xl,
@@ -316,7 +319,7 @@ export default function ProfileScreen() {
           return (
             <View key={`staff-${idx}`} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
               <TouchableOpacity
-                onPress={() => (navigation as any).navigate('MerchantPortal', {
+                onPress={() => navigation.navigate('MerchantPortal', {
                   staffMode: true,
                   staffRole: staffEntry.role,
                   merchantType: staffEntry.merchant?.merchant_type,
@@ -423,7 +426,7 @@ export default function ProfileScreen() {
         ) : (
           <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
-              onPress={() => (navigation as any).navigate('BecomeDeliveryAgent')}
+              onPress={() => navigation.navigate('BecomeDeliveryAgent')}
               style={{
                 backgroundColor: C.surface,
                 borderRadius: Radius.xl,
@@ -505,19 +508,19 @@ export default function ProfileScreen() {
               icon: 'language',
               label: t('app_lang'),
               value: lang === 'am' ? t('amharic') : lang === 'om' ? t('oromo') : t('english'),
-              onPress: () => (navigation as any).navigate('Language'),
+              onPress: () => navigation.navigate('Language' as any),
             },
             {
               icon: 'chatbubbles',
               label: t('messages'),
-              onPress: () => (navigation as any).navigate('ChatInbox'),
+              onPress: () => navigation.navigate('ChatInbox'),
             },
             {
               icon: 'help-circle',
               label: t('help_support'),
               onPress: () => showToast(t('help_coming'), 'info'),
             },
-          ].map((item: any, idx) => (
+          ].map((item, idx) => (
             <TouchableOpacity
               key={idx}
               onPress={item.onPress}
@@ -543,7 +546,7 @@ export default function ProfileScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name={item.icon as any} size={20} color={C.primary} />
+                <Ionicons name={item.icon as React.ComponentProps<typeof Ionicons>['name']} size={20} color={C.primary} />
               </View>
               <Text style={{ flex: 1, color: C.text, fontSize: 15, fontFamily: Fonts.black }}>
                 {item.label}

@@ -28,11 +28,15 @@ interface Metrics {
   memoryUsage: Record<string, unknown>[];
   bundleSize: number;
   userInteractions: MetricItem[];
+  reRenderCount: Record<string, number>;
+  errorCount: number;
+  lastError: string | null;
 }
 
 // Performance monitoring provider
 export function PerformanceProvider({ children }: { children: React.ReactNode }) {
   const appStartTime = useRef(Date.now());
+  const reRenderCounts = useRef<Record<string, number>>({});
   const [metrics, setMetrics] = useState<Metrics>({
     appStartupTime: 0,
     screenLoadTimes: {},
@@ -40,11 +44,19 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
     memoryUsage: [],
     bundleSize: 0,
     userInteractions: [],
+    reRenderCount: {},
+    errorCount: 0,
+    lastError: null,
   });
   const [isMonitoring, setIsMonitoring] = useState(__DEV__);
 
   // Update metrics
   const updateMetrics = (key: string, value: any) => {
+    if (key === 'reRenderCount') {
+      reRenderCounts.current[value.name] = (reRenderCounts.current[value.name] || 0) + 1;
+      return;
+    }
+
     setMetrics((prev) => {
       const newMetrics = { ...prev };
 
@@ -66,6 +78,10 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
           break;
         case 'userInteractions':
           newMetrics.userInteractions = [...newMetrics.userInteractions, value];
+          break;
+        case 'error':
+          newMetrics.errorCount += 1;
+          newMetrics.lastError = value;
           break;
       }
 
@@ -127,6 +143,18 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
     };
     updateMetrics('userInteractions', interaction);
   };
+  
+  // Track re-render
+  const trackReRender = (name: string) => {
+    if (!isMonitoring) return;
+    updateMetrics('reRenderCount', { name });
+  };
+
+  // Track system error
+  const trackError = (error: string) => {
+    if (!isMonitoring) return;
+    updateMetrics('error', error);
+  };
 
   // Get performance summary
   const getPerformanceSummary = () => {
@@ -175,6 +203,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
 
   // Clear metrics
   const clearMetrics = () => {
+    reRenderCounts.current = {};
     setMetrics({
       appStartupTime: 0,
       screenLoadTimes: {},
@@ -182,8 +211,12 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
       memoryUsage: [],
       bundleSize: 0,
       userInteractions: [],
+      reRenderCount: {},
+      errorCount: 0,
+      lastError: null,
     });
   };
+
 
   // Auto-save metrics
   useEffect(() => {
@@ -199,6 +232,8 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
     trackScreenLoad,
     trackApiCall,
     trackUserInteraction,
+    trackReRender,
+    trackError,
     getPerformanceSummary,
     saveMetrics,
     loadMetrics,
@@ -215,6 +250,23 @@ export function usePerformance() {
     throw new Error('usePerformance must be used within a PerformanceProvider');
   }
   return context;
+}
+
+// Hook to track component re-renders
+export function useRenderCount(name: string) {
+  const { trackReRender } = usePerformance();
+  const renderCount = useRef(0);
+  
+  useEffect(() => {
+    renderCount.current += 1;
+    trackReRender(name);
+    
+    if (__DEV__) {
+      console.log(`[Perf] ${name} render #${renderCount.current}`);
+    }
+  }); // No dependency array - runs on every render
+  
+  return renderCount.current;
 }
 
 // Performance tracking HOC

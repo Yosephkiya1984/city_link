@@ -934,5 +934,21 @@
   "confirm_handover": "ርክክብ አረጋግጥ",
   "agent_confirmed_pickup_up": "ወኪሉ መቀበሉን አረጋግጧል",
   "driver_arrived_pin": "ሹፌሩ ደርሷል (ፒን እየተጠበቀ ነው)",
-  "driver_on_route": "ሹፌሩ ወደ ገዢው እየሄደ ነው"
+  "driver_on_route": "ሹፌሩ ወደ ገዢው እየሄደ ነው",
+  "agent_picked_up_msg": "ወኪሉ እቃዎን ተረክቧል",
+  "account_operations": "የመለያ ስራዎች",
+  "administrator": "አስተዳዳሪ",
+  "system_active": "ሲስተሙ ክፍት ነው",
+  "search_records": "መዝገቦችን ይፈልጉ...",
+  "new_gourmet_dish": "አዲስ ምርጥ ምግብ",
+  "add_premium_item": "ወደ ሜኑዎ ምርጥ ምግብ ይጨምሩ",
+  "dish_name_up": "የምግብ ስም",
+  "mains": "ዋና ምግቦች",
+  "drinks": "መጠጦች",
+  "desserts": "ጣፋጭ ምግቦች",
+  "create_gourmet_item_btn": "ምርጥ ምግብ ፍጠር",
+  "rider_pickup_pin_up": "የአድራሹ የመረከቢያ ፒን",
+  "authorized_handover_required": "ህጋዊ ርክክብ ያስፈልጋል",
+  "give_secure_code_rider": "ርክክቡን ለማረጋገጥ ይህንን ሚስጥራዊ ኮድ ለአድራሹ ይስጡት።",
+  "confirm_handover_up": "ርክክብ አረጋግጥ"
 }

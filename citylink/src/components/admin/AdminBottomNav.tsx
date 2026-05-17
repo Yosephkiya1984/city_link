@@ -93,7 +93,7 @@ export default function AdminBottomNav({ activeTab, onTabChange }: AdminBottomNa
               ]}
             >
               <MaterialCommunityIcons
-                name={item.mIcon as any}
+                name={item.mIcon as React.ComponentProps<typeof MaterialCommunityIcons>['name']}
                 size={22}
                 color={item.id === 'logout' ? theme.red : isActive ? theme.primary : theme.sub}
               />

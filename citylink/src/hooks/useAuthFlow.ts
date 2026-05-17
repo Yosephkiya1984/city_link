@@ -76,12 +76,19 @@ export function useAuthFlow() {
       else if (user) {
         setTempUserId(user.id);
         setVerifiedPhone(normalized);
-        const profileRes = await ProfileService.fetchProfile(user.id);
-        const hasProfile = !!(profileRes.data && profileRes.data.full_name);
+        const sessionData = await ProfileService.loadSessionProfile(user as any, normalized);
+        console.log('[AuthFlow] loadSessionProfile result:', { 
+          hasProfile: !!sessionData?.profile, 
+          hasName: !!sessionData?.profile?.full_name,
+          role: sessionData?.profile?.role
+        });
 
-        if (hasProfile) {
-          await setCurrentUser(profileRes.data);
+        const hasProfile = !!(sessionData?.profile?.full_name);
+
+        if (hasProfile && sessionData) {
+          await setCurrentUser(sessionData.profile);
         } else {
+          console.warn('[AuthFlow] Profile incomplete or missing, redirecting to register.');
           setFlow('register');
         }
       }

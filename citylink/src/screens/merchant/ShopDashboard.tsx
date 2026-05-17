@@ -22,6 +22,10 @@ import { DarkColors as T } from '../../theme';
 import { useT } from '../../utils/i18n';
 import { Radius, Spacing, Fonts, Shadow, D } from '../../components/hospitality/HospitalityTheme';
 import { LinearGradient } from 'expo-linear-gradient';
+import EnhancedErrorBoundary from '../../components/EnhancedErrorBoundary';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation';
+import { User, Product, MarketplaceOrder, WalletTransaction, Dispute, MerchantSalesHistory } from '../../types/domain_types';
 
 // Import extracted hooks & sub-components
 import { useShopData } from './hooks/useShopData';
@@ -92,13 +96,13 @@ const localStyles = StyleSheet.create({
 
 export default function ShopDashboard() {
   const t = useT();
-  const navigation: any = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showProductModal, setShowProductModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: '',
     price: '',
@@ -109,14 +113,14 @@ export default function ShopDashboard() {
   });
   const [selectedImage, setSelectedImage] = useState<any | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [showShipSuccess, setShowShipSuccess] = useState<any>(null);
+  const [showShipSuccess, setShowShipSuccess] = useState<MarketplaceOrder | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
   const [inventorySearch, setInventorySearch] = useState('');
-  const [pinPromptOrder, setPinPromptOrder] = useState<any>(null);
+  const [pinPromptOrder, setPinPromptOrder] = useState<MarketplaceOrder | null>(null);
   const [pinInput, setPinInput] = useState('');
   const [submittingPin, setSubmittingPin] = useState(false);
   const [shipping, setShipping] = useState(false);
-  const [receiptOrder, setReceiptOrder] = useState<any>(null);
+  const [receiptOrder, setReceiptOrder] = useState<MarketplaceOrder | null>(null);
 
   const businessName = currentUser?.business_name || currentUser?.full_name || 'Store Front';
 
@@ -299,104 +303,107 @@ export default function ShopDashboard() {
         }
       >
         <View style={styles.tabContent}>
-          {activeTab === 'overview' && (
-            <View>
-              {/* ─── Bento Header (Only on Overview) ─── */}
-              <View style={{ paddingHorizontal: 16, marginTop: 10, marginBottom: 16, gap: 14 }}>
-                {/* Welcome Card */}
-                <View style={localStyles.welcomeCard}>
-                  <View style={{ zIndex: 10 }}>
-                    <Typography variant="h1" style={{ color: '#FFF' }}>Welcome back</Typography>
-                    <Typography variant="hint" color="sub" style={{ marginTop: 4 }}>
-                      {inventory.length} items in stock. {orders.filter(o => o.status === 'PENDING').length} new orders.
-                    </Typography>
+          <EnhancedErrorBoundary>
+            {activeTab === 'overview' && (
+              <View>
+                {/* ─── Bento Header (Only on Overview) ─── */}
+                <View style={{ paddingHorizontal: 16, marginTop: 10, marginBottom: 16, gap: 14 }}>
+                  {/* Welcome Card */}
+                  <View style={localStyles.welcomeCard}>
+                    <View style={{ zIndex: 10 }}>
+                      <Typography variant="h1" style={{ color: '#FFF' }}>Welcome back</Typography>
+                      <Typography variant="hint" color="sub" style={{ marginTop: 4 }}>
+                        {inventory.length} items in stock. {orders.filter(o => o.status === 'PENDING').length} new orders.
+                      </Typography>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 20, zIndex: 10 }}>
+                      <TouchableOpacity onPress={() => setActiveTab('orders')} style={localStyles.quickAction}>
+                        <Ionicons name="cart" size={18} color="#00210F" />
+                        <Typography variant="title" style={{ color: '#00210F', fontSize: 13 }}>Orders</Typography>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => setShowProductModal(true)} style={[localStyles.quickAction, { backgroundColor: D.lift, borderWidth: 1, borderColor: D.edge }]}>
+                        <Ionicons name="add" size={18} color="#FFF" />
+                        <Typography variant="title" style={{ color: '#FFF', fontSize: 13 }}>New Product</Typography>
+                      </TouchableOpacity>
+                    </View>
+                    <Ionicons name="bag-handle" size={140} color={D.blue} style={localStyles.welcomeBgIcon} />
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 20, zIndex: 10 }}>
-                    <TouchableOpacity onPress={() => setActiveTab('orders')} style={localStyles.quickAction}>
-                      <Ionicons name="cart" size={18} color="#00210F" />
-                      <Typography variant="title" style={{ color: '#00210F', fontSize: 13 }}>Orders</Typography>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setShowProductModal(true)} style={[localStyles.quickAction, { backgroundColor: D.lift, borderWidth: 1, borderColor: D.edge }]}>
-                      <Ionicons name="add" size={18} color="#FFF" />
-                      <Typography variant="title" style={{ color: '#FFF', fontSize: 13 }}>New Product</Typography>
-                    </TouchableOpacity>
-                  </View>
-                  <Ionicons name="bag-handle" size={140} color={D.blue} style={localStyles.welcomeBgIcon} />
+
+                  {/* Finance Summary Card */}
+                  <LinearGradient
+                    colors={['#4DE693', '#2B9E5F']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={localStyles.financeCard}
+                  >
+                    <Typography variant="hint" style={{ color: '#00210F', letterSpacing: 1.5, opacity: 0.7 }}>STORE REVENUE</Typography>
+                    <Typography variant="h1" style={{ color: '#00210F', fontSize: 32, marginVertical: 4 }}>{fmtETB(totalSales)}</Typography>
+                    <View style={{ marginTop: 8 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <Typography variant="hint" style={{ color: '#00210F', fontSize: 11 }}>Monthly Goal</Typography>
+                        <Typography variant="hint" style={{ color: '#00210F', fontSize: 11, fontWeight: '700' }}>85%</Typography>
+                      </View>
+                      <View style={localStyles.progressBar}>
+                        <View style={{ width: '85%', height: '100%', backgroundColor: '#00210F' }} />
+                      </View>
+                    </View>
+                  </LinearGradient>
                 </View>
 
-                {/* Finance Summary Card */}
-                <LinearGradient
-                  colors={['#4DE693', '#2B9E5F']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={localStyles.financeCard}
-                >
-                  <Typography variant="hint" style={{ color: '#00210F', letterSpacing: 1.5, opacity: 0.7 }}>STORE REVENUE</Typography>
-                  <Typography variant="h1" style={{ color: '#00210F', fontSize: 32, marginVertical: 4 }}>{fmtETB(totalSales)}</Typography>
-                  <View style={{ marginTop: 8 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Typography variant="hint" style={{ color: '#00210F', fontSize: 11 }}>Monthly Goal</Typography>
-                      <Typography variant="hint" style={{ color: '#00210F', fontSize: 11, fontWeight: '700' }}>85%</Typography>
-                    </View>
-                    <View style={localStyles.progressBar}>
-                      <View style={{ width: '85%', height: '100%', backgroundColor: '#00210F' }} />
-                    </View>
-                  </View>
-                </LinearGradient>
+                <ProfiledOverview
+                  orders={orders}
+                  inventory={inventory}
+                  salesHistory={salesHistory}
+                  showToast={showToast}
+                  styles={styles}
+                  t={t}
+                />
               </View>
-
-              <ProfiledOverview
-                orders={orders}
+            )}
+            {activeTab === 'inventory' && (
+              <ProfiledInventory
                 inventory={inventory}
-                salesHistory={salesHistory}
-                showToast={showToast}
+                inventorySearch={inventorySearch}
+                setInventorySearch={setInventorySearch}
+                setShowProductModal={setShowProductModal}
+                handleEditProduct={handleEditProduct}
+                handleDeleteProduct={handleDeleteProduct}
+                loading={loading}
                 styles={styles}
                 t={t}
               />
-            </View>
-          )}
-          {activeTab === 'inventory' && (
-            <ProfiledInventory
-              inventory={inventory}
-              inventorySearch={inventorySearch}
-              setInventorySearch={setInventorySearch}
-              setShowProductModal={setShowProductModal}
-              handleEditProduct={handleEditProduct}
-              handleDeleteProduct={handleDeleteProduct}
-              loading={loading}
-              styles={styles}
-              t={t}
-            />
-          )}
-          {activeTab === 'orders' && (
-            <ProfiledOrders
-              orders={orders}
-              openDisputes={openDisputes}
-              loading={loading}
-              shipping={shipping}
-              handleMarkShipped={handleMarkShipped}
-              handleConfirmPickup={handleConfirmPickup}
-              handleDispatchRetry={handleDispatchRetry}
-              handleCancelOrder={handleCancelOrder}
-              handleSwitchSelfDelivery={handleSwitchSelfDelivery}
-              handleMessageBuyer={handleMessageBuyer}
-              setPinInput={setPinInput}
-              setPinPromptOrder={setPinPromptOrder}
-              handleViewReceipt={(o: any) => setReceiptOrder(o)}
-              styles={styles}
-              t={t}
-            />
-          )}
-          {activeTab === 'finance' && (
-            <ProfiledFinance
-              walletTransactions={walletTransactions}
-              totalSales={totalSales}
-              withdrawing={withdrawing}
-              handleWithdraw={handleWithdraw}
-              styles={styles}
-              t={t}
-            />
-          )}
+            )}
+            {activeTab === 'orders' && (
+              <ProfiledOrders
+                orders={orders}
+                openDisputes={openDisputes}
+                loading={loading}
+                shipping={shipping}
+                handleMarkShipped={handleMarkShipped}
+                handleConfirmPickup={handleConfirmPickup}
+                handleDispatchRetry={handleDispatchRetry}
+                handleCancelOrder={handleCancelOrder}
+                handleSwitchSelfDelivery={handleSwitchSelfDelivery}
+                handleMessageBuyer={handleMessageBuyer}
+                setPinInput={setPinInput}
+                setPinPromptOrder={setPinPromptOrder}
+                handleViewReceipt={(o: any) => setReceiptOrder(o)}
+                loadData={loadData}
+                styles={styles}
+                t={t}
+              />
+            )}
+            {activeTab === 'finance' && (
+              <ProfiledFinance
+                walletTransactions={walletTransactions}
+                totalSales={totalSales}
+                withdrawing={withdrawing}
+                handleWithdraw={handleWithdraw}
+                styles={styles}
+                t={t}
+              />
+            )}
+          </EnhancedErrorBoundary>
         </View>
       </ScrollView>
 

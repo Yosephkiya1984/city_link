@@ -194,7 +194,7 @@ export default function DeliveryAgentModule() {
     return theme.amber || '#f6e05e';
   };
 
-  const vehicleIcon = (v: DeliveryAgent['vehicle_type']) => {
+  const vehicleIcon = (v: DeliveryAgent['vehicle_type']): React.ComponentProps<typeof Ionicons>['name'] => {
     switch (v) {
       case 'motorcycle':
         return 'bicycle';
@@ -217,7 +217,7 @@ export default function DeliveryAgentModule() {
         <View style={styles.agentInfo}>
           <View style={[styles.avatar, { backgroundColor: statusColor(item.agent_status) + '20' }]}>
             <Ionicons
-              name={vehicleIcon(item.vehicle_type) as any}
+              name={vehicleIcon(item.vehicle_type)}
               size={20}
               color={statusColor(item.agent_status)}
             />

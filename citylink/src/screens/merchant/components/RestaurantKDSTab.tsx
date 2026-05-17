@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView, AnimatePresence } from 'moti';
+import { MotiPressable } from 'moti/interactions';
 import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 import { Typography, Surface } from '../../../components';
+import { LinearGradient } from 'expo-linear-gradient';
 import { fmtDateTime } from '../../../utils';
 
 const { width } = Dimensions.get('window');
@@ -159,39 +161,48 @@ function KDSTicket({ order, index, onUpdateStatus, onRetryDispatch }: any) {
       </ScrollView>
 
       <View style={styles.ticketFooter}>
-        {order.status === 'DISPATCHING' ? (
-          <TouchableOpacity 
-            style={[styles.doneBtn, { backgroundColor: D.gold }]}
-            onPress={() => onRetryDispatch?.(order.id, order._source === 'delivery' ? 'FOOD' : 'MARKETPLACE')}
+        <MotiPressable
+          onPress={() => {
+            if (order.status === 'DISPATCHING') onRetryDispatch?.(order.id, order._source === 'delivery' ? 'FOOD' : 'MARKETPLACE');
+            else if (order.status === 'READY') onUpdateStatus(order.id, 'COMPLETED');
+            else onUpdateStatus(order.id, 'READY');
+          }}
+          animate={({ pressed }) => {
+            'worklet';
+            return {
+              scale: pressed ? 0.96 : 1,
+            };
+          }}
+        >
+          <LinearGradient
+            colors={[statusColor, statusColor + 'DD']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.doneBtn}
           >
-            <Ionicons name="refresh" size={20} color={D.ink} />
-            <Text style={[styles.doneBtnText, { color: D.ink }]}>RETRY</Text>
-          </TouchableOpacity>
-        ) : order.status === 'AGENT_ASSIGNED' ? (
-          <TouchableOpacity 
-            style={[styles.doneBtn, { backgroundColor: D.blue }]}
-            onPress={() => onUpdateStatus(order.id, 'READY')}
-          >
-            <Ionicons name="bicycle-outline" size={20} color={D.white} />
-            <Text style={styles.doneBtnText}>HANDOVER</Text>
-          </TouchableOpacity>
-        ) : order.status === 'READY' ? (
-          <TouchableOpacity 
-            style={[styles.doneBtn, { backgroundColor: D.green }]}
-            onPress={() => onUpdateStatus(order.id, 'COMPLETED')}
-          >
-            <Ionicons name="checkmark-done-circle" size={20} color={D.white} />
-            <Text style={styles.doneBtnText}>COMPLETE</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={[styles.doneBtn, { backgroundColor: statusColor }]}
-            onPress={() => onUpdateStatus(order.id, 'READY')}
-          >
-            <Ionicons name="checkmark-circle" size={20} color={D.white} />
-            <Text style={styles.doneBtnText}>BUMP</Text>
-          </TouchableOpacity>
-        )}
+            {order.status === 'DISPATCHING' ? (
+              <>
+                <Ionicons name="refresh" size={20} color={D.ink} />
+                <Text style={[styles.doneBtnText, { color: D.ink }]}>RETRY</Text>
+              </>
+            ) : order.status === 'AGENT_ASSIGNED' ? (
+              <>
+                <Ionicons name="bicycle-outline" size={20} color={D.white} />
+                <Text style={styles.doneBtnText}>HANDOVER</Text>
+              </>
+            ) : order.status === 'READY' ? (
+              <>
+                <Ionicons name="checkmark-done-circle" size={20} color={D.white} />
+                <Text style={styles.doneBtnText}>COMPLETE</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color={D.white} />
+                <Text style={styles.doneBtnText}>BUMP</Text>
+              </>
+            )}
+          </LinearGradient>
+        </MotiPressable>
       </View>
     </MotiView>
   );

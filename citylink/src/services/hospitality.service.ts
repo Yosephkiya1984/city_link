@@ -86,18 +86,25 @@ export class HospitalityService {
     metadata: any = {},
     brokerId: string | null = null
   ) {
+    console.log(`[HospitalityService] 🚀 Creating reservation for Merchant: ${merchantId}`);
     const { data, error } = await getClient()!.rpc('process_table_reservation', {
       p_merchant_id: merchantId,
       p_reservation_time: reservationTime,
       p_guest_count: guestCount,
       p_deposit_amount: depositAmount,
       p_items: preOrders,
-      p_table_id: tableId,
-      p_table_number: tableNumber,
-      p_metadata: metadata,
-      p_broker_id: brokerId,
+      p_table_id: tableId ?? null,
+      p_table_number: tableNumber ?? null,
+      p_metadata: metadata ?? null,
+      p_broker_id: brokerId ?? null,
     });
-    if (error) throw new Error(error.message);
+    
+    if (error) {
+      console.error(`[HospitalityService] ❌ Reservation creation failed:`, error.message);
+      throw new Error(error.message);
+    }
+    
+    console.log(`[HospitalityService] ✅ Reservation created successfully! Escrow ID: ${data?.escrow_id}`);
     return data;
   }
 
@@ -114,7 +121,7 @@ export class HospitalityService {
     const { data, error } = await getClient()!
       .from('reservations')
       .select(
-        '*, merchant:profiles(full_name), items:reservation_items(*, product:products(name))'
+        'id, merchant_id, citizen_id, reservation_time, guest_count, deposit_amount, status, table_id, table_number, escrow_id, created_at, updated_at, metadata, service_pin, merchant:profiles!reservations_merchant_id_fkey(full_name), items:reservation_items(*, product:menu_items(name))'
       )
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
@@ -139,7 +146,7 @@ export class HospitalityService {
     const { data, error } = await getClient()!
       .from('reservations')
       .select(
-        '*, citizen:profiles(full_name, phone), items:reservation_items(*, product:products(name))'
+        '*, citizen:profiles!reservations_citizen_id_fkey(full_name, phone), items:reservation_items(*, product:menu_items(name))'
       )
       .eq('merchant_id', merchantId)
       .order('reservation_time', { ascending: true });
@@ -152,7 +159,7 @@ export class HospitalityService {
       .from('events')
       .insert([eventPayload])
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   }
@@ -163,7 +170,7 @@ export class HospitalityService {
       .update({ status })
       .eq('id', eventId)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   }
@@ -205,11 +212,11 @@ export class HospitalityService {
     return data;
   }
 
-  static async getRestaurantTablesForCitizen(merchantId: string) {
+  static async getRestaurantTablesForCitizen(restaurantId: string) {
     const { data, error } = await getClient()!
       .from('restaurant_tables')
       .select('*')
-      .eq('merchant_id', merchantId)
+      .eq('restaurant_id', restaurantId)
       .order('table_number', { ascending: true });
 
     if (error) return null; // Fallback to dynamic if table doesn't exist
@@ -236,7 +243,7 @@ export class HospitalityService {
         status: 'free'
       }])
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   }
@@ -330,6 +337,14 @@ export class HospitalityService {
     return data;
   }
 
+  static async noShowReservation(reservationId: string) {
+    const { data, error } = await getClient()!.rpc('no_show_reservation', {
+      p_reservation_id: reservationId,
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
   static async fireReservation(reservationId: string) {
     const { data, error } = await getClient()!.rpc('fire_reservation', {
       p_reservation_id: reservationId,
@@ -347,7 +362,7 @@ export class HospitalityService {
       .update(payload)
       .eq('id', reservationId)
       .select()
-      .single();
+      .maybeSingle();
     return { data, error: error?.message };
   }
 
@@ -371,7 +386,7 @@ export class HospitalityService {
       .from('restaurant_waitlist')
       .insert([payload])
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   }
@@ -386,7 +401,7 @@ export class HospitalityService {
       .update(payload)
       .eq('id', waitlistId)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   }

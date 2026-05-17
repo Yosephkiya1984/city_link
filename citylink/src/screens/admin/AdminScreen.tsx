@@ -32,7 +32,7 @@ export default function AdminScreen() {
   const navigation = useNavigation();
 
   useEffect(() => {
-    const GOV_ROLES = ['admin', 'minister', 'inspector', 'station'];
+    const GOV_ROLES = ['admin', 'minister'];
     if (currentUser && !GOV_ROLES.includes(currentUser.role || '')) {
       Alert.alert('Unauthorized Access', 'This console is restricted to government officials.');
       navigation.goBack();

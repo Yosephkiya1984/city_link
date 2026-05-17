@@ -16,7 +16,7 @@ interface OrderVerificationModalProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  order: any | null;
+  order: Record<string, unknown> | null;
   pinInput: string;
   setPinInput: (pin: string) => void;
   loading: boolean;

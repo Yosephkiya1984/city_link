@@ -5,9 +5,9 @@ import { DarkColors as T, Fonts } from '../../theme';
 
 interface AgentStatsRowProps {
   stats: {
-    todayDeliveries: number;
+    totalDeliveries: number;
     todayEarnings: number;
-    rating: number;
+    rating: number | null;
   };
 }
 
@@ -17,8 +17,8 @@ export function AgentStatsRow({ stats }: AgentStatsRowProps) {
       <View style={styles.statCard}>
         <Ionicons name="bicycle" size={18} color={T.primary} />
         <View>
-          <Text style={styles.statValue}>{stats.todayDeliveries}</Text>
-          <Text style={styles.statLabel}>DELIVERIES</Text>
+          <Text style={styles.statValue}>{stats.totalDeliveries}</Text>
+          <Text style={styles.statLabel}>TOTAL JOBS</Text>
         </View>
       </View>
 
@@ -26,17 +26,11 @@ export function AgentStatsRow({ stats }: AgentStatsRowProps) {
         <Ionicons name="wallet" size={18} color={T.green} />
         <View>
           <Text style={styles.statValue}>ETB {stats.todayEarnings}</Text>
-          <Text style={styles.statLabel}>EARNINGS</Text>
+          <Text style={styles.statLabel}>TODAY</Text>
         </View>
       </View>
 
-      <View style={styles.statCard}>
-        <Ionicons name="star" size={18} color={T.yellow} />
-        <View>
-          <Text style={styles.statValue}>{stats.rating.toFixed(1)}</Text>
-          <Text style={styles.statLabel}>RATING</Text>
-        </View>
-      </View>
+
     </View>
   );
 }

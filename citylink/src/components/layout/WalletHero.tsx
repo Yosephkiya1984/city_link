@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -14,16 +14,20 @@ import { MotiView } from 'moti';
 /**
  * SparklineChart — small visual indicator for wallet activity.
  */
-import {
-  Canvas,
-  Path as SkiaPath,
-  Skia,
-  LinearGradient as SkiaGradient,
-  vec,
-} from '@shopify/react-native-skia';
-import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
+// Skia is native-only; guard against web where codegenNativeComponent doesn't exist
+const SkiaAvailable = Platform.OS !== 'web';
+const SkiaModule = SkiaAvailable ? require('@shopify/react-native-skia') : null;
+const { Canvas, Path: SkiaPath, Skia, LinearGradient: SkiaGradient, vec } = SkiaModule || {};
+
+const ReanimatedModule = SkiaAvailable ? require('react-native-reanimated') : null;
+const { useSharedValue, withTiming, Easing } = ReanimatedModule || {};
 
 export const SparklineChart = ({ data = [35, 10, 25, 5, 20] }: any) => {
+  // Web fallback — Skia is not available on web
+  if (!SkiaAvailable) {
+    return <View style={{ width: 96, height: 40 }} />;
+  }
+
   const progress = useSharedValue(0);
 
   React.useEffect(() => {

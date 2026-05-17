@@ -110,7 +110,7 @@ export const fetchMerchantRestaurant = async (
   merchantId: string
 ): Promise<{ data: Restaurant | null; error: string | null }> => {
   const res = await supaQuery<Restaurant>((c) =>
-    c.from('restaurants').select('*').eq('merchant_id', merchantId).single()
+    c.from('restaurants').select('*').eq('merchant_id', merchantId).maybeSingle()
   );
   return { data: res.data, error: res.error };
 };
@@ -207,6 +207,7 @@ export async function updateRestaurantProfile(
     outdoor_seating: boolean;
     cuisine_tags: string[];
     is_open: boolean;
+    gallery_json: string[];
   }>
 ): Promise<{ data: any; error: string | null }> {
   const client = getClient();

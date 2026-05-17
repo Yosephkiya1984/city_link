@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView, RefreshControl, ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ScrollView, RefreshControl, ActivityIndicator, StyleSheet, View, AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +19,7 @@ import {
   Surface,
   SectionTitle,
   Spacer,
+  ParkingActiveBanner,
 } from '../../components';
 import { ConciergeComponent } from '../../components/ai/ConciergeComponent';
 
@@ -49,7 +50,7 @@ export default function HomeScreen() {
     { id: 'Ekub', icon: 'people', label: t('ekub'), color: '#3B82F6' },
     { id: 'Parking', icon: 'car', label: t('parking'), color: '#06b6d4' },
     { id: 'Delala', icon: 'home', label: t('delala'), color: '#8b5cf6' },
-    { id: 'FaydaKYC', icon: 'finger-print', label: 'Fayda ID', color: '#06b6d4' },
+    { id: 'FaydaKYC', icon: 'finger-print', label: 'Fayda ID', color: '#06b6d4', disabled: true },
   ];
 
   // ── Global State ────────────────────────────────────────────────────────────
@@ -71,10 +72,8 @@ export default function HomeScreen() {
       else setLoading(true);
 
       try {
-        // Use the event-driven sync service
-        if (isRefresh) {
-          await walletSyncService.sync(true);
-        }
+        // Use the event-driven sync service (now covers balance, txns, AND active parking session)
+        await walletSyncService.sync(isRefresh ? true : false);
       } catch (error) {
         console.error('Home sync error:', error);
         showToast(t('sync_error'), 'error');
@@ -86,9 +85,23 @@ export default function HomeScreen() {
     [currentUser?.id]
   );
 
+  // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ── AppState: sync on foreground (catches valet-closed sessions) ──────────
+  // If the citizen is on HomeScreen when the valet closes the session, the
+  // parking screen's realtime isn't mounted. This catches it instead.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        walletSyncService.sync(true);
+      }
+    });
+    return () => sub.remove();
+  }, [currentUser?.id]);
 
   const handleServicePress = (serviceId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -169,6 +182,9 @@ export default function HomeScreen() {
           />
         </MotiView>
 
+        <Spacer size={Spacing.md} />
+        <ParkingActiveBanner />
+
         <Spacer size={Spacing.xl} />
 
         {/* Financial Identity Section */}
@@ -197,19 +213,26 @@ export default function HomeScreen() {
               style={styles.serviceItem}
             >
               <Surface
-                onPress={() => handleServicePress(item.id)}
+                onPress={() => !item.disabled && handleServicePress(item.id)}
                 padding={Spacing.md}
                 gap={Spacing.sm}
-                style={styles.serviceSurface}
+                style={[styles.serviceSurface, item.disabled && { opacity: 0.6 }]}
               >
                 <View style={[styles.serviceIconContainer, { backgroundColor: item.color + '15' }]}>
                   <Ionicons name={item.icon as any} size={20} color={item.color} />
+                  {item.disabled && (
+                    <View style={{ position: 'absolute', top: -4, right: -4, backgroundColor: theme.amber, borderRadius: 10, width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="lock-closed" size={8} color="#000" />
+                    </View>
+                  )}
                 </View>
                 <View>
                   <Typography variant="title" style={{ fontSize: 13 }}>
                     {item.label}
                   </Typography>
-                  <Typography variant="hint">{t('available')}</Typography>
+                  <Typography variant="hint" style={item.disabled ? { color: theme.amber, fontWeight: '800' } : undefined}>
+                    {item.disabled ? 'Coming Soon' : t('available')}
+                  </Typography>
                 </View>
               </Surface>
             </MotiView>

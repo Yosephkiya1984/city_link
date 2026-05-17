@@ -11,6 +11,7 @@ import {
   ImageBackground,
   FlatList,
   Image,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -155,6 +156,7 @@ const EventCard = ({ item, onPress }: { item: any; onPress: () => void }) => {
 };
 
 export default function FoodScreen() {
+  const SCREEN_WIDTH = Dimensions.get('window').width;
   const {
     activeTab,
     setActiveTab,
@@ -391,14 +393,26 @@ export default function FoodScreen() {
             <View style={S.sheetHandle} />
 
             {/* ── Hero Banner ── */}
-            {selectedRest.banner_url || selectedRest.cover_photo_url ? (
-              <ImageBackground
-                source={{ uri: selectedRest.banner_url || selectedRest.cover_photo_url }}
-                style={{ width: '100%', height: 170 }}
-              >
+            {selectedRest.gallery_json?.length > 0 || selectedRest.banner_url || selectedRest.cover_photo_url ? (
+              <View style={{ width: '100%', height: 170 }}>
+                {selectedRest.gallery_json?.length > 0 ? (
+                  <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ width: '100%', height: '100%' }}>
+                    {selectedRest.gallery_json.map((url: string, index: number) => (
+                      <Image key={index} source={{ uri: url }} style={{ width: SCREEN_WIDTH, height: 170 }} resizeMode="cover" />
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <Image
+                    source={{ uri: selectedRest.banner_url || selectedRest.cover_photo_url }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                )}
+                
                 <LinearGradient
                   colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.92)']}
-                  style={{ flex: 1, padding: 16, justifyContent: 'flex-end' }}
+                  style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingTop: 40, justifyContent: 'flex-end' }}
+                  pointerEvents="none"
                 >
                   <Text style={[S.sheetTitle, { marginBottom: 4 }]} numberOfLines={1}>
                     {selectedRest.name}
@@ -438,7 +452,12 @@ export default function FoodScreen() {
                 >
                   <Ionicons name="close" size={20} color="#fff" />
                 </TouchableOpacity>
-              </ImageBackground>
+                {selectedRest.gallery_json?.length > 1 && (
+                  <View style={{ position: 'absolute', top: 10, left: 12, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>GALLERY ⟷ SWIPE</Text>
+                  </View>
+                )}
+              </View>
             ) : (
               <View style={S.sheetHead}>
                 <View style={{ flex: 1 }}>

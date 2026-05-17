@@ -12,10 +12,45 @@ import { createChatThread, createChatMessage } from '../../../services/chat.serv
 import { getCurrentLocation } from '../../../services/delivery.service';
 import { uid } from '../../../utils';
 import { useWalletStore } from '../../../store/WalletStore';
-
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../navigation';
+import { User, Product, MarketplaceOrder } from '../../../types/domain_types';
 
-// any types used temporarily during decomposition phase
+export interface ShopActionsProps {
+  currentUser: User | null;
+  showToast: (msg: string, type: 'info' | 'success' | 'warning' | 'error') => void;
+  loadData: () => Promise<void>;
+  newProduct: {
+    name: string;
+    price: string;
+    category: string;
+    stock: string;
+    description: string;
+    condition: string;
+  };
+  setNewProduct: (val: any) => void;
+  editingProduct: Product | null;
+  setEditingProduct: (val: Product | null) => void;
+  selectedImage: any;
+  setSelectedImage: (val: any) => void;
+  setUploading: (val: boolean) => void;
+  setShowProductModal: (val: boolean) => void;
+  setInventory: (val: any) => void;
+  shipping: boolean;
+  setShipping: (val: boolean) => void;
+  loading: boolean;
+  setLoading: (val: boolean) => void;
+  pinPromptOrder: MarketplaceOrder | null;
+  setPinPromptOrder: (val: MarketplaceOrder | null) => void;
+  pinInput: string;
+  setPinInput: (val: string) => void;
+  setSubmittingPin: (val: boolean) => void;
+  setShowShipSuccess: (val: any) => void;
+  setWithdrawing: (val: boolean) => void;
+  orders: MarketplaceOrder[];
+}
+
 export function useShopActions({
   currentUser,
   showToast,
@@ -41,8 +76,8 @@ export function useShopActions({
   setShowShipSuccess,
   setWithdrawing,
   orders,
-}: any) {
-  const navigation = useNavigation<any>();
+}: ShopActionsProps) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const handleSaveProduct = async () => {
     if (!currentUser?.id) return;
@@ -122,7 +157,7 @@ export function useShopActions({
     setSelectedImage(null);
   };
 
-  const handleEditProduct = (product: any) => {
+  const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setNewProduct({
       name: product.name,
@@ -146,7 +181,7 @@ export function useShopActions({
           if (!currentUser?.id) return;
           try {
             await marketplaceService.deleteProduct(productId, currentUser.id);
-            setInventory((prev: any) => prev.filter((p: any) => p.id !== productId));
+            setInventory((prev: Product[]) => prev.filter((p) => p.id !== productId));
             showToast('Product removed', 'success');
           } catch (e) {
             showToast('Failed to delete product', 'error');
@@ -170,8 +205,9 @@ export function useShopActions({
           lat = loc.lat;
           lng = loc.lng;
         }
-      } catch (locErr: any) {
-        console.log('[Location] Optional fetch failed:', locErr.message);
+      } catch (locErr) {
+        const msg = locErr instanceof Error ? locErr.message : 'Location fetch failed';
+        console.log('[Location] Optional fetch failed:', msg);
       }
 
       const res = await marketplaceService.shipOrder(orderId, currentUser.id, lat, lng);
@@ -183,8 +219,9 @@ export function useShopActions({
         }
         loadData();
       }
-    } catch (e: any) {
-      showToast(e.message || 'Error updating order', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error updating order';
+      showToast(msg, 'error');
     } finally {
       setShipping(false);
     }
@@ -195,22 +232,27 @@ export function useShopActions({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
     try {
-      const { success, status, delivery_pin } = await marketplaceService.confirmPickup(
+      const { success, status, delivery_pin, pickup_pin } = await marketplaceService.confirmPickup(
         orderId,
         currentUser.id
       );
       if (success) {
         if (status === 'SHIPPED') {
           showToast(`✅ Pickup confirmed! Code ${delivery_pin} sent to buyer.`, 'success');
-          const ord = orders.find((x: any) => x.id === orderId);
+          const ord = orders.find((x) => x.id === orderId);
           setShowShipSuccess({ ...ord, status: 'SHIPPED', delivery_pin });
         } else {
-          showToast('Handover recorded. Waiting for agent confirmation...', 'info');
+          if (pickup_pin) {
+            showToast(`🔑 Handover PIN: ${pickup_pin}`, 'success');
+          } else {
+            showToast('Waiting for agent to enter PIN...', 'info');
+          }
         }
         loadData();
       }
-    } catch (e: any) {
-      showToast(e.message || 'Confirmation failed', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Confirmation failed';
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -252,7 +294,7 @@ export function useShopActions({
           onPress: async () => {
             setLoading(true);
             try {
-              const res = await marketplaceService.cancelOrder(orderId, currentUser.id, 'cancelled_by_merchant');
+              const res = await marketplaceService.cancelOrder(orderId, 'cancelled_by_merchant');
               if (res.success) {
                 showToast('Order cancelled', 'success');
                 loadData();
@@ -269,7 +311,7 @@ export function useShopActions({
     );
   };
 
-  const handleSwitchSelfDelivery = async (order: any) => {
+  const handleSwitchSelfDelivery = (order: MarketplaceOrder) => {
     Alert.alert('Self-Delivery', 'Cancel the agent search and deliver this yourself?', [
       { text: 'No', style: 'cancel' },
       {
@@ -314,7 +356,7 @@ export function useShopActions({
     loadData();
   };
 
-  const handleMessageBuyer = async (order: any) => {
+  const handleMessageBuyer = async (order: MarketplaceOrder) => {
     if (!currentUser?.id || !order.buyer_id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 

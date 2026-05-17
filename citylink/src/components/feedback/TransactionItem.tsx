@@ -18,7 +18,7 @@ const TX_ICONS = {
   send: 'send',
   parking: 'car',
   food: 'restaurant',
-  rail: 'subway',
+
   bus: 'bus',
   ekub: 'people',
   job: 'briefcase',

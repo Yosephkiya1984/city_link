@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView, AnimatePresence } from 'moti';
@@ -7,267 +7,346 @@ import { Typography, GlassCard, GlassView } from '../../../components';
 import { fmtETB, fmtDateTime } from '../../../utils';
 import { useTheme } from '../../../hooks/useTheme';
 import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
+import { MarketplaceOrder, Dispute, FoodOrder } from '../../../types/domain_types';
+import { useRenderCount } from '../../../utils/debug/performanceMonitor';
+import { t } from '../../../utils';
 
-// Status color helper outside to avoid re-creation
-const getStatusColor = (status: string, C: any) => {
-  const s = status?.toLowerCase();
-  if (['pending', 'paid', 'placed'].includes(s)) return C.gold;
-  if (['confirmed', 'shipped', 'preparing', 'accepted'].includes(s)) return C.blue;
-  if (['processing', 'ready', 'dispatching', 'agent_assigned', 'in_transit'].includes(s)) return C.primary;
-  if (['completed', 'delivered', 'settled'].includes(s)) return C.green;
-  if (['cancelled', 'rejected'].includes(s)) return C.red;
-  return C.sub;
-};
+export interface DashboardOrdersTabProps {
+  orders: (MarketplaceOrder | FoodOrder | any)[];
+  openDisputes?: Dispute[];
+  loading?: boolean;
+  shipping?: boolean;
+  handleMarkShipped?: (id: string) => void;
+  handleConfirmPickup?: (id: string) => void;
+  handleRetryDispatch?: (id: string) => void;
+  handleCancelOrder?: (id: string) => void;
+  onUpdateStatus?: (id: string, status: string) => void;
+  handleMessageBuyer?: (id: string) => void;
+  handleViewReceipt?: (order: any) => void;
+  loadData?: () => void;
+  isWaiter?: boolean;
+}
 
-const OrderItem = React.memo(({ 
-  order, 
-  index, 
-  C, 
-  D, 
-  mode, 
-  shipping,
-  handleMarkShipped,
-  handleConfirmPickup,
-  handleCompleteOrder,
-  handleSettlePayment,
-  handleFireReservation,
-  handleRetryDispatch,
-  handleMessageBuyer,
-  handleViewReceipt,
-  handleCancelOrder 
-}: any) => {
-  const s = order.status?.toLowerCase();
-  const isDelivery = order._source === 'delivery' || !!order.shipping_address;
-  const isPreOrder = order.type === 'preorder' || order.order_type === 'pickup' || order.type === 'pickup';
-  const statusColor = getStatusColor(order.status, C);
+export const DashboardOrdersTab = memo(function DashboardOrdersTab(props: DashboardOrdersTabProps) {
+  useRenderCount('DashboardOrdersTab');
+  const { 
+    orders, 
+    loading, 
+    openDisputes,
+    onUpdateStatus, 
+    handleRetryDispatch, 
+    handleCancelOrder,
+    handleMarkShipped,
+    handleMessageBuyer,
+    handleViewReceipt,
+    isWaiter = false
+  } = props;
+  
+  const { isDark } = useTheme();
+  const [filter, setFilter] = React.useState('ALL');
+  const [visiblePins, setVisiblePins] = React.useState<Record<string, boolean>>({});
 
-  return (
-    <MotiView
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ delay: Math.min(index * 30, 300) }}
-    >
-      <GlassCard accentColor={statusColor} glow style={localStyles.orderCard}>
-        <View style={{ padding: 16 }}>
-          <View style={localStyles.orderHeader}>
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                {isDelivery && <Ionicons name="bicycle" size={16} color={C.red} />}
-                {isPreOrder && <Ionicons name="time" size={16} color={C.blue} />}
-                <Typography variant="title">Order #{order.id.slice(0, 8)}</Typography>
-                {order.status === 'FIRED' && (
-                  <MotiView
-                    from={{ opacity: 0.4, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1.1 }}
-                    transition={{ loop: true, type: 'timing', duration: 1000 }}
-                    style={{ backgroundColor: C.blue, width: 8, height: 8, borderRadius: 4 }}
-                  />
-                )}
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Typography variant="hint" color="sub">{fmtDateTime(order.created_at)}</Typography>
-                {order.fired_at && (
-                  <Typography variant="hint" style={{ color: C.blue, fontWeight: 'bold' }}>
-                    • {Math.floor((new Date().getTime() - new Date(order.fired_at).getTime()) / 60000)}m ago
-                  </Typography>
-                )}
-              </View>
-            </View>
-            <View style={[localStyles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-              <View style={[localStyles.statusDot, { backgroundColor: statusColor }]} />
-              <Typography variant="hint" style={{ color: statusColor }}>{order.status?.toUpperCase()}</Typography>
-            </View>
-          </View>
+  const filteredOrders = useMemo(() => {
+    if (filter === 'ALL') return orders;
+    return orders.filter(o => o.status === filter);
+  }, [orders, filter]);
 
-          <View style={localStyles.divider} />
-
-          <View style={localStyles.orderDetails}>
-            <Typography variant="body">
-              {order.items?.length || 0} items • {fmtETB(order.total_amount || order.total)}
-            </Typography>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-              <Typography variant="hint" color="sub" numberOfLines={1}>
-                {order.shipping_address || 'Dine-In'}
-              </Typography>
-              {order.metadata?.arrival_preference && (
-                <View style={{ backgroundColor: D.blue + '20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm }}>
-                  <Typography variant="hint" style={{ color: D.blue, fontSize: 10 }}>
-                    ⏱ {order.metadata.arrival_preference === 'IMMEDIATE' ? 'Serve Now' : order.metadata.arrival_preference}
-                  </Typography>
-                </View>
-              )}
-            </View>
-          </View>
-
-          <View style={localStyles.actions}>
-            {(s === 'pending' || s === 'paid' || s === 'placed') && handleMarkShipped && (
-              <TouchableOpacity 
-                style={[localStyles.actionBtn, { backgroundColor: D.primary }]}
-                onPress={() => handleMarkShipped(order.id)}
-                disabled={shipping}
-              >
-                <Typography variant="h3" style={{ color: D.ink }}>
-                  {mode === 'restaurant' ? 'CONFIRM' : 'MARK SHIPPED'}
-                </Typography>
-              </TouchableOpacity>
-            )}
-
-            {(s === 'confirmed' || s === 'preparing' || s === 'accepted' || s === 'agent_assigned') && handleConfirmPickup && (
-              <TouchableOpacity 
-                style={[localStyles.actionBtn, { backgroundColor: s === 'agent_assigned' ? D.blue : D.gold }]}
-                onPress={() => handleConfirmPickup(order.id)}
-                disabled={shipping}
-              >
-                <Typography variant="h3" style={{ color: D.ink }}>
-                  {mode === 'restaurant' 
-                    ? (s === 'agent_assigned' ? 'HANDOVER' : 'READY') 
-                    : 'CONFIRM PICKUP'}
-                </Typography>
-              </TouchableOpacity>
-            )}
-
-            {s === 'ready' && handleCompleteOrder && (
-              <TouchableOpacity 
-                style={[localStyles.actionBtn, { backgroundColor: D.green }]}
-                onPress={() => handleCompleteOrder(order.id)}
-                disabled={shipping}
-              >
-                <Typography variant="h3" style={{ color: D.white }}>COMPLETE</Typography>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity 
-              style={[localStyles.actionBtn, { backgroundColor: D.surface, borderWidth: 1, borderColor: D.edge, flex: 0, paddingHorizontal: 12 }]}
-              onPress={() => handleMessageBuyer(order)}
-            >
-              <Ionicons name="chatbubble-outline" size={18} color={D.text} />
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[localStyles.actionBtn, { backgroundColor: D.surface, borderWidth: 1, borderColor: D.edge, flex: 0, paddingHorizontal: 12 }]}
-              onPress={() => handleViewReceipt?.(order)}
-            >
-              <Ionicons name="receipt-outline" size={18} color={D.text} />
-            </TouchableOpacity>
-
-            {(s === 'pending' || s === 'paid') && handleCancelOrder && (
-              <TouchableOpacity 
-                style={[localStyles.actionBtn, { backgroundColor: D.red + '15', flex: 0, paddingHorizontal: 12 }]}
-                onPress={() => handleCancelOrder(order.id)}
-              >
-                <Ionicons name="close" size={18} color={D.red} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </GlassCard>
-    </MotiView>
-  );
-});
-
-export function DashboardOrdersTab({
-  orders = [],
-  openDisputes = [],
-  loading = false,
-  shipping = false,
-  handleMarkShipped,
-  handleConfirmPickup,
-  handleRetryDispatch,
-  handleCancelOrder,
-  handleCompleteOrder,
-  handleSettlePayment,
-  handleMessageBuyer,
-  handleFireReservation,
-  handleViewReceipt,
-  mode = 'shop',
-  t,
-}: any) {
-  const C = useTheme();
-  const [filter, setFilter] = React.useState('all');
-
-  const filtered = useMemo(() => orders.filter((o: any) => {
-    if (filter === 'all') return true;
-    return o.status?.toLowerCase() === filter.toLowerCase();
-  }), [orders, filter]);
+  if (loading) {
+    return (
+      <View style={styles.empty}>
+        <ActivityIndicator color={D.primary} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
-      <View>
-        <FlashList
-          horizontal
-          data={['all', 'pending', 'paid', 'confirmed', 'ready', 'dispatching', 'completed']}
-          renderItem={({ item: f }) => (
-            <TouchableOpacity
-              onPress={() => setFilter(f)}
-              style={[localStyles.filterChip, { borderColor: C.edge }, filter === f && { backgroundColor: C.primary, borderColor: C.primary }]}
-            >
-              <Typography variant="hint" style={{ color: filter === f ? '#000' : C.sub, textTransform: 'uppercase' }}>{f}</Typography>
-            </TouchableOpacity>
-          )}
-          keyExtractor={f => f}
-          estimatedItemSize={80}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}
-          style={{ maxHeight: 60 }}
-        />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, marginBottom: 12 }}>
+        <Typography variant="h2">Orders</Typography>
+        <TouchableOpacity onPress={props.loadData} style={{ padding: 8 }}>
+          <Ionicons name="refresh" size={20} color={D.primary} />
+        </TouchableOpacity>
       </View>
+      {/* Filter Bar */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        contentContainerStyle={styles.filterBar} 
+        style={styles.filterBarScroll}
+      >
+        {['ALL', 'PENDING', 'PAID', 'DISPATCHING', 'AGENT_ASSIGNED', 'PREPARING', 'READY', 'SHIPPED', 'COMPLETED', 'CANCELLED'].map((f) => (
+          <TouchableOpacity
+            key={f}
+            onPress={() => setFilter(f)}
+            style={[styles.filterChip, filter === f && { backgroundColor: D.primary }]}
+          >
+            <Typography variant="label" style={{ color: filter === f ? D.ink : D.sub }}>{f}</Typography>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-      {openDisputes?.length > 0 && (
-        <GlassView variant="lift" style={[localStyles.alertBanner, { backgroundColor: C.red + '10' }]}>
-          <Ionicons name="warning" size={20} color={C.red} />
-          <Typography variant="hint" style={{ color: C.red, marginLeft: 8 }}>
-            {openDisputes.length} OPEN DISPUTES
-          </Typography>
-        </GlassView>
+      {openDisputes && openDisputes.length > 0 && (
+        <View style={styles.disputeBanner}>
+          <Ionicons name="warning" size={20} color={D.red} />
+          <View style={{ marginLeft: 12 }}>
+            <Typography variant="h3" style={{ color: D.blue }}>{openDisputes.length} Open Dispute{openDisputes.length > 1 ? 's' : ''}</Typography>
+            <Typography variant="body" style={{ color: D.blue }}>{openDisputes[0].id.slice(0, 5)}</Typography>
+          </View>
+        </View>
+      )}
+      
+      {orders.length > 0 && (
+        <Typography variant="hint" style={{ marginBottom: 16, marginLeft: 4 }}>
+          {orders.filter(o => ['PAID', 'PENDING', 'PREPARING', 'READY'].includes(o.status)).length} active shipments
+        </Typography>
       )}
 
-      <FlashList
-        data={filtered}
-        renderItem={({ item, index }) => (
-          <OrderItem 
-            order={item}
-            index={index}
-            C={C}
-            D={D}
-            mode={mode}
-            shipping={shipping}
-            handleMarkShipped={handleMarkShipped}
-            handleConfirmPickup={handleConfirmPickup}
-            handleCompleteOrder={handleCompleteOrder}
-            handleSettlePayment={handleSettlePayment}
-            handleFireReservation={handleFireReservation}
-            handleRetryDispatch={handleRetryDispatch}
-            handleMessageBuyer={handleMessageBuyer}
-            handleViewReceipt={handleViewReceipt}
-            handleCancelOrder={handleCancelOrder}
-          />
-        )}
-        keyExtractor={item => item.id}
-        estimatedItemSize={200}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}
-        ListEmptyComponent={!loading ? (
-          <View style={localStyles.empty}>
-            <Ionicons name="basket-outline" size={64} color={D.lift} />
-            <Typography variant="title" color="sub">No orders found.</Typography>
-          </View>
-        ) : null}
-      />
+      {orders.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="receipt-outline" size={64} color={D.sub} />
+          <Typography variant="body" style={{ color: D.sub, marginTop: 10 }}>No orders yet</Typography>
+        </View>
+      ) : (
+        <FlashList
+          data={filteredOrders}
+          estimatedItemSize={250}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            const isShopOrder = 
+              !!item.product_name || 
+              !!item.product_id || 
+              item.type === 'product' || 
+              item.type === 'MARKETPLACE' || 
+              item._source?.toUpperCase() === 'MARKETPLACE' ||
+              (!!item.buyer_id && !item.citizen_id);
+
+            return (
+              <GlassCard style={styles.orderCard}>
+                <View style={styles.orderHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Typography variant="h3">{item.order_number || item.id.slice(0, 8).toUpperCase()}</Typography>
+                    <Typography variant="hint">• {fmtDateTime(item.created_at).split(',')[0]}</Typography>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                    <Typography variant="label" style={{ color: getStatusColor(item.status) }}>{item.status}</Typography>
+                  </View>
+                </View>
+
+                {/* 🔑 Handover PIN Section - Inline Reveal */}
+                {item.pickup_pin && visiblePins[item.id] && !['COMPLETED', 'CANCELLED', 'REJECTED', 'DELIVERED'].includes(item.status?.trim().toUpperCase()) && (
+                  <MotiView 
+                    from={{ opacity: 0, translateY: -10 }} 
+                    animate={{ opacity: 1, translateY: 0 }}
+                    style={{ 
+                      backgroundColor: D.gold + '15', 
+                      borderRadius: 16, 
+                      padding: 16, 
+                      marginTop: 16,
+                      marginHorizontal: 16,
+                      borderWidth: 1,
+                      borderStyle: 'dashed',
+                      borderColor: D.gold,
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                    <View>
+                      <Typography variant="hint" style={{ color: D.gold, letterSpacing: 1, fontSize: 10 }}>{t('pickup_pin_up') || 'PICKUP PIN (FOR AGENT)'}</Typography>
+                      <Typography variant="h1" style={{ color: D.gold, fontSize: 32, letterSpacing: 6, fontWeight: '900' }}>{item.pickup_pin}</Typography>
+                      <Typography variant="hint" style={{ marginTop: 4, fontSize: 10, opacity: 0.8 }}>
+                        {t('give_secure_code_rider') || 'Give this secure code to the rider'}
+                      </Typography>
+                    </View>
+                    <View style={{ backgroundColor: D.gold + '20', padding: 12, borderRadius: 12 }}>
+                      <Ionicons name="key" size={28} color={D.gold} />
+                    </View>
+                  </MotiView>
+                )}
+
+
+                {isShopOrder ? (
+                  <>
+                    <View style={{ flexDirection: 'row', marginTop: 16, gap: 16 }}>
+                      <View style={{ width: 48, height: 48, borderRadius: Radius.md, backgroundColor: D.green + '20', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="cube" size={24} color={D.green} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="h2" style={{ fontSize: 18 }}>{item.product_name || 'Marketplace Item'}</Typography>
+                        <Typography variant="hint" style={{ marginTop: 2 }}>
+                          Quantity: {item.qty !== undefined ? item.qty : (item.items_count || 1)}
+                        </Typography>
+                        <Typography variant="h2" style={{ color: D.green, marginTop: 4 }}>{fmtETB(item.total || item.total_amount || 0)}</Typography>
+                      </View>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <View style={{ flex: 1, paddingRight: 12 }}>
+                        <Typography variant="hint" style={{ fontSize: 10, letterSpacing: 1, marginBottom: 4 }}>
+                          SHIPPING ADDRESS IS REQUIRED
+                        </Typography>
+                        <Typography variant="body" style={{ color: D.sub }}>
+                          {item.shipping_address || 'Not provided'}
+                        </Typography>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="hint" style={{ fontSize: 10, letterSpacing: 1, marginBottom: 4 }}>
+                          ESCROW STATUS
+                        </Typography>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Ionicons name="lock-closed" size={14} color={D.gold} />
+                          <Typography variant="body" style={{ color: D.gold, fontWeight: 'bold' }}>
+                            Funds Secured
+                          </Typography>
+                        </View>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.divider} />
+
+                    <View style={styles.orderDetails}>
+                      <Typography variant="body">
+                        {item.items_summary ||
+                          (item.items_count && item.items_count > 0
+                            ? `${item.items_count} Item${item.items_count > 1 ? 's' : ''}`
+                            : `${Math.max(1, (item.items || (item as any).order_items || []).length)} Item(s)`)}
+                      </Typography>
+                      <Typography variant="h2" style={{ color: D.primary }}>{fmtETB(item.total || item.total_amount || 0)}</Typography>
+                    </View>
+                  </>
+                )}
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {/* RESTAURANT ACTIONS */}
+                  {item.status === 'PENDING' && !isShopOrder && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { backgroundColor: D.green }]}
+                      onPress={() => onUpdateStatus?.(item.id, 'PREPARING')}
+                    >
+                      <Typography variant="label" style={{ color: D.white }}>Accept</Typography>
+                    </TouchableOpacity>
+                  )}
+                  {item.status === 'PREPARING' && !isShopOrder && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { backgroundColor: D.primary }]}
+                      onPress={() => onUpdateStatus?.(item.id, 'READY')}
+                    >
+                      <Typography variant="label" style={{ color: D.ink }}>Mark Ready</Typography>
+                    </TouchableOpacity>
+                  )}
+                  {item.status === 'READY' && item._source === 'delivery' && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { backgroundColor: D.gold }]}
+                      onPress={() => handleRetryDispatch?.(item.id)}
+                    >
+                      <Typography variant="label" style={{ color: D.ink }}>Retry Dispatch</Typography>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* SHOP ACTIONS */}
+                  {item.status === 'PAID' && isShopOrder && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { backgroundColor: D.green, flexDirection: 'row', gap: 6 }]}
+                      onPress={() => handleMarkShipped?.(item.id)}
+                    >
+                      <Ionicons name="cube-outline" size={18} color={D.ink} />
+                      <Typography variant="label" style={{ color: D.ink }}>Mark Shipped</Typography>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {['AGENT_ASSIGNED', 'DISPATCHING', 'READY'].includes(item.status) && isShopOrder && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { backgroundColor: D.gold, flexDirection: 'row', gap: 6 }]}
+                      onPress={() => {
+                        if (item.pickup_pin) {
+                          setVisiblePins(prev => ({ ...prev, [item.id]: !prev[item.id] }));
+                        } else {
+                          props.handleConfirmPickup?.(item.id);
+                        }
+                      }}
+                    >
+                      <Ionicons name={item.pickup_pin && visiblePins[item.id] ? "eye-off" : "shield-checkmark"} size={18} color={D.ink} />
+                      <Typography variant="label" style={{ color: D.ink }}>
+                        {item.pickup_pin 
+                          ? (visiblePins[item.id] ? "Hide Handover PIN" : "Show Handover PIN") 
+                          : "Confirm Handover"}
+                      </Typography>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {['PAID', 'PENDING', 'PREPARING'].includes(item.status) && !isWaiter && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtnOutline, { borderColor: D.red + '50' }]}
+                      onPress={() => handleCancelOrder?.(item.id)}
+                    >
+                      <Typography variant="label" style={{ color: D.red }}>Cancel</Typography>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {isShopOrder && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtnOutline, { borderColor: D.green + '50', flexDirection: 'row', alignItems: 'center' }]}
+                      onPress={() => handleMessageBuyer?.(item.id)}
+                    >
+                      <Ionicons name="chatbubble-ellipses-outline" size={16} color={D.green} />
+                      <Typography variant="label" style={{ color: D.green, marginLeft: 4 }}>Message</Typography>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {isShopOrder && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtnOutline, { borderColor: D.sub + '50' }]}
+                      onPress={() => handleViewReceipt?.(item)}
+                    >
+                      <Typography variant="label" style={{ color: D.sub }}>Details</Typography>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </GlassCard>
+            );
+          }}
+        />
+      )}
     </View>
   );
-}
+});
 
-const localStyles = StyleSheet.create({
-  filterBar: { flexDirection: 'row', marginBottom: 20 },
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'PENDING': return D.gold;
+    case 'PAID': return D.green;
+    case 'PREPARING': return D.primary;
+    case 'READY': return D.green;
+    case 'SHIPPED': return D.blue;
+    case 'COMPLETED': return D.green;
+    case 'CANCELLED': return D.red;
+    default: return D.sub;
+  }
+};
+
+const styles = StyleSheet.create({
+  filterBarScroll: { 
+    marginBottom: 20, 
+    flexGrow: 0, 
+    maxHeight: 50, // Prevent vertical stretching on web
+  },
+  filterBar: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.full, backgroundColor: D.surface, marginRight: 8, borderWidth: 1, borderColor: D.edge },
-  alertBanner: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: Radius.md, backgroundColor: D.red + '10', marginBottom: 16, borderLeftWidth: 4, borderLeftColor: D.red },
-  orderCard: { padding: 16, borderRadius: Radius.lg, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: D.primary },
+  orderCard: { padding: 16, borderRadius: Radius.lg, marginBottom: 16, backgroundColor: '#131A22', borderColor: D.edge, borderWidth: 1 },
   orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
-  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
-  divider: { height: 1, backgroundColor: D.edge, marginVertical: 12 },
+  divider: { height: 1, backgroundColor: D.edge, marginVertical: 16 },
   orderDetails: { marginBottom: 16 },
   actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  actionBtn: { flex: 1, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  actionBtn: { paddingHorizontal: 24, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  actionBtnOutline: { paddingHorizontal: 20, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1, backgroundColor: 'transparent' },
   empty: { padding: 60, alignItems: 'center' },
+  disputeBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1E36', padding: 16, borderRadius: Radius.lg, marginBottom: 16, borderWidth: 1, borderColor: '#1C3A5E' },
 });

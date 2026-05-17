@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "uvx",
+      "args": ["mcp-server-postgres"],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "${SUPABASE_DB_URL}"
+      },
+      "disabled": true,
+      "autoApprove": ["read_query", "list_tables", "describe_table", "get_schema"]
+    }
+  }
+}

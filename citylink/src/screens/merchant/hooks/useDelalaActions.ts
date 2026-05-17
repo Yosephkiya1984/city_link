@@ -6,9 +6,13 @@ import { useWalletStore } from '../../../store/WalletStore';
 import { useNavigation } from '@react-navigation/native';
 import { uid } from '../../../utils';
 import { updateListingStatus, createListing } from '../../../services/services.service';
+import { RealEstateListing } from '../../../types/domain_types';
 
-export function useDelalaActions(data: any) {
-  const { loadData } = data;
+export interface DelalaActionsProps {
+  loadData: () => Promise<void>;
+}
+
+export function useDelalaActions({ loadData }: DelalaActionsProps) {
   const navigation = useNavigation();
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
@@ -19,7 +23,7 @@ export function useDelalaActions(data: any) {
   const [actionLoading, setActionLoading] = useState(false);
   const [showAddListing, setShowAddListing] = useState(false);
   const [showListingDetail, setShowListingDetail] = useState(false);
-  const [selectedListing, setSelectedListing] = useState<any>(null);
+  const [selectedListing, setSelectedListing] = useState<RealEstateListing | null>(null);
 
   const onUpdateListing = async (listingId: string, newStatus: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -41,7 +45,7 @@ export function useDelalaActions(data: any) {
     }
   };
 
-  const onCreateListing = async (formData: any) => {
+  const onCreateListing = async (formData: Partial<RealEstateListing>) => {
     if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActionLoading(true);
@@ -77,7 +81,7 @@ export function useDelalaActions(data: any) {
     resetSystem();
   };
 
-  const handleContactLead = (enquiry: any) => {
+  const handleContactLead = (enquiry: { user_name?: string }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     showToast(`Contacting ${enquiry.user_name || 'lead'}...`, 'success');
   };

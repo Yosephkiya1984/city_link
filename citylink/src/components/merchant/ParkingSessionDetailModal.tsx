@@ -8,8 +8,8 @@ import { fmtETB } from '../../utils';
 interface ParkingSessionDetailModalProps {
   visible: boolean;
   onClose: () => void;
-  session: any;
-  lot: any;
+  session: Record<string, unknown> | null;
+  lot: Record<string, unknown> | null;
   isVerified: boolean;
   onSettle: (id: string, method: 'WALLET' | 'CASH', amount: number) => void;
   loading?: boolean;
@@ -26,7 +26,7 @@ export function ParkingSessionDetailModal({
 }: ParkingSessionDetailModalProps) {
   if (!session) return null;
 
-  const durationMins = Math.floor((Date.now() - new Date(session.start_time).getTime()) / 60000);
+  const durationMins = Math.floor((Date.now() - new Date(String(session.start_time)).getTime()) / 60000);
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -36,8 +36,8 @@ export function ParkingSessionDetailModal({
             <View>
               <Text style={styles.title}>Session Detail</Text>
               <Text style={styles.subtitle}>
-                Vehicle at {lot?.spot_prefix}
-                {session.spot_number}
+                Vehicle at {String(lot?.spot_prefix || '')}
+                {String(session.spot_number || '')}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -46,15 +46,15 @@ export function ParkingSessionDetailModal({
           </View>
 
           <View style={styles.body}>
-            <DetailRow label="LICENSE PLATE" value={session.plate || 'NO PLATE LOGGED'} />
+            <DetailRow label="LICENSE PLATE" value={String(session.plate || 'NO PLATE LOGGED')} />
             <DetailRow
               label="START TIME"
-              value={new Date(session.start_time).toLocaleTimeString()}
+              value={new Date(String(session.start_time)).toLocaleTimeString()}
             />
             <DetailRow label="EST. DURATION" value={`${durationMins} mins`} />
             <DetailRow
               label="CURRENT FARE"
-              value={`ETB ${fmtETB(session.calculated_cost || 0)}`}
+              value={`ETB ${fmtETB(Number(session.calculated_cost) || 0)}`}
               isPrimary
             />
 
@@ -63,7 +63,7 @@ export function ParkingSessionDetailModal({
 
               <CButton
                 title="Settle via Digital Wallet"
-                onPress={() => onSettle(session.id, 'WALLET', session.calculated_cost)}
+                onPress={() => onSettle(String(session.id), 'WALLET', Number(session.calculated_cost) || 0)}
                 loading={loading}
                 disabled={!isVerified}
                 style={[styles.settleBtn, { backgroundColor: isVerified ? T.primary : T.edge }]}
@@ -72,7 +72,7 @@ export function ParkingSessionDetailModal({
 
               <CButton
                 title="Record Cash Collection"
-                onPress={() => onSettle(session.id, 'CASH', session.calculated_cost)}
+                onPress={() => onSettle(String(session.id), 'CASH', Number(session.calculated_cost) || 0)}
                 loading={loading}
                 variant="outline"
                 style={styles.cashBtn}
@@ -91,7 +91,13 @@ export function ParkingSessionDetailModal({
   );
 }
 
-const DetailRow = ({ label, value, isPrimary }: any) => (
+interface DetailRowProps {
+  label: string;
+  value: string;
+  isPrimary?: boolean;
+}
+
+const DetailRow = ({ label, value, isPrimary }: DetailRowProps) => (
   <View style={styles.detailRow}>
     <Text style={styles.detailLabel}>{label}</Text>
     <Text style={[styles.detailValue, isPrimary && styles.primaryValue]}>{value}</Text>

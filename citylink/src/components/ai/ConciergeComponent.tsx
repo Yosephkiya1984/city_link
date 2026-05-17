@@ -20,7 +20,7 @@ import { useAgentStore } from '../../store/AgentStore';
 import { useAuthStore } from '../../store/AuthStore';
 import { sendMessage } from '../../services/ai.service';
 import { useT, uid, fmtTime } from '../../utils';
-import { Typography } from '..';
+import { Typography } from '../ui/Typography';
 import { Radius, Spacing, Fonts, Shadow, D } from '../hospitality/HospitalityTheme';
 import { AIActionHandler } from './AIActionHandler';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,6 +41,7 @@ export function ConciergeComponent() {
     messages: allMessages, 
     addMessage, 
     isThinking, 
+    thinkingStatus,
     setThinking,
     activeActionCard,
     hideActionCard,
@@ -96,7 +97,8 @@ export function ConciergeComponent() {
         undefined,
         audioBase64,
         snapshot || undefined,
-        currentUser?.full_name || 'Citizen'
+        currentUser?.full_name || 'Citizen',
+        (status) => setThinking(true, status)
       );
 
       if (response.retryable) {
@@ -352,7 +354,7 @@ export function ConciergeComponent() {
                         />
                       ))}
                     </View>
-                    <Text style={styles.thinkingText}>{T('ai_thinking')}</Text>
+                    <Text style={styles.thinkingText}>{thinkingStatus || T('ai_thinking')}</Text>
                   </MotiView>
                 )}
               </ScrollView>

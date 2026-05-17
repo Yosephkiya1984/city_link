@@ -115,28 +115,22 @@ export function useFood() {
       setSelectedTable(null);
       setShippingAddress('');
 
-      // If we're opening it from Booking tab, fetch live tables
-      if (activeTab === 'booking') {
-        try {
-          const liveTables = await HospitalityService.getRestaurantTablesForCitizen(r.id);
-          setRestaurantTables(liveTables || []);
-        } catch (err) {
-          console.warn('Failed to load live tables', err);
-          setRestaurantTables([]);
-        }
+      try {
+        const liveTables = await HospitalityService.getRestaurantTablesForCitizen(r.id);
+        setRestaurantTables(liveTables || []);
+      } catch (err) {
+        console.warn('Failed to load live tables', err);
+        setRestaurantTables([]);
       }
 
-      // Only load menu if in delivery (or if booking supports pre-orders later)
-      if (activeTab === 'delivery') {
-        setMenuLoading(true);
-        try {
-          const { data } = await fetchFoodItems(r.id);
-          setMenuItems(data || []);
-        } catch (err) {
-          console.warn('Failed to load menu', err);
-        } finally {
-          setMenuLoading(false);
-        }
+      setMenuLoading(true);
+      try {
+        const { data } = await fetchFoodItems(r.id);
+        setMenuItems(data || []);
+      } catch (err) {
+        console.warn('Failed to load menu', err);
+      } finally {
+        setMenuLoading(false);
       }
     },
     [activeTab]
@@ -241,8 +235,8 @@ export function useFood() {
     const tableDetails = restaurantTables.find((t) => t.id === selectedTable);
 
     await HospitalityService.createReservation(
-      selectedRest.id,
-      new Date(reservationTime).toISOString(),
+      selectedRest.merchant_id,
+      new Date(reservationTime.replace(' ', 'T')).toISOString(),
       guestCount,
       deposit,
       [], // No pre-orders

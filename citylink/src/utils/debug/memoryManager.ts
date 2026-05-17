@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
+import * as Device from 'expo-device';
 import { cacheManager } from './cacheManager';
 import { useErrorReporting } from './errorReporting';
 
@@ -66,6 +67,15 @@ class MemoryManager {
       }
     }, MEMORY_CONFIG.CLEANUP_INTERVAL);
 
+    // 🛡️ NATIVE: Monitor AppState to trigger cleanup on backgrounding
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background') {
+        if (__DEV__) console.log('💾 App moved to background: Triggering predictive cleanup...');
+        this.performRoutineCleanup();
+      }
+    };
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
     // Detect memory leaks
     const leakDetectionInterval = setInterval(() => {
       if (typeof requestIdleCallback !== 'undefined') {
@@ -79,6 +89,7 @@ class MemoryManager {
     return () => {
       clearInterval(monitorInterval);
       clearInterval(leakDetectionInterval);
+      appStateSubscription.remove();
       this.isMonitoring = false;
     };
   }
@@ -86,30 +97,58 @@ class MemoryManager {
   // Check memory usage
   checkMemoryUsage() {
     const perf = global.performance as any;
+    
+    // Web implementation
     if (Platform.OS === 'web' && perf?.memory) {
       const memory = perf.memory;
-      this.memoryStats = {
-        used: memory.usedJSHeapSize,
-        total: memory.totalJSHeapSize,
-        limit: memory.jsHeapSizeLimit,
-        percentage: memory.usedJSHeapSize / memory.jsHeapSizeLimit,
-        lastCleanup: Date.now(),
-        cleanupCount: this.memoryStats.cleanupCount,
-        leaksDetected: this.memoryStats.leaksDetected,
-      };
-
-      // Trigger cleanup if needed
-      if (this.memoryStats.percentage > MEMORY_CONFIG.CRITICAL_THRESHOLD) {
-        this.performEmergencyCleanup();
-      } else if (this.memoryStats.percentage > MEMORY_CONFIG.WARNING_THRESHOLD) {
-        this.performRoutineCleanup();
-      }
-
-      // Log memory usage in development
-      if (__DEV__) {
-        console.log(`💾 Memory Usage: ${(this.memoryStats.percentage * 100).toFixed(2)}%`);
-      }
+      this.updateStats(
+        memory.usedJSHeapSize,
+        memory.totalJSHeapSize,
+        memory.jsHeapSizeLimit
+      );
+    } 
+    // Native Fallback: Since we can't get real-time heap size easily without native modules,
+    // we use a predictive model based on device total memory and current object counts.
+    else {
+      const totalMem = Device.totalMemory || 2 * 1024 * 1024 * 1024; // Default 2GB
+      const estimatedUsed = this.estimateTotalRegisteredSize();
+      
+      this.updateStats(
+        estimatedUsed,
+        totalMem / 4, // Assume JS heap is roughly 1/4 of total RAM
+        totalMem / 2
+      );
     }
+  }
+
+  private updateStats(used: number, total: number, limit: number) {
+    this.memoryStats = {
+      ...this.memoryStats,
+      used,
+      total,
+      limit,
+      percentage: used / limit,
+      lastCleanup: this.memoryStats.lastCleanup,
+    };
+
+    // Trigger cleanup if needed
+    if (this.memoryStats.percentage > MEMORY_CONFIG.CRITICAL_THRESHOLD) {
+      this.performEmergencyCleanup();
+    } else if (this.memoryStats.percentage > MEMORY_CONFIG.WARNING_THRESHOLD) {
+      this.performRoutineCleanup();
+    }
+
+    if (__DEV__ && this.memoryStats.percentage > 0.5) {
+      console.log(`💾 [${Platform.OS.toUpperCase()}] Memory Usage: ${(this.memoryStats.percentage * 100).toFixed(2)}%`);
+    }
+  }
+
+  private estimateTotalRegisteredSize(): number {
+    let total = 0;
+    for (const entry of this.objectRegistry.values()) {
+      total += entry.size;
+    }
+    return total;
   }
 
   // Perform routine cleanup

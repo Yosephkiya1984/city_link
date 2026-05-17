@@ -155,6 +155,7 @@ export async function loadSessionProfile(
       normalizedPhone.startsWith('251') ? '0' + normalizedPhone.slice(3) : normalizedPhone,
       normalizedPhone.startsWith('0') ? '251' + normalizedPhone.slice(1) : normalizedPhone,
       normalizedPhone.startsWith('0') ? '+251' + normalizedPhone.slice(1) : normalizedPhone,
+      normalizedPhone.replace('+251', '').replace(/^0/, ''), // Raw 9-digit (e.g. 911...)
     ];
 
     // Remove duplicates and try each

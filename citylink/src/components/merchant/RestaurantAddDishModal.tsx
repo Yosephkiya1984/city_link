@@ -14,13 +14,21 @@ import { DarkColors as T, Fonts, Radius } from '../../theme';
 import { CButton, CInput } from '../index';
 import { t } from '../../utils/i18n';
 
+export interface DishForm {
+  name: string;
+  price: string;
+  category: string;
+  description: string;
+  available?: boolean;
+}
+
 interface RestaurantAddDishModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (form: any) => void;
+  onSubmit: (form: DishForm) => void;
   loading?: boolean;
   onPickImage?: () => void;
-  selectedImage?: any;
+  selectedImage?: { uri: string } | null;
 }
 
 const CATEGORIES = ['mains', 'drinks', 'desserts'];

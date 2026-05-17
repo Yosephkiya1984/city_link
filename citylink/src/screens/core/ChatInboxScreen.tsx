@@ -18,6 +18,11 @@ import { useSystemStore } from '../../store/SystemStore';
 import { subscribeToTable, unsubscribe } from '../../services/supabase';
 import { fetchChatThreads } from '../../services/chat.service';
 import * as Haptics from 'expo-haptics';
+import { ChatThread } from '../../types/domain_types';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'ChatInbox'>;
 
 const T = {
   bg: '#101319',
@@ -44,11 +49,11 @@ function fmtRelativeTime(date: any) {
   return new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-export default function ChatInboxScreen({ navigation }: { navigation: any }) {
+export default function ChatInboxScreen({ navigation }: Props) {
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
-  const [threads, setThreads] = useState<any[]>([]);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -83,7 +88,7 @@ export default function ChatInboxScreen({ navigation }: { navigation: any }) {
   };
 
   const filteredThreads = useMemo(() => {
-    return threads.filter((t: any) => {
+    return threads.filter((t) => {
       const isUserA = t.user_a_id === currentUser?.id;
       const other = isUserA ? t.user_b : t.user_a;
       const name = (other?.business_name || other?.full_name || '').toLowerCase();
@@ -99,7 +104,7 @@ export default function ChatInboxScreen({ navigation }: { navigation: any }) {
     });
   }, [threads, search, currentUser?.id, activeFilter]);
 
-  const renderItem = ({ item }: { item: any }) => {
+  const renderItem = ({ item }: { item: ChatThread }) => {
     const isUserA = item.user_a_id === currentUser?.id;
     const other = isUserA ? item.user_b : item.user_a;
     const displayName = other?.business_name || other?.full_name || 'Unknown User';
@@ -203,10 +208,10 @@ export default function ChatInboxScreen({ navigation }: { navigation: any }) {
           <ActivityIndicator color={T.primary} />
         </View>
       ) : (
-        <FlashList<any>
+        <FlashList<ChatThread>
           data={filteredThreads}
           renderItem={renderItem}
-          keyExtractor={(item: any) => item.thread_id}
+          keyExtractor={(item) => item.thread_id}
           contentContainerStyle={styles.listContent}
           keyboardDismissMode="on-drag"
           estimatedItemSize={92}

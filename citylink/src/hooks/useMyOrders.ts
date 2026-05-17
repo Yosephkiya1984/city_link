@@ -12,6 +12,8 @@ import { fetchMyFoodOrders } from '../services/food.service';
 import { subscribeToTable, unsubscribe } from '../services/supabase';
 import { Alert } from 'react-native';
 
+import { HospitalityService } from '../services/hospitality.service';
+
 /**
  * useMyOrders — Business logic for MyOrdersScreen.
  * Handles fetching, real-time subscriptions, and action handlers.
@@ -22,6 +24,7 @@ export function useMyOrders() {
 
   const [mktOrders, setMktOrders] = useState<any[]>([]);
   const [foodOrders, setFoodOrders] = useState<any[]>([]);
+  const [resOrders, setResOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<'active' | 'history'>('active');
@@ -35,13 +38,15 @@ export function useMyOrders() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const [mktRes, foodRes] = await Promise.all([
+      const [mktRes, foodRes, resRes] = await Promise.all([
         fetchMarketplaceOrdersByBuyer(user.id),
         fetchMyFoodOrders(user.id),
+        HospitalityService.getCitizenReservations().catch(() => []),
       ]);
 
       setMktOrders((mktRes.data || []).map((o: any) => ({ ...o, type: 'marketplace' })));
       setFoodOrders((foodRes.data || []).map((o: any) => ({ ...o, type: 'food' })));
+      setResOrders((resRes || []).map((o: any) => ({ ...o, type: 'reservation' })));
     } catch (e) {
       console.error('🔧 loadOrders error:', e);
       showToast('Offline? Could not fetch orders.', 'error');
@@ -87,9 +92,25 @@ export function useMyOrders() {
       }
     );
 
+    const resCh = subscribeToTable(
+      `buyer-res-${user.id}`,
+      'reservations',
+      `citizen_id=eq.${user.id}`,
+      (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          setResOrders((prev) =>
+            prev.map((o) => (o.id === payload.new.id ? { ...o, ...payload.new, type: 'reservation' } : o))
+          );
+        } else if (payload.eventType === 'INSERT') {
+          setResOrders((prev) => [{ ...payload.new, type: 'reservation' }, ...prev]);
+        }
+      }
+    );
+
     return () => {
       unsubscribe(mktCh);
       unsubscribe(foodCh);
+      unsubscribe(resCh);
     };
   }, [user?.id, loadOrders]);
 
@@ -100,26 +121,40 @@ export function useMyOrders() {
   };
 
   const handleCancelOrder = (order: any) => {
-    Alert.alert('Cancel Order', 'Refund funds to your wallet?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const res = await rpcCancelAndRefundOrder(order.id, user?.id || '', 'buyer_cancellation');
-            if (res.error) throw res.error;
-            showToast('Order cancelled and refunded', 'success');
-            // Real-time will handle state update, but we can optimistically filter
-            setMktOrders((prev) =>
-              prev.map((o) => (o.id === order.id ? { ...o, status: 'CANCELLED' } : o))
-            );
-          } catch (e) {
-            showToast('Cancellation failed', 'error');
-          }
+    const isReservation = order.type === 'reservation';
+    Alert.alert(
+      isReservation ? 'Cancel Booking' : 'Cancel Order',
+      isReservation
+        ? 'Cancel this reservation? Your deposit will be refunded to your wallet.'
+        : 'Refund funds to your wallet?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (isReservation) {
+                await HospitalityService.cancelReservation(order.id);
+                showToast('Booking cancelled and deposit refunded', 'success');
+                setResOrders((prev) =>
+                  prev.map((o) => (o.id === order.id ? { ...o, status: 'CANCELLED' } : o))
+                );
+              } else {
+                const res = await rpcCancelAndRefundOrder(order.id, user?.id || '', 'buyer_cancellation');
+                if (res.error) throw res.error;
+                showToast('Order cancelled and refunded', 'success');
+                setMktOrders((prev) =>
+                  prev.map((o) => (o.id === order.id ? { ...o, status: 'CANCELLED' } : o))
+                );
+              }
+            } catch (e) {
+              showToast('Cancellation failed', 'error');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleRejectDelivery = (order: any) => {
@@ -191,15 +226,15 @@ export function useMyOrders() {
     }
   };
 
-  const combined = [...mktOrders, ...foodOrders].sort(
+  const combined = [...mktOrders, ...foodOrders, ...resOrders].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
   const activeOrders = combined.filter(
-    (o) => !['COMPLETED', 'CANCELLED', 'DELIVERED'].includes(o.status)
+    (o) => !['COMPLETED', 'CANCELLED', 'DELIVERED', 'ARRIVED'].includes(o.status)
   );
   const historyOrders = combined.filter((o) =>
-    ['COMPLETED', 'CANCELLED', 'DELIVERED'].includes(o.status)
+    ['COMPLETED', 'CANCELLED', 'DELIVERED', 'ARRIVED'].includes(o.status)
   );
 
   return {

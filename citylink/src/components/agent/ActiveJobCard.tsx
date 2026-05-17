@@ -1,8 +1,14 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
+// react-native-maps is native-only; guard against web
+const MapsAvailable = Platform.OS !== 'web';
+const MapsModule = MapsAvailable ? require('react-native-maps') : null;
+// Handle different export styles for MapView
+const MapView = MapsModule?.default || MapsModule;
+const { Marker, PROVIDER_GOOGLE } = MapsModule || {};
 import { Surface } from '../ui/Surface';
 import { Typography } from '../ui/Typography';
 import { DarkColors as T, Fonts } from '../../theme';
@@ -65,48 +71,50 @@ export function ActiveJobCard({
     <Surface variant="flat" padding={0} radius="2xl" style={s.activeJobCard}>
       {/* Mini Navigation Map */}
       <View style={s.miniMapContainer}>
-        <MapView
-          style={s.miniMap}
-          provider={PROVIDER_GOOGLE}
-          initialRegion={{
-            latitude: job.merchant?.lat || 9.0333,
-            longitude: job.merchant?.lng || 38.75,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-          scrollEnabled={false}
-          zoomEnabled={false}
-        >
-          {/* Pickup Marker */}
-          {job.merchant?.lat && (
-            <Marker
-              coordinate={{
-                latitude: job.merchant.lat,
-                longitude: job.merchant.lng!,
-              }}
-              title={t('role_merchant')}
-            >
-              <View style={s.markerContainer}>
-                <Ionicons name="location" size={24} color={T.primary} />
-              </View>
-            </Marker>
-          )}
+        {MapView && (
+          <MapView
+            style={s.miniMap}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={{
+              latitude: job.merchant?.lat || 9.0333,
+              longitude: job.merchant?.lng || 38.75,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            scrollEnabled={false}
+            zoomEnabled={false}
+          >
+            {/* Pickup Marker */}
+            {job.merchant?.lat && (
+              <Marker
+                coordinate={{
+                  latitude: job.merchant.lat,
+                  longitude: job.merchant.lng!,
+                }}
+                title={t('role_merchant')}
+              >
+                <View style={s.markerContainer}>
+                  <Ionicons name="location" size={24} color={T.primary} />
+                </View>
+              </Marker>
+            )}
 
-          {/* Delivery Marker */}
-          {job.destination_lat && (
-            <Marker
-              coordinate={{
-                latitude: job.destination_lat,
-                longitude: job.destination_lng!,
-              }}
-              title={t('role_citizen')}
-            >
-              <View style={s.markerContainer}>
-                <Ionicons name="flag" size={24} color={T.red} />
-              </View>
-            </Marker>
-          )}
-        </MapView>
+            {/* Delivery Marker */}
+            {job.destination_lat && (
+              <Marker
+                coordinate={{
+                  latitude: job.destination_lat,
+                  longitude: job.destination_lng!,
+                }}
+                title={t('role_citizen')}
+              >
+                <View style={s.markerContainer}>
+                  <Ionicons name="flag" size={24} color={T.red} />
+                </View>
+              </Marker>
+            )}
+          </MapView>
+        )}
       </View>
 
       <LinearGradient

@@ -337,7 +337,7 @@ export default function MerchantModule({ merchants, onRefresh, loading }: Mercha
 interface DetailItemProps {
   label: string;
   value?: string;
-  icon: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
   isMobile: boolean;
 }
 
@@ -345,7 +345,7 @@ function DetailItem({ label, value, icon, isMobile }: DetailItemProps) {
   const theme = useTheme();
   return (
     <View style={[styles.detailItem, isMobile && { width: '100%', marginBottom: 6 }]}>
-      <Ionicons name={icon as any} size={14} color={theme.sub} style={{ marginRight: 6 }} />
+      <Ionicons name={icon} size={14} color={theme.sub} style={{ marginRight: 6 }} />
       <View style={{ flex: 1 }}>
         <Text style={[styles.detailLabel, { color: theme.hint }]}>{label.toUpperCase()}</Text>
         <Text

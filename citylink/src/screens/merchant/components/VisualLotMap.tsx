@@ -13,27 +13,20 @@ import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitali
 import { Typography, GlassCard, GlassView } from '../../../components';
 import { useTheme } from '../../../hooks/useTheme';
 
-const { width } = Dimensions.get('window');
 const GRID_SIZE = 8;
-const CELL_SIZE = (width - 40) / GRID_SIZE;
-
-interface Spot {
-  id: string;
-  number: string;
-  status: 'available' | 'occupied' | 'reserved' | 'vip';
-  x: number;
-  y: number;
-}
+const CELL_SIZE = 40;
 
 interface VisualLotMapProps {
-  spots: Spot[];
+  spots: any[];
   currentLotName?: string;
-  onSpotPress: (spot: Spot) => void;
-  editMode: boolean;
+  onSpotPress: (spot: any) => void;
+  editMode?: boolean;
 }
 
-export function VisualLotMap({ spots, currentLotName, onSpotPress, editMode }: VisualLotMapProps) {
+export function VisualLotMap({ spots = [], currentLotName, onSpotPress, editMode }: VisualLotMapProps) {
   const C = useTheme();
+  const [containerWidth, setContainerWidth] = useState(Dimensions.get('window').width - 40);
+  const cellSize = containerWidth / GRID_SIZE;
   return (
     <GlassCard style={styles.container}>
       <View style={styles.header}>
@@ -47,11 +40,17 @@ export function VisualLotMap({ spots, currentLotName, onSpotPress, editMode }: V
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <GlassView variant="outline" style={[styles.gridContainer, { backgroundColor: C.surface, borderColor: C.edge }]}>
+        <GlassView 
+          style={[styles.gridContainer, { width: containerWidth, height: containerWidth, backgroundColor: C.surface, borderColor: C.edge }]}
+          onLayout={(e) => {
+            const { width } = e.nativeEvent.layout;
+            if (width > 0) setContainerWidth(width);
+          }}
+        >
           {/* Background Grid Lines */}
           <View style={styles.gridOverlay}>
             {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => (
-              <View key={i} style={[styles.gridCell, { borderColor: C.lift + '30' }]} />
+              <View key={i} style={[styles.gridCell, { width: cellSize, height: cellSize, borderColor: C.lift + '30' }]} />
             ))}
           </View>
 
@@ -63,8 +62,10 @@ export function VisualLotMap({ spots, currentLotName, onSpotPress, editMode }: V
               style={[
                 styles.spot,
                 {
-                  left: spot.x * CELL_SIZE,
-                  top: spot.y * CELL_SIZE,
+                  left: spot.x * cellSize,
+                  top: spot.y * cellSize,
+                  width: cellSize - 4,
+                  height: cellSize - 4,
                   backgroundColor: spot.status === 'occupied' ? C.gold : C.primary + '20',
                   borderColor: spot.status === 'occupied' ? C.gold : C.primary,
                 },

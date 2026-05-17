@@ -110,12 +110,12 @@ export async function uploadProductImage(imageData: {
 // ── Orders & Escrow ──────────────────────────────────────────────────────────
 
 export async function fetchMarketplaceOrdersByBuyer(buyerId: string) {
-  return supaQuery<MarketplaceOrder[]>((c) => c.rpc('fetch_buyer_orders', { p_buyer_id: buyerId }));
+  return supaQuery<MarketplaceOrder[]>((c) => c.rpc('get_marketplace_orders'));
 }
 
 export async function fetchMarketplaceOrdersByMerchant(merchantId: string) {
   return supaQuery<MarketplaceOrder[]>((c) =>
-    c.rpc('fetch_merchant_orders', { p_merchant_id: merchantId })
+    c.rpc('get_marketplace_orders')
   );
 }
 
@@ -159,12 +159,22 @@ export async function executeMarketplacePurchase({
 }
 
 export async function releaseMarketplaceEscrow(orderId: string, escrowId: string, pin?: string) {
+  // Use unified PIN confirmation if PIN is provided
+  if (pin) {
+    return supaQuery<any>((c) =>
+      c.rpc('confirm_delivery_with_pin', {
+        p_order_id: orderId,
+        p_pin: pin,
+        p_order_type: 'MARKETPLACE'
+      })
+    );
+  }
+  
   return supaQuery<void>((c) =>
     c.rpc('release_escrow', {
       p_escrow_id: escrowId,
       p_order_id: orderId,
-      p_release_method: pin ? 'delivery_pin' : 'manual_confirmation',
-      p_delivery_pin: pin,
+      p_release_method: 'manual_confirmation'
     })
   );
 }
@@ -270,6 +280,7 @@ export async function acceptMarketplaceDeliveryJob(orderId: string, agentId: str
     c.rpc('accept_delivery_job', {
       p_order_id: orderId,
       p_agent_id: agentId,
+      p_order_type: 'MARKETPLACE'
     })
   );
 }
@@ -279,11 +290,10 @@ export async function rpcReleaseEscrow(escrowId: string, orderId: string) {
   return releaseMarketplaceEscrow(orderId, escrowId);
 }
 
-export async function rpcCancelAndRefundOrder(orderId: string, userId: string, reason: string) {
+export async function rpcCancelAndRefundOrder(orderId: string, reason: string) {
   return supaQuery<{ ok: boolean; error?: string }>((c) =>
     c.rpc('cancel_and_refund_marketplace_order', {
       p_order_id: orderId,
-      p_user_id:  userId,
       p_reason:   reason,
     })
   );
@@ -301,7 +311,7 @@ export async function fetchMerchantMetrics(merchantId: string): Promise<Merchant
     total_products: number;
     low_stock_products: number;
   }>((c) =>
-    c.rpc('get_merchant_metrics', { p_merchant_id: merchantId }).single()
+    c.rpc('get_merchant_metrics').maybeSingle()
   );
 
   if (error || !data) {
@@ -331,7 +341,7 @@ export async function fetchMerchantSalesHistory(merchantId: string) {
 
   const fromDate = Object.keys(dailyMap)[0];
   const { data, error } = await supaQuery<{ day: string; total: number }[]>((c) =>
-    c.rpc('get_merchant_sales_history_7d', { p_merchant_id: merchantId })
+    c.rpc('get_merchant_sales_history_7d')
   );
 
   if (error || !data) {
@@ -432,27 +442,37 @@ export const marketplaceService = {
     lat: number | null = null,
     lng: number | null = null
   ) => {
-    // 1. Optimistic/Offline Queue
-    await OfflineSyncService.addAction({
-      id: `ship-${orderId}-${Date.now()}`,
-      type: 'MARKETPLACE_SHIP',
-      payload: { orderId, merchantId, lat, lng },
-      createdAt: new Date().toISOString()
-    });
+    const res = await supaQuery<any>((c) =>
+      c.rpc('dispatch_order', {
+        p_order_id: orderId,
+        p_merchant_id: merchantId,
+        p_order_type: 'MARKETPLACE',
+        p_lat: lat,
+        p_lng: lng,
+      })
+    );
 
-    return { success: true, dispatchedCount: 1 };
+    if (res.error) throw res.error;
+    
+    return { 
+      success: true, 
+      dispatchedCount: res.data?.dispatched_count || 0 
+    };
   },
 
-  confirmPickup: async (orderId: string, userId: string) => {
+  confirmPickup: async (orderId: string, userId: string, pickupPin?: string) => {
     const res = await supaQuery<{
       ok: boolean;
       status: string;
       delivery_pin?: string;
+      pickup_pin?: string;
       error?: string;
     }>((c) =>
       c.rpc('confirm_order_pickup', {
-        p_order_id: orderId,
-        p_user_id: userId,
+        p_order_id:   orderId,
+        p_user_id:    userId,
+        p_order_type: 'MARKETPLACE',
+        p_pickup_pin: pickupPin
       })
     );
     if (res.error || !res.data?.ok)
@@ -461,23 +481,25 @@ export const marketplaceService = {
       success: true,
       status: res.data.status,
       delivery_pin: res.data.delivery_pin,
+      pickup_pin: res.data.pickup_pin,
     };
   },
 
-  cancelOrder: async (orderId: string, userId: string, reason: string) => {
-    const { data, error } = await supaQuery<{ ok: boolean; error?: string }>((c) =>
-      c.rpc('cancel_and_refund_marketplace_order', {
-        p_order_id: orderId,
-        p_user_id:  userId,
-        p_reason:   reason || 'cancelled_by_merchant',
-      })
-    );
+  cancelOrder: async (orderId: string, reason: string) => {
+    const { data, error } = await rpcCancelAndRefundOrder(orderId, reason || 'cancelled_by_merchant');
     if (error) return { success: false, error };
     return { success: data?.ok === true, error: data?.error || null };
   },
 
   confirmAgentHandover: async (orderId: string, agentId: string, pickupPin: string) => {
-    const { data, error } = await confirmAgentHandoverMarketplace(orderId, agentId, pickupPin);
+    const { data, error } = await supaQuery<{ ok: boolean; status?: string; error?: string }>((c) =>
+      c.rpc('confirm_order_pickup', {
+        p_order_id:   orderId,
+        p_user_id:    agentId,
+        p_order_type: 'MARKETPLACE',
+        p_pickup_pin: pickupPin
+      })
+    );
     if (error || !data?.ok) throw error || new Error(data?.error || 'Handover failed');
     return { success: true, status: data.status };
   },
@@ -588,7 +610,7 @@ export async function fetchRestaurantStock(merchantId: string) {
  * updateRestaurantStock — updates or creates a stock item.
  */
 export async function updateRestaurantStock(stock: any) {
-  return supaQuery<any>((c) => c.from('restaurant_stock').upsert(stock).select().single());
+  return supaQuery<any>((c) => c.from('restaurant_stock').upsert(stock).select().maybeSingle());
 }
 
 export async function fetchLowStockAlerts(merchantId: string) {

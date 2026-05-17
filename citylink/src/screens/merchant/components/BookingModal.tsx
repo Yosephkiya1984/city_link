@@ -174,17 +174,49 @@ export function BookingModal({ visible, onClose, onSubmit, tables, merchantId }:
 
             {step === 3 && (
               <MotiView from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={{ flex: 1 }}>
-                <VisualTableBuilder 
-                  tables={tables}
-                  onTablePress={(table: any) => setSelectedTable(table)}
-                  selectedTableId={selectedTable?.id}
-                  hideControls={true}
-                />
+                <Typography variant="hint" color="sub" style={{ marginBottom: 12 }}>
+                  TAP A TABLE TO SELECT IT
+                </Typography>
+                
+                <View style={{ flex: 1, maxHeight: 300 }}>
+                  <VisualTableBuilder 
+                    tables={tables}
+                    onTablePress={(table: any) => setSelectedTable(table)}
+                    selectedTableId={selectedTable?.id}
+                    hideControls={true}
+                  />
+                </View>
+
+                <View style={{ marginTop: 20 }}>
+                  <Typography variant="hint" color="sub" style={{ marginBottom: 8 }}>OR SELECT FROM LIST</Typography>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {tables.map((table: any) => (
+                      <TouchableOpacity
+                        key={table.id}
+                        onPress={() => setSelectedTable(table)}
+                        style={[
+                          styles.tableListItem,
+                          { borderColor: C.edge, backgroundColor: C.glass1 },
+                          selectedTable?.id === table.id && { borderColor: C.primary, backgroundColor: C.primary + '20' }
+                        ]}
+                      >
+                        <Typography variant="title" style={{ color: selectedTable?.id === table.id ? C.primary : C.text }}>
+                          T{table.table_number}
+                        </Typography>
+                        <Typography variant="hint" color="sub">({table.capacity})</Typography>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
                 {selectedTable && (
-                  <GlassView variant="outline" style={styles.selectionInfo}>
-                    <Typography variant="body">Selected: Table {selectedTable.table_number}</Typography>
-                    <Typography variant="hint" color="sub">Capacity: {selectedTable.capacity} persons</Typography>
-                  </GlassView>
+                  <MotiView from={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={styles.selectionInfo}>
+                    <Ionicons name="checkmark-circle" size={20} color={C.primary} />
+                    <View style={{ marginLeft: 12 }}>
+                      <Typography variant="body" style={{ fontWeight: 'bold' }}>Table {selectedTable.table_number} Selected</Typography>
+                      <Typography variant="hint" color="sub">Capacity: {selectedTable.capacity} persons</Typography>
+                    </View>
+                  </MotiView>
                 )}
               </MotiView>
             )}
@@ -388,5 +420,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  tableListItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selectionInfo: {
+    padding: Spacing.md,
+    marginTop: 20,
+    borderRadius: Radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
 });

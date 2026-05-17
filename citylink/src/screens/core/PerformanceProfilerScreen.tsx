@@ -25,18 +25,18 @@ export default function PerformanceProfilerScreen() {
   const { errors, errorStats, clearErrors } = useErrorReporting();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [isMonitoring, setIsMonitoring] = useState(true);
-  const [animatedValues, setAnimatedValues] = useState<any>({});
+  const [animatedValues, setAnimatedValues] = useState<Record<string, Animated.Value>>({});
 
   // Initialize animations
   useEffect(() => {
     const values: Record<string, Animated.Value> = {};
-    ['overview', 'memory', 'cache', 'errors', 'network'].forEach((tab: string) => {
+    ['overview', 'memory', 'cache', 'errors', 'renders'].forEach((tab: string) => {
       values[tab] = new Animated.Value(0);
     });
     setAnimatedValues(values);
 
     // Animate tab content
-    (Object.values(values) as any[]).forEach((value, index) => {
+    Object.values(values).forEach((value, index) => {
       Animated.timing(value, {
         toValue: 1,
         duration: 800,
@@ -224,6 +224,53 @@ export default function PerformanceProfilerScreen() {
             </Text>
           </View>
         </View>
+
+        <View
+          style={{
+            backgroundColor: metrics.errorCount > 0 ? C.red + '10' : C.surface,
+            borderRadius: Radius.xl,
+            padding: 16,
+            marginBottom: 20,
+            borderWidth: metrics.errorCount > 0 ? 1 : 0,
+            borderColor: C.red + '40',
+            ...Shadow.md,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <View>
+            <Text style={{ color: metrics.errorCount > 0 ? C.red : C.sub, fontSize: 12, fontFamily: Fonts.medium, marginBottom: 4 }}>
+              System Health & Errors
+            </Text>
+            <Text style={{ color: metrics.errorCount > 0 ? C.red : C.green, fontSize: 20, fontFamily: Fonts.black }}>
+              {metrics.errorCount === 0 ? 'Healthy' : `${metrics.errorCount} Errors Detected`}
+            </Text>
+          </View>
+          {metrics.errorCount > 0 && <Ionicons name="alert-circle" size={32} color={C.red} />}
+          {metrics.errorCount === 0 && <Ionicons name="checkmark-circle" size={32} color={C.green} />}
+        </View>
+
+        {metrics.lastError && (
+          <View
+            style={{
+              backgroundColor: C.red + '10',
+              borderRadius: Radius.xl,
+              padding: 12,
+              marginBottom: 20,
+              borderWidth: 1,
+              borderColor: C.red + '20',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Ionicons name="alert-circle" size={16} color={C.red} />
+              <Text style={{ color: C.red, fontSize: 12, fontFamily: Fonts.bold }}>Last Error Message</Text>
+            </View>
+            <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.regular }}>
+              {metrics.lastError}
+            </Text>
+          </View>
+        )}
 
         <SectionTitle title="Performance Issues" />
         {summary.slowestScreen && (
@@ -687,13 +734,13 @@ export default function PerformanceProfilerScreen() {
             </View>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ color: C.text, fontSize: 24, fontFamily: Fonts.black }}>
-                {(errorStats as any).networkErrors || 0}
+                {errorStats.networkErrors || 0}
               </Text>
               <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>Network</Text>
             </View>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ color: C.text, fontSize: 24, fontFamily: Fonts.black }}>
-                {(errorStats as any).apiErrors || 0}
+                {errorStats.apiErrors || 0}
               </Text>
               <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>API</Text>
             </View>
@@ -801,6 +848,94 @@ export default function PerformanceProfilerScreen() {
     );
   };
 
+  // Render re-render monitoring tab
+  const renderRenders = () => {
+    const reRenders = (metrics as any).reRenderCount || {};
+    const sortedComponents = Object.entries(reRenders).sort((a: any, b: any) => b[1] - a[1]);
+
+    return (
+      <Animated.View style={{ opacity: animatedValues.renders }}>
+        <SectionTitle title="Component Render Monitor" />
+        <View
+          style={{
+            backgroundColor: C.surface,
+            borderRadius: Radius.xl,
+            padding: 20,
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: C.edge,
+            ...Shadow.md,
+          }}
+        >
+          <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, marginBottom: 12 }}>
+            Total Component Renders: {Object.values(reRenders).reduce((a: any, b: any) => a + b, 0)}
+          </Text>
+          <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>
+            High render counts may indicate missing memoization or suboptimal store subscriptions.
+          </Text>
+        </View>
+
+        <SectionTitle title="Component Render Breakdown" />
+        {sortedComponents.length === 0 ? (
+          <View
+            style={{
+              backgroundColor: C.surface,
+              borderRadius: Radius.xl,
+              padding: 20,
+              alignItems: 'center',
+              ...Shadow.md,
+            }}
+          >
+            <Ionicons name="eye-outline" size={40} color={C.sub} />
+            <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black, marginTop: 8 }}>
+              No render data yet
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium, marginTop: 4 }}>
+              Add useRenderCount('ComponentName') to your components
+            </Text>
+          </View>
+        ) : (
+          sortedComponents.map(([name, count]: [string, any]) => (
+            <View
+              key={name}
+              style={{
+                backgroundColor: C.surface,
+                borderRadius: Radius.xl,
+                padding: 16,
+                marginBottom: 12,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: count > 20 ? C.red + '40' : C.edge,
+                ...Shadow.md,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: C.text, fontSize: 16, fontFamily: Fonts.black }}>{name}</Text>
+                <Text style={{ color: C.sub, fontSize: 12, fontFamily: Fonts.medium }}>
+                  {count > 20 ? '🔥 Frequent Re-renders' : 'Stable'}
+                </Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: count > 20 ? C.red : C.primary,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: Radius.full,
+                }}
+              >
+                <Text style={{ color: Colors.white, fontSize: 14, fontFamily: Fonts.black }}>
+                  {count}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
+      </Animated.View>
+    );
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: C.ink }}>
       <TopBar
@@ -838,7 +973,7 @@ export default function PerformanceProfilerScreen() {
           borderBottomColor: C.edge,
         }}
       >
-        {['overview', 'memory', 'cache', 'errors'].map((tab) => (
+        {['overview', 'memory', 'cache', 'errors', 'renders'].map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setSelectedTab(tab)}
@@ -870,6 +1005,7 @@ export default function PerformanceProfilerScreen() {
         {selectedTab === 'memory' && renderMemory()}
         {selectedTab === 'cache' && renderCache()}
         {selectedTab === 'errors' && renderErrors()}
+        {selectedTab === 'renders' && renderRenders()}
       </ScrollView>
     </View>
   );

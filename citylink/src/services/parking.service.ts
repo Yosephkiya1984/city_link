@@ -13,7 +13,7 @@ export async function fetchParkingLots(merchantId?: string) {
 
 export async function createParkingLot(lot: Partial<ParkingLot>) {
   return supaQuery<ParkingLot>((c) =>
-    c.from('parking_lots').insert(lot).select().single()
+    c.from('parking_lots').insert(lot).select().maybeSingle()
   );
 }
 
@@ -140,7 +140,7 @@ export async function updateParkingLot(
       .eq('id', lotId)
       .eq('merchant_id', merchantId)
       .select()
-      .single()
+      .maybeSingle()
   );
 }
 

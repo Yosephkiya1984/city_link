@@ -1,7 +1,33 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import CryptoJS from 'crypto-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { supaQuery } from './supabase';
+
+const setSecureItem = async (key: string, value: string) => {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(key, value);
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+};
+
+const getSecureItem = async (key: string) => {
+  if (Platform.OS === 'web') {
+    return await AsyncStorage.getItem(key);
+  } else {
+    return await SecureStore.getItemAsync(key);
+  }
+};
+
+const deleteSecureItem = async (key: string) => {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem(key);
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+};
 
 const V1_PREFIX = 'cl_wallet_pin_v1_'; // Legacy (Custom SHA-256 loop, Global Salt)
 const V2_PREFIX = 'cl_wallet_pin_v2_'; // Intermediate (Custom SHA-256 loop, Per-user Salt) -- Now deprecated
@@ -77,11 +103,11 @@ function timingSafeEqual(a: string, b: string): boolean {
 export async function hasWalletPin(userId: string): Promise<boolean> {
   if (!userId) return false;
   try {
-    const v3 = await SecureStore.getItemAsync(getV3Key(userId));
+    const v3 = await getSecureItem(getV3Key(userId));
     if (v3) return true;
-    const v2 = await SecureStore.getItemAsync(getV2Key(userId));
+    const v2 = await getSecureItem(getV2Key(userId));
     if (v2) return true;
-    const v1 = await SecureStore.getItemAsync(getV1Key(userId));
+    const v1 = await getSecureItem(getV1Key(userId));
     return !!v1;
   } catch {
     return false;
@@ -97,7 +123,7 @@ async function migrateToV3(userId: string, plain: string): Promise<void> {
     const salt = await generateSalt();
     const hash = await hashWalletPin(plain, userId, salt);
     // Store as hash:salt
-    await SecureStore.setItemAsync(getV3Key(userId), `${hash}:${salt}`);
+    await setSecureItem(getV3Key(userId), `${hash}:${salt}`);
 
     // SYNC TO DB (Bulletproof Hardening)
     await syncPinHashToDB(userId, hash, currentHash);
@@ -112,7 +138,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
   if (!userId || !isValidPinFormat(plain)) return false;
   try {
     // 1. Try V3 (Modern: Native PBKDF2)
-    const storedV3 = await SecureStore.getItemAsync(getV3Key(userId));
+    const storedV3 = await getSecureItem(getV3Key(userId));
     if (storedV3 && storedV3.includes(':')) {
       const [hash, salt] = storedV3.split(':');
       const h = await hashWalletPin(plain, userId, salt);
@@ -120,7 +146,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
 
       if (matched) {
         // If matched but we have a pending sync, try it now
-        const needsSync = await SecureStore.getItemAsync(SYNC_PENDING_KEY);
+        const needsSync = await getSecureItem(SYNC_PENDING_KEY);
         if (needsSync === userId) {
           syncPinHashToDB(userId, hash);
         }
@@ -129,7 +155,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
     }
 
     // 2. Try V2 (Intermediate: Custom Loop + Per-user Salt)
-    const storedV2 = await SecureStore.getItemAsync(getV2Key(userId));
+    const storedV2 = await getSecureItem(getV2Key(userId));
     if (storedV2 && storedV2.includes(':')) {
       const [hash, salt] = storedV2.split(':');
       const h = await hashLegacy(plain, userId, salt);
@@ -140,7 +166,7 @@ export async function verifyWalletPin(userId: string, plain: string): Promise<bo
     }
 
     // 3. Try V1 (Legacy: Custom Loop + Global Salt)
-    const storedV1 = await SecureStore.getItemAsync(getV1Key(userId));
+    const storedV1 = await getSecureItem(getV1Key(userId));
     if (storedV1) {
       const h = await hashLegacy(plain, userId, GLOBAL_SALT_V1);
       if (timingSafeEqual(h, storedV1)) {
@@ -179,14 +205,14 @@ export async function setWalletPin(
     const salt = await generateSalt();
     const hash = await hashWalletPin(plain, userId, salt);
     // Always use V3 for new pins
-    await SecureStore.setItemAsync(getV3Key(userId), `${hash}:${salt}`);
+    await setSecureItem(getV3Key(userId), `${hash}:${salt}`);
 
     // SYNC TO DB (Bulletproof Hardening)
     await syncPinHashToDB(userId, hash, currentHash);
 
     // Cleanup old versions if they existed
-    await SecureStore.deleteItemAsync(getV1Key(userId));
-    await SecureStore.deleteItemAsync(getV2Key(userId));
+    await deleteSecureItem(getV1Key(userId));
+    await deleteSecureItem(getV2Key(userId));
 
     return { ok: true };
   } catch (e: any) {
@@ -198,7 +224,7 @@ export async function setWalletPin(
  * getCurrentPinHash - Returns the hash part of the stored V3 PIN for server-side verification.
  */
 export async function getCurrentPinHash(userId: string): Promise<string | null> {
-  const stored = await SecureStore.getItemAsync(getV3Key(userId));
+  const stored = await getSecureItem(getV3Key(userId));
   if (stored && stored.includes(':')) {
     return stored.split(':')[0];
   }
@@ -222,13 +248,13 @@ async function syncPinHashToDB(userId: string, hash: string, oldHash: string | n
     );
 
     if (res.data?.success) {
-      await SecureStore.deleteItemAsync(SYNC_PENDING_KEY);
+      await deleteSecureItem(SYNC_PENDING_KEY);
     } else {
       throw new Error(res.data?.error || res.error || 'PIN sync failed');
     }
   } catch (err) {
     console.warn('[WalletPin] DB sync failed (offline?), marked for retry.', err);
-    await SecureStore.setItemAsync(SYNC_PENDING_KEY, userId);
+    await setSecureItem(SYNC_PENDING_KEY, userId);
   }
 }
 
@@ -236,7 +262,7 @@ async function syncPinHashToDB(userId: string, hash: string, oldHash: string | n
  * ensureFullSync - Manual trigger to clear pending syncs (e.g. on app start)
  */
 export async function ensureFullSync(userId: string) {
-  const pending = await SecureStore.getItemAsync(SYNC_PENDING_KEY);
+  const pending = await getSecureItem(SYNC_PENDING_KEY);
   if (pending === userId) {
     const hash = await getCurrentPinHash(userId);
     if (hash) await syncPinHashToDB(userId, hash);
@@ -257,14 +283,14 @@ export async function changeWalletPin(
   const newHash = await hashWalletPin(newPlain, userId, salt);
 
   // Update local storage
-  await SecureStore.setItemAsync(getV3Key(userId), `${newHash}:${salt}`);
+  await setSecureItem(getV3Key(userId), `${newHash}:${salt}`);
 
   // Sync to DB with old hash verification
   await syncPinHashToDB(userId, newHash, currentHash);
 
   // Cleanup old versions
-  await SecureStore.deleteItemAsync(getV1Key(userId));
-  await SecureStore.deleteItemAsync(getV2Key(userId));
+  await deleteSecureItem(getV1Key(userId));
+  await deleteSecureItem(getV2Key(userId));
 
   return { ok: true };
 }

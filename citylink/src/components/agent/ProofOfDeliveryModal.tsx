@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView } from 'expo-camera';
+
+// expo-camera is native-only; guard against web
+const CameraModule = Platform.OS !== 'web' ? require('expo-camera') : null;
+const CameraView = CameraModule?.CameraView;
 import { DarkColors as T } from '../../theme';
 
 interface ProofOfDeliveryModalProps {
@@ -19,6 +22,19 @@ export function ProofOfDeliveryModal({
   capturing,
   cameraRef,
 }: ProofOfDeliveryModalProps) {
+  if (Platform.OS === 'web') {
+    return (
+      <Modal visible={visible} animationType="slide" transparent={false}>
+        <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+          <Text style={{ color: '#fff', fontSize: 24, marginBottom: 20 }}>Camera not supported on Web</Text>
+          <TouchableOpacity style={s.closeBtn} onPress={onClose}>
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
       <View style={s.root}>

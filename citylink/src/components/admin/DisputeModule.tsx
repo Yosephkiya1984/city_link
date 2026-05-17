@@ -46,13 +46,25 @@ export interface Dispute {
   evidence_url?: string;
 }
 
+export interface AuditLog {
+  id: string;
+  created_at: string;
+  event_type: string;
+  profiles?: {
+    full_name: string;
+  };
+  details?: {
+    resolution?: string;
+  };
+}
+
 export default function DisputeModule() {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
   const fetchDisputesData = async () => {
@@ -86,7 +98,7 @@ export default function DisputeModule() {
     const foodRaw = foodRes.data || [];
     const citizenIds = [...new Set(foodRaw.map((o) => o.citizen_id).filter((id) => !!id))];
 
-    const profileMap: Record<string, any> = {};
+    const profileMap: Record<string, { full_name: string; phone: string }> = {};
     if (citizenIds.length > 0) {
       const { data: profiles } = await supaQuery((c) =>
         c.from('profiles').select('id, full_name, phone').in('id', citizenIds)
@@ -192,7 +204,7 @@ export default function DisputeModule() {
     let res;
     if (dispute.type === 'MARKETPLACE') {
       // p_user_id is omitted (undefined → NULL) so the RPC defaults to auth.uid() and is_admin() grants access
-      if (action === 'REFUND') res = await rpcCancelAndRefundOrder(dispute.id, undefined as any, 'Resolved by Admin');
+      if (action === 'REFUND') res = await rpcCancelAndRefundOrder(dispute.id, undefined as unknown as string, 'Resolved by Admin');
       else {
         if (!dispute.escrow_id) {
           Alert.alert('Error', 'No escrow lock found. Manual intervention required.');
@@ -241,7 +253,7 @@ export default function DisputeModule() {
         <View style={styles.cardHeader}>
           <View style={styles.typeBox}>
             <MaterialCommunityIcons
-              name={(item.type === 'MARKETPLACE' ? 'shopping-outline' : 'food-outline') as any}
+              name={(item.type === 'MARKETPLACE' ? 'shopping-outline' : 'food-outline') as React.ComponentProps<typeof MaterialCommunityIcons>['name']}
               size={12}
               color={item.type === 'MARKETPLACE' ? theme.primary : theme.secondary}
             />

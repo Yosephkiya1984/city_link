@@ -21,11 +21,11 @@ import { Typography, Surface } from '../index';
 interface FoodManagementModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (product: any) => void;
-  editingProduct: any | null;
+  onSave: (product: Record<string, unknown>) => void;
+  editingProduct: Record<string, unknown> | null;
   uploading: boolean;
   pickImage: () => void;
-  selectedImage: any | null;
+  selectedImage: { uri: string } | null;
 }
 
 export function FoodManagementModal({
@@ -54,19 +54,20 @@ export function FoodManagementModal({
 
   useEffect(() => {
     if (editingProduct) {
+      const ep = editingProduct as any;
       setForm({
-        name: editingProduct.name || editingProduct.title || '',
-        price: String(editingProduct.price || ''),
-        category: editingProduct.category || 'Main Course',
-        stock: String(editingProduct.stock || '99'),
-        description: editingProduct.description || '',
-        prep_time: String(editingProduct.prep_time || '15'),
-        is_spicy: !!editingProduct.is_spicy,
-        spice_level: editingProduct.spice_level || 0,
-        dietary: editingProduct.dietary || [],
-        ingredients: (editingProduct.ingredients || []).join(', '),
-        variations: editingProduct.variations || [],
-        extras: editingProduct.extras || [],
+        name: ep.name || ep.title || '',
+        price: String(ep.price || ''),
+        category: ep.category || 'Main Course',
+        stock: String(ep.stock || '99'),
+        description: ep.description || '',
+        prep_time: String(ep.prep_time || '15'),
+        is_spicy: !!ep.is_spicy,
+        spice_level: ep.spice_level || 0,
+        dietary: ep.dietary || [],
+        ingredients: (ep.ingredients || []).join(', '),
+        variations: ep.variations || [],
+        extras: ep.extras || [],
       });
     } else {
       setForm({
@@ -141,7 +142,7 @@ export function FoodManagementModal({
             <TouchableOpacity style={styles.imageBox} onPress={pickImage}>
               {selectedImage || editingProduct?.image_url ? (
                 <Image 
-                  source={{ uri: selectedImage?.uri || editingProduct?.image_url }} 
+                  source={{ uri: selectedImage?.uri || (editingProduct as any)?.image_url }} 
                   style={styles.fullImage} 
                 />
               ) : (

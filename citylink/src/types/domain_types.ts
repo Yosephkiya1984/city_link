@@ -7,8 +7,6 @@ export type UserRole =
   | 'citizen'
   | 'merchant'
   | 'delivery_agent'
-  | 'station'
-  | 'inspector'
   | 'admin'
   | 'minister';
 
@@ -221,6 +219,27 @@ export interface ChatMessage {
   timestamp: string;
   /** Optional structured action card surfaced by the AI concierge */
   action?: { type: string; data: any };
+}
+
+export interface ChatThread {
+  thread_id: string;
+  user_a_id: string;
+  user_b_id: string;
+  last_msg: string;
+  last_ts: string;
+  created_at: string;
+  unread_a: number;
+  unread_b: number;
+  user_a?: { id: string; full_name?: string; business_name?: string };
+  user_b?: { id: string; full_name?: string; business_name?: string };
+}
+
+export interface P2PChatMessage {
+  id: string;
+  thread_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
 }
 
 export interface Toast {
@@ -461,7 +480,7 @@ export interface MarketplaceOrder {
   merchant_confirmed_pickup?: boolean;
   agent_confirmed_pickup?: boolean;
   type?: 'product' | 'food';
-  items?: any[];
+  items?: FoodOrderItem[] | Product[];
   items_count?: number;
   created_at: string;
   updated_at: string;
@@ -608,6 +627,62 @@ export interface PropertyEnquiry {
   status: 'NEW' | 'CONTACTED' | 'CONVERTED' | 'LOST';
   created_at: string;
 }
+  
+export interface StaffProfile {
+  id: string;
+  user_id: string;
+  merchant_id: string;
+  role: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  merchant?: {
+    business_name?: string;
+    merchant_type?: string;
+    merchant_details?: {
+      merchant_type?: string;
+    };
+  };
+  created_at: string;
+}
 
 // MED-6 FIX: Empty interface anti-pattern replaced with type alias
 export type EkubGroup = EkubCircle;
+
+export interface TableModel {
+  id: string;
+  name: string;
+  status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED';
+  capacity?: number;
+}
+
+// Aliases for dashboard refactoring
+export type Table = TableModel;
+export type FoodProduct = MenuItem;
+export type WalletTransaction = Transaction;
+
+export interface MerchantSalesHistory {
+  curve: number[];
+  raw: any[];
+  labels: string[];
+}
+export interface MarketplaceInventoryItem {
+  id: string;
+  merchant_id: string;
+  item_name: string;
+  quantity: number;
+  min_stock?: number;
+  unit?: string;
+  status?: string;
+  created_at?: string;
+}
+
+export interface WaitlistEntry {
+  id: string;
+  merchant_id?: string;
+  customer_name: string;
+  phone_number: string;
+  party_size: number;
+  status: 'WAITING' | 'NOTIFIED' | 'SEATED' | 'CANCELLED';
+  estimated_wait: number;
+  created_at: string;
+  priority?: boolean;
+}

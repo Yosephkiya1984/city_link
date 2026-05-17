@@ -115,9 +115,10 @@ class OfflineSyncManager {
 
           case 'MARKETPLACE_SHIP': {
             const { orderId, merchantId, lat, lng } = action.payload;
-            await client.rpc('dispatch_marketplace_order', {
+            await client.rpc('dispatch_order', {
               p_order_id: orderId,
               p_merchant_id: merchantId,
+              p_order_type: 'MARKETPLACE',
               p_lat: lat,
               p_lng: lng,
             });

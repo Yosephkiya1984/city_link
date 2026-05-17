@@ -1,19 +1,6 @@
 import { hasSupabase, supaQuery } from './supabase';
 import { uid } from '../utils';
-import { User, ChatMessage } from '../types';
-
-export interface ChatThread {
-  thread_id: string;
-  user_a_id: string;
-  user_b_id: string;
-  last_msg: string;
-  last_ts: string;
-  created_at: string;
-  unread_a: number;
-  unread_b: number;
-  user_a?: Partial<User> | Partial<User>[];
-  user_b?: Partial<User> | Partial<User>[];
-}
+import { User, ChatMessage, ChatThread, P2PChatMessage } from '../types';
 
 /**
  * fetchChatThreads — fetches all chat threads for a specific user.
@@ -46,8 +33,8 @@ export const fetchChatThreads = async (userId: string) => {
  * fetchChatMessages — fetches messages within a thread.
  */
 export const fetchChatMessages = async (threadId: string) => {
-  if (!hasSupabase()) return { data: [] as ChatMessage[], error: null };
-  return supaQuery<ChatMessage[]>((client) =>
+  if (!hasSupabase()) return { data: [] as P2PChatMessage[], error: null };
+  return supaQuery<P2PChatMessage[]>((client) =>
     client
       .from('chat_messages')
       .select('*')
@@ -74,7 +61,7 @@ export const createChatThread = async (
   };
 
   return supaQuery<ChatThread>((client) =>
-    client.from('message_threads').insert(threadData).select().single()
+    client.from('message_threads').insert(threadData).select().maybeSingle()
   );
 };
 
@@ -82,9 +69,9 @@ export const createChatThread = async (
  * createChatMessage — sends a message in a thread.
  */
 export const createChatMessage = async (
-  message: Partial<ChatMessage> & { thread_id: string; user_id: string; content: string }
+  message: Partial<P2PChatMessage> & { thread_id: string; user_id: string; content: string }
 ) => {
-  if (!hasSupabase()) return { data: message as ChatMessage, error: null };
+  if (!hasSupabase()) return { data: message as P2PChatMessage, error: null };
   const cleanMsg = {
     id: message.id || uid(),
     thread_id: message.thread_id,
@@ -93,8 +80,8 @@ export const createChatMessage = async (
     role: message.role || 'user',
     created_at: new Date().toISOString(),
   };
-  return supaQuery<ChatMessage>((client) =>
-    client.from('chat_messages').insert(cleanMsg).select().single()
+  return supaQuery<P2PChatMessage>((client) =>
+    client.from('chat_messages').insert(cleanMsg).select().maybeSingle()
   );
 };
 

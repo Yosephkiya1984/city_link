@@ -18,7 +18,7 @@ interface ProductManagementModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: () => void;
-  editingProduct: any | null;
+  editingProduct: Record<string, unknown> | null;
   newProduct: {
     name: string;
     price: string;
@@ -27,8 +27,15 @@ interface ProductManagementModalProps {
     description: string;
     condition: string;
   };
-  setNewProduct: (product: any) => void;
-  selectedImage: any | null;
+  setNewProduct: (product: {
+    name: string;
+    price: string;
+    category: string;
+    stock: string;
+    description: string;
+    condition: string;
+  }) => void;
+  selectedImage: { uri: string } | null;
   pickImage: () => void;
   removeImage: () => void;
   uploading: boolean;

@@ -6,16 +6,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import { MotiView } from 'moti';
 import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 
-interface WaitlistEntry {
-  id: string;
-  customer_name: string;
-  phone_number: string;
-  party_size: number;
-  status: 'WAITING' | 'NOTIFIED' | 'SEATED' | 'CANCELLED';
-  estimated_wait: number;
-  created_at: string;
-  priority?: boolean;
-}
+import { WaitlistEntry } from '../../../types/domain_types';
 
 export function HospitalityWaitlistTab({ 
   waitlist, 

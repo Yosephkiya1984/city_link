@@ -5,6 +5,16 @@ import { MotiView } from 'moti';
 import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
 import { Typography, Surface, SectionTitle } from '../../../components';
 import { fmtETB } from '../../../utils';
+import { Product, MarketplaceOrder, MerchantSalesHistory } from '../../../types/domain_types';
+
+export interface DashboardOverviewTabProps {
+  orders: MarketplaceOrder[];
+  inventory: Product[];
+  salesHistory: MerchantSalesHistory;
+  showToast: (msg: string, type: 'info' | 'success' | 'warning' | 'error') => void;
+  styles: any;
+  t: (key: string) => string;
+}
 
 const { width } = Dimensions.get('window');
 
@@ -15,22 +25,23 @@ export function DashboardOverviewTab({
   showToast,
   styles,
   t,
-}: any) {
+}: DashboardOverviewTabProps) {
   const { totalRev, totalCommission, netRevenue, activeOrd, completedOrd, lowStockCount } = React.useMemo(() => {
     const revenueStatuses = ['PAID', 'SHIPPED', 'COMPLETED'];
     const activeStatuses = ['PAID', 'SHIPPED', 'DISPATCHING', 'AGENT_ASSIGNED', 'IN_TRANSIT', 'AWAITING_PIN'];
     
     const rev = orders
-      .filter((o: any) => revenueStatuses.includes(o.status))
-      .reduce((acc: any, o: any) => acc + (Number(o.total || o.total_amount) || 0), 0);
+      .filter((o) => revenueStatuses.includes(o.status))
+      .reduce((acc, o) => acc + (Number(o.total || o.total) || 0), 0);
 
     const comm = orders
-      .filter((o: any) => revenueStatuses.includes(o.status))
-      .reduce((acc: any, o: any) => acc + (Number(o.commission_amount) || 0), 0);
+      .filter((o) => revenueStatuses.includes(o.status))
+      // @ts-ignore commission_amount not in base MarketplaceOrder but might be in record
+      .reduce((acc, o) => acc + (Number(o.commission_amount) || 0), 0);
 
-    const active = orders.filter((o: any) => activeStatuses.includes(o.status)).length;
-    const completed = orders.filter((o: any) => o.status === 'COMPLETED').length;
-    const lowStock = inventory.filter((p: any) => (p.stock || p.quantity) <= 5).length;
+    const active = orders.filter((o) => activeStatuses.includes(o.status)).length;
+    const completed = orders.filter((o) => o.status === 'COMPLETED').length;
+    const lowStock = inventory.filter((p) => (p.stock || 0) <= 5).length;
 
     return {
       totalRev: rev,
@@ -157,7 +168,7 @@ export function DashboardOverviewTab({
           
           <View style={[styles.chartGraphArea, { height: 160, marginTop: 24 }]}>
             <View style={styles.chartBars}>
-              {salesCurve.map((val: any, i: any) => {
+              {salesCurve.map((val, i) => {
                 const dateStr = labels[i] || '';
                 const dayLabel = dateStr.length > 3 ? new Date(dateStr).toLocaleDateString([], { weekday: 'short' }) : dateStr;
                 
@@ -197,7 +208,7 @@ export function DashboardOverviewTab({
 
       <SectionTitle title="Top Selling Products" />
       <View style={{ gap: 12 }}>
-        {topSelling.map((item: any, i: any) => (
+        {topSelling.map((item, i) => (
           <MotiView key={item.id || i} from={{ opacity: 0, translateX: -10 }} animate={{ opacity: 1, translateX: 0 }} transition={{ delay: i * 100 + 800 }}>
             <Surface variant="lift" style={styles.topSellingItem}>
               {item.image_url && <Image source={{ uri: item.image_url }} style={styles.tsImage} />}

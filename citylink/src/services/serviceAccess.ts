@@ -16,7 +16,7 @@ export function useServiceAccess() {
       if (!currentUser) return false;
 
       // 2. Role-based feature gating
-      const isGov = ['admin', 'minister', 'inspector', 'station'].includes(currentUser.role || '');
+      const isGov = ['admin', 'minister'].includes(currentUser.role || '');
       const isMerchant = currentUser.role === 'merchant';
       const isAgent = currentUser.role === 'delivery_agent';
 

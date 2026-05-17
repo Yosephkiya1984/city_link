@@ -165,7 +165,7 @@ export default function AdminSidebar({
                 ]}
               >
                 <MaterialCommunityIcons
-                  name={item.mIcon as any}
+                  name={item.mIcon as React.ComponentProps<typeof MaterialCommunityIcons>['name']}
                   size={isActive ? 20 : 22}
                   color={isActive ? theme.ink : theme.sub}
                 />

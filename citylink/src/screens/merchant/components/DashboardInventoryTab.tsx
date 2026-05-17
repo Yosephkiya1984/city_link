@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
+import { useRenderCount } from '../../../utils/debug/performanceMonitor';
 import { View, Text, TouchableOpacity, TextInput, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
@@ -7,10 +8,33 @@ import { Typography, GlassCard, GlassView } from '../../../components';
 import { fmtETB } from '../../../utils';
 import { useTheme } from '../../../hooks/useTheme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Product } from '../../../types/domain_types';
+
+export interface DashboardInventoryTabProps {
+  inventory: Product[];
+  inventorySearch: string;
+  setInventorySearch?: (val: string) => void;
+  setShowProductModal?: (val: boolean) => void;
+  handleEditProduct?: (product: Product) => void;
+  handleDeleteProduct?: (id: string) => void;
+  onEditProduct?: (product: Product) => void;
+  onDeleteProduct?: (id: string) => void;
+  onAddProduct?: () => void;
+  loading?: boolean;
+  t: (key: string) => string;
+}
+
+export interface InventoryItemProps {
+  item: Product;
+  index: number;
+  C: any;
+  onEdit: (product: Product) => void;
+  onDelete: (id: string) => void;
+}
 
 // Memoized Item Component for peak performance
-const InventoryItem = React.memo(({ item, index, C, onEdit, onDelete }: any) => {
-  const stock = item.stock ?? item.quantity ?? 0;
+const InventoryItem = React.memo(({ item, index, C, onEdit, onDelete }: InventoryItemProps) => {
+  const stock = item.stock ?? (item as any).quantity ?? 0;
   const isLow = stock < 10;
   const itemImage = item.image_url || item.image;
 
@@ -40,7 +64,7 @@ const InventoryItem = React.memo(({ item, index, C, onEdit, onDelete }: any) => 
           <View>
             <Typography variant="h3" numberOfLines={1}>{item.name}</Typography>
             <Typography variant="hint" color="sub" style={{ fontSize: 11, marginTop: 2 }}>
-              {item.category || 'Uncategorized'} • {item.sku || 'N/A'}
+              {item.category || 'Uncategorized'} • {(item as any).sku || 'N/A'}
             </Typography>
           </View>
 
@@ -67,7 +91,7 @@ const InventoryItem = React.memo(({ item, index, C, onEdit, onDelete }: any) => 
   );
 });
 
-export function DashboardInventoryTab({
+export const DashboardInventoryTab = memo(function DashboardInventoryTab({
   inventory = [],
   inventorySearch = '',
   setInventorySearch,
@@ -79,7 +103,8 @@ export function DashboardInventoryTab({
   onAddProduct,
   loading = false,
   t,
-}: any) {
+}: DashboardInventoryTabProps) {
+  useRenderCount('DashboardInventoryTab');
   const C = useTheme();
   const [localSearch, setLocalSearch] = React.useState('');
   
@@ -87,14 +112,15 @@ export function DashboardInventoryTab({
   const setSearch = setInventorySearch || setLocalSearch;
 
   const filtered = useMemo(() => {
-    return inventory.filter((p: any) => 
+    return inventory.filter((p) => 
       p.name?.toLowerCase().includes(search.toLowerCase()) || 
+      // @ts-ignore sku not in base Product but might be in record
       p.sku?.toLowerCase().includes(search.toLowerCase())
     );
   }, [inventory, search]);
 
   const lowStock = useMemo(() => 
-    inventory.filter((p: any) => (p.stock || p.quantity) < 10).length,
+    inventory.filter((p) => (p.stock || 0) < 10).length,
     [inventory]
   );
 
@@ -105,7 +131,7 @@ export function DashboardInventoryTab({
     return (
       <View style={{ flex: 1, gap: 12 }}>
         {[1, 2, 3, 4].map(i => (
-          <GlassCard key={i} style={{ height: 100, opacity: 0.5 }} />
+          <GlassCard key={i} style={{ height: 100, opacity: 0.5 }}><View /></GlassCard>
         ))}
       </View>
     );
@@ -155,8 +181,8 @@ export function DashboardInventoryTab({
             item={item} 
             index={index} 
             C={C} 
-            onEdit={onEdit} 
-            onDelete={onDelete} 
+            onEdit={onEdit || (() => {})} 
+            onDelete={onDelete || (() => {})} 
           />
         )}
         keyExtractor={(item) => item.id}
@@ -175,7 +201,7 @@ export function DashboardInventoryTab({
       />
     </View>
   );
-}
+});
 
 const localStyles = StyleSheet.create({
   searchContainer: { flexDirection: 'row', gap: 12, marginBottom: 20 },

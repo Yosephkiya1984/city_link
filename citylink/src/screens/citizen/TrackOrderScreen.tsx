@@ -11,7 +11,14 @@ import {
   Image,
   Animated as RNAnimated,
 } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { MotiView } from 'moti';
+
+// react-native-maps is native-only; guard against web
+const MapsAvailable = Platform.OS !== 'web';
+const MapsModule = MapsAvailable ? require('react-native-maps') : null;
+// Handle different export styles for MapView
+const MapView = MapsModule?.default || MapsModule;
+const { Marker, PROVIDER_GOOGLE, Polyline } = MapsModule || {};
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
@@ -24,6 +31,7 @@ import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Fonts, FontSize, Radius, Shadow } from '../../theme';
 import { subscribeToOrderStatus, calculateETA } from '../../services/delivery.service';
 import { unsubscribe } from '../../services/supabase';
+import { LocationService } from '../../services/location.service';
 import { t } from '../../utils';
 
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -43,6 +51,7 @@ export default function TrackOrderScreen() {
   const [loading, setLoading] = useState(!route.params?.order);
   const [eta, setEta] = useState<any>(null);
   const [agentLocation, setAgentLocation] = useState<any>(null);
+  const [routeCoords, setRouteCoords] = useState<{latitude: number; longitude: number}[]>([]);
 
   const mapRef = useRef(null);
   const markerAnim = useRef(new RNAnimated.Value(0)).current;
@@ -62,7 +71,7 @@ export default function TrackOrderScreen() {
   // Periodically fetch agent location
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (order?.agent_id && (order.status === 'IN_TRANSIT' || order.status === 'AGENT_ASSIGNED')) {
+    if (order?.agent_id && (order.status === 'IN_TRANSIT' || order.status === 'AGENT_ASSIGNED' || order.status === 'SHIPPED')) {
       const fetchLoc = async () => {
         const { getClient } = await import('../../services/supabase');
         const client = getClient();
@@ -71,7 +80,7 @@ export default function TrackOrderScreen() {
           .from('delivery_agents')
           .select('current_lat, current_lng')
           .eq('id', order.agent_id)
-          .single();
+          .maybeSingle();
 
         if (data?.current_lat && data?.current_lng) {
           const newLoc = { latitude: data.current_lat, longitude: data.current_lng };
@@ -87,7 +96,19 @@ export default function TrackOrderScreen() {
       interval = setInterval(fetchLoc, 15000);
     }
     return () => clearInterval(interval);
-  }, [order?.agent_id, order?.status]);
+  }, [order?.status, order?.agent_id]);
+
+  // -- Routing Logic (Uber-style) ----------------------------------------------------------
+  useEffect(() => {
+    if (agentLocation && order?.destination_lat && order?.destination_lng) {
+      LocationService.getRoute(
+        { lat: agentLocation.latitude, lon: agentLocation.longitude },
+        { lat: order.destination_lat, lon: order.destination_lng }
+      ).then(coords => {
+        if (coords.length > 0) setRouteCoords(coords);
+      });
+    }
+  }, [agentLocation?.latitude, agentLocation?.longitude, order?.destination_lat, order?.destination_lng]);
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -151,40 +172,69 @@ export default function TrackOrderScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        customMapStyle={isDark ? mapStyleDark : []}
-        initialRegion={{
-          latitude: agentLocation?.latitude || ADDIS_LAT,
-          longitude: agentLocation?.longitude || ADDIS_LNG,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-      >
-        {agentLocation && (
-          <Marker coordinate={agentLocation} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.agentMarker}>
-              <View style={[styles.agentMarkerInner, { backgroundColor: C.primary }]}>
-                <Ionicons name="bicycle" size={18} color={isDark ? '#000' : '#fff'} />
-              </View>
-              <View style={[styles.pulse, { borderColor: C.primary }]} />
-            </View>
-          </Marker>
-        )}
-
-        <Marker
-          coordinate={{
-            latitude: order?.destination_lat || ADDIS_LAT + 0.01,
-            longitude: order?.destination_lng || ADDIS_LNG + 0.01,
+      {MapView && (
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          customMapStyle={isDark ? mapStyleDark : []}
+          initialRegion={{
+            latitude: agentLocation?.latitude || ADDIS_LAT,
+            longitude: agentLocation?.longitude || ADDIS_LNG,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
           }}
         >
-          <View style={styles.destMarker}>
-            <Ionicons name="location" size={30} color={C.red} />
-          </View>
-        </Marker>
-      </MapView>
+          {routeCoords.length > 1 && (
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor={C.primary}
+              strokeWidth={4}
+              lineDashPattern={[1]}
+            />
+          )}
+
+          {agentLocation && (
+            <Marker
+              coordinate={{
+                latitude: agentLocation.latitude,
+                longitude: agentLocation.longitude,
+              }}
+              flat
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={styles.agentMarker}>
+                <MotiView
+                  from={{ scale: 1, opacity: 0.5 }}
+                  animate={{ scale: 2, opacity: 0 }}
+                  transition={{ loop: true, duration: 2000, type: 'timing' }}
+                  style={[styles.pulse, { borderColor: C.primary }]}
+                />
+                <View style={[styles.agentMarkerInner, { backgroundColor: C.surface }]}>
+                  <Ionicons 
+                    name={order?.vehicle_type === 'CAR' ? "car-sport" : "bicycle"} 
+                    size={22} 
+                    color={C.primary} 
+                  />
+                </View>
+              </View>
+            </Marker>
+          )}
+
+          {order?.destination_lat && order?.destination_lng && (
+            <Marker
+              coordinate={{
+                latitude: order.destination_lat,
+                longitude: order.destination_lng,
+              }}
+            >
+              <View style={styles.destMarker}>
+                <Ionicons name="location" size={30} color={C.red} />
+              </View>
+            </Marker>
+          )}
+        </MapView>
+      )}
 
       <View style={styles.overlay}>
         <BlurView
@@ -259,6 +309,17 @@ export default function TrackOrderScreen() {
             />
           </View>
 
+          {order?.delivery_pin && (order.status === 'SHIPPED' || order.status === 'AWAITING_PIN') && (
+            <View style={[styles.pinBox, { backgroundColor: C.primaryL, borderColor: C.primary }]}>
+              <View>
+                <Text style={[styles.pinLabel, { color: C.primary }]}>{t('delivery_pin_label')}</Text>
+                <Text style={[styles.pinValue, { color: C.text }]}>{order.delivery_pin}</Text>
+                <Text style={[styles.pinHint, { color: C.sub }]}>{t('delivery_pin_hint')}</Text>
+              </View>
+              <Ionicons name="shield-checkmark" size={32} color={C.primary} opacity={0.3} />
+            </View>
+          )}
+
           {order?.delivery_proof_url && (
             <View style={styles.podContainer}>
               <View style={styles.podHeader}>
@@ -288,12 +349,16 @@ export default function TrackOrderScreen() {
 }
 
 const mapStyleDark = [
-  { elementType: 'geometry', stylers: [{ color: '#212121' }] },
+  { elementType: 'geometry', stylers: [{ color: '#121212' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#212121' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#121212' }] },
   { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#757575' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#3d3d3d' }] },
   { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#2c2c2c' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a1a1a' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3c3c3c' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2f3948' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#000000' }] },
 ];
 
@@ -414,4 +479,16 @@ const styles = StyleSheet.create({
   },
   podLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
   podImage: { width: '100%', height: 120 },
+  pinBox: {
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pinLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  pinValue: { fontSize: 32, fontWeight: '900', letterSpacing: 4, marginVertical: 4 },
+  pinHint: { fontSize: 11, fontWeight: '600', opacity: 0.8 },
 });

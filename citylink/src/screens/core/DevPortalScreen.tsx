@@ -9,9 +9,11 @@ import { useSystemStore } from '../../store/SystemStore';
 import { Colors, LightColors, Radius, Spacing, Fonts, Shadow } from '../../theme';
 import { CButton, SectionTitle } from '../../components';
 import { fmtETB } from '../../utils';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation';
 
 export default function DevPortalScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? Colors : LightColors;
 
@@ -22,7 +24,7 @@ export default function DevPortalScreen() {
 
   const [activeTab, setActiveTab] = useState<'nav' | 'mocks' | 'state'>('nav');
 
-  const citizenScreens = [
+  const citizenScreens: { name: string; route: keyof RootStackParamList; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
     { name: 'Home', route: 'CitizenRoot', icon: 'home-outline' },
     { name: 'Wallet', route: 'Wallet', icon: 'wallet-outline' },
     { name: 'Marketplace', route: 'Marketplace', icon: 'cart-outline' },
@@ -33,7 +35,7 @@ export default function DevPortalScreen() {
     { name: 'Delala', route: 'Delala', icon: 'business-outline' },
   ];
 
-  const merchantScreens = [
+  const merchantScreens: { name: string; route: keyof RootStackParamList; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
     { name: 'Merchant Portal', route: 'MerchantPortal', icon: 'briefcase-outline' },
     { name: 'Shop Dashboard', route: 'ShopDashboard', icon: 'storefront-outline' },
     { name: 'Restaurant', route: 'RestaurantDashboard', icon: 'pizza-outline' },
@@ -42,12 +44,12 @@ export default function DevPortalScreen() {
     { name: 'Ekub Admin', route: 'EkubDashboard', icon: 'ribbon-outline' },
   ];
 
-  const agentScreens = [
+  const agentScreens: { name: string; route: keyof RootStackParamList; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
     { name: 'Agent Dashboard', route: 'AgentDashboard', icon: 'bicycle-outline' },
     { name: 'Become Agent', route: 'BecomeDeliveryAgent', icon: 'person-add-outline' },
   ];
 
-  const adminScreens = [
+  const adminScreens: { name: string; route: keyof RootStackParamList; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
     { name: 'Admin Panel', route: 'AdminDashboard', icon: 'shield-checkmark-outline' },
     { name: 'Performance', route: 'PerformanceProfiler', icon: 'speedometer-outline' },
   ];
@@ -60,9 +62,9 @@ export default function DevPortalScreen() {
           <TouchableOpacity
             key={item.name}
             style={[styles.gridItem, { backgroundColor: C.surface, borderColor: C.edge }]}
-            onPress={() => navigation.navigate(item.route)}
+            onPress={() => navigation.navigate(item.route as any)}
           >
-            <Ionicons name={item.icon as any} size={24} color={C.primary} />
+            <Ionicons name={item.icon} size={24} color={C.primary} />
             <Text style={[styles.gridText, { color: C.text }]}>{item.name}</Text>
           </TouchableOpacity>
         ))}
@@ -74,9 +76,9 @@ export default function DevPortalScreen() {
           <TouchableOpacity
             key={item.name}
             style={[styles.gridItem, { backgroundColor: C.surface, borderColor: C.edge }]}
-            onPress={() => navigation.navigate(item.route)}
+            onPress={() => navigation.navigate(item.route as any)}
           >
-            <Ionicons name={item.icon as any} size={24} color={C.secondary} />
+            <Ionicons name={item.icon} size={24} color={C.secondary} />
             <Text style={[styles.gridText, { color: C.text }]}>{item.name}</Text>
           </TouchableOpacity>
         ))}
@@ -88,9 +90,9 @@ export default function DevPortalScreen() {
           <TouchableOpacity
             key={item.name}
             style={[styles.gridItem, { backgroundColor: C.surface, borderColor: C.edge }]}
-            onPress={() => navigation.navigate(item.route)}
+            onPress={() => navigation.navigate(item.route as any)}
           >
-            <Ionicons name={item.icon as any} size={24} color={Colors.green} />
+            <Ionicons name={item.icon} size={24} color={Colors.green} />
             <Text style={[styles.gridText, { color: C.text }]}>{item.name}</Text>
           </TouchableOpacity>
         ))}
@@ -102,9 +104,9 @@ export default function DevPortalScreen() {
           <TouchableOpacity
             key={item.name}
             style={[styles.gridItem, { backgroundColor: C.surface, borderColor: C.edge }]}
-            onPress={() => navigation.navigate(item.route)}
+            onPress={() => navigation.navigate(item.route as any)}
           >
-            <Ionicons name={item.icon as any} size={24} color={Colors.red} />
+            <Ionicons name={item.icon} size={24} color={Colors.red} />
             <Text style={[styles.gridText, { color: C.text }]}>{item.name}</Text>
           </TouchableOpacity>
         ))}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../../store/AuthStore';
@@ -27,10 +27,14 @@ import { markOrderPickedUp, retryDispatch } from '../../../services/delivery.ser
 import { HospitalityService } from '../../../services/hospitality.service';
 import { uid } from '../../../utils';
 import { OfflineSyncService } from '../../../services/OfflineSyncService';
+import { RestaurantData, MergedFoodOrder } from './useRestaurantData';
+import { FoodProduct, Restaurant as RestaurantProfile } from '../../../types/domain_types';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../navigation';
 
-export function useRestaurantActions(data: any, isWhitelisted: boolean = false) {
+export function useRestaurantActions(data: RestaurantData, isWhitelisted: boolean = false) {
   const { loadData, setMenu, menu } = data;
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const currentUser = useAuthStore((s) => s.currentUser);
   const showToast = useSystemStore((s) => s.showToast);
   const resetAuth = useAuthStore((s) => s.reset);
@@ -46,10 +50,10 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
   const [bannerImage, setBannerImage] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
-  const [restaurantProfile, setRestaurantProfile] = useState<any>(null);
-  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [restaurantProfile, setRestaurantProfile] = useState<RestaurantProfile | null>(null);
+  const [editingProduct, setEditingProduct] = useState<FoodProduct | null>(null);
 
-  const onUpdateStatus = async (orderId: string, newStatus: string) => {
+  const onUpdateStatus = useCallback(async (orderId: string, newStatus: string) => {
     if (!currentUser) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActionLoading(true);
@@ -70,7 +74,7 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
         }
         return;
       } else if (newStatus === 'COMPLETED') {
-        const targetOrder = data.orders.find((o: any) => o.id === orderId);
+        const targetOrder = data.orders.find((o: MergedFoodOrder) => o.id === orderId);
         const result = await completeFoodOrder(orderId, currentUser.id, targetOrder?.pickup_pin);
         if (result.ok) {
           showToast(`Order handed over & payout received!`, 'success');
@@ -81,7 +85,7 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       } else {
         // 🔄 SMART STATUS REDIRECT: If marking a DELIVERY order as READY, trigger DISPATCHING flow
         if (newStatus === 'READY') {
-          const targetOrder = data.orders.find((o: any) => o.id === orderId);
+          const targetOrder = data.orders.find((o: MergedFoodOrder) => o.id === orderId);
           if (!targetOrder) return;
 
           // 🚀 HANDOVER CHECK: If agent is already assigned, READY means handover (Confirm Pickup)
@@ -140,14 +144,15 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
         }
       }
       loadData();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to update order', 'error');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to update order';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, showToast, loadData, data.orders]);
 
-  const onFireReservation = async (reservationId: string) => {
+  const onFireReservation = useCallback(async (reservationId: string) => {
     if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setActionLoading(true);
@@ -155,7 +160,7 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       await HospitalityService.fireReservation(reservationId);
       showToast('🔥 Order sent to kitchen!', 'success');
       loadData();
-    } catch (error: any) {
+    } catch (error) {
       // Offline fallback
       OfflineSyncService.addAction({
         id: reservationId,
@@ -168,9 +173,9 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onSettlePayment = async (orderId: string, method: string = 'CASH') => {
+  const onSettlePayment = useCallback(async (orderId: string, method: string = 'CASH') => {
     if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setActionLoading(true);
@@ -182,20 +187,21 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       } else {
         showToast(res.error || 'Failed to settle payment', 'error');
       }
-    } catch (e: any) {
-      showToast(e.message || 'Failed to settle payment', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to settle payment';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onRejectOrder = async (orderId: string) => {
+  const onRejectOrder = useCallback(async (orderId: string) => {
     if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setActionLoading(true);
     try {
       // 1. Check if it's a reservation first
-      const isReservation = data.reservations.some((r: any) => r.id === orderId);
+      const isReservation = data.reservations.some((r) => r.id === orderId);
       
       if (isReservation) {
         await HospitalityService.cancelReservation(orderId);
@@ -205,17 +211,18 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
         showToast('Order rejected & Citizen refunded', 'info');
       }
       loadData();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to reject order', 'error');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to reject order';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast, data.reservations]);
 
   const isVerified =
     isWhitelisted || (currentUser?.merchant_status === 'APPROVED' && !!currentUser?.tin);
 
-  const onAddMenuItem = async (form: any) => {
+  const onAddMenuItem = useCallback(async (form: { name: string, price: string, category: string, description?: string, available: boolean }) => {
     if (!currentUser?.id) return;
     if (!isVerified) {
       showToast('Verification required to list menu items', 'error');
@@ -252,9 +259,9 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       console.error('[Add Dish Error Payload]:', result.error);
       showToast(result.error || 'Failed to add item', 'error');
     }
-  };
+  }, [currentUser, isVerified, selectedImage, showToast, loadData]);
 
-  const onPickImage = async () => {
+  const onPickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
@@ -266,47 +273,51 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     if (!result.canceled) {
       setSelectedImage(result.assets[0]);
     }
-  };
+  }, []);
 
-  const onToggleAvailability = async (item: any) => {
+  const onToggleAvailability = useCallback(async (item: FoodProduct) => {
     if (!currentUser?.id) return;
     const newAvailable = !item.available;
     const result = await updateMenuItem(currentUser.id, { ...item, available: newAvailable });
     if (!result.error) {
-      setMenu(menu.map((m: any) => (m.id === item.id ? { ...m, available: newAvailable } : m)));
+      setMenu(menu.map((m) => (m.id === item.id ? { ...m, available: newAvailable } : m)));
       showToast(`Item ${newAvailable ? 'available' : 'unavailable'}`, 'info');
     }
-  };
+  }, [currentUser, menu, setMenu, showToast]);
 
-  const onCreateEvent = async (eventPayload: any) => {
+  const onCreateEvent = useCallback(async (eventPayload: { title: string, description: string, date: string, category: string }) => {
     if (!currentUser?.id) return;
     setActionLoading(true);
     try {
       await HospitalityService.createEvent({ ...eventPayload, merchant_id: currentUser.id });
       showToast('Event created successfully!', 'success');
       loadData();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to create event', 'error');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to create event';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onReleaseHospitalityEscrow = async (pin: string, type: 'TICKET' | 'RESERVATION') => {
-    if (!currentUser?.id) return;
+  const onReleaseHospitalityEscrow = useCallback(async (pin: string, type: 'TICKET' | 'RESERVATION'): Promise<boolean> => {
+    if (!currentUser?.id) return false;
     setActionLoading(true);
     try {
       const res = await HospitalityService.releaseHospitalityEscrow(pin, type);
-      showToast(res.message || 'Escrow released successfully', 'success');
+      showToast(res?.message || 'Check-in successful! Escrow released.', 'success');
       loadData();
-    } catch (error: any) {
-      showToast(error.message || `Failed to process ${type.toLowerCase()} PIN`, 'error');
+      return true;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : `Invalid PIN for ${type.toLowerCase()}`;
+      showToast(msg, 'error');
+      return false;
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onToggleTableStatus = async (tableId: string, currentStatus: string) => {
+  const onToggleTableStatus = useCallback(async (tableId: string, currentStatus: string) => {
     if (!currentUser?.id) return;
     const newStatus = currentStatus === 'free' ? 'occupied' : 'free';
     setActionLoading(true);
@@ -314,28 +325,30 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       await HospitalityService.toggleTableStatus(tableId, newStatus as any);
       showToast(`Table marked as ${newStatus.toLowerCase()}`, 'info');
       loadData();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to update table status', 'error');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to update table status';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onInitializeTables = async (count: number) => {
+  const onInitializeTables = useCallback(async (count: number) => {
     if (!currentUser?.id) return;
     setActionLoading(true);
     try {
       await HospitalityService.initializeTables(count);
       showToast(`${count} tables initialized`, 'success');
       loadData();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to initialize tables', 'error');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to initialize tables';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onWithdraw = async () => {
+  const onWithdraw = useCallback(async () => {
     const currentBalance = useWalletStore.getState().balance || 0;
     if (currentBalance < 100) {
       showToast('Minimum withdrawal is ETB 100', 'warning');
@@ -373,54 +386,63 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onPickBanner = async () => {
+  const onPickBanner = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [16, 9],
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
       quality: 0.8,
       base64: true,
     });
-    if (!result.canceled) setBannerImage(result.assets[0]);
-  };
+    if (!result.canceled) setBannerImage(result.assets); // Store array of assets
+  }, []);
 
-  const onUploadBanner = async () => {
-    if (!currentUser?.id || !bannerImage) return;
+  const onUploadBanner = useCallback(async () => {
+    if (!currentUser?.id || !bannerImage || !bannerImage.length) return;
     setBannerUploading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const uploadRes = await uploadRestaurantBanner(bannerImage);
-      if (uploadRes.error) {
-        showToast(uploadRes.error, 'error');
-        return;
+      const uploadedUrls: string[] = [];
+      for (const asset of bannerImage) {
+        const uploadRes = await uploadRestaurantBanner(asset);
+        if (uploadRes.data) {
+          uploadedUrls.push(uploadRes.data);
+        }
       }
-      const updateRes = await updateRestaurantProfile(currentUser.id, {
-        banner_url: uploadRes.data!,
-      });
-      if (updateRes.error) {
-        showToast(updateRes.error, 'error');
-        return;
+      
+      if (uploadedUrls.length > 0) {
+        const updateRes = await updateRestaurantProfile(currentUser.id, {
+          gallery_json: uploadedUrls,
+          banner_url: uploadedUrls[0], // Keep legacy banner_url mapped to the first image
+        });
+        if (updateRes.error) {
+          showToast(updateRes.error, 'error');
+          return;
+        }
+        setRestaurantProfile((prev) => (prev ? { ...prev, gallery_json: uploadedUrls, banner_url: uploadedUrls[0] } : null));
+        setBannerImage(null);
+        showToast('🎉 Gallery live! Citizens can see it now.', 'success');
+        loadData();
+      } else {
+        showToast('Failed to upload images', 'error');
       }
-      setRestaurantProfile((prev: any) => ({ ...prev, banner_url: uploadRes.data }));
-      setBannerImage(null);
-      showToast('🎉 Banner live! Citizens can see it now.', 'success');
-      loadData();
-    } catch (e: any) {
-      showToast(e.message || 'Upload failed', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Upload failed';
+      showToast(msg, 'error');
     } finally {
       setBannerUploading(false);
     }
-  };
+  }, [currentUser, bannerImage, loadData, showToast]);
 
   const onLoadRestaurantProfile = useCallback(async () => {
     if (!currentUser?.id) return;
     const res = await fetchMerchantRestaurant(currentUser.id);
-    if (res.data) setRestaurantProfile(res.data);
+    if (res.data) setRestaurantProfile(res.data as RestaurantProfile);
   }, [currentUser?.id]);
 
-  const onAddTable = async (
+  const onAddTable = useCallback(async (
     tableNumber: string,
     capacity: number,
     label: string,
@@ -452,14 +474,15 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
         loadData();
         setShowAddTableModal(false);
       }
-    } catch (e: any) {
-      showToast(e.message || 'Failed to add table', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to add table';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onSetTableStatus = async (
+  const onSetTableStatus = useCallback(async (
     tableId: string,
     status: 'free' | 'occupied' | 'reserved' | 'vip'
   ) => {
@@ -469,7 +492,7 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       showToast(`Table marked ${status.toLowerCase()}`, 'info');
       loadData();
     } else showToast(res.error, 'error');
-  };
+  }, [loadData, showToast]);
 
   const onLogout = useCallback(async () => {
     try {
@@ -480,7 +503,7 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     }
   }, [showToast]);
 
-  const onUpdateStock = async (stockItem: any) => {
+  const onUpdateStock = useCallback(async (stockItem: { id: string, item_name: string, quantity: number }) => {
     if (!currentUser?.id) return;
     setActionLoading(true);
     try {
@@ -490,39 +513,90 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
         showToast(`Stock updated!`, 'success');
         loadData();
       }
-    } catch (e: any) {
-      showToast(e.message || 'Failed to update stock', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to update stock';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onOrderSupplies = async (item: any) => {
+  const onOrderSupplies = useCallback(async (item: { item_name: string }) => {
     if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showToast(`Searching for ${item.item_name} on Agro-Link...`, 'info');
-    (navigation as any).navigate('Marketplace', {
+    navigation.navigate('Marketplace', {
       search: item.item_name,
       category: 'Agro',
     });
-  };
+  }, [currentUser, navigation, showToast]);
 
-  const onUpdateReservationStatus = async (reservationId: string, status: string) => {
+  const onUpdateReservationStatus = useCallback(async (id: string, status: string) => {
     if (!currentUser?.id) return;
     setActionLoading(true);
     try {
-      const { error } = await HospitalityService.updateReservationStatus(reservationId, status);
-      if (error) throw new Error(error);
+      await HospitalityService.updateReservationStatus(id, status);
       showToast(`Reservation ${status.toLowerCase()}`, 'success');
       loadData();
-    } catch (e: any) {
-      showToast(e.message || 'Failed to update reservation', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Status update failed';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast]);
 
-  const onRetryDispatch = async (orderId: string, orderType: any = 'FOOD') => {
+  const onNoShowReservation = useCallback(async (reservationId: string) => {
+    if (!currentUser?.id) return;
+    setActionLoading(true);
+    try {
+      const res = await HospitalityService.noShowReservation(reservationId);
+      if (res?.ok) {
+        showToast('No-show recorded. Deposit retained.', 'info');
+      } else {
+        showToast(res?.error || 'Failed to record no-show', 'error');
+      }
+      loadData();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'No-show failed';
+      showToast(msg, 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  }, [currentUser, loadData, showToast]);
+  
+  const onCreateReservation = useCallback(async (payload: any) => {
+    if (!currentUser?.id) return false;
+    setActionLoading(true);
+    try {
+      const result = await HospitalityService.createReservation(
+        payload.merchant_id || currentUser.id,
+        payload.reservation_time,
+        payload.guest_count,
+        payload.deposit_amount || 0,
+        payload.items || [],
+        payload.table_id,
+        payload.table_number,
+        payload.metadata || {}
+      );
+      
+      // The result is the JSONB from the RPC
+      const pin = result?.service_pin || '....';
+      showToast(`Reservation Created! PIN: ${pin}`, 'success');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      await loadData();
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to create reservation';
+      showToast(msg, 'error');
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  }, [currentUser, loadData, showToast]);
+
+  const onRetryDispatch = useCallback(async (orderId: string, orderType: 'FOOD' | 'MARKETPLACE' = 'FOOD') => {
     if (!currentUser?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActionLoading(true);
@@ -536,14 +610,15 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
       } else {
         showToast(res.error || 'Dispatch failed', 'error');
       }
-    } catch (e: any) {
-      showToast(e.message || 'Dispatch error', 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Dispatch error';
+      showToast(msg, 'error');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [currentUser, loadData, showToast, restaurantProfile]);
 
-  return {
+  return useMemo(() => ({
     actionLoading,
     onUpdateStatus,
     onRetryDispatch,
@@ -581,33 +656,18 @@ export function useRestaurantActions(data: any, isWhitelisted: boolean = false) 
     onUpdateStock,
     onOrderSupplies,
     onUpdateReservationStatus,
-    onFireReservation,
-    onCreateReservation: async (data: any) => {
-      try {
-        setActionLoading(true);
-        const { error } = await HospitalityService.createReservation(
-          currentUser.id,
-          data.reservation_time,
-          data.guest_count,
-          0, // 0 deposit for manual bookings
-          [], // No pre-orders for manual bookings
-          data.table_id,
-          data.table_number,
-          data.metadata
-        );
-
-        if (error) throw new Error(error);
-        
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast('Reservation created successfully', 'success');
-        loadData();
-      } catch (err: any) {
-        showToast(err.message || 'Failed to create reservation', 'error');
-      } finally {
-        setActionLoading(false);
-      }
-    },
+    onCreateReservation,
+    onNoShowReservation,
     editingProduct,
     setEditingProduct,
-  };
+  }), [
+    actionLoading, onUpdateStatus, onRetryDispatch, onFireReservation, onSettlePayment,
+    onAddMenuItem, onToggleAvailability, onCreateEvent, onReleaseHospitalityEscrow,
+    onToggleTableStatus, onInitializeTables, onRejectOrder, onLogout, onWithdraw,
+    showAddMenuItem, showPinModal, showAddTableModal, currentPin, selectedImage,
+    uploading, bannerImage, bannerUploading, restaurantProfile, onLoadRestaurantProfile,
+    onAddTable, onSetTableStatus, onUpdateStock, onOrderSupplies, onUpdateReservationStatus,
+    onCreateReservation, onNoShowReservation,
+    editingProduct
+  ]);
 }

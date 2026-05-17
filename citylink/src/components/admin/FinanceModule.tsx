@@ -20,11 +20,32 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+export interface Withdrawal {
+  id: string;
+  amount: number;
+  bank_name?: string;
+  account_number?: string;
+  profiles?: {
+    full_name: string;
+    phone: string;
+  };
+}
+
+export interface FinanceStats {
+  treasury_balance: number;
+  escrow_liability: number;
+  frozen_total: number;
+  pending_payouts: number;
+  total_revenue_30d: number;
+  parking_revenue_30d: number;
+  marketplace_revenue_30d: number;
+}
+
 export default function FinanceModule() {
   const theme = useTheme();
   const isMobile = SCREEN_WIDTH < 768;
-  const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [stats, setStats] = useState<FinanceStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -32,7 +53,7 @@ export default function FinanceModule() {
     setLoading(true);
     const [wRes, sRes] = await Promise.all([
       fetchPendingWithdrawals(),
-      supaQuery<any>((c) => c.rpc('get_financial_stats')),
+      supaQuery<FinanceStats>((c) => c.rpc('get_financial_stats')),
     ]);
 
     setWithdrawals(wRes.data || []);
@@ -70,7 +91,7 @@ export default function FinanceModule() {
     setProcessingId(null);
   };
 
-  const renderWithdrawal = ({ item }: { item: any }) => (
+  const renderWithdrawal = ({ item }: { item: Withdrawal }) => (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.rim }]}>
       <View style={styles.cardHeader}>
         <View style={styles.userInfo}>
@@ -244,7 +265,7 @@ export default function FinanceModule() {
   );
 }
 
-function StatCard({ label, value, icon, color }: any) {
+function StatCard({ label, value, icon, color }: { label: string; value: string; icon: React.ComponentProps<typeof Ionicons>['name']; color: string }) {
   const theme = useTheme();
   return (
     <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.rim }]}>

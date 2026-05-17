@@ -15,6 +15,7 @@ interface AgentState {
   isConciergeOpen: boolean;
   messages: Record<string, any[]>;
   isThinking: boolean;
+  thinkingStatus: string | null;
   activeActionCard: {
     type: string;
     data: any;
@@ -25,11 +26,12 @@ interface AgentState {
   // Actions
   toggleConcierge: (isOpen?: boolean) => void;
   addMessage: (msg: any, mode?: string) => void;
-  setThinking: (val: boolean) => void;
+  setThinking: (isThinking: boolean, status?: string | null) => void;
   showActionCard: (type: string, data: any) => void;
   hideActionCard: () => void;
   clearChat: (mode?: string) => void;
   updateSnapshot: () => Promise<void>;
+  reset: () => void;
 }
 
 export const useAgentStore = create<AgentState>((set) => ({
@@ -59,8 +61,8 @@ export const useAgentStore = create<AgentState>((set) => ({
       };
     }),
 
-  setThinking: (val) => 
-    set({ isThinking: val }),
+  setThinking: (isThinking, status = null) => 
+    set({ isThinking, thinkingStatus: status }),
 
   showActionCard: (type, data) => 
     set({ 
@@ -177,4 +179,12 @@ export const useAgentStore = create<AgentState>((set) => ({
       },
     });
   },
+
+  reset: () => set({
+    isConciergeOpen: false,
+    messages: { citizen: [], merchant: [], agent: [], admin: [] },
+    isThinking: false,
+    activeActionCard: null,
+    snapshot: null,
+  })
 }));

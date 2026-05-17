@@ -112,7 +112,7 @@ export async function registerDeliveryAgent({
         { onConflict: 'id' }
       )
       .select()
-      .single()
+      .maybeSingle()
   );
 }
 
@@ -194,7 +194,7 @@ export async function setAgentOnlineStatus(
 export async function fetchAgentProfile(agentId: string) {
   if (!hasSupabase()) return { data: null, error: null };
   return supaQuery<DeliveryAgent>((c) =>
-    c.from('delivery_agents').select('*').eq('id', agentId).single()
+    c.from('delivery_agents').select('*').eq('id', agentId).maybeSingle()
   );
 }
 
@@ -206,7 +206,14 @@ export async function findNearbyAgents(
 ): Promise<DeliveryAgent[]> {
   if (!hasSupabase()) return [];
 
-  const { data, error } = await supaQuery<any[]>((c) =>
+  const { data, error } = await supaQuery<{
+    agent_id: string;
+    first_name: string;
+    last_name: string;
+    vehicle_type: VehicleType;
+    current_status: AgentStatus;
+    distance_meters: number;
+  }[]>((c) =>
     c.rpc('get_nearby_agents', {
       p_lat: merchantLat,
       p_lng: merchantLng,
@@ -222,9 +229,9 @@ export async function findNearbyAgents(
     first_name: a.first_name,
     last_name: a.last_name,
     vehicle_type: a.vehicle_type,
-    current_status: a.current_status,
+    agent_status: a.current_status, // Map to DeliveryAgent field
     distance_meters: a.distance_meters,
-  })) as any[];
+  })) as unknown as DeliveryAgent[];
 }
 
 // ── Dispatch Job ──────────────────────────────────────────────────────────────
@@ -235,7 +242,7 @@ export async function dispatchOrderToAgents(
 ): Promise<{ ok: boolean; error?: string; expiresAt?: string; dispatchedTo?: number }> {
   if (!hasSupabase() || !agentIds.length) return { ok: false, error: 'no_agents' };
 
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min window
   const table = orderType === 'MARKETPLACE' ? 'marketplace_orders' : 'food_orders';
 
   const { error } = await supaQuery<void>((c) =>
@@ -275,7 +282,7 @@ export async function retryDispatch(
   lng?: number
 ): Promise<{ ok: boolean; count?: number; error?: string }> {
   if (!hasSupabase()) return { ok: false };
-  const { data, error } = await supaQuery<any>((c) =>
+  const { data, error } = await supaQuery<{ ok: boolean; dispatched_count: number; error?: string }>((c) =>
     c.rpc('dispatch_order', {
       p_order_id: orderId,
       p_merchant_id: merchantId,
@@ -513,18 +520,31 @@ export async function recordTelemetry(
   );
 }
 
+// ── Fetch Open-Pool Marketplace Orders (Unassigned PAID/DISPATCHING) ─────────
+// Uses a SECURITY DEFINER RPC so RLS doesn't block approved agents from
+// seeing orders that haven't been assigned to them yet.
+export async function fetchAvailableMarketplaceOrders(): Promise<any[]> {
+  if (!hasSupabase()) return [];
+  const { data, error } = await supaQuery<any[]>((c) =>
+    c.rpc('get_agent_available_orders')
+  );
+  if (error || !data) return [];
+  return data;
+}
+
 // ── Fetch Pending Dispatches for Agent ────────────────────────────────────────
 export async function fetchPendingDispatches(agentId: string): Promise<DeliveryDispatch[]> {
   if (!hasSupabase()) return [];
 
   // 1. Fetch the dispatches first
+  // No expires_at filter — let the backend accept_delivery_job RPC validate freshness.
+  // Removing it here ensures agents see dispatches even if app wasn't open during the window.
   const { data: dispatches, error } = await supaQuery<any[]>((c) =>
     c
       .from('delivery_dispatches')
       .select('*')
       .eq('agent_id', agentId)
       .eq('status', 'PENDING')
-      .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
   );
 
@@ -545,7 +565,7 @@ export async function fetchPendingDispatches(agentId: string): Promise<DeliveryD
       c
         .from('marketplace_orders')
         .select(
-          `*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, business_name, subcity)`
+          `*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, subcity)`
         )
         .in('id', marketplaceIds)
     );
@@ -557,7 +577,7 @@ export async function fetchPendingDispatches(agentId: string): Promise<DeliveryD
       c
         .from('food_orders')
         .select(
-          `*, merchant:profiles!food_orders_merchant_id_fkey(full_name, business_name, subcity)`
+          `*, merchant:profiles!food_orders_merchant_id_fkey(full_name, subcity)`
         )
         .in('id', foodIds)
     );
@@ -580,8 +600,14 @@ export async function fetchPendingDispatches(agentId: string): Promise<DeliveryD
           ? {
               ...orderDetails,
               merchant: Array.isArray(orderDetails.merchant)
-                ? orderDetails.merchant[0]
-                : orderDetails.merchant,
+                ? {
+                    ...orderDetails.merchant[0],
+                    business_name: d.order_type === 'FOOD' ? orderDetails.restaurant_name : orderDetails.merchant_name,
+                  }
+                : {
+                    ...orderDetails.merchant,
+                    business_name: d.order_type === 'FOOD' ? orderDetails.restaurant_name : orderDetails.merchant_name,
+                  },
             }
           : null,
       };
@@ -599,7 +625,7 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
       c
         .from('marketplace_orders')
         .select(
-          `*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, business_name, subcity, woreda, latitude, longitude), buyer:profiles!marketplace_orders_buyer_id_fkey(full_name, phone)`
+          `*, merchant:profiles!marketplace_orders_merchant_id_fkey(full_name, subcity, woreda, latitude, longitude), buyer:profiles!marketplace_orders_buyer_id_fkey(full_name, phone)`
         )
         .eq('agent_id', agentId)
         .in('status', ['AGENT_ASSIGNED', 'SHIPPED', 'IN_TRANSIT', 'AWAITING_PIN'])
@@ -608,7 +634,7 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
       c
         .from('food_orders')
         .select(
-          `*, merchant:profiles!food_orders_merchant_id_fkey(full_name, business_name, subcity, woreda, latitude, longitude), buyer:profiles!food_orders_citizen_id_fkey(full_name, phone)`
+          `*, merchant:profiles!food_orders_merchant_id_fkey(full_name, subcity, woreda, latitude, longitude), buyer:profiles!food_orders_citizen_id_fkey(full_name, phone)`
         )
         .eq('agent_id', agentId)
         .in('status', ['AGENT_ASSIGNED', 'SHIPPED', 'IN_TRANSIT', 'AWAITING_PIN'])
@@ -629,11 +655,13 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
               ...m.merchant[0],
               lat: (m.merchant[0] as any).latitude,
               lng: (m.merchant[0] as any).longitude,
+              business_name: m.merchant_name,
             }
           : {
               ...(m.merchant as any),
               lat: (m.merchant as any)?.latitude,
               lng: (m.merchant as any)?.longitude,
+              business_name: m.merchant_name,
             },
         buyer: Array.isArray(m.buyer) ? m.buyer[0] : m.buyer,
         shipping_address: m.shipping_address,
@@ -655,11 +683,13 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
               ...f.merchant[0],
               lat: (f.merchant[0] as any).latitude,
               lng: (f.merchant[0] as any).longitude,
+              business_name: f.restaurant_name,
             }
           : {
               ...(f.merchant as any),
               lat: (f.merchant as any)?.latitude,
               lng: (f.merchant as any)?.longitude,
+              business_name: f.restaurant_name,
             },
         buyer: Array.isArray(f.buyer) ? f.buyer[0] : f.buyer,
         shipping_address: f.shipping_address,
@@ -678,23 +708,20 @@ export async function fetchActiveJobs(agentId: string): Promise<UnifiedOrder[]> 
 export async function fetchAgentHistory(agentId: string, limit = 20): Promise<any[]> {
   if (!hasSupabase()) return [];
 
+  // Use SECURITY DEFINER RPC for marketplace orders to bypass RLS policy
+  // that silently blocks completed-order reads via direct table access.
   const [marketRes, foodRes] = await Promise.all([
     supaQuery<any[]>((c) =>
-      c
-        .from('marketplace_orders')
-        .select(
-          `id, product_name, total, agent_fee, status, delivered_at, merchant:profiles!marketplace_orders_merchant_id_fkey(business_name)`
-        )
-        .eq('agent_id', agentId)
-        .eq('status', 'COMPLETED')
-        .order('delivered_at', { ascending: false })
-        .limit(limit)
+      c.rpc('get_agent_marketplace_history', {
+        p_agent_id: agentId,
+        p_limit: limit,
+      })
     ),
     supaQuery<any[]>((c) =>
       c
         .from('food_orders')
         .select(
-          `id, restaurant_name, total, agent_fee, status, delivered_at, merchant:profiles!food_orders_merchant_id_fkey(business_name)`
+          `id, restaurant_name, total, agent_fee, status, delivered_at, merchant:profiles!food_orders_merchant_id_fkey(full_name)`
         )
         .eq('agent_id', agentId)
         .eq('status', 'COMPLETED')
@@ -704,15 +731,20 @@ export async function fetchAgentHistory(agentId: string, limit = 20): Promise<an
   ]);
 
   const unified = [
-    ...(marketRes.data || []).map((o) => ({
+    ...(marketRes.data || []).map((o: any) => ({
       ...o,
       display_name: o.product_name,
       order_type: 'MARKETPLACE',
+      merchant: {
+        full_name: o.merchant_full_name,
+        business_name: o.merchant_name || o.product_name,
+      },
     })),
-    ...(foodRes.data || []).map((o) => ({
+    ...(foodRes.data || []).map((o: any) => ({
       ...o,
       display_name: o.restaurant_name,
       order_type: 'FOOD',
+      merchant: o.merchant ? { ...o.merchant, business_name: o.restaurant_name } : undefined,
     })),
   ];
 

@@ -344,6 +344,8 @@
   "unknown_status": "Unknown Status",
   "delivery_pin_protected": "Delivery PIN (Shield protected)",
   "verify_identity_reveal_pin": "Verify identity to reveal Delivery PIN",
+  "delivery_pin_label": "DELIVERY PIN (FOR AGENT)",
+  "delivery_pin_hint": "Give this to the agent to confirm receipt",
 
   "errors_misc": "Errors & Misc",
   "auth_error": "Authentication error",
@@ -556,7 +558,7 @@
   "history_empty_desc": "Your completed delivery history will appear here.",
   "delivered_msg": "✅ Delivered! ETB %{amount} credited to your wallet",
   "confirm_handover_msg": "Package picked up! Delivery officially started.",
-  "enter_pickup_pin_msg": "Please enter the 6-digit pickup PIN provided by the merchant.",
+  "enter_pickup_pin_msg": "Enter the 6-digit PICKUP PIN from the merchant.",
   "proof_uploaded_msg": "Proof uploaded! Ask buyer for PIN.",
   "become_agent_title": "Become a Delivery Agent",
   "earn_per_delivery_msg": "Earn 12% per delivery",
@@ -571,7 +573,7 @@
   "license_id_label": "Driver's License / National ID Number",
   "head_to_pickup_label": "Head to Pickup",
   "head_to_dropoff_label": "Head to Dropoff",
-  "get_delivery_pin_msg": "Get Delivery PIN from Buyer",
+  "get_delivery_pin_msg": "Ask Buyer for DELIVERY PIN",
   "your_pay_label": "Your pay",
   "waiting_merchant_msg": "Waiting for Merchant...",
   "picked_up_package_btn": "I've Picked Up the Package",
@@ -893,7 +895,7 @@
   "needs_resolution_24h": "Needs resolution within 24h.",
   "no_orders_yet": "No orders yet",
   "quantity_label": "Quantity",
-  "pickup_pin_up": "PICKUP PIN",
+  "pickup_pin_up": "PICKUP PIN (FOR AGENT)",
   "escrow_status_up": "ESCROW STATUS",
   "generating": "Generating...",
   "released": "Released",
@@ -932,6 +934,6 @@
   "create_gourmet_item_btn": "CREATE GOURMET ITEM",
   "rider_pickup_pin_up": "RIDER PICKUP PIN",
   "authorized_handover_required": "Authorized Handover Required",
-  "give_secure_code_rider": "Give this secure code to the delivery rider to authorize order handover.",
+  "give_secure_code_rider": "Give this code to the agent to authorize pickup.",
   "confirm_handover_up": "CONFIRM HANDOVER"
 }

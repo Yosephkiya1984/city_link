@@ -53,11 +53,10 @@ export const LocationService = {
   /**
    * formatTravelTime — Estimates travel time based on distance and mode.
    */
-  estimateTravelTime(distanceKm: number, mode: 'walking' | 'driving' | 'lrt' = 'driving'): string {
+  estimateTravelTime(distanceKm: number, mode: 'walking' | 'driving' = 'driving'): string {
     const speeds = {
       walking: 5, // km/h
       driving: 25, // Average Addis traffic speed
-      lrt: 35,
     };
     const timeHr = distanceKm / speeds[mode];
     const mins = Math.round(timeHr * 60);
@@ -82,5 +81,29 @@ export const LocationService = {
       console.error('[LocationService] searchNearby failed:', e);
       return [];
     }
+  },
+
+  /**
+   * getRoute — Fetches road-accurate routing geometry between two points.
+   * Uses OSRM (Open Source Routing Machine).
+   */
+  async getRoute(
+    start: { lat: number; lon: number },
+    end: { lat: number; lon: number }
+  ): Promise<{ latitude: number; longitude: number }[]> {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.routes && data.routes[0]) {
+        return data.routes[0].geometry.coordinates.map((c: any) => ({
+          latitude: c[1],
+          longitude: c[0],
+        }));
+      }
+    } catch (e) {
+      console.error('[LocationService] Routing failed:', e);
+    }
+    return [];
   },
 };

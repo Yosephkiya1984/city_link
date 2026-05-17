@@ -5,6 +5,7 @@ import TopBar from '../../components/TopBar';
 import { useSystemStore } from '../../store/SystemStore';
 import { Colors, DarkColors, Radius, FontSize, Fonts } from '../../theme';
 import { uid, timeAgo } from '../../utils';
+import { Notification } from '../../types/domain_types';
 
 function useTheme() {
   const isDark = useSystemStore((s) => s.isDark);
@@ -28,10 +29,11 @@ export default function NotificationsScreen() {
   });
 
   const FILTERS = ['all', 'unread', 'transport', 'payments', 'social', 'promotions', 'system'];
-  const filtered = notifications.filter((n: any) => {
+  const filtered = notifications.filter((n) => {
     if (filter === 'all') return true;
     if (filter === 'unread') return !n.read && !n.is_read;
-    return ((n.data as any)?.category || (n.metadata as any)?.category || 'system') === filter;
+    const cat = (n.data?.category as string) || (n.metadata?.category as string) || 'system';
+    return cat === filter;
   });
 
   // Real-time notifications are now handled globally in HomeScreen.js
@@ -44,7 +46,7 @@ export default function NotificationsScreen() {
       promotions: 'gift',
       system: 'settings',
     };
-    return (iconMap[category] || 'information-circle') as any;
+    return (iconMap[category] || 'information-circle') as React.ComponentProps<typeof Ionicons>['name'];
   };
 
   const getNotificationColor = (type: string, category: string) => {
@@ -244,9 +246,9 @@ export default function NotificationsScreen() {
               </Text>
             </View>
 
-            {filtered.map((n: any) => {
+            {filtered.map((n) => {
               const cat = String(
-                (n.data as any)?.category || (n.metadata as any)?.category || 'system'
+                (n.data?.category as string) || (n.metadata?.category as string) || 'system'
               );
               return (
                 <TouchableOpacity

@@ -1,16 +1,175 @@
 // CityLink Configuration
 // Environment variables are loaded from .env file
 
-export const Config = {
-  supaUrl: (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim(),
-  supaKey: (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim(),
-  // adminCode is intentionally removed — admin authorization is enforced server-side
-  // via auth.uid() role checks inside SECURITY DEFINER RPCs (admin_approve_merchant, etc.).
-  // Never read admin credentials from the client bundle.
-  aiProxyUrl: process.env.EXPO_PUBLIC_AI_PROXY_URL || 'OFFLINE_MODE',
-  devMode: process.env.EXPO_PUBLIC_DEV_MODE === 'true' || false,
-  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null, // Optional: Error tracking
+// ─── Environment Detection ──────────────────────────────────────────────────
+type Environment = 'development' | 'staging' | 'production';
 
+const detectEnvironment = (): Environment => {
+  if (__DEV__) return 'development';
+  
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+  if (url.includes('staging') || url.includes('dev')) return 'staging';
+  
+  return 'production';
+};
+
+const ENVIRONMENT = detectEnvironment();
+
+// ─── Configuration Validation ───────────────────────────────────────────────
+interface ConfigValidationError {
+  field: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+const validateSupabaseConfig = (): ConfigValidationError[] => {
+  const errors: ConfigValidationError[] = [];
+  const url = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim();
+  const key = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+
+  // URL validation
+  if (!url) {
+    errors.push({
+      field: 'EXPO_PUBLIC_SUPABASE_URL',
+      message: 'Supabase URL is required',
+      severity: 'error'
+    });
+  } else if (url.startsWith('REPLACE') || url === 'https://your-project.supabase.co') {
+    errors.push({
+      field: 'EXPO_PUBLIC_SUPABASE_URL',
+      message: 'Supabase URL appears to be a placeholder. Please set your actual project URL.',
+      severity: 'error'
+    });
+  } else if (!url.startsWith('https://') || !url.includes('.supabase.co')) {
+    errors.push({
+      field: 'EXPO_PUBLIC_SUPABASE_URL',
+      message: 'Supabase URL format appears invalid. Expected format: https://your-project.supabase.co',
+      severity: 'warning'
+    });
+  }
+
+  // Key validation
+  if (!key) {
+    errors.push({
+      field: 'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+      message: 'Supabase anonymous key is required',
+      severity: 'error'
+    });
+  } else if (key.startsWith('REPLACE') || key === 'your-supabase-anon-key') {
+    errors.push({
+      field: 'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+      message: 'Supabase anonymous key appears to be a placeholder. Please set your actual anonymous key.',
+      severity: 'error'
+    });
+  } else if (key.length < 100) {
+    errors.push({
+      field: 'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+      message: 'Supabase anonymous key appears too short. Please verify it is correct.',
+      severity: 'warning'
+    });
+  }
+
+  return errors;
+};
+
+// ─── Supabase Configuration ─────────────────────────────────────────────────
+interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+  environment: Environment;
+  isValid: boolean;
+  validationErrors: ConfigValidationError[];
+  options: {
+    auth: {
+      autoRefreshToken: boolean;
+      persistSession: boolean;
+      detectSessionInUrl: boolean;
+      flowType: 'pkce' | 'implicit';
+    };
+    global: {
+      headers: Record<string, string>;
+    };
+    realtime: {
+      params: {
+        eventsPerSecond: number;
+      };
+    };
+  };
+}
+
+const createSupabaseConfig = (): SupabaseConfig => {
+  const url = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim();
+  const anonKey = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+  const validationErrors = validateSupabaseConfig();
+  const hasErrors = validationErrors.some(error => error.severity === 'error');
+
+  return {
+    url,
+    anonKey,
+    environment: ENVIRONMENT,
+    isValid: !hasErrors,
+    validationErrors,
+    options: {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'x-application-name': 'citylink-mobile',
+          'x-environment': ENVIRONMENT,
+          'x-client-version': '1.0.0'
+        }
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: ENVIRONMENT === 'development' ? 50 : 10
+        }
+      }
+    }
+  };
+};
+
+// ─── Configuration Logging ──────────────────────────────────────────────────
+const logConfigurationStatus = (supabaseConfig: SupabaseConfig): void => {
+  if (__DEV__) {
+    console.log(`[CityLink Config] Environment: ${supabaseConfig.environment}`);
+    console.log(`[CityLink Config] Supabase URL: ${supabaseConfig.url ? 'Set' : 'Missing'}`);
+    console.log(`[CityLink Config] Supabase Key: ${supabaseConfig.anonKey ? 'Set' : 'Missing'}`);
+    console.log(`[CityLink Config] Configuration Valid: ${supabaseConfig.isValid}`);
+    
+    if (supabaseConfig.validationErrors.length > 0) {
+      console.group('[CityLink Config] Validation Issues:');
+      supabaseConfig.validationErrors.forEach(error => {
+        const logFn = error.severity === 'error' ? console.error : console.warn;
+        logFn(`${error.severity.toUpperCase()}: ${error.field} - ${error.message}`);
+      });
+      console.groupEnd();
+    }
+  }
+};
+
+// ─── Main Configuration ─────────────────────────────────────────────────────
+const supabaseConfig = createSupabaseConfig();
+logConfigurationStatus(supabaseConfig);
+
+export const Config = {
+  // Supabase configuration (enhanced)
+  supabase: supabaseConfig,
+  
+  // Legacy properties for backward compatibility
+  supaUrl: supabaseConfig.url,
+  supaKey: supabaseConfig.anonKey,
+  
+  // Environment
+  environment: ENVIRONMENT,
+  devMode: process.env.EXPO_PUBLIC_DEV_MODE === 'true' || __DEV__,
+  
+  // Other services
+  aiProxyUrl: process.env.EXPO_PUBLIC_AI_PROXY_URL || 'OFFLINE_MODE',
+  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null,
   govAuthBaseUrl: process.env.EXPO_PUBLIC_GOV_AUTH_BASE_URL || 'https://api.citylink.gov.et',
 
   // 🏛️ Fayda National ID Gateway (OIDC)
@@ -19,18 +178,64 @@ export const Config = {
   faydaScope: 'openid profile kyc_basic',
 };
 
+// ─── Configuration Utilities ────────────────────────────────────────────────
+export const ConfigUtils = {
+  /**
+   * Check if Supabase configuration is valid and ready to use
+   */
+  isSupabaseConfigured(): boolean {
+    return Config.supabase.isValid;
+  },
+
+  /**
+   * Get configuration validation errors
+   */
+  getSupabaseValidationErrors(): ConfigValidationError[] {
+    return Config.supabase.validationErrors;
+  },
+
+  /**
+   * Get environment-specific configuration
+   */
+  getEnvironmentConfig() {
+    return {
+      environment: Config.environment,
+      isDevelopment: Config.environment === 'development',
+      isStaging: Config.environment === 'staging',
+      isProduction: Config.environment === 'production',
+      devMode: Config.devMode
+    };
+  },
+
+  /**
+   * Validate configuration and throw error if invalid
+   */
+  validateOrThrow(): void {
+    if (!Config.supabase.isValid) {
+      const errorMessages = Config.supabase.validationErrors
+        .filter(error => error.severity === 'error')
+        .map(error => `${error.field}: ${error.message}`)
+        .join('\n');
+      
+      throw new Error(`[CityLink] Invalid Supabase configuration:\n${errorMessages}`);
+    }
+  }
+};
+
 // ─── Dev bypass accounts ────────────────────────────────────────────────────
 // Maps a normalized phone → expected profile role/merchant_type so the OTP
 // screen is skipped entirely for known test numbers.
 // ANY code entered is accepted; the real profile is fetched from the DB.
-export const DEV_BYPASS_ACCOUNTS: Record<string, { role: string; merchant_type?: string }> = {
-  '+251904030403': { role: 'citizen' },
-  '+251911178024': { role: 'merchant', merchant_type: 'shop' },
-  '+251922222222': { role: 'merchant', merchant_type: 'parking' },
-  '+251913162911': { role: 'merchant', merchant_type: 'ekub' },
-  '+251973477392': { role: 'merchant', merchant_type: 'delala' },
-  '+251900001111': { role: 'merchant', merchant_type: 'restaurant' },
-};
+export const DEV_BYPASS_ACCOUNTS: Record<string, { role: string; merchant_type?: string }> = __DEV__
+  ? {
+      '+251904030403': { role: 'citizen' },
+      '+251911178024': { role: 'merchant', merchant_type: 'shop' },
+      '+251922222222': { role: 'merchant', merchant_type: 'parking' },
+      '+251913162911': { role: 'merchant', merchant_type: 'ekub' },
+      '+251973477392': { role: 'merchant', merchant_type: 'delala' },
+      '+251900001111': { role: 'merchant', merchant_type: 'restaurant' },
+    }
+  : {};
 export const WELCOME_BONUS_ETB = 5000;
 
 /** P2P transfers at or above this amount require wallet PIN (Goal §2). */
@@ -84,29 +289,7 @@ export const VEHICLE_TYPES = [
   { value: 'foot', label: '🚶 On Foot (Local Area)' },
 ];
 
-// LRT Stations (Addis Ababa Light Rail)
-export const LRT_STATIONS = {
-  NS: [
-    { id: 'ns-0', name: 'Menelik II Square', km: 0, isInterchange: true },
-    { id: 'ns-1', name: 'Lideta', km: 1.8, isInterchange: false },
-    { id: 'ns-2', name: 'Ayat', km: 3.5, isInterchange: false },
-    { id: 'ns-3', name: 'Tor Hailoch', km: 5.0, isInterchange: false },
-    { id: 'ns-4', name: 'Megenagna', km: 7.2, isInterchange: true },
-    { id: 'ns-5', name: 'Jemo', km: 9.1, isInterchange: false },
-    { id: 'ns-6', name: 'Lebu', km: 11.4, isInterchange: false },
-  ],
-  EW: [
-    { id: 'ew-0', name: 'Ayat', km: 0, isInterchange: false },
-    { id: 'ew-1', name: 'Menelik II Square', km: 4.1, isInterchange: true },
-    { id: 'ew-2', name: 'Mercato', km: 5.8, isInterchange: false },
-    { id: 'ew-3', name: 'Mexico', km: 7.2, isInterchange: false },
-    { id: 'ew-4', name: 'Akaki', km: 9.0, isInterchange: false },
-  ],
-};
 
-// LRT fare table (ETB per km)
-export const LRT_FARE_PER_KM = 0.45;
-export const LRT_BASE_FARE = 2.0;
 
 // Fayda demo database — ONLY available in development builds
 export const FAYDA_DB: Record<

@@ -7,9 +7,6 @@ import { useTheme } from '../../hooks/useTheme';
 import { Radius, Spacing, Fonts, Shadow } from './HospitalityTheme';
 
 const { width } = Dimensions.get('window');
-const GRID_COUNT = 8;
-const CELL_SIZE = (width - 64) / GRID_COUNT;
-
 export function VisualTableBuilder({ 
   tables = [], 
   onUpdatePosition = () => {}, 
@@ -17,9 +14,14 @@ export function VisualTableBuilder({
   onDeleteTable,
   onTablePress,
   selectedTableId: externalSelectedId,
-  hideControls = false
+  hideControls = false,
+  hideEditControl = false
 }: any) {
   const C = useTheme();
+  const [containerWidth, setContainerWidth] = useState(Dimensions.get('window').width - 64);
+  const GRID_COUNT = 8;
+  const cellSize = containerWidth / GRID_COUNT;
+
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(externalSelectedId || null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -36,6 +38,8 @@ export function VisualTableBuilder({
     if (isEditMode) {
       setSelectedTableId(table.id === selectedTableId ? null : table.id);
     } else {
+      // In non-edit mode (e.g. during booking), we allow selecting any table
+      // but we still check for onTablePress existence
       setSelectedTableId(table.id); // Immediate visual feedback
       if (onTablePress) onTablePress(table);
     }
@@ -47,11 +51,11 @@ export function VisualTableBuilder({
     const { locationX, locationY } = e.nativeEvent;
     
     // Snap to grid
-    const col = Math.floor(locationX / CELL_SIZE);
-    const row = Math.floor(locationY / CELL_SIZE);
+    const col = Math.floor(locationX / cellSize);
+    const row = Math.floor(locationY / cellSize);
     
     if (col >= 0 && col < GRID_COUNT && row >= 0 && row < GRID_COUNT) {
-      onUpdatePosition(selectedTableId, col * CELL_SIZE, row * CELL_SIZE);
+      onUpdatePosition(selectedTableId, col * cellSize, row * cellSize);
     }
   };
 
@@ -73,36 +77,46 @@ export function VisualTableBuilder({
               {isEditMode ? "Reposition tables on the grid" : "Live service monitoring"}
             </Typography>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity 
-              style={[styles.editToggle, { borderColor: C.primary + '50', backgroundColor: C.primary + '10' }, isEditMode && { backgroundColor: C.primary, borderColor: C.primary }]} 
-              onPress={() => {
-                setIsEditMode(!isEditMode);
-                setSelectedTableId(null);
-              }}
-            >
-              <Ionicons name={isEditMode ? "checkmark" : "build-outline"} size={16} color={isEditMode ? C.base : C.primary} />
-              <Typography variant="title" style={{ fontSize: 12, marginLeft: 6, color: isEditMode ? C.base : C.primary }}>
-                {isEditMode ? "Save" : "Edit"}
-              </Typography>
-            </TouchableOpacity>
-          </View>
+          {!hideEditControl && (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity 
+                style={[styles.editToggle, { borderColor: C.primary + '50', backgroundColor: C.primary + '10' }, isEditMode && { backgroundColor: C.primary, borderColor: C.primary }]} 
+                onPress={() => {
+                  setIsEditMode(!isEditMode);
+                  setSelectedTableId(null);
+                }}
+              >
+                <Ionicons name={isEditMode ? "checkmark" : "build-outline"} size={16} color={isEditMode ? C.base : C.primary} />
+                <Typography variant="title" style={{ fontSize: 12, marginLeft: 6, color: isEditMode ? C.base : C.primary }}>
+                  {isEditMode ? "Save" : "Edit"}
+                </Typography>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 
-      <GlassView variant="outline" style={[styles.gridWrapper, hideControls && { marginTop: 0 }]}>
+      <GlassView 
+        variant="outline" 
+        style={[styles.gridWrapper, hideControls && { marginTop: 0 }]}
+        onLayout={(e) => {
+          const { width } = e.nativeEvent.layout;
+          if (width > 0) setContainerWidth(width - 16); // Padding adjustment
+        }}
+      >
         <TouchableOpacity 
           activeOpacity={1} 
           onPress={handleGridPress}
-          style={[styles.gridInner, { width: width - 64, height: (width - 64) }]}
+          disabled={!isEditMode}
+          style={[styles.gridInner, { width: containerWidth, height: containerWidth }]}
         >
           {/* Background Grid Lines */}
           <View style={StyleSheet.absoluteFill}>
             {Array.from({ length: GRID_COUNT + 1 }).map((_, i) => (
-              <View key={`h-${i}`} style={[styles.gridLineH, { top: i * CELL_SIZE }]} />
+              <View key={`h-${i}`} style={[styles.gridLineH, { top: i * cellSize }]} />
             ))}
             {Array.from({ length: GRID_COUNT + 1 }).map((_, i) => (
-              <View key={`v-${i}`} style={[styles.gridLineV, { left: i * CELL_SIZE }]} />
+              <View key={`v-${i}`} style={[styles.gridLineV, { left: i * cellSize }]} />
             ))}
           </View>
 
@@ -119,17 +133,17 @@ export function VisualTableBuilder({
                   top: table.y_pos || 0,
                   scale: isSelected ? 1.05 : 1
                 }}
-                style={[
-                  styles.tableCard,
-                  { 
-                    width: CELL_SIZE - 4, 
-                    height: CELL_SIZE - 4,
-                    backgroundColor: isSelected ? C.primary + '30' : status.bg,
-                    borderColor: isSelected ? C.primary : status.color + '40',
-                    borderWidth: isSelected ? 2 : 1,
-                  }
-                ]}
-              >
+                  style={[
+                    styles.tableCard,
+                    { 
+                      width: cellSize - 4, 
+                      height: cellSize - 4,
+                      backgroundColor: isSelected ? C.primary + '30' : status.bg,
+                      borderColor: isSelected ? C.primary : status.color + '40',
+                      borderWidth: isSelected ? 2 : 1,
+                    }
+                  ]}
+                >
                 <TouchableOpacity 
                   style={styles.tableTouch} 
                   onPress={() => onTableSelect(table)}
@@ -144,6 +158,14 @@ export function VisualTableBuilder({
                       {table.capacity}
                     </Typography>
                   </View>
+                  
+                  {table.upcoming_reservation && (
+                    <View style={{ marginTop: 2, alignItems: 'center' }}>
+                      <Typography variant="hint" color="secondary" style={{ fontSize: 7, fontWeight: 'bold' }}>
+                        {new Date(table.upcoming_reservation.reservation_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </View>
+                  )}
                   
                   {table.status !== 'free' && (
                     <MotiView 

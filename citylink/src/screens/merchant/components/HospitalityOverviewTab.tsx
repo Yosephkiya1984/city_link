@@ -1,15 +1,16 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import React, { memo } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Typography, SectionTitle, GlassCard, GlassView } from '../../../components';
 import { fmtETB } from '../../../utils';
 import { useTheme } from '../../../hooks/useTheme';
 import { Radius, Spacing, Fonts, Shadow, D } from '../../../components/hospitality/HospitalityTheme';
+import { useRenderCount } from '../../../utils/debug/performanceMonitor';
 
 const { width } = Dimensions.get('window');
 
-export function HospitalityOverviewTab({
+export const HospitalityOverviewTab = memo(function HospitalityOverviewTab({
   orders = [],
   inventory = [],
   tables = [],
@@ -19,14 +20,16 @@ export function HospitalityOverviewTab({
   bannerUploading,
   onPickBanner,
   onUploadBanner,
+  onInitializeTables,
   salesHistory = { curve: [], raw: [], labels: [] },
   showToast,
   styles,
   t,
 }: any) {
+  useRenderCount('HospitalityOverviewTab');
   const C = useTheme();
-  const D = C; // Map theme to D for legacy compatibility
-  const revenueStatuses = ['PAID', 'SHIPPED', 'COMPLETED', 'PLACED']; // PLACED is often already paid in mobile money
+  const D_theme = C; // Renamed to avoid confusion with D from HospitalityTheme
+  const revenueStatuses = ['PAID', 'SHIPPED', 'COMPLETED', 'PLACED'];
   const totalRev = orders
     .filter((o: any) => revenueStatuses.includes(o.status?.toUpperCase()))
     .reduce((acc: any, o: any) => acc + (Number(o.total || o.total_amount) || 0), 0);
@@ -45,18 +48,62 @@ export function HospitalityOverviewTab({
 
   return (
     <View style={{ padding: Spacing.lg }}>
-      {/* Restaurant Banner & Branding */}
+      {/* Restaurant Banner & Branding Gallery */}
       <View style={styles.bannerContainer}>
-        {bannerImage || restaurant?.banner_url ? (
-          <Image 
-            source={{ uri: bannerImage?.uri || restaurant?.banner_url }} 
-            style={styles.bannerImage} 
-          />
-        ) : (
-          <View style={[styles.bannerImage, { backgroundColor: D.lift, alignItems: 'center', justifyContent: 'center' }]}>
-             <Ionicons name="image-outline" size={48} color={D.edge} />
-          </View>
+        <ScrollView 
+          horizontal 
+          pagingEnabled 
+          showsHorizontalScrollIndicator={false}
+          style={styles.bannerImage}
+        >
+          {((bannerImage && bannerImage.length > 0) || (restaurant?.gallery_json && restaurant.gallery_json.length > 0) || restaurant?.banner_url) ? (
+            <>
+              {/* If we have local pickings, show them first */}
+              {bannerImage?.map((asset: any, idx: number) => (
+                <Image 
+                  key={`local-${idx}`}
+                  source={{ uri: asset.uri }} 
+                  style={{ width: width - 32, height: '100%' }} 
+                />
+              ))}
+              {/* Then show saved gallery */}
+              {restaurant?.gallery_json?.map((url: string, idx: number) => (
+                <Image 
+                  key={`saved-${idx}`}
+                  source={{ uri: url }} 
+                  style={{ width: width - 32, height: '100%' }} 
+                />
+              ))}
+              {/* Fallback to legacy banner_url if gallery is empty */}
+              {(!restaurant?.gallery_json || restaurant.gallery_json.length === 0) && restaurant?.banner_url && !bannerImage && (
+                <Image 
+                  source={{ uri: restaurant.banner_url }} 
+                  style={{ width: width - 32, height: '100%' }} 
+                />
+              )}
+            </>
+          ) : (
+            <View style={{ width: width - 32, height: '100%', backgroundColor: D.lift, alignItems: 'center', justifyContent: 'center' }}>
+               <Ionicons name="image-outline" size={48} color={D.edge} />
+            </View>
+          )}
+        </ScrollView>
+
+        {((bannerImage?.length || 0) + (restaurant?.gallery_json?.length || 0) > 1) && (
+          <>
+            <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>
+                {(bannerImage?.length || 0) + (restaurant?.gallery_json?.length || 0)} PHOTOS • SWIPE
+              </Text>
+            </View>
+            <View style={localStyles.paginationDots}>
+              {Array.from({ length: (bannerImage?.length || 0) + (restaurant?.gallery_json?.length || 0) }).map((_, i) => (
+                <View key={i} style={[localStyles.dot, i === 0 && { backgroundColor: '#FFF', width: 12 }]} />
+              ))}
+            </View>
+          </>
         )}
+
         <View style={styles.bannerOverlay}>
           <TouchableOpacity 
             style={[styles.bannerUploadBtn, bannerImage && { backgroundColor: D.primary }]} 
@@ -69,7 +116,7 @@ export function HospitalityOverviewTab({
                <>
                  <Ionicons name={bannerImage ? "cloud-upload" : "camera"} size={16} color={D.ink} />
                  <Typography variant="hint" style={{ color: D.ink, marginLeft: 4, fontWeight: '800' }}>
-                   {bannerImage ? "CONFIRM" : "CHANGE BANNER"}
+                   {bannerImage ? `UPLOAD ${bannerImage.length}` : "UPDATE GALLERY"}
                  </Typography>
                </>
              )}
@@ -114,11 +161,23 @@ export function HospitalityOverviewTab({
                 ACTIVE TABLES
               </Typography>
             </View>
-            <View style={[styles.payoutChip, { backgroundColor: C.primary + '15', marginTop: Spacing.sm }]}>
-              <Typography variant="hint" color="primary" style={{ fontSize: 10, fontWeight: '700' }}>
-                {tables.length - activeTables} Free
-              </Typography>
-            </View>
+            
+            {tables.length === 0 ? (
+              <TouchableOpacity 
+                onPress={() => onInitializeTables(10)} 
+                style={[styles.payoutChip, { backgroundColor: C.primary, marginTop: Spacing.sm, paddingHorizontal: 8 }]}
+              >
+                <Typography variant="hint" style={{ color: '#000', fontSize: 10, fontWeight: '900' }}>
+                  GENERATE TABLES
+                </Typography>
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.payoutChip, { backgroundColor: C.primary + '15', marginTop: Spacing.sm }]}>
+                <Typography variant="hint" color="primary" style={{ fontSize: 10, fontWeight: '700' }}>
+                  {tables.length - activeTables} Free
+                </Typography>
+              </View>
+            )}
           </View>
         </GlassCard>
 
@@ -263,10 +322,23 @@ export function HospitalityOverviewTab({
       </View>
     </View>
   );
-}
+});
 
 const localStyles = StyleSheet.create({
   topSellingCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 20 },
   tsImage: { width: 56, height: 56, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)' },
   miniBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  paginationDots: {
+    position: 'absolute',
+    bottom: 50,
+    flexDirection: 'row',
+    alignSelf: 'center',
+    gap: 4,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  }
 });

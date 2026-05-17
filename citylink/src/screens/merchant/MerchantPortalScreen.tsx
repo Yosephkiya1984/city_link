@@ -41,7 +41,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function MerchantPortalScreen() {
   const t = useT();
   const navigation = useNavigation();
-  const route = useRoute();
+  const route = useRoute<{ key: string; name: string; params: { staffMode?: boolean; staffRole?: string; merchantType?: string; merchantId?: string } }>();
   
   const isDark = useSystemStore((s) => s.isDark);
   const C = isDark ? DarkColors : Colors;
@@ -49,10 +49,11 @@ export default function MerchantPortalScreen() {
   const setCurrentUser = useAuthStore((s) => s.setCurrentUser);
   const showToast = useSystemStore((s) => s.showToast);
 
-  const routeParams = route.params as any;
+  const routeParams = route.params;
   const isStaffMode = routeParams?.staffMode;
   const staffRole = routeParams?.staffRole;
   const staffMerchantType = routeParams?.merchantType;
+  const staffMerchantId = routeParams?.merchantId;
 
   const logout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -68,7 +69,7 @@ export default function MerchantPortalScreen() {
 
   const merchantType = isStaffMode 
     ? staffMerchantType 
-    : ((currentUser as any)?.merchant_type || (currentUser as any)?.merchant_details?.merchant_type);
+    : (currentUser?.merchant_type || currentUser?.merchant_details?.merchant_type);
   const normalizedType = merchantType?.toLowerCase();
 
   // Handle unknown merchant type toast in useEffect
@@ -143,7 +144,7 @@ export default function MerchantPortalScreen() {
       case 'restaurant':
       case 'cafe':
       case 'food':
-        return <RestaurantDashboard staffMode={isStaffMode} staffRole={staffRole} />;
+        return <RestaurantDashboard staffMode={isStaffMode} staffRole={staffRole} merchantId={staffMerchantId} />;
       case 'parking':
         return <ParkingDashboard />;
       case 'shop':

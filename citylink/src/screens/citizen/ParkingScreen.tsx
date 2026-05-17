@@ -7,7 +7,7 @@
  *  - This file (pure render, ~230 lines)
  */
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Image, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Image, StyleSheet, TextInput, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'react-native';
@@ -44,6 +44,7 @@ export default function ParkingScreen() {
     loading,
     balance,
     activeParking,
+    isStale,
     handleStartParking,
     handleEndParking,
     handleLotPress,
@@ -106,6 +107,16 @@ export default function ParkingScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={async () => {
+              await useWalletStore.getState().syncWithServer();
+              await refreshLots();
+            }}
+            tintColor={ADDIS_NOIR.gold}
+          />
+        }
       >
         {/* 🏎️ Active Session "Cockpit" */}
         {activeParking && (
@@ -143,6 +154,18 @@ export default function ParkingScreen() {
                 </Text>
                 <Ionicons name="key" size={16} color="#0B0D11" />
               </TouchableOpacity>
+
+              {isStale && (
+                <TouchableOpacity 
+                  style={[styles.cockpitEndBtn, { backgroundColor: '#ff5a4c', marginTop: 10, borderTopWidth: 0 }]} 
+                  onPress={onParkingEnd}
+                >
+                  <Text style={[styles.cockpitEndText, { color: '#FFF' }]}>
+                    Force End Stale Session
+                  </Text>
+                  <Ionicons name="stop-circle" size={16} color="#FFF" />
+                </TouchableOpacity>
+              )}
             </LinearGradient>
           </View>
         )}

@@ -53,7 +53,12 @@ export type RootStackParamList = {
   DelalaDashboard: undefined;
   ParkingDashboard: undefined;
   EkubDashboard: undefined;
-  MerchantPortal: undefined;
+  MerchantPortal: {
+    staffMode?: boolean;
+    staffRole?: string;
+    merchantType?: string;
+    merchantId?: string;
+  } | undefined;
   // Agent & Admin
   AgentDashboard: undefined;
   AdminDashboard: undefined;
@@ -99,7 +104,7 @@ export default function AppNavigator() {
     }
   }, [currentUser?.id, uiMode]);
 
-  const GOV_ROLES = React.useMemo(() => new Set(['admin', 'minister', 'inspector', 'station']), []);
+  const GOV_ROLES = React.useMemo(() => new Set(['admin', 'minister']), []);
   const isGovRole = currentUser?.role ? GOV_ROLES.has(currentUser.role) : false;
   const isFaydaVerified = currentUser?.fayda_verified || currentUser?.kyc_status === 'VERIFIED';
   const canAccessApp = isFaydaVerified || isGovRole;
